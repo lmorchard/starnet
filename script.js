@@ -74,7 +74,7 @@ function update() {
     points[idx].yAngle = 
       (points[idx].yAngle + (points[idx].yAngleRate * Math.PI * timeDelta)) % PI2;
     points[idx].xOffset = points[idx].xAngleFactor * Math.sin(points[idx].xAngle);    
-    points[idx].yOffset = points[idx].yAngleFactor * Math.cos(points[idx].yAngle);    
+    points[idx].yOffset = points[idx].yAngleFactor * Math.sin(points[idx].yAngle);    
   }
   
   updateTimer = setTimeout(update, UPDATE_DELAY);  
