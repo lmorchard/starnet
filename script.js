@@ -1,7 +1,7 @@
 const UPDATE_DELAY = 16;
 const PI2 = Math.PI * 2;
 
-const numPoints = 6;
+const numPoints = 3 + Math.floor(12 * Math.random());
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -23,14 +23,15 @@ function init() {
     points.push({
       x,
       y,
-      color: 360 * Math.random(),
+      strokeStyle: `hsl(${360 * Math.random()}, 50%, 50%)`,
+      strokeStyle: `rgba(${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random()})`,
       xOffset: 0,
       yOffset: 0,
       xAngle: 0,
-      xAngleFactor: 50 * Math.random(),
+      xAngleFactor: 25 * Math.random(),
       xAngleRate: 0.5 * Math.random(),
       yAngle: 0,
-      yAngleFactor: 50 * Math.random(),
+      yAngleFactor: 25 * Math.random(),
       yAngleRate: 0.5 * Math.random(),
     });
   }
@@ -42,14 +43,14 @@ function init() {
 function draw(ts) {
   canvas.width = canvas.width;
   
-  ctx.lineWidth = 0.5;
+  ctx.lineWidth = 1.5;
   
   for (let idx = 0; idx < numPoints; idx++) {
-    const { x, y, xOffset, yOffset, link, color } = points[idx];
+    const { x, y, xOffset, yOffset, strokeStyle } = points[idx];
     const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = points[numPoints - idx - 1];
   
-    ctx.strokeStyle = 'hsl(' + color + ', 50%, 50%)';
-    
+    ctx.strokeStyle = strokeStyle;
+    ctx.beginPath();
     ctx.moveTo(x + xOffset, y + yOffset);
     ctx.lineTo(canvas.width - (x + xOffset), y + yOffset);
     ctx.lineTo(linkX + linkXOffset, linkY + linkYOffset);    
