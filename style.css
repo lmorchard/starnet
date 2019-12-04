@@ -3,9 +3,14 @@
 body {
   font-family: helvetica, arial, sans-serif;
   margin: 2em;
+  background-color: #000;
 }
 
 h1 {
   font-style: italic;
   color: #373fff;
+}
+
+#canvas {
+  border: 1px solid #333;
 }
