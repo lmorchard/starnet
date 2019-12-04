@@ -23,9 +23,15 @@ function init() {
     points.push({
       x,
       y,
+      color: 360 * Math.random(),
       xOffset: 0,
       yOffset: 0,
       xAngle: 0,
+      xAngleFactor: 50 * Math.random(),
+      xAngleRate: 0.5 * Math.random(),
+      yAngle: 0,
+      yAngleFactor: 50 * Math.random(),
+      yAngleRate: 0.5 * Math.random(),
     });
   }
   
@@ -37,33 +43,37 @@ function draw(ts) {
   canvas.width = canvas.width;
   
   ctx.lineWidth = 0.5;
-  ctx.strokeStyle = '#fff';
   
   for (let idx = 0; idx < numPoints; idx++) {
-    const { x, y, xOffset, yOffset, link } = points[idx];
+    const { x, y, xOffset, yOffset, link, color } = points[idx];
     const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = points[numPoints - idx - 1];
+  
+    ctx.strokeStyle = 'hsl(' + color + ', 50%, 50%)';
     
     ctx.moveTo(x + xOffset, y + yOffset);
     ctx.lineTo(canvas.width - (x + xOffset), y + yOffset);
     ctx.lineTo(linkX + linkXOffset, linkY + linkYOffset);    
     ctx.lineTo(canvas.width - (linkX + linkXOffset), linkY + linkYOffset);    
     ctx.lineTo(x + xOffset, y + yOffset);
-  }
   
-  ctx.stroke();
+    ctx.stroke();
+  }
 
   drawFrame = window.requestAnimationFrame(draw);
 }
 
 function update() {
   const now = Date.now();
-  const timeDelta = now - lastUpdateTime;
+  const timeDelta = (now - lastUpdateTime) / 1000.0;
   lastUpdateTime = now;
   
   for (let idx = 0; idx < numPoints; idx++) {
-    points[idx].xAngle = (points[idx].xAngle + Math.PI * timeDelta) % PI2;
-    points[idx].xOffset = 10Math.sin(points[idx].xangle); // 4.0 * (0.5 - Math.random());    
-    points[idx].yOffset = 0; // 4.0 * (0.5 - Math.random());    
+    points[idx].xAngle = 
+      (points[idx].xAngle + (points[idx].xAngleRate * Math.PI * timeDelta)) % PI2;
+    points[idx].yAngle = 
+      (points[idx].yAngle + (points[idx].yAngleRate * Math.PI * timeDelta)) % PI2;
+    points[idx].xOffset = points[idx].xAngleFactor * Math.sin(points[idx].xAngle);    
+    points[idx].yOffset = points[idx].yAngleFactor * Math.cos(points[idx].yAngle);    
   }
   
   updateTimer = setTimeout(update, UPDATE_DELAY);  
