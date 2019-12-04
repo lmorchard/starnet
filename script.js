@@ -19,12 +19,13 @@ function init() {
   points = [];
   for (let idx = 0; idx < numPoints; idx++) {
     const x = Math.random() * 0.5 * canvas.width;
-    const y = (yUnit * idx)
-      + (Math.random()) * yUnit;
+    const y = (yUnit * idx) + (Math.random()) * yUnit;
     points.push({
       x,
       y,
-      link: Math.floor(Math.random() * numPoints)
+      xOffset: 0,
+      yOffset: 0,
+      xAngle: 0,
     });
   }
   
@@ -39,13 +40,14 @@ function draw(ts) {
   ctx.strokeStyle = '#fff';
   
   for (let idx = 0; idx < numPoints; idx++) {
-    const { x, y, link } = points[idx];
+    const { x, y, xOffset, yOffset, link } = points[idx];
+    const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = points[numPoints - idx - 1];
     
-    const { x: linkX, y: linkY } = points[numPoints - idx - 1];
-    ctx.moveTo(x, y);
-    ctx.lineTo(canvas.width - linkX, linkY);    
-    ctx.moveTo(canvas.width - x, y);
-    ctx.lineTo(x, y);
+    ctx.moveTo(x + xOffset, y + yOffset);
+    ctx.lineTo(canvas.width - (x + xOffset), y + yOffset);
+    ctx.lineTo(linkX + linkXOffset, linkY + linkYOffset);    
+    ctx.lineTo(canvas.width - (linkX + linkXOffset), linkY + linkYOffset);    
+    ctx.lineTo(x + xOffset, y + yOffset);
   }
   
   ctx.stroke();
@@ -59,8 +61,9 @@ function update() {
   lastUpdateTime = now;
   
   for (let idx = 0; idx < numPoints; idx++) {
-    points[idx].x += 8 * (0.5 - Math.random());    
-    points[idx].y += 0.5 - Math.random();    
+    points[idx].xAngle = (points[idx].xAngle + Math.PI * timeDelta) % PI2;
+    points[idx].xOffset = 10Math.sin(points[idx].xangle); // 4.0 * (0.5 - Math.random());    
+    points[idx].yOffset = 0; // 4.0 * (0.5 - Math.random());    
   }
   
   updateTimer = setTimeout(update, UPDATE_DELAY);  
