@@ -1,7 +1,7 @@
 const UPDATE_DELAY = 16;
 const PI2 = Math.PI * 2;
 
-const numPoints = 12;
+const numPoints = 6;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -20,8 +20,12 @@ function init() {
   for (let idx = 0; idx < numPoints; idx++) {
     const x = Math.random() * 0.5 * canvas.width;
     const y = (yUnit * idx)
-      + (0.5 - Math.random()) * yUnit;
-    points.push({ x, y, link: Math.floor(Math.random() * numPoints) });
+      + (Math.random()) * yUnit;
+    points.push({
+      x,
+      y,
+      link: Math.floor(Math.random() * numPoints)
+    });
   }
   
   updateTimer = setTimeout(update, UPDATE_DELAY);
@@ -29,7 +33,7 @@ function init() {
 }
 
 function draw(ts) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.width = canvas.width;
   
   ctx.lineWidth = 0.5;
   ctx.strokeStyle = '#fff';
@@ -37,15 +41,11 @@ function draw(ts) {
   for (let idx = 0; idx < numPoints; idx++) {
     const { x, y, link } = points[idx];
     
-    ctx.moveTo(x, y);
-    ctx.arc(x, y, 2, 0, PI2);
-    ctx.moveTo(canvas.width - x, y);
-    ctx.arc(canvas.width - x, y, 2, 0, PI2);
-    
     const { x: linkX, y: linkY } = points[numPoints - idx - 1];
     ctx.moveTo(x, y);
     ctx.lineTo(canvas.width - linkX, linkY);    
-    
+    ctx.moveTo(canvas.width - x, y);
+    ctx.lineTo(x, y);
   }
   
   ctx.stroke();
@@ -57,6 +57,11 @@ function update() {
   const now = Date.now();
   const timeDelta = now - lastUpdateTime;
   lastUpdateTime = now;
+  
+  for (let idx = 0; idx < numPoints; idx++) {
+    points[idx].x += 8 * (0.5 - Math.random());    
+    points[idx].y += 0.5 - Math.random();    
+  }
   
   updateTimer = setTimeout(update, UPDATE_DELAY);  
 }
