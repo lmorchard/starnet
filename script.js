@@ -23,8 +23,8 @@ function init() {
     points.push({
       x,
       y,
-      strokeStyle: `hsl(${360 * Math.random()}, 50%, 50%)`,
-      strokeStyle: `rgba(${Math.random()}, ${Math.random()}, ${Math.random()}, ${Math.random()})`,
+      //strokeStyle: `hsl(${360 * Math.random()}, 50%, 50%)`,
+      strokeStyle: `rgba(${255 * Math.random()}, ${255 * Math.random()}, ${255 * Math.random()}, ${Math.random()})`,
       xOffset: 0,
       yOffset: 0,
       xAngle: 0,
