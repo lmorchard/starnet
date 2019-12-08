@@ -10,8 +10,16 @@ const seedrandom = Math.seedrandom;
 const entities = [];
 
 function init() {
-  entities.push(createSprite());
-  MainLoop.setUpdate(update).setDraw(draw).start();
+  [
+    createSprite({ x: 20, y: 20, seed: 'lmorchard' }),
+    createSprite({ x: 140, y: 20, seed: 'daemon' }),
+    createSprite({ x: 260, y: 20, seed: 'what' }),
+    createSprite({ x: 20, y: 140, seed: 'sprite' }),
+    createSprite({ x: 140, y: 140, seed: 'elf' }),
+    createSprite({ x: 260, y: 140, seed: 'yeah' }),
+  ].forEach(entity => entities.push(entity));
+  
+  MainLoop.setUpdate(update).setDraw(draw).setEnd(end).start();
 }
 
 function update(delta) {
@@ -21,15 +29,20 @@ function update(delta) {
 }
 
 function draw(interpolationPercentage) {
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let idx = 0, len = entities.length; idx < len; idx++) {
     drawSprite(entities[idx], ctx, interpolationPercentage)
   }
 }
 
+function end(fps, panic) {
+  if (panic) {
+    var discardedTime = Math.round(MainLoop.resetFrameDelta());
+  }
+}
+
 function createSprite(initial = {}) {
   const props = {
-    ...initial,
     seed: 'lmorchard',
     x: 0,
     y: 0,
@@ -38,6 +51,7 @@ function createSprite(initial = {}) {
     numPoints: 10,
     type: 'sprite',
     points: [],
+    ...initial,
   };
   const { seed, width, height, numPoints, points } = props;  
   const rng = new seedrandom(seed);
@@ -46,7 +60,7 @@ function createSprite(initial = {}) {
   let yUnit = height / numPoints;
 
   for (let idx = 0; idx < numPoints; idx++) {
-    const x = rng() * 0.5 * canvas.width;
+    const x = rng() * 0.5 * width;
     const y = (yUnit * idx) + rng() * yUnit;
     points.push({
       x,
@@ -56,10 +70,10 @@ function createSprite(initial = {}) {
       yOffset: 0,
       xAngle: 0,
       xAngleFactor: 25 * rng(),
-      xAngleRate: 0.5 * rng(),
+      xAngleRate: (0.5 * rng()) / 1000,
       yAngle: 0,
       yAngleFactor: 25 * rng(),
-      yAngleRate: 0.5 * rng(),
+      yAngleRate: (0.5 * rng()) / 1000,
     });
   }
   
@@ -76,22 +90,28 @@ function updateSprite(props, delta) {
 }
 
 function drawSprite(props, ctx, interpolationPercentage) {
+  const numPoints = props.points.length;
+  
   ctx.save();
+  ctx.translate(props.x, props.y);
+  
   ctx.lineWidth = 1.5;
-  for (let idx = 0, len = props.points.length; idx < len; idx++) {
-    const { x, y, xOffset, yOffset, strokeStyle } = points[idx];
-    const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = points[points.length - idx - 1];
+  for (let idx = 0; idx < numPoints; idx++) {
+    const { x, y, xOffset, yOffset, strokeStyle } = props.points[idx];
+    const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = props.points[numPoints - idx - 1];
   
     ctx.strokeStyle = strokeStyle;
     ctx.beginPath();
     ctx.moveTo(x + xOffset, y + yOffset);
-    ctx.lineTo(canvas.width - (x + xOffset), y + yOffset);
+    ctx.lineTo(props.width - (x + xOffset), y + yOffset);
     ctx.lineTo(linkX + linkXOffset, linkY + linkYOffset);    
-    ctx.lineTo(canvas.width - (linkX + linkXOffset), linkY + linkYOffset);    
+    ctx.lineTo(props.width - (linkX + linkXOffset), linkY + linkYOffset);    
     ctx.lineTo(x + xOffset, y + yOffset);
   
     ctx.stroke();
   }  
+  
+  ctx.restore();
 }
 
 init();
