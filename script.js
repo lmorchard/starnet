@@ -49,6 +49,46 @@ function init() {
   drawFrame = window.requestAnimationFrame(draw);
 }
 
+function createSprite(initial = {
+  seed: 'lmorchard',
+  x: 0,
+  y: 0,
+  width: 100,
+  height: 100,
+  numPoints: 10,
+}) {
+  const props = {
+    ...initial,
+    points: [],
+  };
+  
+  const rng = new seedrandom(props.seed);
+
+  let xUnit = (canvas.width / 2) / numPoints;
+  let yUnit = canvas.height / numPoints;
+
+  points = [];
+  for (let idx = 0; idx < numPoints; idx++) {
+    const x = rng() * 0.5 * canvas.width;
+    const y = (yUnit * idx) + rng() * yUnit;
+    points.push({
+      x,
+      y,
+      strokeStyle: `hsl(${360 * rng()}, 50%, 50%)`,
+      //strokeStyle: `rgba(${255 * rng()}, ${255 * rng()}, ${255 * rng()}, ${rng()})`,
+      xOffset: 0,
+      yOffset: 0,
+      xAngle: 0,
+      xAngleFactor: 25 * rng(),
+      xAngleRate: 0.5 * rng(),
+      yAngle: 0,
+      yAngleFactor: 25 * rng(),
+      yAngleRate: 0.5 * rng(),
+    });
+  }
+  
+}
+
 function draw(ts) {
   canvas.width = canvas.width;
   
