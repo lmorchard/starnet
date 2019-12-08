@@ -109,7 +109,7 @@ function createSprite(initial = {}) {
       yOffset: 0,
       xAngle: 0,
       xAngleFactor: (width / 4) * rng(),
-      xAngleRate: (1.0 * rng()) / 1000,
+      xAngleRate: (2.0 * rng()) / 1000,
       //xAngleFactor: 25 * rng(),
       //xAngleRate: (0.75 * rng()) / 1000,
       yAngle: 0,
