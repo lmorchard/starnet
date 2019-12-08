@@ -10,13 +10,39 @@ const seedrandom = Math.seedrandom;
 const entities = [];
 
 function init() {
+  let margin = 40;
+  let width = 100;
+  let height = 100;
+  let maxx = 500;
+  let x = undefined;
+  let y = undefined;
+  
+  const incCoords = () => {
+    if (x === undefined) {
+      x = y = 0;
+    } else {
+      x += margin + width;
+      if (x >= maxx) {
+        x = 0;
+        y += margin + height;
+      }
+    }
+    return { x, y, width, height };
+  };
+  
   [
-    createSprite({ x: 20, y: 20, seed: 'lmorchard' }),
-    createSprite({ x: 140, y: 20, seed: 'daemon' }),
-    createSprite({ x: 260, y: 20, seed: 'what' }),
-    createSprite({ x: 20, y: 140, seed: 'sprite' }),
-    createSprite({ x: 140, y: 140, seed: 'elf' }),
-    createSprite({ x: 260, y: 140, seed: 'yeah' }),
+    createSprite({ ...incCoords(), seed: 'lmorchard' }),
+    createSprite({ ...incCoords(), seed: 'daemon' }),
+    createSprite({ ...incCoords(), seed: 'what' }),
+    createSprite({ ...incCoords(), seed: 'sprite' }),
+    createSprite({ ...incCoords(), seed: 'elf' }),
+    createSprite({ ...incCoords(), seed: 'yeah' }),
+    createSprite({ ...incCoords(), seed: 'alpha' }),
+    createSprite({ ...incCoords(), seed: 'beta' }),
+    createSprite({ ...incCoords(), seed: 'gamma' }),
+    createSprite({ ...incCoords(), seed: 'delta' }),
+    createSprite({ ...incCoords(), seed: 'foo' }),
+    createSprite({ ...incCoords(), seed: 'bar' }),
   ].forEach(entity => entities.push(entity));
   
   MainLoop.setUpdate(update).setDraw(draw).setEnd(end).start();
@@ -48,13 +74,18 @@ function createSprite(initial = {}) {
     y: 0,
     width: 100,
     height: 100,
-    numPoints: 10,
+    numPoints: undefined,
     type: 'sprite',
     points: [],
     ...initial,
   };
+  const rng = new seedrandom(props.seed);
+  
+  if (typeof props.numPoints === 'undefined') {
+    props.numPoints = 3 + Math.floor(rng() * 15);
+  }
+  
   const { seed, width, height, numPoints, points } = props;  
-  const rng = new seedrandom(seed);
 
   let xUnit = (width / 2) / numPoints;
   let yUnit = height / numPoints;
@@ -70,10 +101,10 @@ function createSprite(initial = {}) {
       yOffset: 0,
       xAngle: 0,
       xAngleFactor: 25 * rng(),
-      xAngleRate: (0.5 * rng()) / 1000,
+      xAngleRate: (0.75 * rng()) / 1000,
       yAngle: 0,
       yAngleFactor: 25 * rng(),
-      yAngleRate: (0.5 * rng()) / 1000,
+      yAngleRate: (0.75 * rng()) / 1000,
     });
   }
   
