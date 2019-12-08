@@ -31,11 +31,10 @@ function init() {
   };
   
   [
-    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 1 }),
     createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 2 }),
-    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 3 }),
     createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 4 }),
-    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 5 }),
+    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 8 }),
+    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 16 }),
     createSprite({ ...incCoords(), seed: 'lmorchard' }),
     createSprite({ ...incCoords(), seed: 'daemon' }),
     createSprite({ ...incCoords(), seed: 'what' }),
@@ -109,10 +108,12 @@ function createSprite(initial = {}) {
       xOffset: 0,
       yOffset: 0,
       xAngle: 0,
-      xAngleFactor: 25 * rng(),
-      xAngleRate: (0.75 * rng()) / 1000,
+      xAngleFactor: (width / 4) * rng(),
+      xAngleRate: (1.0 * rng()) / 1000,
+      //xAngleFactor: 25 * rng(),
+      //xAngleRate: (0.75 * rng()) / 1000,
       yAngle: 0,
-      yAngleFactor: 25 * rng(),
+      yAngleFactor: (height / 4) * rng(),
       yAngleRate: (0.75 * rng()) / 1000,
     });
   }
