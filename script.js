@@ -1,8 +1,6 @@
 const UPDATE_DELAY = 16;
 const PI2 = Math.PI * 2;
 
-const numPoints = 3 + Math.floor(12 * Math.random());
-
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -12,27 +10,34 @@ let updateTimer = null;
 let drawFrame = null;
 let lastUpdateTime = Date.now();
 
+let seedrandom = Math.seedrandom;
+let rng = null;
+
 function init() {
+  const rng = new seedrandom('lmorchard');
+
+  const numPoints = 3 + Math.floor(12 * rng());
+
   let xUnit = (canvas.width / 2) / numPoints;
   let yUnit = canvas.height / numPoints;
 
   points = [];
   for (let idx = 0; idx < numPoints; idx++) {
-    const x = Math.random() * 0.5 * canvas.width;
-    const y = (yUnit * idx) + (Math.random()) * yUnit;
+    const x = rng() * 0.5 * canvas.width;
+    const y = (yUnit * idx) + rng() * yUnit;
     points.push({
       x,
       y,
-      //strokeStyle: `hsl(${360 * Math.random()}, 50%, 50%)`,
-      strokeStyle: `rgba(${255 * Math.random()}, ${255 * Math.random()}, ${255 * Math.random()}, ${Math.random()})`,
+      strokeStyle: `hsl(${360 * rng()}, 50%, 50%)`,
+      //strokeStyle: `rgba(${255 * rng()}, ${255 * rng()}, ${255 * rng()}, ${rng()})`,
       xOffset: 0,
       yOffset: 0,
       xAngle: 0,
-      xAngleFactor: 25 * Math.random(),
-      xAngleRate: 0.5 * Math.random(),
+      xAngleFactor: 25 * rng(),
+      xAngleRate: 0.5 * rng(),
       yAngle: 0,
-      yAngleFactor: 25 * Math.random(),
-      yAngleRate: 0.5 * Math.random(),
+      yAngleFactor: 25 * rng(),
+      yAngleRate: 0.5 * rng(),
     });
   }
   
@@ -45,9 +50,9 @@ function draw(ts) {
   
   ctx.lineWidth = 1.5;
   
-  for (let idx = 0; idx < numPoints; idx++) {
+  for (let idx = 0; idx < points.length; idx++) {
     const { x, y, xOffset, yOffset, strokeStyle } = points[idx];
-    const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = points[numPoints - idx - 1];
+    const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = points[points.length - idx - 1];
   
     ctx.strokeStyle = strokeStyle;
     ctx.beginPath();
@@ -68,7 +73,7 @@ function update() {
   const timeDelta = (now - lastUpdateTime) / 1000.0;
   lastUpdateTime = now;
   
-  for (let idx = 0; idx < numPoints; idx++) {
+  for (let idx = 0; idx < points.length; idx++) {
     points[idx].xAngle = 
       (points[idx].xAngle + (points[idx].xAngleRate * Math.PI * timeDelta)) % PI2;
     points[idx].yAngle = 
@@ -78,19 +83,6 @@ function update() {
   }
   
   updateTimer = setTimeout(update, UPDATE_DELAY);  
-}
-
-function shuffle (array) {
-  var i = 0
-    , j = 0
-    , temp = null
-
-  for (i = array.length - 1; i > 0; i -= 1) {
-    j = Math.floor(Math.random() * (i + 1))
-    temp = array[i]
-    array[i] = array[j]
-    array[j] = temp
-  }
 }
 
 init();
