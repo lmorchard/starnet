@@ -5,69 +5,46 @@ const PI2 = Math.PI * 2;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-let points = [];
+const seedrandom = Math.seedrandom;
 
-let updateTimer = null;
-let drawFrame = null;
-let lastUpdateTime = Date.now();
-
-let seedrandom = Math.seedrandom;
-let rng = null;
+const entities = [];
 
 function init() {
-  const rng = new seedrandom('lmorchard');
-
-  const numPoints = 3 + Math.floor(12 * rng());
-
-  let xUnit = (canvas.width / 2) / numPoints;
-  let yUnit = canvas.height / numPoints;
-
-  points = [];
-  for (let idx = 0; idx < numPoints; idx++) {
-    const x = rng() * 0.5 * canvas.width;
-    const y = (yUnit * idx) + rng() * yUnit;
-    points.push({
-      x,
-      y,
-      strokeStyle: `hsl(${360 * rng()}, 50%, 50%)`,
-      //strokeStyle: `rgba(${255 * rng()}, ${255 * rng()}, ${255 * rng()}, ${rng()})`,
-      xOffset: 0,
-      yOffset: 0,
-      xAngle: 0,
-      xAngleFactor: 25 * rng(),
-      xAngleRate: 0.5 * rng(),
-      yAngle: 0,
-      yAngleFactor: 25 * rng(),
-      yAngleRate: 0.5 * rng(),
-    });
-  }
-
-  /*
+  entities.push(createSprite());
   MainLoop.setUpdate(update).setDraw(draw).start();
-  */
-  updateTimer = setTimeout(update, UPDATE_DELAY);
-  drawFrame = window.requestAnimationFrame(draw);
 }
 
-function createSprite(initial = {
-  seed: 'lmorchard',
-  x: 0,
-  y: 0,
-  width: 100,
-  height: 100,
-  numPoints: 10,
-}) {
+function update(delta) {
+  for (let idx = 0, len = entities.length; idx < len; idx++) {
+    updateSprite(entities[idx], delta)
+  }
+}
+
+function draw(interpolationPercentage) {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  for (let idx = 0, len = entities.length; idx < len; idx++) {
+    drawSprite(entities[idx], ctx, interpolationPercentage)
+  }
+}
+
+function createSprite(initial = {}) {
   const props = {
     ...initial,
+    seed: 'lmorchard',
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    numPoints: 10,
+    type: 'sprite',
     points: [],
   };
-  
-  const rng = new seedrandom(props.seed);
+  const { seed, width, height, numPoints, points } = props;  
+  const rng = new seedrandom(seed);
 
-  let xUnit = (canvas.width / 2) / numPoints;
-  let yUnit = canvas.height / numPoints;
+  let xUnit = (width / 2) / numPoints;
+  let yUnit = height / numPoints;
 
-  points = [];
   for (let idx = 0; idx < numPoints; idx++) {
     const x = rng() * 0.5 * canvas.width;
     const y = (yUnit * idx) + rng() * yUnit;
@@ -75,7 +52,6 @@ function createSprite(initial = {
       x,
       y,
       strokeStyle: `hsl(${360 * rng()}, 50%, 50%)`,
-      //strokeStyle: `rgba(${255 * rng()}, ${255 * rng()}, ${255 * rng()}, ${rng()})`,
       xOffset: 0,
       yOffset: 0,
       xAngle: 0,
@@ -87,14 +63,22 @@ function createSprite(initial = {
     });
   }
   
+  return props;
 }
 
-function draw(ts) {
-  canvas.width = canvas.width;
-  
+function updateSprite(props, delta) {
+  for (let idx = 0, len = props.points.length; idx < len; idx++) {
+    props.points[idx].xAngle = (props.points[idx].xAngle + (props.points[idx].xAngleRate * Math.PI * delta)) % PI2;
+    props.points[idx].yAngle = (props.points[idx].yAngle + (props.points[idx].yAngleRate * Math.PI * delta)) % PI2;
+    props.points[idx].xOffset = props.points[idx].xAngleFactor * Math.sin(props.points[idx].xAngle);    
+    props.points[idx].yOffset = props.points[idx].yAngleFactor * Math.sin(props.points[idx].yAngle);    
+  }  
+}
+
+function drawSprite(props, ctx, interpolationPercentage) {
+  ctx.save();
   ctx.lineWidth = 1.5;
-  
-  for (let idx = 0; idx < points.length; idx++) {
+  for (let idx = 0, len = props.points.length; idx < len; idx++) {
     const { x, y, xOffset, yOffset, strokeStyle } = points[idx];
     const { x: linkX, y: linkY, xOffset: linkXOffset, yOffset: linkYOffset } = points[points.length - idx - 1];
   
@@ -107,26 +91,7 @@ function draw(ts) {
     ctx.lineTo(x + xOffset, y + yOffset);
   
     ctx.stroke();
-  }
-
-  drawFrame = window.requestAnimationFrame(draw);
-}
-
-function update() {
-  const now = Date.now();
-  const timeDelta = (now - lastUpdateTime) / 1000.0;
-  lastUpdateTime = now;
-  
-  for (let idx = 0; idx < points.length; idx++) {
-    points[idx].xAngle = 
-      (points[idx].xAngle + (points[idx].xAngleRate * Math.PI * timeDelta)) % PI2;
-    points[idx].yAngle = 
-      (points[idx].yAngle + (points[idx].yAngleRate * Math.PI * timeDelta)) % PI2;
-    points[idx].xOffset = points[idx].xAngleFactor * Math.sin(points[idx].xAngle);    
-    points[idx].yOffset = points[idx].yAngleFactor * Math.sin(points[idx].yAngle);    
-  }
-  
-  updateTimer = setTimeout(update, UPDATE_DELAY);  
+  }  
 }
 
 init();
