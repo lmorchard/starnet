@@ -1,3 +1,4 @@
+/* global MainLoop */
 const UPDATE_DELAY = 16;
 const PI2 = Math.PI * 2;
 
@@ -40,7 +41,10 @@ function init() {
       yAngleRate: 0.5 * rng(),
     });
   }
-  
+
+  /*
+  MainLoop.setUpdate(update).setDraw(draw).start();
+  */
   updateTimer = setTimeout(update, UPDATE_DELAY);
   drawFrame = window.requestAnimationFrame(draw);
 }
