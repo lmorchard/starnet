@@ -27,10 +27,15 @@ function init() {
         y += margin + height;
       }
     }
-    return { x, y, width, height };
+    return { x: x + margin, y: y + margin, width, height };
   };
   
   [
+    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 1 }),
+    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 2 }),
+    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 3 }),
+    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 4 }),
+    createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 5 }),
     createSprite({ ...incCoords(), seed: 'lmorchard' }),
     createSprite({ ...incCoords(), seed: 'daemon' }),
     createSprite({ ...incCoords(), seed: 'what' }),
@@ -43,6 +48,10 @@ function init() {
     createSprite({ ...incCoords(), seed: 'delta' }),
     createSprite({ ...incCoords(), seed: 'foo' }),
     createSprite({ ...incCoords(), seed: 'bar' }),
+    createSprite({ ...incCoords(), seed: 'baz' }),
+    createSprite({ ...incCoords(), seed: 'quux' }),
+    createSprite({ ...incCoords(), seed: 'hello' }),
+    createSprite({ ...incCoords(), seed: 'sailor' }),
   ].forEach(entity => entities.push(entity));
   
   MainLoop.setUpdate(update).setDraw(draw).setEnd(end).start();
@@ -79,10 +88,12 @@ function createSprite(initial = {}) {
     points: [],
     ...initial,
   };
+  
   const rng = new seedrandom(props.seed);
   
+  const defaultNumPoints = 3 + Math.floor(rng() * 15);
   if (typeof props.numPoints === 'undefined') {
-    props.numPoints = 3 + Math.floor(rng() * 15);
+    props.numPoints = defaultNumPoints;
   }
   
   const { seed, width, height, numPoints, points } = props;  
@@ -91,11 +102,9 @@ function createSprite(initial = {}) {
   let yUnit = height / numPoints;
 
   for (let idx = 0; idx < numPoints; idx++) {
-    const x = rng() * 0.5 * width;
-    const y = (yUnit * idx) + rng() * yUnit;
     points.push({
-      x,
-      y,
+      x: rng() * 0.5 * width,
+      y: (yUnit * idx) + rng() * yUnit,
       strokeStyle: `hsl(${360 * rng()}, 50%, 50%)`,
       xOffset: 0,
       yOffset: 0,
