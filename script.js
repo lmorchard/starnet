@@ -90,12 +90,8 @@ function createSprite(initial = {}) {
     ...initial,
   };
   
-  const rngAlea = new alea(props.seed);
-  /*
-  const rng = () => rngAlea();
-  */
-  const rng = () => rngAlea.double();
-  
+  const rng = new seedrandom(props.seed);
+
   const defaultNumPoints = 3 + Math.floor(rng() * 15);
   if (typeof props.numPoints === 'undefined') {
     props.numPoints = defaultNumPoints;
