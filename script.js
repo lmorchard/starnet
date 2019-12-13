@@ -8,8 +8,6 @@ const ctx = canvas.getContext('2d');
 
 const entities = [];
 
-
-
 function init() {
   initGame();
 }
