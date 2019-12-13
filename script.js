@@ -1,10 +1,10 @@
 /* global MainLoop */
-import { createSprite, updateSprite, drawSprite } from './sprite.js';
+import { createSprite, updateSprite, drawSprite } from './lib/sprite.js';
+
+const seedrandom = Math.seedrandom;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-
-const seedrandom = Math.seedrandom;
 
 const entities = [];
 
