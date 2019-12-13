@@ -7,6 +7,8 @@ const ctx = canvas.getContext('2d');
 
 const seedrandom = Math.seedrandom;
 
+console.log('alea', alea);
+
 const entities = [];
 
 function init() {
@@ -88,7 +90,11 @@ function createSprite(initial = {}) {
     ...initial,
   };
   
-  const rng = new seedrandom(props.seed);
+  const rngAlea = new alea(props.seed);
+  /*
+  const rng = () => rngAlea();
+  */
+  const rng = () => rngAlea.double();
   
   const defaultNumPoints = 3 + Math.floor(rng() * 15);
   if (typeof props.numPoints === 'undefined') {
