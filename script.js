@@ -8,7 +8,13 @@ const ctx = canvas.getContext('2d');
 
 const entities = [];
 
+
+
 function init() {
+  initGame();
+}
+
+function initGame() {
   let margin = 40;
   let width = 100;
   let height = 100;
