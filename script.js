@@ -1,5 +1,6 @@
 /* global MainLoop */
 import { createSprite, updateSprite, drawSprite } from './lib/sprite.js';
+import xxhash from "https://unpkg.com/xxhash-wasm/esm/xxhash-wasm.js";
 
 const seedrandom = Math.seedrandom;
 
@@ -8,8 +9,18 @@ const ctx = canvas.getContext('2d');
 
 const entities = [];
 
-function init() {
+async function init() {
   initGame();
+  
+  // Creates the WebAssembly instance.
+  const hasher = await xxhash();
+  [8675309, 5551212, 1234].forEach(seed => {
+    console.log('-------');
+    console.log(`seed: ${seed}`);
+    console.log(parseInt(hasher.h32('lmorchard', seed), 16));
+    console.log(parseInt(hasher.h32('harbls', seed));
+    console.log(parseInt(hasher.h32(123, seed));
+  });
 }
 
 function initGame() {
@@ -74,4 +85,4 @@ function end(fps, panic) {
   }
 }
 
-init();
+init().then().catch(console.error);
