@@ -13,10 +13,11 @@ async function init() {
   // initGame();
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#fff';
   
-  [8675309 /*, 5551212, 1234, 'ilikepie'*/].forEach(seed => {
+  [8675309, 5551212, 1234, 'ilikepie'].forEach(seed => {
     const t0 = performance.now();
-    const [fromIndex, fromRandom] = genRandom(seed, 100);
+    const [fromIndex, fromRandom] = genRandom(seed, 1000);
     const t1 = performance.now();
     console.log('perf', t0, t1, t1 - t0);
     console.log('fromIndex', fromIndex);
@@ -25,8 +26,7 @@ async function init() {
       const val = parseInt(rand, 16);
       const x = (val & 0xff00) >> 8;
       const y = val & 0x00ff;
-      console.log(rand, x.toString(16), y.toString(16));
-      
+      ctx.fillRect(x, y, 1, 1);
     }
   });
   
