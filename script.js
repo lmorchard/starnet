@@ -11,15 +11,20 @@ const entities = [];
 
 async function init() {
   initGame();
+  const hasher = await xxhash();
   
   // Creates the WebAssembly instance.
-  const hasher = await xxhash();
   [8675309, 5551212, 1234].forEach(seed => {
     console.log('-------');
     console.log(`seed: ${seed}`);
+    for (let i=0; i<10; i++) {
+      console.log(hasher.h32(i, seed));
+    }
+    /*
     console.log(parseInt(hasher.h32('lmorchard', seed), 16) % 100);
     console.log(parseInt(hasher.h32('harbls', seed), 16) % 100);
     console.log(parseInt(hasher.h32(123, seed), 16) % 100);
+    */
   });
 }
 
