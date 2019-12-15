@@ -58,14 +58,6 @@ function initGame() {
     createSprite({ ...incCoords(), seed: 'daemon' }),
     createSprite({ ...incCoords(), seed: 'what' }),
     createSprite({ ...incCoords(), seed: 'sprite' }),
-    createSprite({ ...incCoords(), seed: 'elf' }),
-    createSprite({ ...incCoords(), seed: 'yeah' }),
-    createSprite({ ...incCoords(), seed: 'alpha' }),
-    createSprite({ ...incCoords(), seed: 'beta' }),
-    createSprite({ ...incCoords(), seed: 'gamma' }),
-    createSprite({ ...incCoords(), seed: 'delta' }),
-    createSprite({ ...incCoords(), seed: 'foo' }),
-    createSprite({ ...incCoords(), seed: 'bar' }),
   ].forEach(entity => entities.push(entity));
   
   MainLoop.setUpdate(update).setDraw(draw).setEnd(end).start();
