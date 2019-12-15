@@ -14,21 +14,23 @@ async function init() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#fff';
+
+  const seed = 8675309;
   
-  [8675309, 5551212, 1234, 'ilikepie'].forEach(seed => {
-    const t0 = performance.now();
-    const [fromIndex, fromRandom] = genRandom(seed, 1000);
-    const t1 = performance.now();
-    console.log('perf', t0, t1, t1 - t0);
-    console.log('fromIndex', fromIndex);
-    console.log('fromRandom', fromRandom);
-    for (const rand of Object.values(fromIndex)) {
-      const val = parseInt(rand, 16);
-      const x = (val & 0xff00) >> 8;
-      const y = val & 0x00ff;
-      ctx.fillRect(x, y, 1, 1);
-    }
-  });
+  const t0 = performance.now();
+  const [fromIndex, fromRandom] = genRandom(seed, 1000);
+  const t1 = performance.now();
+  
+  console.log('perf', t0, t1, t1 - t0);
+  console.log('fromIndex', fromIndex);
+  console.log('fromRandom', fromRandom);
+  
+  for (const rand of Object.values(fromIndex)) {
+    const val = parseInt(rand, 16);
+    const x = (val & 0xff00) >> 8;
+    const y = val & 0x00ff;
+    ctx.fillRect(x, y, 1, 1);
+  }
   
 }
 
