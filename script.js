@@ -10,30 +10,26 @@ const ctx = canvas.getContext('2d');
 const entities = [];
 
 async function init() {
-  initGame();
+  // initGame();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  const t0 = performance.now();
-  [8675309, 5551212, 1234, 'ilikepie'].forEach(seed => {
+  [8675309 /*, 5551212, 1234, 'ilikepie'*/].forEach(seed => {
     const t0 = performance.now();
-    const [fromIndex, fromRandom] = genRandom(seed, 0xffff);
+    const [fromIndex, fromRandom] = genRandom(seed, 100);
     const t1 = performance.now();
     console.log('perf', t0, t1, t1 - t0);
     console.log('fromIndex', fromIndex);
     console.log('fromRandom', fromRandom);
-  });
-  const t1 = performance.now();
-  console.log('perf', t0, t1, t1 - t0);
-  
-  const hasher = await xxhash();
-  
-  // Creates the WebAssembly instance.
-  false && [8675309, 5551212, 1234].forEach(seed => {
-    console.log('-------');
-    console.log(`seed: ${seed}`);
-    for (let i=0; i<10; i++) {
-      console.log(hasher.h32(i, seed));
+    for (const rand of Object.values(fromIndex)) {
+      const val = parseInt(rand, 16);
+      const x = (val & 0xff00) >> 8;
+      const y = val & 0x00ff;
+      console.log(rand, x.toString(16), y.toString(16));
+      
     }
   });
+  
 }
 
 function genRandom(seed, maxIdx = 1000) {
