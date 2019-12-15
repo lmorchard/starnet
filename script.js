@@ -1,7 +1,6 @@
-/* global MainLoop */
+/* global MainLoop, CryptoJS */
 import { createSprite, updateSprite, drawSprite } from './lib/sprite.js';
 import xxhash from 'https://unpkg.com/xxhash-wasm/esm/xxhash-wasm.js';
-import * as CryptoJS from 'https://unpkg.com/crypto-js@3.1.9-1/index.js';
 
 const seedrandom = Math.seedrandom;
 
@@ -13,7 +12,14 @@ const entities = [];
 async function init() {
   initGame();
   
-  console.log("DURRR", CryptoJS);
+  console.log("DURRR", CryptoJS.AES);
+  
+  const key = '8675309';
+  const msg = 'hello butts';
+  const enc = CryptoJS.AES.encrypt(msg, key).toString();
+  const dec = CryptoJS.AES.decrypt(enc, key).toString(CryptoJS.enc.Utf8);
+  console.log('ENC', enc);
+  console.log('DEC', dec);
 
   const hasher = await xxhash();
   
