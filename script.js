@@ -12,15 +12,15 @@ const entities = [];
 async function init() {
   initGame();
   
-  console.log("DURRR", CryptoJS.AES);
+  [8675309, 5551212, 1234].forEach(seed => {
+    const t0 = performance.now();
+    const [fromIndex, fromRandom] = genRandom(seed, 2048);
+    const t1 = performance.now();
+    console.log('perf', t0, t1, t1 - t0);
+    console.log('fromIndex', fromIndex);
+    console.log('fromRandom', fromRandom);
+  });
   
-  const key = '8675309';
-  const msg = 'hello butts';
-  const enc = CryptoJS.AES.encrypt(msg, key).toString();
-  const dec = CryptoJS.AES.decrypt(enc, key).toString(CryptoJS.enc.Utf8);
-  console.log('ENC', enc);
-  console.log('DEC', dec);
-
   const hasher = await xxhash();
   
   // Creates the WebAssembly instance.
@@ -31,6 +31,22 @@ async function init() {
       console.log(hasher.h32(i, seed));
     }
   });
+}
+
+function genRandom(seed, maxIdx = 100) {
+  const rng = new seedrandom(seed);
+  
+  const indexToRandom = {};
+  const randomToIndex = {};
+  for (let idx = 0; idx < maxIdx; idx++) {
+    let val;
+    do {
+      val = Math.floor(rng() * 0xffff).toString(16).padStart(4, '0');
+    } while (val in randomToIndex);
+    indexToRandom[idx] = val;
+    randomToIndex[val] = idx;
+  }
+  return [indexToRandom, randomToIndex];
 }
 
 function initGame() {
