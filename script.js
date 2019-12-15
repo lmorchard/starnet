@@ -1,4 +1,4 @@
-/* global MainLoop, CryptoJS */
+/* global MainLoop, CryptoJS, alea */
 import { createSprite, updateSprite, drawSprite } from './lib/sprite.js';
 import xxhash from 'https://unpkg.com/xxhash-wasm/esm/xxhash-wasm.js';
 
@@ -12,14 +12,17 @@ const entities = [];
 async function init() {
   initGame();
   
-  [8675309, 5551212, 1234].forEach(seed => {
+  const t0 = performance.now();
+  [8675309, 5551212, 1234, 'ilikepie'].forEach(seed => {
     const t0 = performance.now();
-    const [fromIndex, fromRandom] = genRandom(seed, 2048);
+    const [fromIndex, fromRandom] = genRandom(seed, 0xffff);
     const t1 = performance.now();
     console.log('perf', t0, t1, t1 - t0);
     console.log('fromIndex', fromIndex);
     console.log('fromRandom', fromRandom);
   });
+  const t1 = performance.now();
+  console.log('perf', t0, t1, t1 - t0);
   
   const hasher = await xxhash();
   
@@ -33,8 +36,9 @@ async function init() {
   });
 }
 
-function genRandom(seed, maxIdx = 100) {
+function genRandom(seed, maxIdx = 1000) {
   const rng = new seedrandom(seed);
+  //const rng = new alea(seed);
   
   const indexToRandom = {};
   const randomToIndex = {};
