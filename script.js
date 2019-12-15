@@ -1,6 +1,7 @@
 /* global MainLoop */
 import { createSprite, updateSprite, drawSprite } from './lib/sprite.js';
-import xxhash from "https://unpkg.com/xxhash-wasm/esm/xxhash-wasm.js";
+import xxhash from 'https://unpkg.com/xxhash-wasm/esm/xxhash-wasm.js';
+import * as CryptoJS from 'https://unpkg.com/crypto-js@3.1.9-1/index.js';
 
 const seedrandom = Math.seedrandom;
 
@@ -11,8 +12,9 @@ const entities = [];
 
 async function init() {
   initGame();
-
   
+  console.log("DURRR", CryptoJS);
+
   const hasher = await xxhash();
   
   // Creates the WebAssembly instance.
@@ -23,29 +25,6 @@ async function init() {
       console.log(hasher.h32(i, seed));
     }
   });
-}
-
-const counter = window.crypto.getRandomValues(new Uint8Array(16));
-
-function getMessageEncoding() {
-  const messageBox = document.querySelector(".aes-ctr #message");
-  let message = messageBox.value;
-  let enc = new TextEncoder();
-  return enc.encode(message);
-}
-
-function encryptMessage(key) {
-  let encoded = getMessageEncoding();
-  // counter will be needed for decryption
-  return window.crypto.subtle.encrypt(
-    {
-      name: "AES-CTR",
-      counter,
-      length: 64
-    },
-    key,
-    encoded
-  );
 }
 
 function initGame() {
