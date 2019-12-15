@@ -11,21 +11,41 @@ const entities = [];
 
 async function init() {
   initGame();
+
+  
   const hasher = await xxhash();
   
   // Creates the WebAssembly instance.
-  [8675309, 5551212, 1234].forEach(seed => {
+  false && [8675309, 5551212, 1234].forEach(seed => {
     console.log('-------');
     console.log(`seed: ${seed}`);
     for (let i=0; i<10; i++) {
       console.log(hasher.h32(i, seed));
     }
-    /*
-    console.log(parseInt(hasher.h32('lmorchard', seed), 16) % 100);
-    console.log(parseInt(hasher.h32('harbls', seed), 16) % 100);
-    console.log(parseInt(hasher.h32(123, seed), 16) % 100);
-    */
   });
+}
+
+const counter = window.crypto.getRandomValues(new Uint8Array(16));
+
+function getMessageEncoding() {
+  const messageBox = document.querySelector(".aes-ctr #message");
+  let message = messageBox.value;
+  let enc = new TextEncoder();
+  return enc.encode(message);
+}
+
+function encryptMessage(key) {
+  let encoded = getMessageEncoding();
+  // counter will be needed for decryption
+  return window.crypto.subtle.encrypt(
+    {
+      name: "AES-CTR",
+      counter,
+      length: 64
+    },
+    key,
+    encoded
+  );
 }
 
 function initGame() {
