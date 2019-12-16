@@ -9,7 +9,7 @@ const seedrandom = Math.seedrandom;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-const entities = [];
+let entities = [];
 
 async function init() {
   initGame();
@@ -37,7 +37,7 @@ function initGame() {
     return { x: x + margin, y: y + margin, width, height };
   };
   
-  [
+  entities = [
     createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 2 }),
     createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 4 }),
     createSprite({ ...incCoords(), seed: 'lmorchard', numPoints: 8 }),
@@ -46,7 +46,7 @@ function initGame() {
     createSprite({ ...incCoords(), seed: 'daemon' }),
     createSprite({ ...incCoords(), seed: 'what' }),
     createSprite({ ...incCoords(), seed: 'sprite' }),
-  ].forEach(entity => entities.push(entity));
+  ];
   
   MainLoop.setUpdate(update).setDraw(draw).setEnd(end).start();
 }
