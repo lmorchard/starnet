@@ -2,7 +2,7 @@
 import xxhash from 'https://unpkg.com/xxhash-wasm/esm/xxhash-wasm.js';
 
 import { createSprite, updateSprite, drawSprite } from './lib/sprite.js';
-import { initUniverse } from './lib/universe.js';
+import { initUniverse } from './lib/nodes/index.js';
 
 const seedrandom = Math.seedrandom;
 
