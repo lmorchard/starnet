@@ -1,23 +1,26 @@
-/* CSS files add styling rules to your content */
-
-html {
-  margin: 0;
-  padding: 0;
-}
-
+html,
 body {
-  font-family: helvetica, arial, sans-serif;
-  margin: 2em;
-  background-color: #000;
   margin: 0;
   padding: 0;
 }
-
-h1 {
-  font-style: italic;
-  color: #373fff;
+body {
+  background: #000;
+  color: #eee;
+  overflow: hidden;
 }
-
-#canvas {
-  border: 1px solid #333;
+#game {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -999;
+}
+#viewport {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -999;
 }
