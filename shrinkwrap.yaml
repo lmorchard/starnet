@@ -1,24 +1,24 @@
 dependencies:
-  rollup: 1.27.14
   seedrandom: 3.0.5
 devDependencies:
   http-server: 0.12.0
   onchange: 6.1.0
+  rollup: 1.27.14
 packages:
   /@blakeembrey/deque/1.0.5:
     dev: true
     resolution:
       integrity: sha512-6xnwtvp9DY1EINIKdTfvfeAtCYw4OqBZJhtiqkT3ivjnEfa25VQ3TsKvaFfKm8MyGIEfE95qLe+bNEt3nB0Ylg==
   /@types/estree/0.0.41:
-    dev: false
+    dev: true
     resolution:
       integrity: sha512-rIAmXyJlqw4KEBO7+u9gxZZSQHaCNnIzYrnNmYVpgfJhxTqO0brCX0SYpqUTkVI5mwwUwzmtspLBGBKroMeynA==
   /@types/node/13.1.1:
-    dev: false
+    dev: true
     resolution:
       integrity: sha512-hx6zWtudh3Arsbl3cXay+JnkvVgCKzCWKv42C9J01N2T2np4h8w5X8u6Tpz5mj38kE3M9FM0Pazx8vKFFMnjLQ==
   /acorn/7.1.0:
-    dev: false
+    dev: true
     engines:
       node: '>=0.4.0'
     hasBin: true
@@ -348,7 +348,7 @@ packages:
       '@types/estree': 0.0.41
       '@types/node': 13.1.1
       acorn: 7.1.0
-    dev: false
+    dev: true
     hasBin: true
     resolution:
       integrity: sha512-DuDjEyn8Y79ALYXMt+nH/EI58L5pEw5HU9K38xXdRnxQhvzUTI/nxAawhkAHUQeudANQ//8iyrhVRHJBuR6DSQ==
