@@ -22,11 +22,13 @@
   },
   "homepage": "https://github.com/lmorchard/starnet#readme",
   "dependencies": {
-    "seedrandom": "^3.0.5"
+    "seedrandom": "^3.0.5",
+    "uuid": "^3.4.0"
   },
   "devDependencies": {
-    "rollup": "^1.27.14",
+    "csv-parse": "^4.8.5",
     "http-server": "^0.12.0",
-    "onchange": "^6.1.0"
+    "onchange": "^6.1.0",
+    "rollup": "^1.27.14"
   }
 }

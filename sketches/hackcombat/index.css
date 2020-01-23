@@ -1,0 +1,65 @@
+div.target {
+  min-height: 4em;
+}
+ul.actions {
+  display: flex;
+  flex-direction: row;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+ul.actions button {
+  padding: 0.5em 1em;
+  margin: 0.125em 0.25em;
+}
+.log ul.entries {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  margin: 0.25em;
+  padding: 0.25em 1.5em;
+  height: 10em;
+  overflow-y: auto;
+}
+ul.exploits {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  margin: 0.25em;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 0.25em 1em;
+  max-height: 10em;
+  overflow-y: auto;
+}
+ul.exploits .exploit {
+  font-family: monospace;
+  font-weight: bold;
+  min-width: 6em;
+  margin-right: 1em;
+  margin-top: 0.5em;
+}
+ul.exploits .exploit.new {
+  font-weight: bold;
+}
+ul.exploits .exploit.common {
+  color: #060;
+}
+ul.exploits .exploit.uncommon {
+  color: #660;
+}
+ul.exploits .exploit.rare {
+  color: #600;
+}
+.exploit.launched {
+  background-color: rgba(128, 128, 0, 0.3);
+}
+ul.exploits .exploit.disclosed {
+  color: rgba(255, 0, 0, 0.2);
+  text-decoration: line-through;
+}
+.inventory .funds span {
+  font-size: 1.5em;
+  font-family: monospace;
+  font-weight: bold;
+}
