@@ -3,8 +3,10 @@ setGlobalRngClass(Math.seedrandom);
 
 import { initCanvas } from "./lib/ecs/viewport/canvas/index.js";
 import { initGame, startMainLoop } from "./lib/index.js";
-import { Position } from "./lib/ecs/positionMotion.js";
+import { Position, Motion } from "./lib/ecs/positionMotion.js";
 import { Renderable, Shape } from "./lib/ecs/viewport/components.js";
+import { GraphGroup } from "./lib/ecs/graph.js";
+import { Node } from "./lib/ecs/node.js";
 
 import {
   GatewayNode,
@@ -29,12 +31,6 @@ async function init() {
     ctx
   });
 
-  const entity = world.createEntity();
-  entity
-    .addComponent(Renderable)
-    .addComponent(Shape, { primitive: 'box' })
-    .addComponent(Position, { x: 0, y: 0 });
-
   const gateway = new GatewayNode({});
   const firewall = gateway.createChild(FirewallNode);
   const audit = gateway.createChild(AuditLogNode);
@@ -49,6 +45,24 @@ async function init() {
   storage.connectTo(router);
 
   console.log(JSON.stringify(gateway.toJSON(), null, "  "));
+
+  const spawnNode = (node, groupId) => {
+    const entity = world
+      .createEntity()
+      .addComponent(Renderable)
+      .addComponent(Node, { node })
+      .addComponent(GraphGroup, { groupId })
+      .addComponent(Shape, { primitive: "node", width: 50, height: 50 })
+      .addComponent(Motion, { dx: 0, dy: 0 })
+      .addComponent(Position, { x: 0, y: 0 });
+    return entity;
+  };
+
+  const rootNode = gateway;
+  spawnNode(rootNode, rootNode.id);
+  for (const node of Object.values(rootNode.children)) {
+    spawnNode(node, rootNode.id);
+  }
   
   startMainLoop(world, worldState, drawStats);
 }
