@@ -1,0 +1,58 @@
+import { mkrng, setGlobalRngClass, setGlobalRng } from "./lib/randoms.js";
+setGlobalRngClass(Math.seedrandom);
+
+import { initCanvas } from "./lib/ecs/viewport/canvas/index.js";
+import { initGame, startMainLoop } from "./lib/index.js";
+import { Position } from "./lib/ecs/positionMotion.js";
+import { Renderable, Shape } from "./lib/ecs/viewport/components.js";
+
+import {
+  GatewayNode,
+  FirewallNode,
+  RouterNode,
+  StorageNode,
+  AuditLogNode,
+  SecurityMonitorNode,
+} from "./lib/networkNodes.js";
+
+async function init() {
+  console.log("READY.");
+
+  setGlobalRng(mkrng("hello"));
+
+  const { container, canvas, ctx } = initCanvas("#main");
+
+  const { world, worldState, drawStats, gui } = initGame({
+    debug: true,
+    container,
+    canvas,
+    ctx
+  });
+
+  const entity = world.createEntity();
+  entity
+    .addComponent(Renderable)
+    .addComponent(Shape, { primitive: 'box' })
+    .addComponent(Position, { x: 0, y: 0 });
+
+  const gateway = new GatewayNode({});
+  const firewall = gateway.createChild(FirewallNode);
+  const audit = gateway.createChild(AuditLogNode);
+  const security = gateway.createChild(SecurityMonitorNode);
+  const storage = gateway.createChild(StorageNode);
+  const router = gateway.createChild(RouterNode);
+
+  gateway.connectTo(firewall);
+  router.connectTo(firewall);
+  audit.connectTo(router);
+  security.connectTo(router);
+  storage.connectTo(router);
+
+  console.log(JSON.stringify(gateway.toJSON(), null, "  "));
+  
+  startMainLoop(world, worldState, drawStats);
+}
+
+init()
+  .then()
+  .catch((err) => console.error(err));

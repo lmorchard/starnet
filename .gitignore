@@ -1,0 +1,8 @@
+dist/
+dist
+*.sw?
+*~
+node_modules/
+config.js
+data.json
+
