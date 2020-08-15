@@ -4,7 +4,7 @@ setGlobalRngClass(Math.seedrandom);
 import { initCanvas } from "./lib/ecs/viewport/canvas/index.js";
 import { initGame, startMainLoop } from "./lib/index.js";
 import { Position, Motion } from "./lib/ecs/positionMotion.js";
-import { Renderable, Shape } from "./lib/ecs/viewport/components.js";
+import { Renderable, Shape, ViewportFocus } from "./lib/ecs/viewport/components.js";
 import { GraphGroup } from "./lib/ecs/graph.js";
 import { Node } from "./lib/ecs/node.js";
 
@@ -59,7 +59,8 @@ async function init() {
   };
 
   const rootNode = gateway;
-  spawnNode(rootNode, rootNode.id);
+  const rootEntity = spawnNode(rootNode, rootNode.id);
+  rootEntity.addComponent(ViewportFocus);
   for (const node of Object.values(rootNode.children)) {
     spawnNode(node, rootNode.id);
   }
