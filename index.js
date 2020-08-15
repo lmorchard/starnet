@@ -4,9 +4,15 @@ setGlobalRngClass(Math.seedrandom);
 import { initCanvas } from "./lib/ecs/viewport/canvas/index.js";
 import { initGame, startMainLoop } from "./lib/index.js";
 import { Position, Motion } from "./lib/ecs/positionMotion.js";
-import { Renderable, Shape, ViewportFocus } from "./lib/ecs/viewport/components.js";
+import {
+  Renderable,
+  Shape,
+  ViewportFocus,
+  CursorTarget,
+} from "./lib/ecs/viewport/components.js";
 import { GraphGroup } from "./lib/ecs/graph.js";
 import { Node } from "./lib/ecs/node.js";
+import { PlayerFocus } from "./lib/ecs/player.js";
 
 import {
   GatewayNode,
@@ -28,7 +34,7 @@ async function init() {
     debug: true,
     container,
     canvas,
-    ctx
+    ctx,
   });
 
   const gateway = new GatewayNode({});
@@ -44,12 +50,13 @@ async function init() {
   security.connectTo(router);
   storage.connectTo(router);
 
-  console.log(JSON.stringify(gateway.toJSON(), null, "  "));
+  // console.log(JSON.stringify(gateway.toJSON(), null, "  "));
 
   const spawnNode = (node, groupId) => {
     const entity = world
       .createEntity()
       .addComponent(Renderable)
+      .addComponent(CursorTarget)
       .addComponent(Node, { node })
       .addComponent(GraphGroup, { groupId })
       .addComponent(Shape, { primitive: "node", width: 50, height: 50 })
@@ -60,11 +67,12 @@ async function init() {
 
   const rootNode = gateway;
   const rootEntity = spawnNode(rootNode, rootNode.id);
-  rootEntity.addComponent(ViewportFocus);
+  rootEntity.addComponent(PlayerFocus);
+
   for (const node of Object.values(rootNode.children)) {
     spawnNode(node, rootNode.id);
   }
-  
+
   startMainLoop(world, worldState, drawStats);
 }
 
