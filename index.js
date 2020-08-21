@@ -1,13 +1,11 @@
 import { mkrng, setGlobalRngClass, setGlobalRng } from "./lib/randoms.js";
 setGlobalRngClass(Math.seedrandom);
 
-import { initCanvas } from "./lib/ecs/viewport/canvas/index.js";
 import { initGame, startMainLoop } from "./lib/index.js";
 import { Position, Motion } from "./lib/ecs/positionMotion.js";
 import {
   Renderable,
   Shape,
-  ViewportFocus,
   CursorTarget,
 } from "./lib/ecs/viewport/components.js";
 import { GraphGroup } from "./lib/ecs/graph.js";
@@ -28,13 +26,9 @@ async function init() {
 
   setGlobalRng(mkrng("hello"));
 
-  const { container, canvas, ctx } = initCanvas("#main");
-
   const { world, worldState, drawStats, gui } = initGame({
     debug: true,
-    container,
-    canvas,
-    ctx,
+    containerSelector: "#main",
   });
 
   const gateway = new GatewayNode({});
