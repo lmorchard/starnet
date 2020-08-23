@@ -26,7 +26,7 @@ async function init() {
 
   setGlobalRng(mkrng("hello"));
 
-  const { world, worldState, drawStats, gui } = initGame({
+  const { world, worldState, drawStats, gui } = await initGame({
     debug: true,
     containerSelector: "#main",
   });
