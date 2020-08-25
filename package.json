@@ -21,7 +21,6 @@
     "gh-pages": "^3.1.0",
     "nodemon": "^2.0.4",
     "onchange": "^7.0.2",
-    "reload": "^3.1.0",
-    "snowpack": "^2.7.7"
+    "reload": "^3.1.0"
   }
 }
