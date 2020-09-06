@@ -1,6 +1,7 @@
 import { resolveProperties, mapToObject } from "./utils.js";
 import { createGLProgram } from "./GLProgram.js";
 import GLBuffer from "./GLBuffer.js";
+import Font from "./fonts.js";
 
 const KERNEL_SIZE_ARRAY = [3, 5, 7, 9, 11];
 const BLUR_DIRECTION_HORIZONTAL = [1.0, 0.0];
@@ -30,6 +31,13 @@ export default class WebGLDraw {
     gl.disable(gl.DEPTH_TEST);
 
     const sprites = mapToObject(this.layers, (name) => ({}));
+
+    const fonts = await resolveProperties(
+      ["futural", "futuram", "rowmant", "scripts", "scriptc"].reduce(
+        (acc, name) => ({ ...acc, [name]: Font.fetch(name) }),
+        {}
+      )
+    );
 
     const programs = await resolveProperties(
       mapToObject(
@@ -84,6 +92,7 @@ export default class WebGLDraw {
       canvas,
       gl,
       sprites,
+      fonts,
       programs,
       buffers,
       textures,
