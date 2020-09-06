@@ -4,7 +4,7 @@ export async function createGLProgram(options, extra = {}) {
   return program.initialize();
 }
 
-const SHADER_BASE_URL = 'lib/ecs/viewport/webgl/shaders';
+const SHADER_BASE_URL = 'wgl6100/shaders';
 
 export default class GLProgram {
   defaultOptions() {

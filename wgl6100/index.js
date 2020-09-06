@@ -1,5 +1,4 @@
-import { resolveProperties } from "../../../async.js";
-import { mapToObject } from "../../../utils.js";
+import { resolveProperties, mapToObject } from "./utils.js";
 import { createGLProgram } from "./GLProgram.js";
 import GLBuffer from "./GLBuffer.js";
 
@@ -17,7 +16,7 @@ const hudDrawProps = {
   cameraX: 0.0,
   cameraY: 0.0,
   lineWidth: 2.0,
-  bloomStrength: 2.0,
+  bloomStrength: 1.0,
   bloomRadius: 0.5,
   jitter: 0.0,
 };
