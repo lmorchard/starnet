@@ -10,20 +10,9 @@ const BLOOM_TINT_COLORS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 const FILTER_BUFFER_RECT = [-1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0];
 const FILTER_BUFFER_DATA = new Float32Array(FILTER_BUFFER_RECT);
 
-const hudDrawProps = {
-  zoom: 1.0,
-  rotation: 0.0,
-  cameraX: 0.0,
-  cameraY: 0.0,
-  lineWidth: 2.0,
-  bloomStrength: 1.0,
-  bloomRadius: 0.5,
-  jitter: 0.0,
-};
-
 export default class WebGLDraw {
-  constructor(options = {}) {
-    Object.assign(this, {}, options);
+  constructor({ containerSelector, layers }) {
+    Object.assign(this, { containerSelector, layers });
   }
 
   async init() {
@@ -40,8 +29,7 @@ export default class WebGLDraw {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.disable(gl.DEPTH_TEST);
 
-    const hudScene = {};
-    const scene = {};
+    const sprites = mapToObject(this.layers, (name) => ({}));
 
     const programs = await resolveProperties(
       mapToObject(
@@ -57,22 +45,25 @@ export default class WebGLDraw {
       )
     );
 
-    const buffers = mapToObject(
-      ["hudDraw", "worldDraw"],
+    const layerBuffers = mapToObject(
+      this.layers,
       (name) => new GLBuffer({ gl })
     );
+
+    const buffers = {};
     buffers.filter = new GLBuffer({
       gl,
       data: FILTER_BUFFER_DATA,
       usage: gl.STATIC_DRAW,
     });
 
+    const layerTextures = {
+      clean: mapToObject(this.layers, (name) => gl.createTexture()),
+      glow: mapToObject(this.layers, (name) => gl.createTexture()),
+    };
+
     const textures = mapToObject(
       [
-        "hudClean",
-        "hud",
-        "worldClean",
-        "world",
         "lineDraw",
         "blurPassHorizontal",
         "blurPassVertical",
@@ -92,25 +83,26 @@ export default class WebGLDraw {
       container,
       canvas,
       gl,
-      hudScene,
-      scene,
+      sprites,
       programs,
       buffers,
       textures,
+      layerBuffers,
+      layerTextures,
       framebuffer,
     });
   }
 
-  draw(drawProps) {
+  draw(layerDrawProps) {
     const {
       container,
       canvas,
       gl,
-      hudScene,
-      scene,
+      sprites,
+      layerBuffers,
+      layerTextures,
       programs,
       buffers,
-      textures,
     } = this;
 
     // Keep the canvas size in sync with the container element
@@ -118,55 +110,41 @@ export default class WebGLDraw {
     canvas.height = container.offsetHeight;
     const uViewportSize = [canvas.width, canvas.height];
 
-    buffers.hudDraw.use();
-
-    this.drawScene(
-      hudScene,
-      uViewportSize,
-      textures.hudClean,
-      buffers.hudDraw,
-      hudDrawProps
-    );
-
-    // TODO: Tried using the same buffer for each draw layer. But, that caused
-    // big problems in rendering. Would like to figure out why and reuse buffer
-    buffers.worldDraw.use();
-
-    this.drawScene(
-      scene,
-      uViewportSize,
-      textures.worldClean,
-      buffers.worldDraw,
-      drawProps
-    );
+    for (const layerName of this.layers) {
+      // TODO: Tried using the same buffer for each draw layer. But, that caused
+      // big problems in rendering. Would like to figure out why and reuse buffer
+      layerBuffers[layerName].use();
+      this.drawSprites(
+        sprites[layerName],
+        uViewportSize,
+        layerTextures.clean[layerName],
+        layerBuffers[layerName],
+        layerDrawProps[layerName]
+      );
+    }
 
     buffers.filter.use();
 
-    this.applyGlow(
-      uViewportSize,
-      textures.hudClean,
-      textures.hud,
-      hudDrawProps
-    );
+    for (const layerName of this.layers) {
+      this.applyGlow(
+        uViewportSize,
+        layerTextures.clean[layerName],
+        layerTextures.glow[layerName],
+        layerDrawProps[layerName]
+      );
+    }
 
-    this.applyGlow(
-      uViewportSize,
-      textures.worldClean,
-      textures.world,
-      drawProps
-    );
-
-    programs.mergeLayers.use({
-      uViewportSize,
-      layer1: textures.hud,
-      layer2: textures.world,
-    });
+    const mergeLayersUniforms = { uViewportSize };
+    for (let idx = 0; idx < this.layers.length; idx++) {
+      mergeLayersUniforms[`layer${idx}`] = layerTextures.glow[this.layers[idx]];
+    }
+    programs.mergeLayers.use(mergeLayersUniforms);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     this.clearCanvas();
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  drawScene(scene, uViewportSize, layerTexture, lineDrawBuffer, drawProps) {
+  drawSprites(sprites, uViewportSize, layerTexture, lineDrawBuffer, drawProps) {
     const { gl, framebuffer } = this;
     const { lineDraw } = this.programs;
     const {
@@ -185,7 +163,10 @@ export default class WebGLDraw {
       uViewportSize,
     });
 
-    const vertexCount = this.fillLineDrawBufferFromScene(lineDrawBuffer, scene);
+    const vertexCount = this.fillLineDrawBufferFromSprites(
+      lineDrawBuffer,
+      sprites
+    );
     this.renderTo(framebuffer, layerTexture);
     this.clearCanvas();
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexCount);
@@ -312,7 +293,7 @@ export default class WebGLDraw {
     );
   }
 
-  fillLineDrawBufferFromScene(buffer, scene) {
+  fillLineDrawBufferFromSprites(buffer, sprites) {
     let visible,
       shape,
       position,
@@ -322,13 +303,13 @@ export default class WebGLDraw {
       shapeIdx,
       shapesIdx,
       lineIdx,
-      sceneKeyIdx,
+      spritesKeyIdx,
       shapes;
 
     const vertexSizeFloat = this.programs.lineDraw.vertexSize * 4;
     let bufferSize = 0;
-    for (const key in scene) {
-      for (const shape of scene[key].shapes) {
+    for (const key in sprites) {
+      for (const shape of sprites[key].shapes) {
         bufferSize += (2 + shape.length) * vertexSizeFloat;
       }
     }
@@ -355,8 +336,12 @@ export default class WebGLDraw {
       vertexCount++;
     };
 
-    const sceneKeys = Object.keys(scene).sort();
-    for (sceneKeyIdx = 0; sceneKeyIdx < sceneKeys.length; sceneKeyIdx++) {
+    const spritesKeys = Object.keys(sprites).sort();
+    for (
+      spritesKeyIdx = 0;
+      spritesKeyIdx < spritesKeys.length;
+      spritesKeyIdx++
+    ) {
       ({
         visible,
         shapes,
@@ -364,7 +349,7 @@ export default class WebGLDraw {
         scale = 0,
         rotation = 0,
         color = [1, 1, 1, 1],
-      } = scene[sceneKeys[sceneKeyIdx]]);
+      } = sprites[spritesKeys[spritesKeyIdx]]);
       if (!visible) {
         continue;
       }
