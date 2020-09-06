@@ -81,6 +81,9 @@ export default class WebGLDraw {
         "blurLevel3",
         "blurLevel4",
         "blurResult",
+        "frameClean",
+        "lastFrame",
+        "frameWithLastFrame",
       ],
       (name) => gl.createTexture()
     );
@@ -102,15 +105,13 @@ export default class WebGLDraw {
     });
   }
 
-  draw(layerDrawProps) {
+  draw(layerDrawProps, drawProps = {}) {
     const {
       container,
       canvas,
-      gl,
       sprites,
       layerBuffers,
       layerTextures,
-      programs,
       buffers,
     } = this;
 
@@ -143,12 +144,71 @@ export default class WebGLDraw {
       );
     }
 
-    const mergeLayersUniforms = { uViewportSize };
-    for (let idx = 0; idx < this.layers.length; idx++) {
-      mergeLayersUniforms[`layer${idx}`] = layerTextures.glow[this.layers[idx]];
-    }
+    this.mergeLayers(uViewportSize);
+    this.renderToScreen(uViewportSize, drawProps);
+  }
+
+  mergeLayers(uViewportSize) {
+    const {
+      gl,
+      programs,
+      layers,
+      layerTextures,
+      textures,
+      framebuffer,
+    } = this;
+    
+    const mergeLayersUniforms = {
+      uViewportSize,
+      // TODO: Generate the merge layers shader dynamically to match the
+      // number of layers - these are hardcoded right now
+      layer0: layerTextures.glow[layers[0]],
+      layer1: layerTextures.glow[layers[1]],
+      layer2: layerTextures.glow[layers[2]],
+    };
     programs.mergeLayers.use(mergeLayersUniforms);
+    this.renderTo(framebuffer, textures.frameClean);
+    this.clearCanvas();
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  renderToScreen(uViewportSize, { afterGlow }) {
+    const {
+      gl,
+      programs,
+      textures,
+      framebuffer,
+    } = this;
+
+    // Hacky attempt to implement trails with an afterGlow intensity parameter
+
+    // 1. Render the last two frames to an intermediate texture
+    programs.combine.use({
+      uViewportSize,
+      srcData: textures.frameClean,
+      blurData: textures.lastFrame,
+    });
+    this.renderTo(framebuffer, textures.frameWithLastFrame);
+    this.clearCanvas();
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // 1. Copy the intermediate texture to screen
+    programs.copy.use({
+      uViewportSize,
+      opacity: 1.0,
+      texture: textures.frameWithLastFrame,
+    });
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.clearCanvas();
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Copy the intermediate texture with an opacity fade for next frame
+    programs.copy.use({
+      uViewportSize,
+      opacity: afterGlow,
+      texture: textures.frameWithLastFrame,
+    });
+    this.renderTo(framebuffer, textures.lastFrame);
     this.clearCanvas();
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
@@ -254,7 +314,6 @@ export default class WebGLDraw {
 
   filter(program, uniforms, destTexture) {
     const gl = this.gl;
-    //this.buffers.filter.use();
     program.use(uniforms);
     this.renderTo(this.framebuffer, destTexture);
     this.clearCanvas();
@@ -275,6 +334,7 @@ export default class WebGLDraw {
     framebuffer.width = gl.canvas.width;
     framebuffer.height = gl.canvas.height;
 
+    // TODO: Does all this really need to be done every frame?
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -311,7 +371,6 @@ export default class WebGLDraw {
       color,
       shapeIdx,
       shapesIdx,
-      lineIdx,
       spritesKeyIdx,
       shapes;
 
