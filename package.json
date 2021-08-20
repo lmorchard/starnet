@@ -1,0 +1,44 @@
+{
+  "name": "starnet-bitecs",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:lmorchard/starnet.git",
+  "author": "Les Orchard <me@lmorchard.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "./scripts/serve.js",
+    "build": "./scripts/build.js"
+  },
+  "dependencies": {
+    "@pixi/constants": "^6.1.2",
+    "@pixi/core": "^6.1.2",
+    "@pixi/filter-alpha": "^6.1.2",
+    "@pixi/filter-bloom": "^4.1.3",
+    "@pixi/filter-blur": "^6.1.2",
+    "@pixi/math": "^6.1.2",
+    "@pixi/runner": "^6.1.2",
+    "@pixi/settings": "^6.1.2",
+    "@pixi/ticker": "^6.1.2",
+    "@pixi/utils": "^6.1.2",
+    "bitecs": "^0.3.17-1",
+    "dat.gui": "^0.7.7",
+    "mainloop.js": "^1.0.4",
+    "nodemon": "^2.0.12",
+    "pixi-filters": "^4.1.4",
+    "pixi.js": "^6.1.2",
+    "seedrandom": "^3.0.5",
+    "springy": "^2.8.0",
+    "stats.js": "^0.17.0",
+    "tweakpane": "^3.0.5",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.12.21",
+    "http-server": "^13.0.0",
+    "mkdirp": "^1.0.4",
+    "onchange": "^7.1.0",
+    "recursive-copy": "^2.0.13",
+    "reload": "^3.2.0",
+    "rimraf": "^3.0.2"
+  }
+}
