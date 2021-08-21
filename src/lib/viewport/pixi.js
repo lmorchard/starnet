@@ -1,14 +1,15 @@
 import * as PIXI from "pixi.js";
 import { AdvancedBloomFilter, CRTFilter, RGBSplitFilter } from "pixi-filters";
 import { defineQuery } from "bitecs";
-import { Position, Renderable } from "./components.js";
+import { Renderable } from "./index.js";
+import { Position } from "../positionMotion.js";
 
 export function init(...args) {
   return new ViewportPixi(...args);
 }
 
 function createRenderable(viewport, eid) {
-  const g = viewport.createGraphics(eid);
+  const g = viewport.createRenderableGraphics(eid);
 
   if (Math.random() < 0.5) {
     g.lineStyle(2, 0xfeeb77, 1);
@@ -37,7 +38,7 @@ class ViewportPixi {
     parentNode.appendChild(renderer.view);
 
     const stage = new PIXI.Container();
-
+    stage.sortableChildren = true;
     stage.filters = [
       new AdvancedBloomFilter({
         kernelSize: 11,
@@ -46,12 +47,31 @@ class ViewportPixi {
       }),
     ];
 
+    const bgGraphics = new PIXI.Graphics();
+    bgGraphics.zIndex = -1000;
+    stage.addChild(bgGraphics);
+
     const renderQuery = defineQuery([Position, Renderable]);
 
-    Object.assign(this, { renderer, stage, renderQuery, renderables: {} });
+    Object.assign(this, {
+      renderables: {},
+      renderer,
+      stage,
+      bgGraphics,
+      renderQuery,
+      camera: { x: 0, y: 0 },
+      cameraX: 0,
+      cameraY: 0,
+      zoom: 1.0,
+      gridEnabled: true,
+      gridSize: 250,
+      gridLineWidth: 2.0,
+      gridLineColor: 0xffffff,
+      gridLineAlpha: 0.125,
+    });
   }
 
-  createGraphics(eid) {
+  createRenderableGraphics(eid) {
     const g = new PIXI.Graphics();
 
     g.pivot.x = 0;
@@ -72,7 +92,9 @@ class ViewportPixi {
 
   draw(world, interpolationPercentage) {
     const { renderer, stage, renderables } = this;
+
     this.updateViewportBounds(world);
+    this.updateBackdrop(world);
 
     const entityIds = this.renderQuery(world);
 
@@ -108,10 +130,7 @@ class ViewportPixi {
     r.scale.x = 1.0;
     r.scale.y = 1.0;
 
-    if (Renderable.mouseDown[eid]) {
-      r.scale.x *= 1.5;
-      r.scale.y *= 1.5;
-    }
+    // Let the mouse stay clicked for a frame, then clear the state.
     if (Renderable.mouseClicked[eid]) {
       Renderable.mouseClickedSeen[eid] = true;
     }
@@ -122,7 +141,7 @@ class ViewportPixi {
   }
 
   updateViewportBounds(world) {
-    const { renderer, stage } = this;
+    const { renderer, stage, camera, zoom } = this;
     const { clientWidth, clientHeight } = renderer.view.parentNode;
     const { width, height } = renderer;
 
@@ -130,13 +149,57 @@ class ViewportPixi {
       renderer.resize(clientWidth, clientHeight);
     }
 
-    const centerX = clientWidth / 2;
-    const centerY = clientHeight / 2;
+    let centerX = clientWidth / 2 - camera.x * zoom;
+    let centerY = clientHeight / 2 - camera.y * zoom;
+
     stage.x = centerX;
     stage.y = centerY;
+    stage.scale.x = zoom;
+    stage.scale.y = zoom;
 
     if (!world.viewport) world.viewport = {};
     world.viewport.clientWidth = clientWidth;
     world.viewport.clientHeight = clientHeight;
+  }
+
+  updateBackdrop(world) {
+    this.bgGraphics.clear();
+    if (!this.gridEnabled) return;
+
+    const {
+      zoom,
+      camera,
+      gridSize,
+      gridLineWidth,
+      gridLineColor,
+      gridLineAlpha,
+      bgGraphics: g,
+    } = this;
+
+    const {
+      viewport: { clientWidth, clientHeight },
+    } = world;
+
+    // FIXME: This math seems to get real squirrely at 0.25 zoom and below
+    const visibleWidth = Math.floor(clientWidth / zoom);
+    const visibleHeight = Math.floor(clientHeight / zoom);
+    const visibleLeft = 0 - visibleWidth / 2 + camera.x;
+    const visibleTop = 0 - visibleHeight / 2 + camera.y;
+    const gridOffsetX = visibleLeft % gridSize;
+    const gridOffsetY = visibleTop % gridSize;
+
+    g.lineStyle(gridLineWidth, gridLineColor, gridLineAlpha);
+    const xStart = visibleLeft - gridOffsetX;
+    const xEnd = visibleWidth + gridOffsetX + gridSize * 2;
+    for (let x = xStart; x < xEnd; x += gridSize) {
+      g.moveTo(x, visibleTop);
+      g.lineTo(x, visibleTop + visibleHeight);
+    }
+    const yStart = visibleTop - gridOffsetY;
+    const yEnd = visibleHeight + gridOffsetY + gridSize * 2;
+    for (let y = yStart; y < yEnd; y += gridSize) {
+      g.moveTo(visibleLeft, y);
+      g.lineTo(visibleLeft + visibleWidth, y);
+    }
   }
 }

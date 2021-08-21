@@ -1,54 +1,25 @@
-import {
-  defineQuery,
-  addEntity,
-  addComponent,
-  defineSystem,
-  pipe,
-} from "bitecs";
-
-import * as Stats from "./lib/stats.js";
-import * as Viewport from "./lib/viewportPixi.js";
-
-import * as World from "./lib/world.js";
-import { Position, Velocity, Renderable } from "./lib/components.js";
-
+import { addEntity, addComponent, pipe } from "bitecs";
+import { Pane } from "tweakpane";
 import { rand } from "./lib/utils.js";
+import * as Stats from "./lib/stats.js";
+import * as World from "./lib/world.js";
+import * as Viewport from "./lib/viewport/pixi.js";
+import { Renderable } from "./lib/viewport/index.js";
+import {
+  Position,
+  Velocity,
+  movementSystem,
+  bouncerSystem,
+} from "./lib/positionMotion.js";
 
 async function main() {
   const stats = Stats.init();
   const world = World.init();
   const viewport = Viewport.init();
 
-  const movementQuery = defineQuery([Position, Velocity]);
-
-  const movementSystem = defineSystem((world) => {
-    const {
-      time: { deltaSec },
-    } = world;
-    for (const eid of movementQuery(world)) {
-      Position.x[eid] += Velocity.x[eid] * deltaSec;
-      Position.y[eid] += Velocity.y[eid] * deltaSec;
-      Position.z[eid] += Velocity.z[eid] * deltaSec;
-    }
-  });
-
-  const bouncerSystem = defineSystem((world) => {
-    const ents = movementQuery(world);
-    for (let i = 0; i < ents.length; i++) {
-      const eid = ents[i];
-      if (Position.x[eid] > 400 || Position.x[eid] < -400) {
-        Velocity.x[eid] = 0 - Velocity.x[eid];
-      }
-      if (Position.y[eid] > 400 || Position.y[eid] < -400) {
-        Velocity.y[eid] = 0 - Velocity.y[eid];
-      }
-    }
-  });
-
-  const pipeline = pipe(movementSystem, bouncerSystem);
-
   const spawnThingy = () => {
     const eid = addEntity(world);
+
     addComponent(world, Renderable, eid);
     addComponent(world, Position, eid);
     addComponent(world, Velocity, eid);
@@ -68,6 +39,34 @@ async function main() {
   }
 
   Object.assign(window, { world, viewport, Position, Velocity, Renderable });
+
+  const pane = new Pane();
+  const f1 = pane.addFolder({ title: "Twiddles"/*, expanded: false*/ });
+  f1.addMonitor(world, "fps" /*, { view: "graph", min: 0, max: 75 }*/);
+
+  f1.addInput(viewport, "zoom", { min: 0.3, max: 3.0 });
+  f1.addInput(viewport, "camera", {
+    x: { min: -1000, max: 1000 },
+    y: { min: -1000, max: 1000 },
+  });
+
+  const grid1 = f1.addFolder({ title: "Grid", expanded: false });
+  grid1.addInput(viewport, "gridEnabled");
+  grid1.addInput(viewport, "gridSize", { min: 10, max: 1000 });
+  grid1.addInput(viewport, "gridLineColor", { view: "color" });
+  grid1.addInput(viewport, "gridLineAlpha", { min: 0.0, max: 1.0 });
+  grid1.addInput(viewport, "gridLineWidth", { min: 0.5, max: 5.0 });
+
+  f1.addSeparator();
+  f1.addButton({ title: "Spawn" }).on("click", spawnThingy);
+  f1.addButton({ title: "Stop" }).on("click", () => world.loop.stop());
+  f1.addButton({ title: "Start" }).on("click", () => world.loop.start());
+
+  const pipeline = pipe(
+    movementSystem,
+    bouncerSystem,
+    () => pane.refresh(),
+  );
 
   world.run(pipeline, viewport, stats);
 

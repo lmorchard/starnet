@@ -5,6 +5,7 @@ export function init() {
   const world = createWorld();
 
   Object.assign(world, {
+    fps: 0,
     time: { delta: 0, deltaSec: 0, elapsed: 0 },
 
     update(delta, ...pipelines) {
@@ -18,7 +19,7 @@ export function init() {
     },
 
     run(pipeline, viewport, stats) {
-      MainLoop.setUpdate((delta) => {
+      this.loop = MainLoop.setUpdate((delta) => {
         stats && stats.update.begin();
         world.update(delta, pipeline);
         stats && stats.update.end();
