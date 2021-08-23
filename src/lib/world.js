@@ -7,15 +7,19 @@ export function init() {
   Object.assign(world, {
     fps: 0,
     time: { delta: 0, deltaSec: 0, elapsed: 0 },
+    networks: {},
 
-    update(delta, ...pipelines) {
+    addNetwork(network) {
+      this.networks[network.id] = network;
+      return network;
+    },
+
+    update(delta, pipeline) {
       const time = this.time;
       time.delta = delta;
       time.deltaSec = delta / 1000;
       time.elapsed += delta;
-      for (const pipeline of pipelines) {
-        pipeline(world);
-      }
+      pipeline(world);
     },
 
     run(pipeline, viewport, stats) {
@@ -37,8 +41,8 @@ export function init() {
             console.log(`Rendering discarded ${discardedTime}ms`);
           }
         })
-        .start();    
-    }
+        .start();
+    },
   });
 
   return world;

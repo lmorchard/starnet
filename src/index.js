@@ -13,7 +13,7 @@ import {
 } from "./lib/positionMotion.js";
 
 async function main() {
-  const stats = Stats.init();
+  const stats = null; //Stats.init();
   const world = World.init();
   const viewport = Viewport.init();
 
@@ -44,7 +44,7 @@ async function main() {
   const f1 = pane.addFolder({ title: "Twiddles"/*, expanded: false*/ });
   f1.addMonitor(world, "fps" /*, { view: "graph", min: 0, max: 75 }*/);
 
-  f1.addInput(viewport, "zoom", { min: 0.3, max: 3.0 });
+  f1.addInput(viewport, "zoom", { min: 0.1, max: 3.0 });
   f1.addInput(viewport, "camera", {
     x: { min: -1000, max: 1000 },
     y: { min: -1000, max: 1000 },
