@@ -7,18 +7,24 @@ import {
   addComponent,
   pipe,
 } from "bitecs";
-import { Pane } from "tweakpane";
 import { rand, genid } from "../../lib/utils.js";
 import * as Stats from "../../lib/stats.js";
 import * as World from "../../lib/world.js";
 import * as Viewport from "../../lib/viewport/pixi.js";
 import { Renderable, RenderableShape } from "../../lib/viewport/index.js";
+import { setupTwiddles } from "../twiddles.js";
 import {
   Position,
   Velocity,
   movementSystem,
   bouncerSystem,
 } from "../../lib/positionMotion.js";
+import {
+  GraphLayoutScene,
+  GraphLayoutNode,
+  graphLayoutSystem,
+  GraphLayoutEdge,
+} from "../../lib/graphLayout.js";
 import {
   NetworkNodeRef,
   Network,
@@ -70,17 +76,48 @@ async function main() {
   storageHub.connect(storage1, storage2, storage3, wallet1);
   terminalHub.connect(terminal1, terminal2, terminal3);
 
+  let eid;
+  eid = addEntity(world);
+  addComponent(world, GraphLayoutScene, eid);
+  GraphLayoutScene.active[eid] = true;
+  GraphLayoutScene.sceneId[eid] = network.id;
+  GraphLayoutScene.ratio[eid] = 30.0;
+
+  const eidToNid = {};
+  const nidToEid = {};
   for (const nodeId in network.children) {
     const node = network.children[nodeId];
-    // TODO: set up the graph edges
-    spawnNode(world, node);
+    const eid = spawnNode(world, node);
+    eidToNid[eid] = node.id;
+    nidToEid[node.id] = eid;
+  }
+
+  for (const nodeId in network.children) {
+    const node = network.children[nodeId];
+    for (const toNodeId in node.connections) {
+      spawnNodeEdge(world, nidToEid[node.id], nidToEid[toNodeId]);
+    }
   }
 
   const pane = setupTwiddles(world, viewport);
-  const pipeline = pipe(movementSystem, bouncerSystem, () => pane.refresh());
+  const pipeline = pipe(graphLayoutSystem, movementSystem, bouncerSystem, () =>
+    pane.refresh()
+  );
   world.run(pipeline, viewport, stats);
 
+  Object.assign(window, {
+    world, Position, GraphLayoutEdge, GraphLayoutNode, GraphLayoutEdge
+  });
+
   console.log("READY.");
+}
+
+function spawnNodeEdge(world, fromEid, toEid) {
+  const eid = addEntity(world);
+  
+  addComponent(world, GraphLayoutEdge, eid);
+  GraphLayoutEdge.from[eid] = fromEid;
+  GraphLayoutEdge.to[eid] = toEid;
 }
 
 function spawnNode(world, node) {
@@ -89,6 +126,12 @@ function spawnNode(world, node) {
   addComponent(world, NetworkNodeRef, eid);
   NetworkNodeRef.networkId[eid] = node.network.id;
   NetworkNodeRef.nodeId[eid] = node.id;
+
+  addComponent(world, GraphLayoutNode, eid);
+  GraphLayoutNode.sceneId[eid] = node.networkId;
+  GraphLayoutNode.nodeId[eid] = node.id;
+
+  // TODO: set up the graph edges
 
   addComponent(world, Renderable, eid);
   Renderable.shape[eid] = RenderableShape[node.type] || RenderableShape.Node;
@@ -99,31 +142,6 @@ function spawnNode(world, node) {
   Position.z[eid] = rand(1, 6);
 
   return eid;
-}
-
-function setupTwiddles(world, viewport) {
-  const pane = new Pane();
-  const f1 = pane.addFolder({ title: "Twiddles" /*, expanded: false*/ });
-  f1.addMonitor(world, "fps" /*, { view: "graph", min: 0, max: 75 }*/);
-
-  f1.addInput(viewport, "zoom", { min: 0.1, max: 3.0 });
-  f1.addInput(viewport, "camera", {
-    x: { min: -1000, max: 1000 },
-    y: { min: -1000, max: 1000 },
-  });
-
-  const grid1 = f1.addFolder({ title: "Grid", expanded: false });
-  grid1.addInput(viewport, "gridEnabled");
-  grid1.addInput(viewport, "gridSize", { min: 10, max: 1000 });
-  grid1.addInput(viewport, "gridLineColor", { view: "color" });
-  grid1.addInput(viewport, "gridLineAlpha", { min: 0.0, max: 1.0 });
-  grid1.addInput(viewport, "gridLineWidth", { min: 0.5, max: 5.0 });
-
-  f1.addSeparator();
-  f1.addButton({ title: "Stop" }).on("click", () => world.loop.stop());
-  f1.addButton({ title: "Start" }).on("click", () => world.loop.start());
-
-  return pane;
 }
 
 main().catch(console.error);

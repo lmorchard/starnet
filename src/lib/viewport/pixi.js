@@ -3,6 +3,7 @@ import { AdvancedBloomFilter, CRTFilter, RGBSplitFilter } from "pixi-filters";
 import { defineQuery } from "bitecs";
 import { Renderable, RenderableShape, RenderableShapes } from "./index.js";
 import { Position } from "../positionMotion.js";
+import { GraphLayoutEdge, graphLayoutEdgeQuery } from "../graphLayout";
 
 export function init(...args) {
   return new ViewportPixi(...args);
@@ -29,6 +30,10 @@ class ViewportPixi {
       }),
     ];
 
+    const edgeGraphics = new PIXI.Graphics();
+    edgeGraphics.zIndex = -500;
+    stage.addChild(edgeGraphics);
+
     const bgGraphics = new PIXI.Graphics();
     bgGraphics.zIndex = -1000;
     stage.addChild(bgGraphics);
@@ -40,6 +45,7 @@ class ViewportPixi {
       renderer,
       stage,
       bgGraphics,
+      edgeGraphics,
       renderQuery,
       camera: { x: 0, y: 0 },
       zoom: 1.0,
@@ -56,6 +62,7 @@ class ViewportPixi {
 
     this.updateViewportBounds(world);
     this.updateBackdrop(world);
+    this.updateEdges(world);
 
     const entityIds = this.renderQuery(world);
 
@@ -145,6 +152,23 @@ class ViewportPixi {
     if (!world.viewport) world.viewport = {};
     world.viewport.clientWidth = clientWidth;
     world.viewport.clientHeight = clientHeight;
+  }
+
+  updateEdges(world) {
+    const { edgeGraphics: g } = this;
+
+    g.clear();
+
+    for (const eid of graphLayoutEdgeQuery(world)) {
+      const fromX = GraphLayoutEdge.fromX[eid];
+      const fromY = GraphLayoutEdge.fromY[eid];
+      const toX = GraphLayoutEdge.toX[eid];
+      const toY = GraphLayoutEdge.toY[eid];
+
+      g.lineStyle(2, 0x33ff33, 1.0);
+      g.moveTo(fromX, fromY);
+      g.lineTo(toX, toY);  
+    }
   }
 
   updateBackdrop(world) {

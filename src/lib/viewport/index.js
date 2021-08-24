@@ -1,6 +1,7 @@
 import { Types, defineComponent } from "bitecs";
 
 export const Renderable = defineComponent({
+  visible: Types.i8,
   shape: Types.i8,
   mouseOver: Types.i8,
   mouseDown: Types.i8,
