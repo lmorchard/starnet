@@ -11,7 +11,11 @@ import { rand, genid } from "../../lib/utils.js";
 import * as Stats from "../../lib/stats.js";
 import * as World from "../../lib/world.js";
 import * as Viewport from "../../lib/viewport/pixi.js";
-import { Renderable, RenderableShape } from "../../lib/viewport/index.js";
+import {
+  Renderable,
+  RenderableShape,
+  CameraFocus,
+} from "../../lib/viewport/index.js";
 import { setupTwiddles } from "../twiddles.js";
 import {
   Position,
@@ -85,9 +89,15 @@ async function main() {
 
   const eidToNid = {};
   const nidToEid = {};
+
   for (const nodeId in network.children) {
     const node = network.children[nodeId];
     const eid = spawnNode(world, node);
+
+    if (node === gateway) {
+      addComponent(world, CameraFocus, eid);
+    }
+
     eidToNid[eid] = node.id;
     nidToEid[node.id] = eid;
   }
@@ -99,14 +109,33 @@ async function main() {
     }
   }
 
+  const spawnNewNode = () => {
+    const [ node ] = network.add(new TerminalNode());
+    node.connect(terminalHub);
+
+    const eid = spawnNode(world, node);
+    eidToNid[eid] = node.id;
+    nidToEid[node.id] = eid;
+
+    for (const toNodeId in node.connections) {
+      spawnNodeEdge(world, nidToEid[node.id], nidToEid[toNodeId]);
+    }
+  };
+
   const pane = setupTwiddles(world, viewport);
+  pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
+  
   const pipeline = pipe(graphLayoutSystem, movementSystem, bouncerSystem, () =>
     pane.refresh()
   );
   world.run(pipeline, viewport, stats);
 
   Object.assign(window, {
-    world, Position, GraphLayoutEdge, GraphLayoutNode, GraphLayoutEdge
+    world,
+    Position,
+    GraphLayoutEdge,
+    GraphLayoutNode,
+    GraphLayoutEdge,
   });
 
   console.log("READY.");
@@ -114,7 +143,7 @@ async function main() {
 
 function spawnNodeEdge(world, fromEid, toEid) {
   const eid = addEntity(world);
-  
+
   addComponent(world, GraphLayoutEdge, eid);
   GraphLayoutEdge.from[eid] = fromEid;
   GraphLayoutEdge.to[eid] = toEid;

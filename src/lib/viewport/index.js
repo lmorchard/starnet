@@ -1,4 +1,5 @@
-import { Types, defineComponent } from "bitecs";
+import { Types, defineComponent, defineQuery } from "bitecs";
+import { Position } from "../positionMotion.js";
 
 export const Renderable = defineComponent({
   visible: Types.i8,
@@ -8,6 +9,12 @@ export const Renderable = defineComponent({
   mouseClicked: Types.i8,
   mouseClickedSeen: Types.i8,
 });
+
+export const renderQuery = defineQuery([Position, Renderable]);
+
+export const CameraFocus = defineComponent();
+
+export const cameraFocusQuery = defineQuery([Position, CameraFocus]);
 
 export const RenderableShapes = [
   "Default",

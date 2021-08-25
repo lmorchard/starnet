@@ -1,7 +1,12 @@
 import * as PIXI from "pixi.js";
 import { AdvancedBloomFilter, CRTFilter, RGBSplitFilter } from "pixi-filters";
-import { defineQuery } from "bitecs";
-import { Renderable, RenderableShape, RenderableShapes } from "./index.js";
+import {
+  cameraFocusQuery,
+  Renderable,
+  RenderableShape,
+  RenderableShapes,
+  renderQuery,
+} from "./index.js";
 import { Position } from "../positionMotion.js";
 import { GraphLayoutEdge, graphLayoutEdgeQuery } from "../graphLayout";
 
@@ -38,15 +43,12 @@ class ViewportPixi {
     bgGraphics.zIndex = -1000;
     stage.addChild(bgGraphics);
 
-    const renderQuery = defineQuery([Position, Renderable]);
-
     Object.assign(this, {
       renderables: {},
       renderer,
       stage,
       bgGraphics,
       edgeGraphics,
-      renderQuery,
       camera: { x: 0, y: 0 },
       zoom: 1.0,
       gridEnabled: true,
@@ -60,11 +62,12 @@ class ViewportPixi {
   draw(world, interpolationPercentage) {
     const { renderer, stage, renderables } = this;
 
+    this.updateCameraFocus(world);
     this.updateViewportBounds(world);
     this.updateBackdrop(world);
     this.updateEdges(world);
 
-    const entityIds = this.renderQuery(world);
+    const entityIds = renderQuery(world);
 
     for (const eid of entityIds) {
       if (!renderables[eid]) {
@@ -82,6 +85,14 @@ class ViewportPixi {
     }
 
     renderer.render(stage);
+  }
+
+  updateCameraFocus(world) {
+    for (const eid of cameraFocusQuery(world)) {
+      // TODO: More smoothly transition this with LERP for a chase-cam effect
+      this.camera.x = Position.x[eid];
+      this.camera.y = Position.y[eid];
+    }
   }
 
   createRenderable(eid) {
@@ -167,7 +178,7 @@ class ViewportPixi {
 
       g.lineStyle(2, 0x33ff33, 1.0);
       g.moveTo(fromX, fromY);
-      g.lineTo(toX, toY);  
+      g.lineTo(toX, toY);
     }
   }
 

@@ -74,10 +74,12 @@ export const graphLayoutSystem = defineSystem((world) => {
     const ratio = GraphLayoutScene.ratio[layoutId];
 
     if (exitedNodeEIDs.length) {
+      layout._update = true;
       graph.filterNodes((node) => !exitedNodeEIDs.includes(node.id));
     }
 
     if (exitedEdgeEIDs.length) {
+      layout._update = true;
       graph.filterEdges((edge) => !exitedEdgeEIDs.includes(edge.data.eid));
     }
 
@@ -149,8 +151,10 @@ function destroyLayout(world, eid) {
 
 function addNodeToLayout(world, eid) {
   const sceneEID = GraphLayoutNode.sceneId[eid];
-  const layout = world.graphLayouts[sceneEID];
+  const layout = world.graphLayouts[sceneEID];  
   if (!layout) return;
+
+  layout._update = true;
   const graph = layout.graph;
   graph.addNode(new Springy.Node(eid));
 }
@@ -160,6 +164,7 @@ function addEdgeToLayout(world, eid) {
   const layout = world.graphLayouts[sceneEID];
   if (!layout) return;
 
+  layout._update = true;
   const graph = layout.graph;
 
   const fromEid = GraphLayoutEdge.from[eid];
