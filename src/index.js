@@ -1,6 +1,6 @@
 import { addEntity, addComponent, pipe } from "bitecs";
 import { Pane } from "tweakpane";
-import { rand } from "./lib/utils.js";
+import { rngIntRange } from "./lib/randoms.js";
 import * as Stats from "./lib/stats.js";
 import * as World from "./lib/world.js";
 import * as Viewport from "./lib/viewport/pixi.js";
@@ -13,7 +13,7 @@ import {
 } from "./lib/positionMotion.js";
 
 async function main() {
-  const stats = null; //Stats.init();
+  const stats = Stats.init();
   const world = World.init();
   const viewport = Viewport.init();
 
@@ -24,12 +24,12 @@ async function main() {
     addComponent(world, Position, eid);
     addComponent(world, Velocity, eid);
 
-    Position.x[eid] = rand(-300, 300);
-    Position.y[eid] = rand(-300, 300);
-    Position.z[eid] = rand(1, 6);
-    Velocity.x[eid] = rand(-100, 100);
-    Velocity.y[eid] = rand(-100, 100);
-    Velocity.z[eid] = rand(-12, 12);
+    Position.x[eid] = rngIntRange(-300, 300);
+    Position.y[eid] = rngIntRange(-300, 300);
+    Position.z[eid] = rngIntRange(1, 6);
+    Velocity.x[eid] = rngIntRange(-100, 100);
+    Velocity.y[eid] = rngIntRange(-100, 100);
+    Velocity.z[eid] = rngIntRange(-12, 12);
 
     return eid;
   };

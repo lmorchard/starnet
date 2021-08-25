@@ -3,21 +3,46 @@ import {
   defineQuery,
   defineSystem,
   Types,
+  addComponent,
+  exitQuery,
+  enterQuery,
 } from "bitecs";
-import { rand, genid } from "./utils.js";
+import { genid } from "./randoms";
+
+export function init(world) {
+  world.nodeIdToEntityId = {};
+}
 
 export const NetworkNodeRef = defineComponent({
   networkId: Types.i32,
   nodeId: Types.i32,
 });
 
-export function spawnNetwork() {
+export const networkNodeRefQuery = defineQuery([NetworkNodeRef]);
+export const enterNetworkNodeRefQuery = enterQuery(networkNodeRefQuery);
+export const exitNetworkNodeRefQuery = exitQuery(networkNodeRefQuery);
 
+export function addNetworkNodeRef(world, eid, node) {
+  addComponent(world, NetworkNodeRef, eid);
+  NetworkNodeRef.networkId[eid] = node.network.id;
+  NetworkNodeRef.nodeId[eid] = node.id;
+  world.nodeIdToEntityId[node.id] = eid;
 }
 
-export function spawnNetworkNode() {
-
-}
+export const networkNodeRefSystem = defineSystem((world) => {
+  for (const eid of enterNetworkNodeRefQuery(world)) {
+    const nodeId = NetworkNodeRef.nodeId[eid];
+    world.nodeIdToEntityId[nodeId] = eid;
+  }
+  const entries = Object.entries(world.nodeIdToEntityId);
+  for (const deletedEid of exitNetworkNodeRefQuery(world)) {
+    const result = entries.find(([ nodeId, eid ]) => eid === deletedEid);
+    if (result) {
+      const [ nodeId ] = result;
+      delete world.nodeIdToEntityId[nodeId];
+    }
+  }
+});
 
 export class Base {
   defaults() {

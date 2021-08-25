@@ -7,12 +7,6 @@ export function init() {
   Object.assign(world, {
     fps: 0,
     time: { delta: 0, deltaSec: 0, elapsed: 0 },
-    networks: {},
-
-    addNetwork(network) {
-      this.networks[network.id] = network;
-      return network;
-    },
 
     update(delta, pipeline) {
       const time = this.time;

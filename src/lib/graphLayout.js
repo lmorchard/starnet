@@ -5,11 +5,74 @@ import {
   defineSystem,
   enterQuery,
   exitQuery,
+  addEntity,
+  addComponent,
 } from "bitecs";
 
+import { addNetworkNodeRef } from "./networks.js";
+
+import { mkrng } from "./randoms.js";
+
 import { Position } from "./positionMotion.js";
+import { Renderable, RenderableShape } from "./viewport/index.js";
 
 import Springy from "./springy.js";
+
+export function init(world) {
+  world.graphLayouts = {};
+  world.sceneIdToEid = {};
+}
+
+export function spawnSceneForNetwork(world, network) {
+  const sceneEid = spawnGraphLayoutScene(world, network.id);
+  world.sceneIdToEid[network.id] = sceneEid;
+
+  // First pass to add all nodes in the scene
+  for (const nodeId in network.children) {
+    const node = network.children[nodeId];
+    spawnNode(world, node);
+  }
+
+  // Second pass to add edges using eids of nodes from first pass
+  for (const nodeId in network.children) {
+    const node = network.children[nodeId];
+    for (const toNodeId in node.connections) {
+      spawnNodeEdge(
+        world,
+        network.id,
+        world.nodeIdToEntityId[node.id],
+        world.nodeIdToEntityId[toNodeId]
+      );
+    }
+  }
+}
+
+export function spawnNode(world, node) {
+  const eid = addEntity(world);
+
+  addNetworkNodeRef(world, eid, node);
+
+  addComponent(world, GraphLayoutNode, eid);
+  GraphLayoutNode.sceneId[eid] = node.networkId;
+  GraphLayoutNode.nodeId[eid] = node.id;
+
+  addComponent(world, Renderable, eid);
+  Renderable.shape[eid] = RenderableShape[node.type] || RenderableShape.Node;
+
+  addComponent(world, Position, eid);
+  Position.x[eid] = 0;
+  Position.y[eid] = 0;
+
+  return eid;
+}
+
+export function spawnNodeEdge(world, sceneId, fromEid, toEid) {
+  const eid = addEntity(world);
+  addComponent(world, GraphLayoutEdge, eid);
+  GraphLayoutEdge.sceneId[eid] = sceneId;
+  GraphLayoutEdge.from[eid] = fromEid;
+  GraphLayoutEdge.to[eid] = toEid;
+}
 
 export const GraphLayoutScene = defineComponent({
   sceneId: Types.i32,
@@ -21,6 +84,15 @@ export const GraphLayoutScene = defineComponent({
 export const graphLayoutSceneQuery = defineQuery([GraphLayoutScene]);
 export const enterGraphLayoutSceneQuery = enterQuery(graphLayoutSceneQuery);
 export const exitGraphLayoutSceneQuery = exitQuery(graphLayoutSceneQuery);
+
+export function spawnGraphLayoutScene(world, sceneId, initialRatio = 30.0) {
+  const eid = addEntity(world);
+  addComponent(world, GraphLayoutScene, eid);
+  GraphLayoutScene.active[eid] = true;
+  GraphLayoutScene.sceneId[eid] = sceneId;
+  GraphLayoutScene.ratio[eid] = initialRatio;
+  return eid;
+}
 
 export const GraphLayoutEdge = defineComponent({
   sceneId: Types.i32,
@@ -125,8 +197,10 @@ export const graphLayoutSystem = defineSystem((world) => {
 
 function createLayout(world, eid) {
   const graph = new Springy.Graph();
+
   // HACK: redefine vector randomizer to use consistent seed for group
-  // graph.rng = mkrng(groupId);
+  graph.rng = mkrng(eid);
+
   const layout = new Springy.Layout.ForceDirected(
     graph,
     200.0, // Spring stiffness
@@ -135,26 +209,33 @@ function createLayout(world, eid) {
     0.01 // minEnergyThreshold
   );
   layout._update = true;
-  /*
-    // HACK: redefine vector randomizer to use consistent seed for group
-    const rng = layouts[groupId].graph.rng;
-    const unit = 5.0;
-    Springy.Vector.random = function () {
-      const a = PI2 * rng();
-      return new Springy.Vector(unit * Math.cos(a), unit * Math.sin(a));
-    };
-  */
-  if (!world.graphLayouts) world.graphLayouts = {};
+
+  // HACK: redefine vector randomizer to use consistent seed for group
+  const rng = graph.rng;
+  const unit = 5.0;
+  Springy.Vector.random = function () {
+    const a = Math.PI * 2 * rng();
+    return new Springy.Vector(unit * Math.cos(a), unit * Math.sin(a));
+  };
+
   world.graphLayouts[eid] = layout;
+  world.sceneIdToEid[GraphLayoutScene.sceneId[eid]] = eid;
 }
 
-function destroyLayout(world, eid) {
-  delete world.graphLayouts[eid];
+function destroyLayout(world, deletedEid) {
+  delete world.graphLayouts[deletedEid];
+  const result = Object.entries(world.sceneIdToEid).find(
+    ([sceneId, eid]) => eid === deletedEid
+  );
+  if (result) {
+    const [sceneId] = result;
+    delete world.sceneIdToEid[sceneId];
+  }
 }
 
 function addNodeToLayout(world, eid) {
   const sceneEID = GraphLayoutNode.sceneId[eid];
-  const layout = world.graphLayouts[sceneEID];  
+  const layout = world.graphLayouts[sceneEID];
   if (!layout) return;
 
   layout._update = true;
@@ -163,7 +244,7 @@ function addNodeToLayout(world, eid) {
 }
 
 function addEdgeToLayout(world, eid) {
-  const sceneEID = GraphLayoutEdge.sceneId[eid];
+  const sceneEID = world.sceneIdToEid[GraphLayoutEdge.sceneId[eid]];
   const layout = world.graphLayouts[sceneEID];
   if (!layout) return;
 

@@ -22,6 +22,8 @@ class ViewportPixi {
     const renderer = new PIXI.Renderer({
       width: clientWidth,
       height: clientHeight,
+      antialias: true,
+      autoDensity: true,
     });
     parentNode.appendChild(renderer.view);
 
@@ -29,10 +31,12 @@ class ViewportPixi {
     stage.sortableChildren = true;
     stage.filters = [
       new AdvancedBloomFilter({
-        kernelSize: 11,
-        blur: 3,
+        threshold: 0.4,
+        bloomScale: 1.5,
+        brightness: 1.25,
         quality: 8,
       }),
+      new PIXI.filters.FXAAFilter(),
     ];
 
     const edgeGraphics = new PIXI.Graphics();
