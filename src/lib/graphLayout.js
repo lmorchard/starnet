@@ -15,6 +15,7 @@ export const GraphLayoutScene = defineComponent({
   sceneId: Types.i32,
   active: Types.i8, // boolean
   ratio: Types.f32,
+  // TODO: Add a pivot point for the overall graph layout scene?
 });
 
 export const graphLayoutSceneQuery = defineQuery([GraphLayoutScene]);
@@ -71,6 +72,8 @@ export const graphLayoutSystem = defineSystem((world) => {
   for (let layoutId in world.graphLayouts) {
     const layout = world.graphLayouts[layoutId];
     const graph = layout.graph;
+
+    // TODO: transition this ratio to make the graph bloom
     const ratio = GraphLayoutScene.ratio[layoutId];
 
     if (exitedNodeEIDs.length) {
