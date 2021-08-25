@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import { SmoothGraphics as Graphics } from "@pixi/graphics-smooth";
 import { AdvancedBloomFilter, CRTFilter, RGBSplitFilter } from "pixi-filters";
 import {
   cameraFocusQuery,
@@ -22,8 +23,8 @@ class ViewportPixi {
     const renderer = new PIXI.Renderer({
       width: clientWidth,
       height: clientHeight,
-      antialias: true,
-      autoDensity: true,
+      //antialias: true,
+      //autoDensity: true,
     });
     parentNode.appendChild(renderer.view);
 
@@ -39,11 +40,11 @@ class ViewportPixi {
       new PIXI.filters.FXAAFilter(),
     ];
 
-    const edgeGraphics = new PIXI.Graphics();
+    const edgeGraphics = new Graphics();
     edgeGraphics.zIndex = -500;
     stage.addChild(edgeGraphics);
 
-    const bgGraphics = new PIXI.Graphics();
+    const bgGraphics = new Graphics();
     bgGraphics.zIndex = -1000;
     stage.addChild(bgGraphics);
 
@@ -102,7 +103,7 @@ class ViewportPixi {
   createRenderable(eid) {
     const { stage, renderables } = this;
 
-    const g = new PIXI.Graphics();
+    const g = new Graphics();
 
     g.pivot.x = 0;
     g.pivot.y = 0;
@@ -174,6 +175,8 @@ class ViewportPixi {
 
     g.clear();
 
+    // TODO: unless / until there are one-way edges, de-dupe edges with
+    // the same but reversed from/to coords
     for (const eid of graphLayoutEdgeQuery(world)) {
       const fromX = GraphLayoutEdge.fromX[eid];
       const fromY = GraphLayoutEdge.fromY[eid];
