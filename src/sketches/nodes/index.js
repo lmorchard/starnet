@@ -119,7 +119,6 @@ async function main() {
     networkNodeRefSystem,
     graphLayoutSystem,
     movementSystem,
-    bouncerSystem,
     focusSelectionSystem,
     () => pane.refresh()
   );

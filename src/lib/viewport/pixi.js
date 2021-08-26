@@ -8,6 +8,8 @@ import {
   RenderableShapes,
   renderQuery,
 } from "./index.js";
+import Easings from "../easings.js";
+import { transition } from "../transitions.js";
 import { Position } from "../positionMotion.js";
 import { GraphLayoutEdge, graphLayoutEdgeQuery } from "../graphLayout";
 
@@ -55,6 +57,18 @@ class ViewportPixi {
       bgGraphics,
       edgeGraphics,
       camera: { x: 0, y: 0 },
+      cameraFocusEid: null,
+      cameraEase: Easings.easeOutBack,
+      cameraEaseDuration: 500,
+      cameraTarget: {
+        fromX: 0,
+        fromY: 0,
+        toX: 0,
+        toY: 0,
+        duration: 0,
+        elapsed: 0,
+        active: false,
+      },
       zoom: 1.0,
       gridEnabled: true,
       gridSize: 100,
@@ -68,6 +82,7 @@ class ViewportPixi {
     const { renderer, stage, renderables } = this;
 
     this.updateCameraFocus(world);
+    this.updateCameraTarget(world);
     this.updateViewportBounds(world);
     this.updateBackdrop(world);
     this.updateEdges(world);
@@ -92,11 +107,52 @@ class ViewportPixi {
     renderer.render(stage);
   }
 
+  setCameraTarget(toX, toY, duration = 400) {
+    Object.assign(this.cameraTarget, {
+      fromX: this.camera.x,
+      fromY: this.camera.y,
+      toX,
+      toY,
+      duration: duration, // || this.cameraEaseDuration,
+      elapsed: 0,
+      active: true,
+    });
+  }
+
   updateCameraFocus(world) {
-    for (const eid of cameraFocusQuery(world)) {
-      // TODO: More smoothly transition this with LERP for a chase-cam effect
-      this.camera.x = Position.x[eid];
-      this.camera.y = Position.y[eid];
+    const focusEid = cameraFocusQuery(world)[0];
+    if (!focusEid) return;
+
+    const focusX = Position.x[focusEid];
+    const focusY = Position.y[focusEid];
+    if (focusEid === this.cameraFocusEid) {
+      if (!this.cameraTarget.active) {
+        this.camera.x = focusX;
+        this.camera.y = focusY;
+      }
+    } else {
+      this.cameraFocusEid = focusEid;
+      this.setCameraTarget(focusX, focusY);
+    }
+  }
+
+  updateCameraTarget(world) {
+    if (!this.cameraTarget.active) return;
+    
+    this.cameraTarget.elapsed += world.time.delta;
+
+    const { cameraEase, cameraTarget } = this;
+    const { fromX, fromY, toX, toY, duration, elapsed } = cameraTarget;
+
+    this.camera.x = transition(fromX, toX, duration, elapsed, cameraEase);
+    this.camera.y = transition(fromY, toY, duration, elapsed, cameraEase);
+
+    if (
+      this.camera.x === toX &&
+      this.camera.y === toY &&
+      this.cameraTarget.active
+    ) {
+      this.cameraTarget.active = false;
     }
   }
 
