@@ -16,3 +16,6 @@ export function transition(
   if (progress > endThreshold) return end;
   return transform(lerp(start, end, ease(progress)));
 }
+
+// TODO: more convenient transition that accepts arrays of from/to
+// and returns array of current

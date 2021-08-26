@@ -59,7 +59,7 @@ class ViewportPixi {
       camera: { x: 0, y: 0 },
       cameraFocusEid: null,
       cameraEase: Easings.easeOutBack,
-      cameraEaseDuration: 500,
+      cameraEaseDuration: 400,
       cameraTarget: {
         fromX: 0,
         fromY: 0,
@@ -107,13 +107,13 @@ class ViewportPixi {
     renderer.render(stage);
   }
 
-  setCameraTarget(toX, toY, duration = 400) {
+  setCameraTarget(toX, toY, duration) {
     Object.assign(this.cameraTarget, {
       fromX: this.camera.x,
       fromY: this.camera.y,
       toX,
       toY,
-      duration: duration, // || this.cameraEaseDuration,
+      duration: duration || this.cameraEaseDuration,
       elapsed: 0,
       active: true,
     });
@@ -138,7 +138,7 @@ class ViewportPixi {
 
   updateCameraTarget(world) {
     if (!this.cameraTarget.active) return;
-    
+
     this.cameraTarget.elapsed += world.time.delta;
 
     const { cameraEase, cameraTarget } = this;
