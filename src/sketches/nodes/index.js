@@ -1,8 +1,13 @@
-import { addComponent, pipe } from "bitecs";
+import { defineSystem, addComponent, pipe, removeComponent } from "bitecs";
 import * as Stats from "../../lib/stats.js";
 import * as World from "../../lib/world.js";
 import * as Viewport from "../../lib/viewport/pixi.js";
-import { CameraFocus } from "../../lib/viewport/index.js";
+import {
+  CameraFocus,
+  Renderable,
+  renderQuery,
+  cameraFocusQuery,
+} from "../../lib/viewport/index.js";
 import { movementSystem, bouncerSystem } from "../../lib/positionMotion.js";
 import {
   init as initGraphLayout,
@@ -80,6 +85,19 @@ async function main() {
 
   addComponent(world, CameraFocus, world.nodeIdToEntityId[gateway.id]);
 
+  const focusSelectionSystem = defineSystem((world) => {
+    const clickedEid = renderQuery(world).find(
+      (eid) => Renderable.mouseClicked[eid]
+    );
+    if (clickedEid) {
+      const cameraFocusEid = cameraFocusQuery(world)[0];
+      if (cameraFocusEid) {
+        removeComponent(world, CameraFocus, cameraFocusEid);
+      }
+      addComponent(world, CameraFocus, clickedEid);
+    }
+  });
+
   const spawnNewNode = () => {
     const [node] = network.add(new TerminalNode());
     node.connect(terminalHub);
@@ -102,6 +120,7 @@ async function main() {
     graphLayoutSystem,
     movementSystem,
     bouncerSystem,
+    focusSelectionSystem,
     () => pane.refresh()
   );
   world.run(pipeline, viewport, stats);
