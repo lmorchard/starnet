@@ -8,7 +8,7 @@ import {
   renderQuery,
   cameraFocusQuery,
 } from "../../lib/viewport/index.js";
-import { movementSystem, bouncerSystem } from "../../lib/positionMotion.js";
+import { movementSystem, bouncerSystem, Position } from "../../lib/positionMotion.js";
 import {
   init as initGraphLayout,
   graphLayoutSystem,
@@ -86,12 +86,13 @@ async function main() {
   addComponent(world, CameraFocus, world.nodeIdToEntityId[gateway.id]);
 
   const focusSelectionSystem = defineSystem((world) => {
-    const clickedEid = renderQuery(world).find(
+    const renderables = renderQuery(world);
+    const clickedEid = renderables.find(
       (eid) => Renderable.mouseClicked[eid]
     );
     if (clickedEid) {
       const cameraFocusEid = cameraFocusQuery(world)[0];
-      if (cameraFocusEid) {
+      if (cameraFocusEid && cameraFocusEid !== clickedEid) {
         removeComponent(world, CameraFocus, cameraFocusEid);
       }
       addComponent(world, CameraFocus, clickedEid);
