@@ -24,7 +24,7 @@ export function init(world) {
 }
 
 export function spawnSceneForNetwork(world, network) {
-  const sceneEid = spawnGraphLayoutScene(world, network.id);
+  const sceneEid = spawnGraphLayoutScene(world, network.id, 50);
   world.sceneIdToEid[network.id] = sceneEid;
 
   // First pass to add all nodes in the scene

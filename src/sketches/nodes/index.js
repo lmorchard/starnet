@@ -8,7 +8,11 @@ import {
   renderQuery,
   cameraFocusQuery,
 } from "../../lib/viewport/index.js";
-import { movementSystem, bouncerSystem, Position } from "../../lib/positionMotion.js";
+import {
+  movementSystem,
+  bouncerSystem,
+  Position,
+} from "../../lib/positionMotion.js";
 import {
   init as initGraphLayout,
   graphLayoutSystem,
@@ -41,8 +45,8 @@ async function main() {
   initNetworks(world);
   initGraphLayout(world);
 
-  const network = new Network();
-  const nodes = network.add(
+  const network1 = new Network();
+  const nodes = network1.add(
     new GatewayNode(),
     new FirewallNode(),
     new HubNode(),
@@ -76,20 +80,14 @@ async function main() {
   storageHub.connect(storage1, storage2, storage3, wallet1);
   terminalHub.connect(terminal1, terminal2, terminal3);
 
-  for (const node of nodes) {
-    console.log(node.id.toString(16).padStart(8, "0"), node);
-  }
-
-  spawnSceneForNetwork(world, network);
+  spawnSceneForNetwork(world, network1);
   // TODO: despawn scene for transition
 
   addComponent(world, CameraFocus, world.nodeIdToEntityId[gateway.id]);
 
   const focusSelectionSystem = defineSystem((world) => {
     const renderables = renderQuery(world);
-    const clickedEid = renderables.find(
-      (eid) => Renderable.mouseClicked[eid]
-    );
+    const clickedEid = renderables.find((eid) => Renderable.mouseClicked[eid]);
     if (clickedEid) {
       const cameraFocusEid = cameraFocusQuery(world)[0];
       if (cameraFocusEid && cameraFocusEid !== clickedEid) {
@@ -100,13 +98,13 @@ async function main() {
   });
 
   const spawnNewNode = () => {
-    const [node] = network.add(new TerminalNode());
+    const [node] = network1.add(new TerminalNode());
     node.connect(terminalHub);
     spawnNode(world, node);
     for (const toNodeId in node.connections) {
       spawnNodeEdge(
         world,
-        network.id,
+        network1.id,
         world.nodeIdToEntityId[node.id],
         world.nodeIdToEntityId[toNodeId]
       );
@@ -115,6 +113,33 @@ async function main() {
 
   const pane = setupTwiddles(world, viewport);
   pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
+
+  const bloomTwiddles = pane.addFolder({ title: "Bloom" });
+  bloomTwiddles.addInput(viewport.bloom, "threshold", {
+    min: 0.1,
+    max: 2.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "bloomScale", {
+    min: 0.1,
+    max: 2.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "brightness", {
+    min: 0.1,
+    max: 2.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "blur", {
+    min: 0.5,
+    max: 8.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "quality", {
+    min: 1,
+    max: 16,
+    step: 1,
+  });
 
   const pipeline = pipe(
     networkNodeRefSystem,

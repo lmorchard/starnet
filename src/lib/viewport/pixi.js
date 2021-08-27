@@ -32,14 +32,17 @@ class ViewportPixi {
 
     const stage = new PIXI.Container();
     stage.sortableChildren = true;
+
+    this.bloom = new AdvancedBloomFilter({
+      threshold: 0.3,
+      bloomScale: 1.25,
+      brightness: 1.5,
+      blur: 1,
+      quality: 2,
+    });
     stage.filters = [
-      new AdvancedBloomFilter({
-        threshold: 0.4,
-        bloomScale: 1.5,
-        brightness: 1.25,
-        quality: 8,
-      }),
       new PIXI.filters.FXAAFilter(),
+      this.bloom,
     ];
 
     const edgeGraphics = new Graphics();
@@ -291,22 +294,25 @@ class ViewportPixi {
     switch (shape) {
       case RenderableShape.GatewayNode: {
         g.lineStyle(2, 0xfeeb77, 1);
-        g.beginFill(0x650a5a, 1);
-        g.drawCircle(0, 0, 10);
-        g.endFill();
+        //g.beginFill(0x650a5a, 1);
+        g.moveTo(0, -25);
+        g.lineTo(25, 25);
+        g.lineTo(-25, 25);
+        g.lineTo(0, -25);
+        //g.endFill();
         break;
       }
       case RenderableShape.FirewallNode: {
         g.lineStyle(2, 0xfeeb77, 1);
         g.beginFill(0x650a5a, 1);
-        g.drawCircle(0, 0, 10);
+        g.drawCircle(0, 0, 25);
         g.endFill();
         break;
       }
       default: {
         g.lineStyle(2, 0xfeeb77, 1);
         g.beginFill(0x3333ff);
-        g.drawRect(-10, -10, 20, 20);
+        g.drawRect(-25, -25, 50, 50);
         g.endFill();
       }
     }
