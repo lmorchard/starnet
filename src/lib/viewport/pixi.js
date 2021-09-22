@@ -30,6 +30,8 @@ class ViewportPixi {
     });
     parentNode.appendChild(renderer.view);
 
+    const filterStage = new PIXI.Container();
+
     const stage = new PIXI.Container();
     stage.sortableChildren = true;
     stage.filters = [
@@ -200,6 +202,7 @@ class ViewportPixi {
   }
 
   destroyRenderable(eid, r) {
+    const { stage, renderables } = this;
     delete renderables[eid];
     stage.removeChild(r);
   }
@@ -239,7 +242,7 @@ class ViewportPixi {
       const toX = GraphLayoutEdge.toX[eid];
       const toY = GraphLayoutEdge.toY[eid];
 
-      g.lineStyle(2, 0x33ff33, 1.0);
+      g.lineStyle(1, 0x33ff33, 0.7);
       g.moveTo(fromX, fromY);
       g.lineTo(toX, toY);
     }
@@ -288,26 +291,180 @@ class ViewportPixi {
   }
 
   drawShape(g, shape) {
+    const P = [];
+    for (let p = -50; p <= 50; p += 50 / 4) {
+      P.push(p);
+    }
+
     switch (shape) {
       case RenderableShape.GatewayNode: {
-        g.lineStyle(2, 0xfeeb77, 1);
-        g.beginFill(0x650a5a, 1);
-        g.drawCircle(0, 0, 10);
-        g.endFill();
+        g.lineStyle(2, 0x33ff33, 1);
+        g.drawPolygon([P[0], P[3], P[0], P[5], P[8], P[5], P[8], P[3]]);
+        g.drawPolygon([P[4], P[0], P[4], P[8]]);
+        g.drawPolygon([P[2], P[2], P[4], P[0], P[6], P[2]]);
+        g.drawPolygon([P[2], P[6], P[4], P[8], P[6], P[6]]);
+        break;
+      }
+      case RenderableShape.StorageNode: {
+        g.lineStyle(2, 0x3333ff, 1);
+        g.drawPolygon([
+          P[0],
+          P[1],
+          P[1],
+          P[0],
+          P[7],
+          P[0],
+          P[8],
+          P[1],
+          P[8],
+          P[7],
+          P[7],
+          P[8],
+          P[1],
+          P[8],
+          P[0],
+          P[7],
+        ]);
+        g.moveTo(P[0], P[1]);
+        g.lineTo(P[1], P[2]);
+        g.lineTo(P[7], P[2]);
+        g.lineTo(P[8], P[1]);
         break;
       }
       case RenderableShape.FirewallNode: {
-        g.lineStyle(2, 0xfeeb77, 1);
-        g.beginFill(0x650a5a, 1);
-        g.drawCircle(0, 0, 10);
-        g.endFill();
+        g.lineStyle(2, 0xff0000, 1);
+        g.drawPolygon([-50, 50, -50, -50, 50, -50, 50, 50]);
+
+        g.moveTo(P[0], P[2]);
+        g.lineTo(P[8], P[2]);
+        g.moveTo(P[0], P[4]);
+        g.lineTo(P[8], P[4]);
+        g.moveTo(P[0], P[6]);
+        g.lineTo(P[8], P[6]);
+
+        g.moveTo(P[2], P[0]);
+        g.lineTo(P[2], P[2]);
+        g.moveTo(P[6], P[0]);
+        g.lineTo(P[6], P[2]);
+
+        g.moveTo(P[4], P[2]);
+        g.lineTo(P[4], P[4]);
+
+        g.moveTo(P[2], P[4]);
+        g.lineTo(P[2], P[6]);
+        g.moveTo(P[6], P[4]);
+        g.lineTo(P[6], P[6]);
+
+        g.moveTo(P[4], P[6]);
+        g.lineTo(P[4], P[8]);
+
+        break;
+      }
+      case RenderableShape.HubNode: {
+        g.lineStyle(2, 0xff33ff, 1);
+        g.drawPolygon([
+          P[0],
+          P[3],
+          P[0],
+          P[5],
+          P[3],
+          P[8],
+          P[5],
+          P[8],
+          P[8],
+          P[5],
+          P[8],
+          P[3],
+          P[5],
+          P[0],
+          P[3],
+          P[0],
+        ]);
+        g.moveTo(P[0], P[3]);
+        g.lineTo(P[8], P[3]);
+        g.moveTo(P[0], P[5]);
+        g.lineTo(P[8], P[5]);
+        g.moveTo(P[3], P[0]);
+        g.lineTo(P[3], P[8]);
+        g.moveTo(P[5], P[0]);
+        g.lineTo(P[5], P[8]);
+        break;
+      }
+      case RenderableShape.TerminalNode: {
+        g.lineStyle(2, 0x8888ff, 1);
+        g.drawPolygon([P[1], P[0], P[7], P[0], P[7], P[5], P[1], P[5]]);
+        g.drawPolygon([P[1], P[5], P[0], P[8], P[8], P[8], P[7], P[5]]);
+        g.moveTo(P[3], P[7]);
+        g.lineTo(P[5], P[7]);
+        break;
+      }
+      case RenderableShape.WalletNode: {
+        g.lineStyle(2, 0x44ff66, 1);
+        g.drawPolygon([
+          P[0],
+          P[2],
+          P[1],
+          P[1],
+          P[7],
+          P[1],
+          P[8],
+          P[2],
+          P[8],
+          P[6],
+          P[7],
+          P[7],
+          P[1],
+          P[7],
+          P[0],
+          P[6],
+        ]);
+        g.drawPolygon([P[8], P[3], P[8], P[5], P[3], P[5], P[3], P[3]]);
+        break;
+      }
+      case RenderableShape.ICENode: {
+        g.lineStyle(2, 0x8888ff, 1);
+        g.drawPolygon([
+          P[3],
+          P[0],
+          P[2],
+          P[1],
+          P[2],
+          P[3],
+          P[3],
+          P[4],
+          P[3],
+          P[5],
+          P[5],
+          P[5],
+          P[5],
+          P[4],
+          P[6],
+          P[3],
+          P[6],
+          P[1],
+          P[5],
+          P[0],
+        ]);
+        g.moveTo(P[3], P[1]);
+        g.lineTo(P[5], P[3]);
+        g.moveTo(P[3], P[3]);
+        g.lineTo(P[5], P[1]);
+
+        g.moveTo(P[4], P[4]);
+        g.lineTo(P[4], P[5]);
+        g.moveTo(P[0], P[5]);
+        g.lineTo(P[8], P[8]);
+        g.moveTo(P[0], P[8]);
+        g.lineTo(P[8], P[5]);
         break;
       }
       default: {
-        g.lineStyle(2, 0xfeeb77, 1);
-        g.beginFill(0x3333ff);
-        g.drawRect(-10, -10, 20, 20);
-        g.endFill();
+        g.lineStyle(1, 0xff8888, 1);
+        g.drawPolygon([-50, 50, -50, -50, 50, -50, 50, 50]);
+        g.moveTo(0, -12.5);
+        g.lineTo(0, 12.5);
+        g.moveTo(-12.5, 0);
+        g.lineTo(12.5, 0);
       }
     }
   }
