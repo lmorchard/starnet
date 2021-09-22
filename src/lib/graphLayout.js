@@ -204,15 +204,15 @@ function createLayout(world, eid) {
   const layout = new Springy.Layout.ForceDirected(
     graph,
     200.0, // Spring stiffness
-    1000.0, // Node repulsion
-    0.6, // Damping
+    7000.0, // Node repulsion
+    0.5, // Damping
     0.01 // minEnergyThreshold
   );
   layout._update = true;
 
   // HACK: redefine vector randomizer to use consistent seed for group
   const rng = graph.rng;
-  const unit = 5.0;
+  const unit = 200.0;
   Springy.Vector.random = function () {
     const a = Math.PI * 2 * rng();
     return new Springy.Vector(unit * Math.cos(a), unit * Math.sin(a));

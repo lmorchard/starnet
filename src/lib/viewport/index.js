@@ -20,7 +20,12 @@ export const RenderableShapes = [
   "Default",
   "Node",
   "GatewayNode",
+  "StorageNode",
   "FirewallNode",
+  "HubNode",
+  "TerminalNode",
+  "WalletNode",
+  "ICENode",
 ];
 
 export const RenderableShape = RenderableShapes.reduce(
