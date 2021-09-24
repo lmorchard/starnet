@@ -1,0 +1,12 @@
+{
+  "imports": {
+    "@pixi/graphics-smooth": "./@pixi/graphics-smooth.js",
+    "bitecs": "./bitecs.js",
+    "mainloop.js": "./mainloopjs.js",
+    "pixi-filters": "./pixi-filters.js",
+    "pixi.js": "./pixijs.js",
+    "seedrandom": "./seedrandom.js",
+    "stats.js": "./statsjs.js",
+    "tweakpane": "./tweakpane.js"
+  }
+}
