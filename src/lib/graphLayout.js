@@ -24,7 +24,7 @@ export function init(world) {
 }
 
 export function spawnSceneForNetwork(world, network) {
-  const sceneEid = spawnGraphLayoutScene(world, network.id, 50);
+  const sceneEid = spawnGraphLayoutScene(world, network.id, 100);
   world.sceneIdToEid[network.id] = sceneEid;
 
   // First pass to add all nodes in the scene
@@ -85,7 +85,7 @@ export const graphLayoutSceneQuery = defineQuery([GraphLayoutScene]);
 export const enterGraphLayoutSceneQuery = enterQuery(graphLayoutSceneQuery);
 export const exitGraphLayoutSceneQuery = exitQuery(graphLayoutSceneQuery);
 
-export function spawnGraphLayoutScene(world, sceneId, initialRatio = 30.0) {
+export function spawnGraphLayoutScene(world, sceneId, initialRatio = 100.0) {
   const eid = addEntity(world);
   addComponent(world, GraphLayoutScene, eid);
   GraphLayoutScene.active[eid] = true;
@@ -203,19 +203,20 @@ function createLayout(world, eid) {
 
   const layout = new Springy.Layout.ForceDirected(
     graph,
-    200.0, // Spring stiffness
-    7000.0, // Node repulsion
+    1000.0, // Spring stiffness
+    500.0, // Node repulsion
     0.5, // Damping
-    0.01 // minEnergyThreshold
+    0.05 // minEnergyThreshold
   );
   layout._update = true;
 
   // HACK: redefine vector randomizer to use consistent seed for group
   const rng = graph.rng;
-  const unit = 200.0;
+  const unit = 2.0;
   Springy.Vector.random = function () {
     const a = Math.PI * 2 * rng();
-    return new Springy.Vector(unit * Math.cos(a), unit * Math.sin(a));
+    const v = new Springy.Vector(unit * Math.cos(a), unit * Math.sin(a));
+    return v;
   };
 
   world.graphLayouts[eid] = layout;

@@ -36,11 +36,11 @@ class ViewportPixi {
     stage.sortableChildren = true;
 
     this.bloom = new AdvancedBloomFilter({
-      threshold: 0.3,
-      bloomScale: 1.25,
-      brightness: 1.5,
-      blur: 1,
-      quality: 2,
+      threshold: 0.2,
+      bloomScale: 1.5,
+      brightness: 1.0,
+      blur: 1.5,
+      quality: 5,
     });
     stage.filters = [
       new PIXI.filters.FXAAFilter(),
@@ -169,6 +169,7 @@ class ViewportPixi {
     g.pivot.x = 0;
     g.pivot.y = 0;
     g.interactive = true;
+    g.hitArea = new PIXI.Rectangle(-50, -50, 100, 100);
 
     g.on("click", () => (Renderable.mouseClicked[eid] = true));
     g.on("pointerdown", () => (Renderable.mouseDown[eid] = true));
@@ -245,7 +246,7 @@ class ViewportPixi {
       const toX = GraphLayoutEdge.toX[eid];
       const toY = GraphLayoutEdge.toY[eid];
 
-      g.lineStyle(1, 0x33ff33, 0.7);
+      g.lineStyle(2, 0xaaaaff, 0.25);
       g.moveTo(fromX, fromY);
       g.lineTo(toX, toY);
     }

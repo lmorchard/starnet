@@ -112,6 +112,7 @@ async function main() {
   };
 
   const pane = setupTwiddles(world, viewport);
+  viewport.zoom = 0.75;
   pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
 
   const bloomTwiddles = pane.addFolder({ title: "Bloom" });
