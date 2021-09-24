@@ -172,6 +172,7 @@ class ViewportPixi {
     g.hitArea = new PIXI.Rectangle(-50, -50, 100, 100);
 
     g.on("click", () => (Renderable.mouseClicked[eid] = true));
+    g.on("tap", () => (Renderable.mouseClicked[eid] = true));
     g.on("pointerdown", () => (Renderable.mouseDown[eid] = true));
     g.on("pointerup", () => (Renderable.mouseDown[eid] = false));
     g.on("pointerover", () => (Renderable.mouseOver[eid] = true));
