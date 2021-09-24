@@ -58,6 +58,7 @@ async function main() {
     new TerminalNode(),
     new TerminalNode(),
     new TerminalNode(),
+    new TerminalNode(),
     new ICENode()
   );
   const [
@@ -72,13 +73,14 @@ async function main() {
     terminal1,
     terminal2,
     terminal3,
+    terminal4,
     ice1,
   ] = nodes;
 
   gateway.connect(firewall);
   firewall.connect(storageHub, terminalHub, ice1);
   storageHub.connect(storage1, storage2, storage3, wallet1);
-  terminalHub.connect(terminal1, terminal2, terminal3);
+  terminalHub.connect(terminal1, terminal2, terminal3, terminal4);
 
   spawnSceneForNetwork(world, network1);
   // TODO: despawn scene for transition
