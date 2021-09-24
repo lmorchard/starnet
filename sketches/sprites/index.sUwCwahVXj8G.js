@@ -1,7 +1,7 @@
 import { defineSystem, addEntity, addComponent, pipe, removeComponent } from "../../vendor/pkg/bitecs.uBk-LJ8s6O3X.js";
 import * as Stats from "../../lib/stats.OV0McSz3wFid.js";
 import * as World from "../../lib/world.TEy0JkQcCExn.js";
-import * as Viewport from "../../lib/viewport/pixi.iYECRZU2iNU-.js";
+import * as Viewport from "../../lib/viewport/pixi.GMeh2Dm0nMH5.js";
 import {
   CameraFocus,
   RenderableShape,

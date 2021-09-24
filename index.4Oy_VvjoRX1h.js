@@ -3,7 +3,7 @@ import { Pane } from "./vendor/pkg/tweakpane.1FDvvucfevJ0.js";
 import { rngIntRange } from "./lib/randoms.X9VRh4IgloX1.js";
 import * as Stats from "./lib/stats.OV0McSz3wFid.js";
 import * as World from "./lib/world.TEy0JkQcCExn.js";
-import * as Viewport from "./lib/viewport/pixi.iYECRZU2iNU-.js";
+import * as Viewport from "./lib/viewport/pixi.GMeh2Dm0nMH5.js";
 import { Renderable } from "./lib/viewport/index.V6yaLwAeWhUZ.js";
 import {
   Position,
