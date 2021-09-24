@@ -1,16 +1,16 @@
-import { addEntity, addComponent, pipe } from "./vendor/pkg/bitecs.uBk-LJ8s6O3X.js";
-import { Pane } from "./vendor/pkg/tweakpane.1FDvvucfevJ0.js";
-import { rngIntRange } from "./lib/randoms.X9VRh4IgloX1.js";
-import * as Stats from "./lib/stats.OV0McSz3wFid.js";
-import * as World from "./lib/world.TEy0JkQcCExn.js";
-import * as Viewport from "./lib/viewport/pixi.GMeh2Dm0nMH5.js";
-import { Renderable } from "./lib/viewport/index.V6yaLwAeWhUZ.js";
+import { addEntity, addComponent, pipe } from "./vendor/pkg/bitecs.js";
+import { Pane } from "./vendor/pkg/tweakpane.js";
+import { rngIntRange } from "./lib/randoms.js";
+import * as Stats from "./lib/stats.js";
+import * as World from "./lib/world.js";
+import * as Viewport from "./lib/viewport/pixi.js";
+import { Renderable } from "./lib/viewport/index.js";
 import {
   Position,
   Velocity,
   movementSystem,
   bouncerSystem,
-} from "./lib/positionMotion.Rf-6EmSjJMue.js";
+} from "./lib/positionMotion.js";
 
 async function main() {
   const stats = Stats.init();

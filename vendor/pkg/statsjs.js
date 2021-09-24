@@ -1,4 +1,4 @@
-import { c as createCommonjsModule, a as commonjsGlobal } from './common/_commonjsHelpers-798ad6a7.NdjIFkBWvq6n.js';
+import { c as createCommonjsModule, a as commonjsGlobal } from './common/_commonjsHelpers-798ad6a7.js';
 
 var stats_min = createCommonjsModule(function (module, exports) {
 // stats.js - http://github.com/mrdoob/stats.js

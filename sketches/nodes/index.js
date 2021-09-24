@@ -1,25 +1,25 @@
-import { defineSystem, addComponent, pipe, removeComponent } from "../../vendor/pkg/bitecs.uBk-LJ8s6O3X.js";
-import * as Stats from "../../lib/stats.OV0McSz3wFid.js";
-import * as World from "../../lib/world.TEy0JkQcCExn.js";
-import * as Viewport from "../../lib/viewport/pixi.GMeh2Dm0nMH5.js";
+import { defineSystem, addComponent, pipe, removeComponent } from "../../vendor/pkg/bitecs.js";
+import * as Stats from "../../lib/stats.js";
+import * as World from "../../lib/world.js";
+import * as Viewport from "../../lib/viewport/pixi.js";
 import {
   CameraFocus,
   Renderable,
   renderQuery,
   cameraFocusQuery,
-} from "../../lib/viewport/index.V6yaLwAeWhUZ.js";
+} from "../../lib/viewport/index.js";
 import {
   movementSystem,
   bouncerSystem,
   Position,
-} from "../../lib/positionMotion.Rf-6EmSjJMue.js";
+} from "../../lib/positionMotion.js";
 import {
   init as initGraphLayout,
   graphLayoutSystem,
   spawnSceneForNetwork,
   spawnNode,
   spawnNodeEdge,
-} from "../../lib/graphLayout.HRKflItO5Wh9.js";
+} from "../../lib/graphLayout.js";
 import {
   init as initNetworks,
   networkNodeRefSystem,
@@ -31,9 +31,9 @@ import {
   TerminalNode,
   WalletNode,
   ICENode,
-} from "../../lib/networks.AfQ6JuuqdXzR.js";
-import { setGlobalRng, mkrng, rngIntRange, genHex } from "../../lib/randoms.X9VRh4IgloX1.js";
-import { setupTwiddles } from "../twiddles.Vi43hBdm0vpV.js";
+} from "../../lib/networks.js";
+import { setGlobalRng, mkrng, rngIntRange, genHex } from "../../lib/randoms.js";
+import { setupTwiddles } from "../twiddles.js";
 
 async function main() {
   setGlobalRng(mkrng("hello"));

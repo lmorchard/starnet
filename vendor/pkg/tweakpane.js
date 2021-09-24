@@ -1,4 +1,4 @@
-import { c as createCommonjsModule, a as commonjsGlobal } from './common/_commonjsHelpers-798ad6a7.NdjIFkBWvq6n.js';
+import { c as createCommonjsModule, a as commonjsGlobal } from './common/_commonjsHelpers-798ad6a7.js';
 
 var tweakpane = createCommonjsModule(function (module, exports) {
 /*! Tweakpane 3.0.5 (c) 2016 cocopon, licensed under the MIT license. */
