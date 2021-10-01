@@ -33,7 +33,7 @@ import {
   ICENode,
 } from "../../lib/networks.js";
 import { setGlobalRng, mkrng, rngIntRange, genHex } from "../../lib/randoms.js";
-import { setupTwiddles } from "../twiddles.js";
+import { setupTwiddles, setupBloomTwiddles } from "../twiddles.js";
 
 async function main() {
   setGlobalRng(mkrng("hello"));
@@ -114,35 +114,8 @@ async function main() {
   };
 
   const pane = setupTwiddles(world, viewport);
-  viewport.zoom = 0.75;
+  // setupBloomTwiddles(pane, viewport);
   pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
-
-  const bloomTwiddles = pane.addFolder({ title: "Bloom" });
-  bloomTwiddles.addInput(viewport.bloom, "threshold", {
-    min: 0.1,
-    max: 2.0,
-    step: 0.1,
-  });
-  bloomTwiddles.addInput(viewport.bloom, "bloomScale", {
-    min: 0.1,
-    max: 2.0,
-    step: 0.1,
-  });
-  bloomTwiddles.addInput(viewport.bloom, "brightness", {
-    min: 0.1,
-    max: 2.0,
-    step: 0.1,
-  });
-  bloomTwiddles.addInput(viewport.bloom, "blur", {
-    min: 0.5,
-    max: 8.0,
-    step: 0.1,
-  });
-  bloomTwiddles.addInput(viewport.bloom, "quality", {
-    min: 1,
-    max: 16,
-    step: 1,
-  });
 
   const pipeline = pipe(
     networkNodeRefSystem,

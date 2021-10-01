@@ -2,7 +2,7 @@ import { Pane } from "../vendor/pkg/tweakpane.js";
 
 export function setupTwiddles(world, viewport) {
   const pane = new Pane();
-  const f1 = pane.addFolder({ title: "Twiddles" /*, expanded: false*/ });
+  const f1 = pane.addFolder({ title: "Twiddles", expanded: false });
   f1.addMonitor(world, "fps" /*, { view: "graph", min: 0, max: 75 }*/);
 
   f1.addInput(viewport, "zoom", { min: 0.1, max: 3.0 });
@@ -23,4 +23,33 @@ export function setupTwiddles(world, viewport) {
   f1.addButton({ title: "Start" }).on("click", () => world.loop.start());
 
   return pane;
+}
+
+export function setupBloomTwiddles(pane, viewport) {
+  const bloomTwiddles = pane.addFolder({ title: "Bloom" });
+  bloomTwiddles.addInput(viewport.bloom, "threshold", {
+    min: 0.1,
+    max: 2.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "bloomScale", {
+    min: 0.1,
+    max: 2.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "brightness", {
+    min: 0.1,
+    max: 2.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "blur", {
+    min: 0.5,
+    max: 8.0,
+    step: 0.1,
+  });
+  bloomTwiddles.addInput(viewport.bloom, "quality", {
+    min: 1,
+    max: 16,
+    step: 1,
+  });
 }
