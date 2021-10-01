@@ -42,10 +42,7 @@ class ViewportPixi {
       blur: 1.5,
       quality: 5,
     });
-    stage.filters = [
-      new PIXI.filters.FXAAFilter(),
-      this.bloom,
-    ];
+    stage.filters = [new PIXI.filters.FXAAFilter(), this.bloom];
 
     const edgeGraphics = new Graphics();
     edgeGraphics.zIndex = -500;
@@ -89,8 +86,8 @@ class ViewportPixi {
     this.updateCameraFocus(world);
     this.updateCameraTarget(world);
     this.updateViewportBounds(world);
-    this.updateBackdrop(world);
-    this.updateEdges(world);
+    this.drawBackdrop(world);
+    this.drawEdges(world);
 
     const entityIds = renderQuery(world);
 
@@ -144,20 +141,23 @@ class ViewportPixi {
   updateCameraTarget(world) {
     if (!this.cameraTarget.active) return;
 
-    this.cameraTarget.elapsed += world.time.delta;
+    const { camera, cameraEase, cameraTarget, cameraFocusEid } = this;
+    const { fromX, fromY, duration, elapsed } = cameraTarget;
 
-    const { cameraEase, cameraTarget } = this;
-    const { fromX, fromY, toX, toY, duration, elapsed } = cameraTarget;
+    let toX, toY;
+    if (!cameraFocusEid) {
+      ({ toX, toY } = cameraTarget);
+    } else {
+      toX = Position.x[cameraFocusEid];
+      toY = Position.y[cameraFocusEid];
+    }
 
-    this.camera.x = transition(fromX, toX, duration, elapsed, cameraEase);
-    this.camera.y = transition(fromY, toY, duration, elapsed, cameraEase);
+    camera.x = transition(fromX, toX, duration, elapsed, cameraEase);
+    camera.y = transition(fromY, toY, duration, elapsed, cameraEase);
 
-    if (
-      this.camera.x === toX &&
-      this.camera.y === toY &&
-      this.cameraTarget.active
-    ) {
-      this.cameraTarget.active = false;
+    cameraTarget.elapsed += world.time.delta;
+    if (cameraTarget.elapsed >= duration) {
+      cameraTarget.active = false;
     }
   }
 
@@ -190,6 +190,10 @@ class ViewportPixi {
   }
 
   updateRenderable(eid, r) {
+    const { renderables } = this;
+    const g = renderables[eid];
+    this.drawShape(g, Renderable.shape[eid]);
+
     r.x = Position.x[eid];
     r.y = Position.y[eid];
     r.rotation = Position.z[eid];
@@ -234,26 +238,7 @@ class ViewportPixi {
     world.viewport.clientHeight = clientHeight;
   }
 
-  updateEdges(world) {
-    const { edgeGraphics: g } = this;
-
-    g.clear();
-
-    // TODO: unless / until there are one-way edges, de-dupe edges with
-    // the same but reversed from/to coords
-    for (const eid of graphLayoutEdgeQuery(world)) {
-      const fromX = GraphLayoutEdge.fromX[eid];
-      const fromY = GraphLayoutEdge.fromY[eid];
-      const toX = GraphLayoutEdge.toX[eid];
-      const toY = GraphLayoutEdge.toY[eid];
-
-      g.lineStyle(2, 0xaaaaff, 0.25);
-      g.moveTo(fromX, fromY);
-      g.lineTo(toX, toY);
-    }
-  }
-
-  updateBackdrop(world) {
+  drawBackdrop(world) {
     this.bgGraphics.clear();
     if (!this.gridEnabled) return;
 
@@ -271,6 +256,8 @@ class ViewportPixi {
       viewport: { clientWidth, clientHeight },
     } = world;
 
+    const lineWidth = 2 * (1 / zoom);
+
     const visibleWidth = Math.floor(clientWidth / zoom);
     const visibleHeight = Math.floor(clientHeight / zoom);
     const visibleLeft = 0 - visibleWidth / 2 + camera.x;
@@ -284,7 +271,7 @@ class ViewportPixi {
     const yStart = visibleTop + gridOffsetY;
     const yEnd = yStart + visibleHeight + gridOffsetY;
 
-    g.lineStyle(gridLineWidth, gridLineColor, gridLineAlpha);
+    g.lineStyle(lineWidth, gridLineColor, gridLineAlpha);
     for (let x = xStart; x < xEnd; x += gridSize) {
       g.moveTo(x, visibleTop);
       g.lineTo(x, visibleTop + visibleHeight);
@@ -295,15 +282,40 @@ class ViewportPixi {
     }
   }
 
+  drawEdges(world) {
+    const { edgeGraphics: g, zoom } = this;
+    const lineWidth = 2 * (1 / zoom);
+
+    g.clear();
+
+    // TODO: unless / until there are one-way edges, de-dupe edges with
+    // the same but reversed from/to coords
+    for (const eid of graphLayoutEdgeQuery(world)) {
+      const fromX = GraphLayoutEdge.fromX[eid];
+      const fromY = GraphLayoutEdge.fromY[eid];
+      const toX = GraphLayoutEdge.toX[eid];
+      const toY = GraphLayoutEdge.toY[eid];
+
+      g.lineStyle(lineWidth, 0xaaaaff, 0.25);
+      g.moveTo(fromX, fromY);
+      g.lineTo(toX, toY);
+    }
+  }
+
   drawShape(g, shape) {
+    const { zoom } = this;
+    const lineWidth = 2 * (1 / zoom);
+
     const P = [];
     for (let p = -50; p <= 50; p += 50 / 4) {
       P.push(p);
     }
 
+    g.clear();
+
     switch (shape) {
       case RenderableShape.GatewayNode: {
-        g.lineStyle(2, 0x33ff33, 1);
+        g.lineStyle(lineWidth, 0x33ff33, 1);
         g.drawPolygon([P[0], P[3], P[0], P[5], P[8], P[5], P[8], P[3]]);
         g.drawPolygon([P[4], P[0], P[4], P[8]]);
         g.drawPolygon([P[2], P[2], P[4], P[0], P[6], P[2]]);
@@ -311,7 +323,7 @@ class ViewportPixi {
         break;
       }
       case RenderableShape.StorageNode: {
-        g.lineStyle(2, 0x3333ff, 1);
+        g.lineStyle(lineWidth, 0x3333ff, 1);
         g.drawPolygon([
           P[0],
           P[1],
@@ -337,7 +349,7 @@ class ViewportPixi {
         break;
       }
       case RenderableShape.FirewallNode: {
-        g.lineStyle(2, 0xff0000, 1);
+        g.lineStyle(lineWidth, 0xff0000, 1);
         g.drawPolygon([-50, 50, -50, -50, 50, -50, 50, 50]);
 
         g.moveTo(P[0], P[2]);
@@ -366,7 +378,7 @@ class ViewportPixi {
         break;
       }
       case RenderableShape.HubNode: {
-        g.lineStyle(2, 0xff33ff, 1);
+        g.lineStyle(lineWidth, 0xff33ff, 1);
         g.drawPolygon([
           P[0],
           P[3],
@@ -396,7 +408,7 @@ class ViewportPixi {
         break;
       }
       case RenderableShape.TerminalNode: {
-        g.lineStyle(2, 0x8888ff, 1);
+        g.lineStyle(lineWidth, 0x8888ff, 1);
         g.drawPolygon([P[1], P[0], P[7], P[0], P[7], P[5], P[1], P[5]]);
         g.drawPolygon([P[1], P[5], P[0], P[8], P[8], P[8], P[7], P[5]]);
         g.moveTo(P[3], P[7]);
@@ -404,7 +416,7 @@ class ViewportPixi {
         break;
       }
       case RenderableShape.WalletNode: {
-        g.lineStyle(2, 0x44ff66, 1);
+        g.lineStyle(lineWidth, 0x44ff66, 1);
         g.drawPolygon([
           P[0],
           P[2],
@@ -427,7 +439,7 @@ class ViewportPixi {
         break;
       }
       case RenderableShape.ICENode: {
-        g.lineStyle(2, 0x8888ff, 1);
+        g.lineStyle(lineWidth, 0x8888ff, 1);
         g.drawPolygon([
           P[3],
           P[0],
@@ -464,7 +476,7 @@ class ViewportPixi {
         break;
       }
       default: {
-        g.lineStyle(1, 0xff8888, 1);
+        g.lineStyle(lineWidth, 0xff8888, 1);
         g.drawPolygon([-50, 50, -50, -50, 50, -50, 50, 50]);
         g.moveTo(0, -12.5);
         g.lineTo(0, 12.5);
