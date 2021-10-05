@@ -78,7 +78,7 @@ class ViewportPixi {
       gridSize: 100,
       gridLineWidth: 2.0,
       gridLineColor: 0xffffff,
-      gridLineAlpha: 0.125,
+      gridLineAlpha: 0.1,
     });
   }
 
@@ -201,7 +201,7 @@ class ViewportPixi {
 
   updateRenderable(eid, r) {
     if (this.shouldRedrawRenderables) {
-      this.drawShape(this.renderables[eid], Renderable.shape[eid]);  
+      this.drawShape(this.renderables[eid], Renderable.shape[eid]);
     }
 
     r.x = Position.x[eid];
@@ -294,21 +294,21 @@ class ViewportPixi {
 
   drawEdges(world) {
     const { edgeGraphics: g, zoom } = this;
+    const { from, to, fromX, fromY, toX, toY } = GraphLayoutEdge;
+    
     const lineWidth = 2 * (1 / zoom);
 
     g.clear();
 
-    // TODO: unless / until there are one-way edges, de-dupe edges with
-    // the same but reversed from/to coords
+    const seen = new Set();
     for (const eid of graphLayoutEdgeQuery(world)) {
-      const fromX = GraphLayoutEdge.fromX[eid];
-      const fromY = GraphLayoutEdge.fromY[eid];
-      const toX = GraphLayoutEdge.toX[eid];
-      const toY = GraphLayoutEdge.toY[eid];
+      const seenKey = [from[eid], to[eid]].sort().join(":");
+      if (seen.has(seenKey)) continue;
+      seen.add(seenKey);
 
       g.lineStyle(lineWidth, 0xaaaaff, 0.25);
-      g.moveTo(fromX, fromY);
-      g.lineTo(toX, toY);
+      g.moveTo(fromX[eid], fromY[eid]);
+      g.lineTo(toX[eid], toY[eid]);
     }
   }
 
