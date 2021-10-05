@@ -72,6 +72,8 @@ class ViewportPixi {
         active: false,
       },
       zoom: 1.0,
+      zoomLast: 1.0,
+      shouldRedrawRenderables: false,
       gridEnabled: true,
       gridSize: 100,
       gridLineWidth: 2.0,
@@ -91,6 +93,11 @@ class ViewportPixi {
 
     const entityIds = renderQuery(world);
 
+    if (this.zoom !== this.lastZoom) {
+      // zoom change affects line width of renderables
+      this.shouldRedrawRenderables = true;
+    }
+
     for (const eid of entityIds) {
       if (!renderables[eid]) {
         this.createRenderable(eid);
@@ -105,6 +112,9 @@ class ViewportPixi {
         this.destroyRenderable(eid, r);
       }
     }
+
+    this.shouldRedrawRenderables = false;
+    this.lastZoom = this.zoom;
 
     renderer.render(stage);
   }
@@ -190,9 +200,9 @@ class ViewportPixi {
   }
 
   updateRenderable(eid, r) {
-    const { renderables } = this;
-    const g = renderables[eid];
-    this.drawShape(g, Renderable.shape[eid]);
+    if (this.shouldRedrawRenderables) {
+      this.drawShape(this.renderables[eid], Renderable.shape[eid]);  
+    }
 
     r.x = Position.x[eid];
     r.y = Position.y[eid];
