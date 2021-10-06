@@ -12,13 +12,12 @@ import { movementSystem } from "../../lib/positionMotion.js";
 import {
   init as initGraphLayout,
   graphLayoutSystem,
+  GraphLayoutNode,
 } from "../../lib/graphLayout.js";
 import {
   init as initNetworks,
-  spawnSceneForNetwork,
   spawnEntitiesForNetwork,
-  spawnNode,
-  spawnNodeEdge,
+
   networkToEntityIndexerSystem,
   networkGraphLayoutSystem,
   Network,
@@ -46,6 +45,7 @@ async function main() {
     world,
     NetworkState,
     NetworkNodeState,
+    GraphLayoutNode,
   });
 
   initNetworks(world);
@@ -115,20 +115,11 @@ async function main() {
   const spawnNewNode = () => {
     const [node] = network1.add(new TerminalNode());
     node.connect(terminalHub);
-    spawnNode(world, node);
-    for (const toNodeId in node.connections) {
-      spawnNodeEdge(
-        world,
-        network1.id,
-        world.nodeIdToEntityId[node.id],
-        world.nodeIdToEntityId[toNodeId]
-      );
-    }
   };
 
   const pane = setupTwiddles(world, viewport);
   // setupBloomTwiddles(pane, viewport);
-  pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
+  //pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
 
   const pipeline = pipe(
     networkToEntityIndexerSystem,

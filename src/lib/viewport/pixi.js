@@ -11,7 +11,8 @@ import {
 import Easings from "../easings.js";
 import { transition } from "../transitions.js";
 import { Position } from "../positionMotion.js";
-import { GraphLayoutEdge, graphLayoutEdgeQuery } from "../graphLayout";
+import { GraphLayoutNode, graphLayoutNodeQuery } from "../graphLayout.js";
+import { hasComponent } from "bitecs";
 
 export function init(...args) {
   return new ViewportPixi(...args);
@@ -294,21 +295,27 @@ class ViewportPixi {
 
   drawEdges(world) {
     const { edgeGraphics: g, zoom } = this;
-    const { from, to, fromX, fromY, toX, toY } = GraphLayoutEdge;
-    
+
     const lineWidth = 2 * (1 / zoom);
 
     g.clear();
+    g.lineStyle(lineWidth, 0xaaaaff, 0.25);
 
     const seen = new Set();
-    for (const eid of graphLayoutEdgeQuery(world)) {
-      const seenKey = [from[eid], to[eid]].sort().join(":");
-      if (seen.has(seenKey)) continue;
-      seen.add(seenKey);
+    for (const fromEid of graphLayoutNodeQuery(world)) {
+      if (!hasComponent(world, Position, fromEid)) continue;
+      const connections = GraphLayoutNode.connections[fromEid];
+      
+      for (const toEid of connections) {
+        if (!hasComponent(world, Position, toEid)) continue;
 
-      g.lineStyle(lineWidth, 0xaaaaff, 0.25);
-      g.moveTo(fromX[eid], fromY[eid]);
-      g.lineTo(toX[eid], toY[eid]);
+        const seenKey = [fromEid, toEid].sort().join(":");
+        if (seen.has(seenKey)) continue;
+        seen.add(seenKey);
+
+        g.moveTo(Position.x[fromEid], Position.y[fromEid]);
+        g.lineTo(Position.x[toEid], Position.y[toEid]);
+      }
     }
   }
 

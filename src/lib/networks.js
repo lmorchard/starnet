@@ -11,11 +11,7 @@ import {
   removeEntity,
   hasComponent,
 } from "bitecs";
-import {
-  GraphLayoutScene,
-  GraphLayoutEdge,
-  GraphLayoutNode,
-} from "./graphLayout";
+import { GraphLayoutScene, GraphLayoutNode } from "./graphLayout";
 import { Position } from "./positionMotion.js";
 import { Renderable, RenderableShape } from "./viewport/index.js";
 import { genid } from "./randoms";
@@ -27,7 +23,7 @@ export function init(world) {
 }
 
 export const NetworkState = defineComponent({
-  networkId: Types.i32,
+  networkId: Types.ui32,
   graphLayoutSceneEid: Types.eid,
   active: Types.i8,
 });
@@ -38,8 +34,8 @@ export const exitNetworkStateQuery = exitQuery(networkStateQuery);
 
 export const NetworkNodeState = defineComponent({
   networkEid: Types.eid,
-  networkId: Types.i32,
-  nodeId: Types.i32,
+  networkId: Types.ui32,
+  nodeId: Types.ui32,
   visible: Types.i8,
 });
 
@@ -87,7 +83,7 @@ export function spawnEntitiesForNetwork(world, network) {
   addComponent(world, NetworkState, networkEid);
   NetworkState.networkId[networkEid] = network.id;
   NetworkState.graphLayoutSceneEid[networkEid] = null;
-  NetworkState.active[networkEid] = false;
+  NetworkState.active[networkEid] = true;
   world.networkIdToEntityId[network.id] = networkEid;
 
   for (const nodeId in network.children) {
@@ -98,7 +94,7 @@ export function spawnEntitiesForNetwork(world, network) {
     NetworkNodeState.networkEid[nodeEid] = networkEid;
     NetworkNodeState.networkId[nodeEid] = node.network.id;
     NetworkNodeState.nodeId[nodeEid] = node.id;
-    NetworkNodeState.visible[nodeEid] = false;
+    NetworkNodeState.visible[nodeEid] = true;
     world.nodeIdToEntityId[node.id] = nodeEid;
   }
 
@@ -106,15 +102,14 @@ export function spawnEntitiesForNetwork(world, network) {
 }
 
 export const networkGraphLayoutSystem = defineSystem((world) => {
+  // 1. Ensure scenes exist only for active networks
   for (const networkEid of networkStateQuery(world)) {
     const networkId = NetworkState.networkId[networkEid];
     if (NetworkState.active[networkEid]) {
       if (!hasComponent(world, GraphLayoutScene, networkEid)) {
         addComponent(world, GraphLayoutScene, networkEid);
         GraphLayoutScene.active[networkEid] = true;
-        GraphLayoutScene.sceneId[networkEid] = networkEid;
         GraphLayoutScene.ratio[networkEid] = 100;
-        console.log("SPAWNED LAYOUT FOR", networkId);
       }
     } else {
       if (hasComponent(world, GraphLayoutScene, networkEid)) {
@@ -123,29 +118,28 @@ export const networkGraphLayoutSystem = defineSystem((world) => {
     }
   }
 
+  // 2. Ensure graph nodes exist for visible nodes of active networks
   for (const nodeEid of networkNodeStateQuery(world)) {
     const nodeVisible = NetworkNodeState.visible[nodeEid];
     const nodeId = NetworkNodeState.nodeId[nodeEid];
     const networkEid = NetworkNodeState.networkEid[nodeEid];
     const networkActive = NetworkState.active[networkEid];
     const networkId = NetworkState.networkId[networkEid];
-    // const network = world.networks[networkId];
-    // const node = network.children[nodeId];
+    const network = world.networks[networkId];
+    const node = network.children[nodeId];
 
     if (networkActive && nodeVisible) {
       if (!hasComponent(world, GraphLayoutNode, nodeEid)) {
         addComponent(world, GraphLayoutNode, nodeEid);
-        GraphLayoutNode.sceneId[nodeEid] = networkId;
-        GraphLayoutNode.nodeId[nodeEid] = nodeId;
-
         addComponent(world, Renderable, nodeEid);
-        Renderable.shape[nodeEid] = RenderableShape.Node; //RenderableShape[node.type] || RenderableShape.Node;
-
         addComponent(world, Position, nodeEid);
+
+        GraphLayoutNode.sceneId[nodeEid] = networkEid;
+        GraphLayoutNode.nodeId[nodeEid] = nodeId;
+        Renderable.shape[nodeEid] =
+          RenderableShape[node.type] || RenderableShape.Node;
         Position.x[nodeEid] = 0;
         Position.y[nodeEid] = 0;
-
-        console.log("SPAWNED NODE FOR", nodeId);
       }
     } else {
       if (hasComponent(world, GraphLayoutNode, nodeEid)) {
@@ -155,70 +149,28 @@ export const networkGraphLayoutSystem = defineSystem((world) => {
       }
     }
   }
-});
 
-export function spawnSceneForNetwork(world, network) {
-  const sceneEid = spawnGraphLayoutScene(world, network.id, 100);
-  world.sceneIdToEid[network.id] = sceneEid;
+  // 3. Update connections for all visible graph nodes
+  for (const fromNodeEid of networkNodeStateQuery(world)) {
+    if (hasComponent(world, GraphLayoutNode, fromNodeEid)) {
+      const fromNodeId = NetworkNodeState.nodeId[fromNodeEid];
+      const networkEid = NetworkNodeState.networkEid[fromNodeEid];
+      const networkId = NetworkState.networkId[networkEid];
+      const network = world.networks[networkId];
+      const fromNode = network.children[fromNodeId];
 
-  // First pass to add all nodes in the scene
-  for (const nodeId in network.children) {
-    const node = network.children[nodeId];
-    spawnNode(world, node);
-  }
-
-  // Second pass to add edges using eids of nodes from first pass
-  for (const nodeId in network.children) {
-    const node = network.children[nodeId];
-    for (const toNodeId in node.connections) {
-      spawnNodeEdge(
-        world,
-        network.id,
-        world.nodeIdToEntityId[node.id],
-        world.nodeIdToEntityId[toNodeId]
-      );
+      const connections = GraphLayoutNode.connections[fromNodeEid];
+      connections.fill(0);
+      let connectionsIdx = 0;
+      for (const toNodeId in fromNode.connections) {
+        const toNodeEid = world.nodeIdToEntityId[toNodeId];
+        if (hasComponent(world, GraphLayoutNode, toNodeEid)) {
+          connections[connectionsIdx++] = toNodeEid;
+        }
+      }
     }
   }
-}
-
-export function spawnNode(world, node) {
-  const eid = addEntity(world);
-
-  addComponent(world, NetworkNodeState, eid);
-  NetworkNodeState.networkId[eid] = node.network.id;
-  NetworkNodeState.nodeId[eid] = node.id;
-  world.nodeIdToEntityId[node.id] = eid;
-
-  addComponent(world, GraphLayoutNode, eid);
-  GraphLayoutNode.sceneId[eid] = node.networkId;
-  GraphLayoutNode.nodeId[eid] = node.id;
-
-  addComponent(world, Renderable, eid);
-  Renderable.shape[eid] = RenderableShape[node.type] || RenderableShape.Node;
-
-  addComponent(world, Position, eid);
-  Position.x[eid] = 0;
-  Position.y[eid] = 0;
-
-  return eid;
-}
-
-export function spawnNodeEdge(world, sceneId, fromEid, toEid) {
-  const eid = addEntity(world);
-  addComponent(world, GraphLayoutEdge, eid);
-  GraphLayoutEdge.sceneId[eid] = sceneId;
-  GraphLayoutEdge.from[eid] = fromEid;
-  GraphLayoutEdge.to[eid] = toEid;
-}
-
-export function spawnGraphLayoutScene(world, sceneId, initialRatio = 100.0) {
-  const eid = addEntity(world);
-  addComponent(world, GraphLayoutScene, eid);
-  GraphLayoutScene.active[eid] = true;
-  GraphLayoutScene.sceneId[eid] = sceneId;
-  GraphLayoutScene.ratio[eid] = initialRatio;
-  return eid;
-}
+});
 
 export class Base {
   defaults() {

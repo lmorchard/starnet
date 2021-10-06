@@ -13,13 +13,14 @@ import { Position } from "./positionMotion.js";
 
 import Springy from "./springy.js";
 
+const MAX_CONNECTIONS = 16;
+
 export function init(world) {
   world.graphLayouts = {};
   world.sceneIdToEid = {};
 }
 
 export const GraphLayoutScene = defineComponent({
-  sceneId: Types.i32,
   active: Types.i8, // boolean
   ratio: Types.f32,
   // TODO: Add a pivot point for the overall graph layout scene?
@@ -29,23 +30,10 @@ export const graphLayoutSceneQuery = defineQuery([GraphLayoutScene]);
 export const enterGraphLayoutSceneQuery = enterQuery(graphLayoutSceneQuery);
 export const exitGraphLayoutSceneQuery = exitQuery(graphLayoutSceneQuery);
 
-export const GraphLayoutEdge = defineComponent({
-  sceneId: Types.i32,
-  from: Types.eid,
-  fromX: Types.f32,
-  fromY: Types.f32,
-  to: Types.eid,
-  toX: Types.f32,
-  toY: Types.f32,
-});
-
-export const graphLayoutEdgeQuery = defineQuery([GraphLayoutEdge]);
-export const enterGraphLayoutEdgeQuery = enterQuery(graphLayoutEdgeQuery);
-export const exitGraphLayoutEdgeQuery = exitQuery(graphLayoutEdgeQuery);
-
 export const GraphLayoutNode = defineComponent({
-  sceneId: Types.i32,
-  nodeId: Types.i32,
+  sceneId: Types.ui32,
+  nodeId: Types.ui32,
+  connections: [Types.eid, MAX_CONNECTIONS],
 });
 
 export const graphLayoutNodeQuery = defineQuery([GraphLayoutNode, Position]);
@@ -69,11 +57,6 @@ export const graphLayoutSystem = defineSystem((world) => {
     addNodeToLayout(world, eid);
   }
 
-  for (let eid of enterGraphLayoutEdgeQuery(world)) {
-    addEdgeToLayout(world, eid);
-  }
-
-  const exitedEdgeEIDs = exitGraphLayoutEdgeQuery(world);
   const exitedNodeEIDs = exitGraphLayoutNodeQuery(world);
 
   for (let layoutId in world.graphLayouts) {
@@ -88,10 +71,25 @@ export const graphLayoutSystem = defineSystem((world) => {
       graph.filterNodes((node) => !exitedNodeEIDs.includes(node.id));
     }
 
-    if (exitedEdgeEIDs.length) {
-      layout._update = true;
-      graph.filterEdges((edge) => !exitedEdgeEIDs.includes(edge.data.eid));
+    const currEdgeIds = [];
+    for (const graphNode of graph.nodes) {
+      const fromEid = graphNode.id;
+      for (const toEid of GraphLayoutNode.connections[fromEid]) {
+        const edgeId = `${fromEid}:${toEid}`;
+        currEdgeIds.push(edgeId);
+        const edgeExists = graph.edges.some((edge) => edge.id === edgeId);
+        if (!edgeExists) {
+          const fromNode = graph.nodeSet[fromEid];
+          const toNode = graph.nodeSet[toEid];
+          if (fromNode && toNode) {
+            layout._update = true;
+            graph.addEdge(new Springy.Edge(edgeId, fromNode, toNode, {}));
+          }
+        }
+      }
     }
+
+    graph.filterEdges((edge) => currEdgeIds.includes(edge.id));
 
     if (layout._update) {
       layout.tick(deltaSec);
@@ -117,15 +115,6 @@ export const graphLayoutSystem = defineSystem((world) => {
 
       Position.x[eid] = (point.p.x - xOffset) * ratio;
       Position.y[eid] = (point.p.y - yOffset) * ratio;
-    }
-
-    for (const edge of graph.edges) {
-      const eid = edge.data.eid;
-      const spring = layout.spring(edge);
-      GraphLayoutEdge.fromX[eid] = (spring.point1.p.x - xOffset) * ratio;
-      GraphLayoutEdge.fromY[eid] = (spring.point1.p.y - yOffset) * ratio;
-      GraphLayoutEdge.toX[eid] = (spring.point2.p.x - xOffset) * ratio;
-      GraphLayoutEdge.toY[eid] = (spring.point2.p.y - yOffset) * ratio;
     }
   }
 });
@@ -155,7 +144,6 @@ function createLayout(world, eid) {
   };
 
   world.graphLayouts[eid] = layout;
-  world.sceneIdToEid[GraphLayoutScene.sceneId[eid]] = eid;
 }
 
 function destroyLayout(world, deletedEid) {
@@ -177,25 +165,4 @@ function addNodeToLayout(world, eid) {
   layout._update = true;
   const graph = layout.graph;
   graph.addNode(new Springy.Node(eid));
-}
-
-function addEdgeToLayout(world, eid) {
-  const sceneEID = world.sceneIdToEid[GraphLayoutEdge.sceneId[eid]];
-  const layout = world.graphLayouts[sceneEID];
-  if (!layout) return;
-
-  layout._update = true;
-  const graph = layout.graph;
-
-  const fromEid = GraphLayoutEdge.from[eid];
-  const toEid = GraphLayoutEdge.to[eid];
-  const edgeId = `${fromEid}:${toEid}`;
-
-  const edgeExists = graph.edges.some((edge) => edge.id === edgeId);
-  if (edgeExists) return;
-
-  const fromNode = graph.nodeSet[fromEid];
-  const toNode = graph.nodeSet[toEid];
-
-  graph.addEdge(new Springy.Edge(edgeId, fromNode, toNode, { eid }));
 }
