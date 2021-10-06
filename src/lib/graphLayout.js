@@ -5,73 +5,17 @@ import {
   defineSystem,
   enterQuery,
   exitQuery,
-  addEntity,
-  addComponent,
 } from "bitecs";
-
-import { addNetworkNodeRef } from "./networks.js";
 
 import { mkrng } from "./randoms.js";
 
 import { Position } from "./positionMotion.js";
-import { Renderable, RenderableShape } from "./viewport/index.js";
 
 import Springy from "./springy.js";
 
 export function init(world) {
   world.graphLayouts = {};
   world.sceneIdToEid = {};
-}
-
-export function spawnSceneForNetwork(world, network) {
-  const sceneEid = spawnGraphLayoutScene(world, network.id, 100);
-  world.sceneIdToEid[network.id] = sceneEid;
-
-  // First pass to add all nodes in the scene
-  for (const nodeId in network.children) {
-    const node = network.children[nodeId];
-    spawnNode(world, node);
-  }
-
-  // Second pass to add edges using eids of nodes from first pass
-  for (const nodeId in network.children) {
-    const node = network.children[nodeId];
-    for (const toNodeId in node.connections) {
-      spawnNodeEdge(
-        world,
-        network.id,
-        world.nodeIdToEntityId[node.id],
-        world.nodeIdToEntityId[toNodeId]
-      );
-    }
-  }
-}
-
-export function spawnNode(world, node) {
-  const eid = addEntity(world);
-
-  addNetworkNodeRef(world, eid, node);
-
-  addComponent(world, GraphLayoutNode, eid);
-  GraphLayoutNode.sceneId[eid] = node.networkId;
-  GraphLayoutNode.nodeId[eid] = node.id;
-
-  addComponent(world, Renderable, eid);
-  Renderable.shape[eid] = RenderableShape[node.type] || RenderableShape.Node;
-
-  addComponent(world, Position, eid);
-  Position.x[eid] = 0;
-  Position.y[eid] = 0;
-
-  return eid;
-}
-
-export function spawnNodeEdge(world, sceneId, fromEid, toEid) {
-  const eid = addEntity(world);
-  addComponent(world, GraphLayoutEdge, eid);
-  GraphLayoutEdge.sceneId[eid] = sceneId;
-  GraphLayoutEdge.from[eid] = fromEid;
-  GraphLayoutEdge.to[eid] = toEid;
 }
 
 export const GraphLayoutScene = defineComponent({
@@ -84,15 +28,6 @@ export const GraphLayoutScene = defineComponent({
 export const graphLayoutSceneQuery = defineQuery([GraphLayoutScene]);
 export const enterGraphLayoutSceneQuery = enterQuery(graphLayoutSceneQuery);
 export const exitGraphLayoutSceneQuery = exitQuery(graphLayoutSceneQuery);
-
-export function spawnGraphLayoutScene(world, sceneId, initialRatio = 100.0) {
-  const eid = addEntity(world);
-  addComponent(world, GraphLayoutScene, eid);
-  GraphLayoutScene.active[eid] = true;
-  GraphLayoutScene.sceneId[eid] = sceneId;
-  GraphLayoutScene.ratio[eid] = initialRatio;
-  return eid;
-}
 
 export const GraphLayoutEdge = defineComponent({
   sceneId: Types.i32,

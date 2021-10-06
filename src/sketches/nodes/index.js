@@ -8,21 +8,19 @@ import {
   renderQuery,
   cameraFocusQuery,
 } from "../../lib/viewport/index.js";
-import {
-  movementSystem,
-  bouncerSystem,
-  Position,
-} from "../../lib/positionMotion.js";
+import { movementSystem } from "../../lib/positionMotion.js";
 import {
   init as initGraphLayout,
   graphLayoutSystem,
-  spawnSceneForNetwork,
-  spawnNode,
-  spawnNodeEdge,
 } from "../../lib/graphLayout.js";
 import {
   init as initNetworks,
-  networkNodeRefSystem,
+  spawnSceneForNetwork,
+  spawnEntitiesForNetwork,
+  spawnNode,
+  spawnNodeEdge,
+  networkToEntityIndexerSystem,
+  networkGraphLayoutSystem,
   Network,
   GatewayNode,
   StorageNode,
@@ -31,9 +29,11 @@ import {
   TerminalNode,
   WalletNode,
   ICENode,
+  NetworkNodeState,
+  NetworkState,
 } from "../../lib/networks.js";
 import { setGlobalRng, mkrng, rngIntRange, genHex } from "../../lib/randoms.js";
-import { setupTwiddles, setupBloomTwiddles } from "../twiddles.js";
+import { setupTwiddles } from "../twiddles.js";
 
 async function main() {
   setGlobalRng(mkrng("hello"));
@@ -41,6 +41,12 @@ async function main() {
   const stats = Stats.init();
   const viewport = Viewport.init();
   const world = World.init();
+
+  Object.assign(window, {
+    world,
+    NetworkState,
+    NetworkNodeState,
+  });
 
   initNetworks(world);
   initGraphLayout(world);
@@ -82,7 +88,14 @@ async function main() {
   storageHub.connect(storage1, storage2, storage3, wallet1);
   terminalHub.connect(terminal1, terminal2, terminal3, terminal4);
 
-  spawnSceneForNetwork(world, network1);
+  //spawnSceneForNetwork(world, network1);
+
+  const networkEid = spawnEntitiesForNetwork(world, network1);
+  NetworkState.active[networkEid] = true;
+
+  const gatewayEid = world.nodeIdToEntityId[gateway.id];
+  NetworkNodeState.visible[gatewayEid] = true;
+
   // TODO: despawn scene for transition
 
   addComponent(world, CameraFocus, world.nodeIdToEntityId[gateway.id]);
@@ -118,7 +131,8 @@ async function main() {
   pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
 
   const pipeline = pipe(
-    networkNodeRefSystem,
+    networkToEntityIndexerSystem,
+    networkGraphLayoutSystem,
     graphLayoutSystem,
     movementSystem,
     focusSelectionSystem,
