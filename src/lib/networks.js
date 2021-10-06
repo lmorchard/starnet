@@ -4,10 +4,12 @@ import {
   defineSystem,
   Types,
   addComponent,
+  removeComponent,
   exitQuery,
   enterQuery,
   addEntity,
   removeEntity,
+  hasComponent,
 } from "bitecs";
 import {
   GraphLayoutScene,
@@ -19,6 +21,7 @@ import { Renderable, RenderableShape } from "./viewport/index.js";
 import { genid } from "./randoms";
 
 export function init(world) {
+  world.networks = {};
   world.networkIdToEntityId = {};
   world.nodeIdToEntityId = {};
 }
@@ -78,14 +81,14 @@ export const networkToEntityIndexerSystem = defineSystem((world) => {
 });
 
 export function spawnEntitiesForNetwork(world, network) {
+  world.networks[network.id] = network;
+
   const networkEid = addEntity(world);
   addComponent(world, NetworkState, networkEid);
+  NetworkState.networkId[networkEid] = network.id;
   NetworkState.graphLayoutSceneEid[networkEid] = null;
   NetworkState.active[networkEid] = false;
   world.networkIdToEntityId[network.id] = networkEid;
-
-  const sceneEid = spawnGraphLayoutScene(world, network.id, 100);
-  world.sceneIdToEid[network.id] = sceneEid;
 
   for (const nodeId in network.children) {
     const node = network.children[nodeId];
@@ -104,17 +107,51 @@ export function spawnEntitiesForNetwork(world, network) {
 
 export const networkGraphLayoutSystem = defineSystem((world) => {
   for (const networkEid of networkStateQuery(world)) {
-    let sceneEid = NetworkState.graphLayoutSceneEid[networkEid];
-    let networkId = NetworkState.networkId[networkEid];
+    const networkId = NetworkState.networkId[networkEid];
     if (NetworkState.active[networkEid]) {
-      if (!sceneEid) {
-        sceneEid = spawnGraphLayoutScene(world, networkId, 100);
-        NetworkState.graphLayoutSceneEid[networkEid] = sceneEid;
+      if (!hasComponent(world, GraphLayoutScene, networkEid)) {
+        addComponent(world, GraphLayoutScene, networkEid);
+        GraphLayoutScene.active[networkEid] = true;
+        GraphLayoutScene.sceneId[networkEid] = networkEid;
+        GraphLayoutScene.ratio[networkEid] = 100;
+        console.log("SPAWNED LAYOUT FOR", networkId);
       }
     } else {
-      if (sceneEid) {
-        NetworkState.graphLayoutSceneEid[networkEid] = null;
-        removeEntity(world, sceneEid);
+      if (hasComponent(world, GraphLayoutScene, networkEid)) {
+        removeComponent(world, GraphLayoutScene, networkEid);
+      }
+    }
+  }
+
+  for (const nodeEid of networkNodeStateQuery(world)) {
+    const nodeVisible = NetworkNodeState.visible[nodeEid];
+    const nodeId = NetworkNodeState.nodeId[nodeEid];
+    const networkEid = NetworkNodeState.networkEid[nodeEid];
+    const networkActive = NetworkState.active[networkEid];
+    const networkId = NetworkState.networkId[networkEid];
+    // const network = world.networks[networkId];
+    // const node = network.children[nodeId];
+
+    if (networkActive && nodeVisible) {
+      if (!hasComponent(world, GraphLayoutNode, nodeEid)) {
+        addComponent(world, GraphLayoutNode, nodeEid);
+        GraphLayoutNode.sceneId[nodeEid] = networkId;
+        GraphLayoutNode.nodeId[nodeEid] = nodeId;
+
+        addComponent(world, Renderable, nodeEid);
+        Renderable.shape[nodeEid] = RenderableShape.Node; //RenderableShape[node.type] || RenderableShape.Node;
+
+        addComponent(world, Position, nodeEid);
+        Position.x[nodeEid] = 0;
+        Position.y[nodeEid] = 0;
+
+        console.log("SPAWNED NODE FOR", nodeId);
+      }
+    } else {
+      if (hasComponent(world, GraphLayoutNode, nodeEid)) {
+        removeComponent(world, GraphLayoutNode, nodeEid);
+        removeComponent(world, Renderable, nodeEid);
+        removeComponent(world, Position, nodeEid);
       }
     }
   }
