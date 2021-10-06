@@ -63,33 +63,12 @@ export const graphLayoutSystem = defineSystem((world) => {
     const layout = world.graphLayouts[layoutId];
     const graph = layout.graph;
 
-    // TODO: transition this ratio to make the graph bloom
-    const ratio = GraphLayoutScene.ratio[layoutId];
-
     if (exitedNodeEIDs.length) {
       layout._update = true;
       graph.filterNodes((node) => !exitedNodeEIDs.includes(node.id));
     }
 
-    const currEdgeIds = [];
-    for (const graphNode of graph.nodes) {
-      const fromEid = graphNode.id;
-      for (const toEid of GraphLayoutNode.connections[fromEid]) {
-        const edgeId = `${fromEid}:${toEid}`;
-        currEdgeIds.push(edgeId);
-        const edgeExists = graph.edges.some((edge) => edge.id === edgeId);
-        if (!edgeExists) {
-          const fromNode = graph.nodeSet[fromEid];
-          const toNode = graph.nodeSet[toEid];
-          if (fromNode && toNode) {
-            layout._update = true;
-            graph.addEdge(new Springy.Edge(edgeId, fromNode, toNode, {}));
-          }
-        }
-      }
-    }
-
-    graph.filterEdges((edge) => currEdgeIds.includes(edge.id));
+    updateConnectedEdges(layout, graph);
 
     if (layout._update) {
       layout.tick(deltaSec);
@@ -98,24 +77,9 @@ export const graphLayoutSystem = defineSystem((world) => {
       }
     }
 
-    const {
-      bottomleft: { x: xLeft, y: yBottom },
-      topright: { x: xRight, y: yTop },
-    } = layout.getBoundingBox();
-
-    const layoutWidth = Math.abs(xLeft - xRight);
-    const layoutHeight = Math.abs(yTop - yBottom);
-
-    const xOffset = layoutWidth / 2 + xLeft;
-    const yOffset = layoutHeight / 2 + yBottom;
-
-    for (const eid in graph.nodeSet) {
-      const graphNode = graph.nodeSet[eid];
-      const point = layout.point(graphNode);
-
-      Position.x[eid] = (point.p.x - xOffset) * ratio;
-      Position.y[eid] = (point.p.y - yOffset) * ratio;
-    }
+    // TODO: transition this ratio to make the graph bloom
+    const ratio = GraphLayoutScene.ratio[layoutId];
+    updateNodePositions(layout, graph, ratio);
   }
 });
 
@@ -136,7 +100,7 @@ function createLayout(world, eid) {
 
   // HACK: redefine vector randomizer to use consistent seed for group
   const rng = graph.rng;
-  const unit = 2.0;
+  const unit = 1.5;
   Springy.Vector.random = function () {
     const a = Math.PI * 2 * rng();
     const v = new Springy.Vector(unit * Math.cos(a), unit * Math.sin(a));
@@ -165,4 +129,46 @@ function addNodeToLayout(world, eid) {
   layout._update = true;
   const graph = layout.graph;
   graph.addNode(new Springy.Node(eid));
+}
+
+function updateConnectedEdges(layout, graph) {
+  const currEdgeIds = [];
+  for (const graphNode of graph.nodes) {
+    const fromEid = graphNode.id;
+    for (const toEid of GraphLayoutNode.connections[fromEid]) {
+      const edgeId = `${fromEid}:${toEid}`;
+      currEdgeIds.push(edgeId);
+      const edgeExists = graph.edges.some((edge) => edge.id === edgeId);
+      if (!edgeExists) {
+        const fromNode = graph.nodeSet[fromEid];
+        const toNode = graph.nodeSet[toEid];
+        if (fromNode && toNode) {
+          layout._update = true;
+          graph.addEdge(new Springy.Edge(edgeId, fromNode, toNode, {}));
+        }
+      }
+    }
+  }
+  graph.filterEdges((edge) => currEdgeIds.includes(edge.id));
+}
+
+function updateNodePositions(layout, graph, ratio) {
+  const {
+    bottomleft: { x: xLeft, y: yBottom },
+    topright: { x: xRight, y: yTop },
+  } = layout.getBoundingBox();
+
+  const layoutWidth = Math.abs(xLeft - xRight);
+  const layoutHeight = Math.abs(yTop - yBottom);
+
+  const xOffset = layoutWidth / 2 + xLeft;
+  const yOffset = layoutHeight / 2 + yBottom;
+
+  for (const eid in graph.nodeSet) {
+    const graphNode = graph.nodeSet[eid];
+    const point = layout.point(graphNode);
+
+    Position.x[eid] = (point.p.x - xOffset) * ratio;
+    Position.y[eid] = (point.p.y - yOffset) * ratio;
+  }
 }
