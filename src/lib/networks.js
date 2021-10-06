@@ -4,42 +4,149 @@ import {
   defineSystem,
   Types,
   addComponent,
+  removeComponent,
   exitQuery,
   enterQuery,
+  addEntity,
+  removeEntity,
+  hasComponent,
 } from "bitecs";
+import { GraphLayoutScene, GraphLayoutNode } from "./graphLayout";
+import { Position } from "./positionMotion.js";
+import { Renderable, RenderableShape } from "./viewport/index.js";
 import { genid } from "./randoms";
 
 export function init(world) {
+  world.networks = {};
   world.nodeIdToEntityId = {};
 }
 
-export const NetworkNodeRef = defineComponent({
-  networkId: Types.i32,
-  nodeId: Types.i32,
+export const NetworkState = defineComponent({
+  networkId: Types.ui32,
+  graphLayoutSceneEid: Types.eid,
+  active: Types.i8,
 });
 
-export const networkNodeRefQuery = defineQuery([NetworkNodeRef]);
-export const enterNetworkNodeRefQuery = enterQuery(networkNodeRefQuery);
-export const exitNetworkNodeRefQuery = exitQuery(networkNodeRefQuery);
+export const networkStateQuery = defineQuery([NetworkState]);
+export const enterNetworkStateQuery = enterQuery(networkStateQuery);
+export const exitNetworkStateQuery = exitQuery(networkStateQuery);
 
-export function addNetworkNodeRef(world, eid, node) {
-  addComponent(world, NetworkNodeRef, eid);
-  NetworkNodeRef.networkId[eid] = node.network.id;
-  NetworkNodeRef.nodeId[eid] = node.id;
-  world.nodeIdToEntityId[node.id] = eid;
+export const NetworkNodeState = defineComponent({
+  networkEid: Types.eid,
+  networkId: Types.ui32,
+  nodeId: Types.ui32,
+  visible: Types.i8,
+});
+
+export const networkNodeStateQuery = defineQuery([NetworkNodeState]);
+export const enterNetworkNodeStateQuery = enterQuery(networkNodeStateQuery);
+export const exitNetworkNodeStateQuery = exitQuery(networkNodeStateQuery);
+
+export function spawnEntitiesForNetwork(world, network) {
+  world.networks[network.id] = network;
+
+  const networkEid = addEntity(world);
+  addComponent(world, NetworkState, networkEid);
+  NetworkState.networkId[networkEid] = network.id;
+  NetworkState.graphLayoutSceneEid[networkEid] = null;
+  NetworkState.active[networkEid] = false;
+
+  for (const nodeId in network.children) {
+    const node = network.children[nodeId];
+    const nodeEid = addEntity(world);
+
+    addComponent(world, NetworkNodeState, nodeEid);
+    NetworkNodeState.networkEid[nodeEid] = networkEid;
+    NetworkNodeState.networkId[nodeEid] = node.network.id;
+    NetworkNodeState.nodeId[nodeEid] = node.id;
+    NetworkNodeState.visible[nodeEid] = false;
+    world.nodeIdToEntityId[node.id] = nodeEid;
+  }
+
+  return networkEid;
 }
 
-export const networkNodeRefSystem = defineSystem((world) => {
-  for (const eid of enterNetworkNodeRefQuery(world)) {
-    const nodeId = NetworkNodeRef.nodeId[eid];
+export const networkGraphLayoutSystem = defineSystem((world) => {
+  // 0. Update node ID to EID indexes
+  for (const eid of enterNetworkNodeStateQuery(world)) {
+    const nodeId = NetworkNodeState.nodeId[eid];
     world.nodeIdToEntityId[nodeId] = eid;
   }
   const entries = Object.entries(world.nodeIdToEntityId);
-  for (const deletedEid of exitNetworkNodeRefQuery(world)) {
-    const result = entries.find(([ nodeId, eid ]) => eid === deletedEid);
-    if (result) {
-      const [ nodeId ] = result;
-      delete world.nodeIdToEntityId[nodeId];
+  for (const deletedEid of exitNetworkNodeStateQuery(world)) {
+    entries.forEach(([id, eid]) => {
+      if (eid === deletedEid) {
+        delete world.nodeIdToEntityId[id];
+      }
+    });
+  }
+
+  // 1. Ensure scenes exist only for active networks
+  for (const networkEid of networkStateQuery(world)) {
+    const networkId = NetworkState.networkId[networkEid];
+    if (NetworkState.active[networkEid]) {
+      if (!hasComponent(world, GraphLayoutScene, networkEid)) {
+        addComponent(world, GraphLayoutScene, networkEid);
+        GraphLayoutScene.active[networkEid] = true;
+        GraphLayoutScene.ratio[networkEid] = 100;
+      }
+    } else {
+      if (hasComponent(world, GraphLayoutScene, networkEid)) {
+        removeComponent(world, GraphLayoutScene, networkEid);
+      }
+    }
+  }
+
+  // 2. Ensure graph nodes exist for visible nodes of active networks
+  for (const nodeEid of networkNodeStateQuery(world)) {
+    const nodeVisible = NetworkNodeState.visible[nodeEid];
+    const nodeId = NetworkNodeState.nodeId[nodeEid];
+    const networkEid = NetworkNodeState.networkEid[nodeEid];
+    const networkActive = NetworkState.active[networkEid];
+    const networkId = NetworkState.networkId[networkEid];
+    const network = world.networks[networkId];
+    const node = network.children[nodeId];
+
+    if (networkActive && nodeVisible) {
+      if (!hasComponent(world, GraphLayoutNode, nodeEid)) {
+        addComponent(world, GraphLayoutNode, nodeEid);
+        addComponent(world, Renderable, nodeEid);
+        addComponent(world, Position, nodeEid);
+
+        GraphLayoutNode.sceneId[nodeEid] = networkEid;
+        GraphLayoutNode.nodeId[nodeEid] = nodeId;
+        Renderable.shape[nodeEid] =
+          RenderableShape[node.type] || RenderableShape.Node;
+        Position.x[nodeEid] = 0;
+        Position.y[nodeEid] = 0;
+      }
+    } else {
+      if (hasComponent(world, GraphLayoutNode, nodeEid)) {
+        removeComponent(world, GraphLayoutNode, nodeEid);
+        removeComponent(world, Renderable, nodeEid);
+        removeComponent(world, Position, nodeEid);
+      }
+    }
+  }
+
+  // 3. Update connections for all visible graph nodes
+  for (const fromNodeEid of networkNodeStateQuery(world)) {
+    if (hasComponent(world, GraphLayoutNode, fromNodeEid)) {
+      const fromNodeId = NetworkNodeState.nodeId[fromNodeEid];
+      const networkEid = NetworkNodeState.networkEid[fromNodeEid];
+      const networkId = NetworkState.networkId[networkEid];
+      const network = world.networks[networkId];
+      const fromNode = network.children[fromNodeId];
+
+      const connections = GraphLayoutNode.connections[fromNodeEid];
+      connections.fill(0);
+      let connectionsIdx = 0;
+      for (const toNodeId in fromNode.connections) {
+        const toNodeEid = world.nodeIdToEntityId[toNodeId];
+        if (hasComponent(world, GraphLayoutNode, toNodeEid)) {
+          connections[connectionsIdx++] = toNodeEid;
+        }
+      }
     }
   }
 });

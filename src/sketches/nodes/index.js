@@ -1,4 +1,10 @@
-import { defineSystem, addComponent, pipe, removeComponent } from "bitecs";
+import {
+  defineSystem,
+  addComponent,
+  pipe,
+  removeComponent,
+  hasComponent,
+} from "bitecs";
 import * as Stats from "../../lib/stats.js";
 import * as World from "../../lib/world.js";
 import * as Viewport from "../../lib/viewport/pixi.js";
@@ -8,21 +14,16 @@ import {
   renderQuery,
   cameraFocusQuery,
 } from "../../lib/viewport/index.js";
-import {
-  movementSystem,
-  bouncerSystem,
-  Position,
-} from "../../lib/positionMotion.js";
+import { movementSystem } from "../../lib/positionMotion.js";
 import {
   init as initGraphLayout,
   graphLayoutSystem,
-  spawnSceneForNetwork,
-  spawnNode,
-  spawnNodeEdge,
+  GraphLayoutNode,
 } from "../../lib/graphLayout.js";
 import {
   init as initNetworks,
-  networkNodeRefSystem,
+  spawnEntitiesForNetwork,
+  networkGraphLayoutSystem,
   Network,
   GatewayNode,
   StorageNode,
@@ -31,9 +32,11 @@ import {
   TerminalNode,
   WalletNode,
   ICENode,
+  NetworkNodeState,
+  NetworkState,
 } from "../../lib/networks.js";
 import { setGlobalRng, mkrng, rngIntRange, genHex } from "../../lib/randoms.js";
-import { setupTwiddles, setupBloomTwiddles } from "../twiddles.js";
+import { setupTwiddles } from "../twiddles.js";
 
 async function main() {
   setGlobalRng(mkrng("hello"));
@@ -41,6 +44,13 @@ async function main() {
   const stats = Stats.init();
   const viewport = Viewport.init();
   const world = World.init();
+
+  Object.assign(window, {
+    world,
+    NetworkState,
+    NetworkNodeState,
+    GraphLayoutNode,
+  });
 
   initNetworks(world);
   initGraphLayout(world);
@@ -82,7 +92,12 @@ async function main() {
   storageHub.connect(storage1, storage2, storage3, wallet1);
   terminalHub.connect(terminal1, terminal2, terminal3, terminal4);
 
-  spawnSceneForNetwork(world, network1);
+  const networkEid = spawnEntitiesForNetwork(world, network1);
+  NetworkState.active[networkEid] = true;
+
+  const gatewayEid = world.nodeIdToEntityId[gateway.id];
+  NetworkNodeState.visible[gatewayEid] = true;
+
   // TODO: despawn scene for transition
 
   addComponent(world, CameraFocus, world.nodeIdToEntityId[gateway.id]);
@@ -96,29 +111,29 @@ async function main() {
         removeComponent(world, CameraFocus, cameraFocusEid);
       }
       addComponent(world, CameraFocus, clickedEid);
+
+      const networkId = NetworkNodeState.networkId[clickedEid];
+      const network = world.networks[networkId];
+      const nodeId = NetworkNodeState.nodeId[clickedEid];
+      const node = network.children[nodeId];
+      for (const connectedId in node.connections) {
+        const connectedEid = world.nodeIdToEntityId[connectedId];
+        if (
+          connectedEid &&
+          hasComponent(world, NetworkNodeState, connectedEid)
+        ) {
+          NetworkNodeState.visible[connectedEid] = true;
+        }
+      }
     }
   });
 
-  const spawnNewNode = () => {
-    const [node] = network1.add(new TerminalNode());
-    node.connect(terminalHub);
-    spawnNode(world, node);
-    for (const toNodeId in node.connections) {
-      spawnNodeEdge(
-        world,
-        network1.id,
-        world.nodeIdToEntityId[node.id],
-        world.nodeIdToEntityId[toNodeId]
-      );
-    }
-  };
-
   const pane = setupTwiddles(world, viewport);
   // setupBloomTwiddles(pane, viewport);
-  pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
+  //pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
 
   const pipeline = pipe(
-    networkNodeRefSystem,
+    networkGraphLayoutSystem,
     graphLayoutSystem,
     movementSystem,
     focusSelectionSystem,
