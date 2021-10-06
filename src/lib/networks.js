@@ -83,7 +83,7 @@ export function spawnEntitiesForNetwork(world, network) {
   addComponent(world, NetworkState, networkEid);
   NetworkState.networkId[networkEid] = network.id;
   NetworkState.graphLayoutSceneEid[networkEid] = null;
-  NetworkState.active[networkEid] = true;
+  NetworkState.active[networkEid] = false;
   world.networkIdToEntityId[network.id] = networkEid;
 
   for (const nodeId in network.children) {
@@ -94,7 +94,7 @@ export function spawnEntitiesForNetwork(world, network) {
     NetworkNodeState.networkEid[nodeEid] = networkEid;
     NetworkNodeState.networkId[nodeEid] = node.network.id;
     NetworkNodeState.nodeId[nodeEid] = node.id;
-    NetworkNodeState.visible[nodeEid] = true;
+    NetworkNodeState.visible[nodeEid] = false;
     world.nodeIdToEntityId[node.id] = nodeEid;
   }
 

@@ -1,4 +1,10 @@
-import { defineSystem, addComponent, pipe, removeComponent } from "bitecs";
+import {
+  defineSystem,
+  addComponent,
+  pipe,
+  removeComponent,
+  hasComponent,
+} from "bitecs";
 import * as Stats from "../../lib/stats.js";
 import * as World from "../../lib/world.js";
 import * as Viewport from "../../lib/viewport/pixi.js";
@@ -17,7 +23,6 @@ import {
 import {
   init as initNetworks,
   spawnEntitiesForNetwork,
-
   networkToEntityIndexerSystem,
   networkGraphLayoutSystem,
   Network,
@@ -109,6 +114,20 @@ async function main() {
         removeComponent(world, CameraFocus, cameraFocusEid);
       }
       addComponent(world, CameraFocus, clickedEid);
+
+      const networkId = NetworkNodeState.networkId[clickedEid];
+      const network = world.networks[networkId];
+      const nodeId = NetworkNodeState.nodeId[clickedEid];
+      const node = network.children[nodeId];
+      for (const connectedId in node.connections) {
+        const connectedEid = world.nodeIdToEntityId[connectedId];
+        if (
+          connectedEid &&
+          hasComponent(world, NetworkNodeState, connectedEid)
+        ) {
+          NetworkNodeState.visible[connectedEid] = true;
+        }
+      }
     }
   });
 
