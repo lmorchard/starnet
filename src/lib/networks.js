@@ -18,7 +18,6 @@ import { genid } from "./randoms";
 
 export function init(world) {
   world.networks = {};
-  world.networkIdToEntityId = {};
   world.nodeIdToEntityId = {};
 }
 
@@ -43,39 +42,6 @@ export const networkNodeStateQuery = defineQuery([NetworkNodeState]);
 export const enterNetworkNodeStateQuery = enterQuery(networkNodeStateQuery);
 export const exitNetworkNodeStateQuery = exitQuery(networkNodeStateQuery);
 
-export const networkToEntityIndexerSystem = defineSystem((world) => {
-  const indexes = [
-    [
-      NetworkState,
-      world.networkIdToEntityId,
-      "networkId",
-      enterNetworkStateQuery,
-      exitNetworkStateQuery,
-    ],
-    [
-      NetworkNodeState,
-      world.nodeIdToEntityId,
-      "nodeId",
-      enterNetworkNodeStateQuery,
-      exitNetworkNodeStateQuery,
-    ],
-  ];
-  for (const [Component, index, propName, enterQuery, exitQuery] of indexes) {
-    for (const eid of enterQuery(world)) {
-      const nodeId = Component[propName][eid];
-      index[nodeId] = eid;
-    }
-    const entries = Object.entries(index);
-    for (const deletedEid of exitQuery(world)) {
-      entries.forEach(([id, eid]) => {
-        if (eid === deletedEid) {
-          delete index[id];
-        }
-      });
-    }
-  }
-});
-
 export function spawnEntitiesForNetwork(world, network) {
   world.networks[network.id] = network;
 
@@ -84,7 +50,6 @@ export function spawnEntitiesForNetwork(world, network) {
   NetworkState.networkId[networkEid] = network.id;
   NetworkState.graphLayoutSceneEid[networkEid] = null;
   NetworkState.active[networkEid] = false;
-  world.networkIdToEntityId[network.id] = networkEid;
 
   for (const nodeId in network.children) {
     const node = network.children[nodeId];
@@ -102,6 +67,20 @@ export function spawnEntitiesForNetwork(world, network) {
 }
 
 export const networkGraphLayoutSystem = defineSystem((world) => {
+  // 0. Update node ID to EID indexes
+  for (const eid of enterNetworkNodeStateQuery(world)) {
+    const nodeId = NetworkNodeState.nodeId[eid];
+    world.nodeIdToEntityId[nodeId] = eid;
+  }
+  const entries = Object.entries(world.nodeIdToEntityId);
+  for (const deletedEid of exitNetworkNodeStateQuery(world)) {
+    entries.forEach(([id, eid]) => {
+      if (eid === deletedEid) {
+        delete world.nodeIdToEntityId[id];
+      }
+    });
+  }
+
   // 1. Ensure scenes exist only for active networks
   for (const networkEid of networkStateQuery(world)) {
     const networkId = NetworkState.networkId[networkEid];

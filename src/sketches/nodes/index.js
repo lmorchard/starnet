@@ -23,7 +23,6 @@ import {
 import {
   init as initNetworks,
   spawnEntitiesForNetwork,
-  networkToEntityIndexerSystem,
   networkGraphLayoutSystem,
   Network,
   GatewayNode,
@@ -131,17 +130,11 @@ async function main() {
     }
   });
 
-  const spawnNewNode = () => {
-    const [node] = network1.add(new TerminalNode());
-    node.connect(terminalHub);
-  };
-
   const pane = setupTwiddles(world, viewport);
   // setupBloomTwiddles(pane, viewport);
   //pane.addButton({ title: "Spawn" }).on("click", spawnNewNode);
 
   const pipeline = pipe(
-    networkToEntityIndexerSystem,
     networkGraphLayoutSystem,
     graphLayoutSystem,
     movementSystem,
