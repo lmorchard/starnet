@@ -8,6 +8,12 @@ body {
   color: #eee;
   overflow: hidden;
 }
+a {
+  color: #33f;
+}
+a:visited {
+  color: #83f;
+}
 #main {
   position: absolute;
   left: 0;

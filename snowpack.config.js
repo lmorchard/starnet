@@ -8,10 +8,12 @@ module.exports = {
   root: "src",
   mount: {},
   plugins: [
-    ["snowpack-plugin-hash"],
     [
       "snowpack-plugin-ejs",
       {
+        renderOptions: {
+          async: true,
+        },
         renderData: ({ filePath }) => {
           const dirpath = path.dirname(filePath);
           const dirname = path.basename(dirpath);
@@ -26,6 +28,7 @@ module.exports = {
     ],
     // TODO https://www.npmjs.com/package/snowpack-plugin-assets
     // ["snowpack-plugin-assets", { assets: { from: [], to: "" } }],
+    ["snowpack-plugin-hash"],
   ],
   packageOptions: {
     polyfillNode: true,
