@@ -1,4 +1,4 @@
-import { y as defaultVertex$2, F as Filter, s as settings } from './core-10e96121.js';
+import { y as defaultVertex$2, F as Filter, s as settings } from './core-10e96121.khadxYzhfcy3.js';
 
 /*!
  * @pixi/filter-alpha - v6.1.2
