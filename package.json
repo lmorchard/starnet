@@ -42,6 +42,7 @@
     "rimraf": "^3.0.2",
     "snowpack": "^3.8.6",
     "snowpack-plugin-assets": "^0.1.2",
+    "snowpack-plugin-ejs": "^1.0.2",
     "snowpack-plugin-hash": "^0.16.0"
   }
 }
