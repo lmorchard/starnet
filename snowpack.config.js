@@ -11,8 +11,8 @@ module.exports = {
     [
       '@snowpack/plugin-run-script',
       {
-        cmd: "../scripts/fonts-to-json.js",
-        watch: "onchange -i './fonts/*jhf' -- ../scripts/fonts-to-json.js",
+        cmd: "node ../scripts/fonts-to-json.js",
+        watch: "onchange -i './fonts/*jhf' -- node ../scripts/fonts-to-json.js",
       }
     ],
     [
