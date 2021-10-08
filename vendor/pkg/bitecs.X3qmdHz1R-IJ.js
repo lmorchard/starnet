@@ -915,4 +915,4 @@ const pipe = (...fns) => (...args) => {
 };
 const Types = TYPES_ENUM;
 
-export { Types, addComponent, addEntity, createWorld, defineComponent, defineQuery, defineSystem, enterQuery, exitQuery, hasComponent, pipe, removeComponent, removeEntity };
+export { Types, addComponent, addEntity, createWorld, defineComponent, defineQuery, defineSystem, enterQuery, exitQuery, hasComponent, pipe, removeComponent };

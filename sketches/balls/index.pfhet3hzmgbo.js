@@ -1,15 +1,15 @@
-import { addEntity, addComponent, pipe } from "../../vendor/pkg/bitecs.Cb7ZI4NlcLCA.js";
+import { addEntity, addComponent, pipe } from "../../vendor/pkg/bitecs.X3qmdHz1R-IJ.js";
 import { rngIntRange } from "../../lib/randoms.X9VRh4IgloX1.js";
 import * as Stats from "../../lib/stats.OV0McSz3wFid.js";
-import * as World from "../../lib/world.ZS8GZskyr35N.js";
-import * as Viewport from "../../lib/viewport/pixi.KWw1fbaMt1oT.js";
-import { Renderable } from "../../lib/viewport/index.TVdOLd-6oyqv.js";
+import * as World from "../../lib/world.bhzOOQ20lZSu.js";
+import * as Viewport from "../../lib/viewport/pixi.XSEFIUy8GAN6.js";
+import { Renderable } from "../../lib/viewport/index.igwHgqGqcndw.js";
 import {
   Position,
   Velocity,
   movementSystem,
   bouncerSystem,
-} from "../../lib/positionMotion.Y1d0skLDuuy2.js";
+} from "../../lib/positionMotion.giEPfFZ5syz2.js";
 import { setupTwiddles } from "../twiddles.4SEh7Ls-hShU.js";
 
 async function main() {
