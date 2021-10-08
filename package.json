@@ -34,8 +34,10 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@snowpack/plugin-run-script": "^2.3.0",
     "http-server": "^13.0.0",
     "mkdirp": "^1.0.4",
+    "npm-run-all": "^4.1.5",
     "onchange": "^7.1.0",
     "recursive-copy": "^2.0.13",
     "reload": "^3.2.0",

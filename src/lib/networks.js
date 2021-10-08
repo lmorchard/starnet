@@ -8,7 +8,6 @@ import {
   exitQuery,
   enterQuery,
   addEntity,
-  removeEntity,
   hasComponent,
 } from "bitecs";
 import { GraphLayoutScene, GraphLayoutNode } from "./graphLayout";
@@ -28,8 +27,6 @@ export const NetworkState = defineComponent({
 });
 
 export const networkStateQuery = defineQuery([NetworkState]);
-export const enterNetworkStateQuery = enterQuery(networkStateQuery);
-export const exitNetworkStateQuery = exitQuery(networkStateQuery);
 
 export const NetworkNodeState = defineComponent({
   networkEid: Types.eid,
@@ -83,7 +80,6 @@ export const networkGraphLayoutSystem = defineSystem((world) => {
 
   // 1. Ensure scenes exist only for active networks
   for (const networkEid of networkStateQuery(world)) {
-    const networkId = NetworkState.networkId[networkEid];
     if (NetworkState.active[networkEid]) {
       if (!hasComponent(world, GraphLayoutScene, networkEid)) {
         addComponent(world, GraphLayoutScene, networkEid);

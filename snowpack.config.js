@@ -9,6 +9,13 @@ module.exports = {
   mount: {},
   plugins: [
     [
+      '@snowpack/plugin-run-script',
+      {
+        cmd: "../scripts/fonts-to-json.js",
+        watch: "onchange -i './fonts/*jhf' -- ../scripts/fonts-to-json.js",
+      }
+    ],
+    [
       "snowpack-plugin-ejs",
       {
         renderOptions: {

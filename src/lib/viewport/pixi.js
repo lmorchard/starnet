@@ -33,9 +33,6 @@ class ViewportPixi {
 
     const filterStage = new PIXI.Container();
 
-    const stage = new PIXI.Container();
-    stage.sortableChildren = true;
-
     this.bloom = new AdvancedBloomFilter({
       threshold: 0.2,
       bloomScale: 1.5,
@@ -43,7 +40,12 @@ class ViewportPixi {
       blur: 1.5,
       quality: 5,
     });
-    stage.filters = [new PIXI.filters.FXAAFilter(), this.bloom];
+
+    filterStage.filters = [new PIXI.filters.FXAAFilter(), this.bloom];
+
+    const stage = new PIXI.Container();
+    stage.sortableChildren = true;
+    filterStage.addChild(stage);
 
     const edgeGraphics = new Graphics();
     edgeGraphics.zIndex = -500;
@@ -56,6 +58,7 @@ class ViewportPixi {
     Object.assign(this, {
       renderables: {},
       renderer,
+      filterStage,
       stage,
       bgGraphics,
       edgeGraphics,
@@ -84,7 +87,7 @@ class ViewportPixi {
   }
 
   draw(world, interpolationPercentage) {
-    const { renderer, stage, renderables } = this;
+    const { renderer, filterStage, stage, renderables } = this;
 
     this.updateCameraFocus(world);
     this.updateCameraTarget(world);
@@ -117,7 +120,7 @@ class ViewportPixi {
     this.shouldRedrawRenderables = false;
     this.lastZoom = this.zoom;
 
-    renderer.render(stage);
+    renderer.render(filterStage);
   }
 
   setCameraTarget(toX, toY, duration) {
@@ -305,7 +308,7 @@ class ViewportPixi {
     for (const fromEid of graphLayoutNodeQuery(world)) {
       if (!hasComponent(world, Position, fromEid)) continue;
       const connections = GraphLayoutNode.connections[fromEid];
-      
+
       for (const toEid of connections) {
         if (!hasComponent(world, Position, toEid)) continue;
 
