@@ -19,6 +19,12 @@ import { Position, Velocity } from "../../lib/positionMotion.giEPfFZ5syz2.js";
 import { setupTwiddles } from "../twiddles.4SEh7Ls-hShU.js";
 
 import FontFutural from "../../fonts/futural.json.proxy.js";
+import FontFuturam from "../../fonts/futuram.json.proxy.js";
+import FontScripts from "../../fonts/scripts.json.proxy.js";
+import FontScriptc from "../../fonts/scriptc.json.proxy.js";
+import FontRowmant from "../../fonts/rowmant.json.proxy.js";
+
+const fonts = [FontFutural, FontFuturam, FontScripts, FontScriptc, FontRowmant];
 
 async function main() {
   const stats = Stats.init();
@@ -32,24 +38,32 @@ async function main() {
   const message =
     "Hello, world! Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor";
 
-  const cache = {};
-  let xPos = -550;
-  for (const char of message) {
-    const glyph = FontFutural.glyphs[char];
-    if (!glyph) continue;
+  const xStart = -600;
+  const lineHeight = 45;
 
-    let g;
-    if (cache[char]) {
-      g = cache[char].clone();
-    } else {
-      g = cache[char] = renderGlyph(glyph);
+  let yPos = -100;
+  for (const font of fonts) {
+    let xPos = xStart;
+    const cache = {};
+    for (const char of message) {
+      const glyph = font.glyphs[char];
+      if (!glyph) continue;
+
+      let g;
+      if (cache[char]) {
+        g = cache[char].clone();
+      } else {
+        g = cache[char] = renderGlyph(glyph);
+      }
+      if (!g) continue;
+
+      viewport.stage.addChild(g);
+      g.x = xPos - glyph.left;
+      g.y = yPos;
+
+      xPos += glyph.width;
     }
-    if (!g) continue;
-
-    viewport.stage.addChild(g);
-    g.x = xPos - glyph.left;
-    
-    xPos += glyph.width;
+    yPos += lineHeight;
   }
 
   const pane = setupTwiddles(world, viewport);
