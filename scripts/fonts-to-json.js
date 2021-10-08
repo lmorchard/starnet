@@ -12,7 +12,7 @@ async function main() {
     const fontPath = path.resolve(FONTS_ROOT, `${fontName}.jhf`);
     const buf = await fs.readFile(fontPath);
     const data = buf.toString("ascii");
-    const font = new Font("futural", data);
+    const font = new Font(fontName, data);
 
     await fs.writeFile(
       path.resolve(FONTS_JSON_ROOT, `${fontName}.json`),
