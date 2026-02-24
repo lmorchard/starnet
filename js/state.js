@@ -3,6 +3,7 @@
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
 import { resolveExploit } from "./combat.js";
+import { assignMacguffins } from "./loot.js";
 
 let state = null;
 
@@ -19,7 +20,8 @@ export function initState(networkData) {
       alertState: "green",        // 'green' | 'yellow' | 'red'
       probed: false,
       vulnerabilities: generateVulnerabilities(n.grade),
-      macguffins: [],             // populated in Phase 8
+      macguffins: [],             // populated by assignMacguffins
+      read: false,
       looted: false,
       eventForwardingDisabled: false,
     };
@@ -47,6 +49,9 @@ export function initState(networkData) {
     runOutcome: null,       // 'success' | 'caught'
     log: [],               // recent action messages [{text, type}]
   };
+
+  // Assign macguffins to loot nodes
+  assignMacguffins(Object.values(nodes));
 
   // Make start node accessible and reveal its neighbors
   accessNode(networkData.startNode);
@@ -282,6 +287,43 @@ export function launchExploit(nodeId, exploitId) {
 
   emit();
   return result;
+}
+
+// ── Read & Loot ───────────────────────────────────────────
+
+export function readNode(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node) return;
+  node.read = true;
+  if (node.macguffins.length > 0) {
+    addLog(`${node.label}: ${node.macguffins.length} item(s) found.`, "success");
+  } else {
+    addLog(`${node.label}: Nothing of value found.`, "info");
+  }
+  emit();
+}
+
+export function lootNode(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node || node.looted) return;
+
+  const uncollected = node.macguffins.filter((m) => !m.collected);
+  if (uncollected.length === 0) {
+    addLog(`${node.label}: Already looted.`, "info");
+    emit();
+    return;
+  }
+
+  let total = 0;
+  uncollected.forEach((m) => {
+    m.collected = true;
+    total += m.cashValue;
+  });
+
+  node.looted = true;
+  state.player.cash += total;
+  addLog(`Looted ${uncollected.length} item(s) from ${node.label}. +¥${total.toLocaleString()}`, "success");
+  emit();
 }
 
 // ── Reconfigure ──────────────────────────────────────────

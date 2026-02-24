@@ -1,6 +1,6 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle } from "./graph.js";
-import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, endRun } from "./state.js";
+import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun } from "./state.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 let sidebarMode = "node";
@@ -55,6 +55,16 @@ function init() {
 
   document.addEventListener("starnet:action:reconfigure", (evt) => {
     reconfigureNode(evt.detail.nodeId);
+    sidebarMode = "node";
+  });
+
+  document.addEventListener("starnet:action:read", (evt) => {
+    readNode(evt.detail.nodeId);
+    sidebarMode = "node";
+  });
+
+  document.addEventListener("starnet:action:loot", (evt) => {
+    lootNode(evt.detail.nodeId);
     sidebarMode = "node";
   });
 
@@ -191,6 +201,20 @@ function renderSidebarNode(sidebar, node, state) {
       </div>
       <div class="nd-divider">──────────────────</div>
       ${vulnSection}
+      ${node.read && node.macguffins.length > 0 ? `
+      <div class="nd-divider">──────────────────</div>
+      <div class="nd-section-label">CONTENTS</div>
+      <div class="nd-macguffins">
+        ${node.macguffins.map((m) => `
+          <div class="macguffin ${m.collected ? "collected" : ""}">
+            <span class="mg-name">${m.name}</span>
+            <span class="mg-value ${m.collected ? "mg-collected" : ""}">
+              ${m.collected ? "EXTRACTED" : `¥${m.cashValue.toLocaleString()}`}
+            </span>
+          </div>`).join("")}
+      </div>` : node.read ? `
+      <div class="nd-divider">──────────────────</div>
+      <div class="nd-dim nd-indent">No valuables detected.</div>` : ""}
       <div class="nd-divider">──────────────────</div>
       <div class="nd-section-label">ACTIONS</div>
       <div class="nd-actions">
@@ -287,7 +311,8 @@ function renderActions(node) {
 
   if (node.accessLevel === "compromised") {
     btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit."));
-    btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections.", true));
+    const readDone = node.read;
+    btns.push(actionBtn("read", readDone ? "READ (done)" : "READ", "Scan node contents for loot or connections.", readDone));
     const isDetector = node.type === "ids";
     const reconfigStub = !isDetector || node.eventForwardingDisabled;
     const reconfigLabel = node.eventForwardingDisabled ? "RECONFIGURE (done)" : "RECONFIGURE";
@@ -295,10 +320,12 @@ function renderActions(node) {
   }
 
   if (node.accessLevel === "owned") {
-    btns.push(actionBtn("loot", "LOOT", "Collect macguffins for cash.", true));
+    const hasLoot = node.macguffins.some((m) => !m.collected);
+    btns.push(actionBtn("loot", node.looted ? "LOOT (done)" : "LOOT", "Collect macguffins for cash.", node.looted || !hasLoot));
     btns.push(actionBtn("subvert", "SUBVERT", "Deceive connected security monitors.", true));
     btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit.", true));
-    btns.push(actionBtn("read", "READ", "Scan node contents.", true));
+    const readDone = node.read;
+    btns.push(actionBtn("read", readDone ? "READ (done)" : "READ", "Scan node contents.", readDone));
     const isDetector = node.type === "ids";
     const reconfigStub = !isDetector || node.eventForwardingDisabled;
     const reconfigLabel = node.eventForwardingDisabled ? "RECONFIGURE (done)" : "RECONFIGURE";

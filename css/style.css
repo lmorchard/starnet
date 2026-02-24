@@ -421,6 +421,30 @@ html, body {
 .log-entry.log-failure { color: var(--red); }
 .log-entry.log-meta    { color: #335533; font-size: 0.65rem; }
 
+/* ── Macguffins ─────────────────────────────────────────── */
+
+.nd-macguffins {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.macguffin {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.75rem;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid #1a1a2e;
+}
+
+.macguffin.collected { opacity: 0.4; }
+
+.mg-name  { color: var(--green); flex: 1; }
+.mg-value { color: var(--cyan); white-space: nowrap; }
+.mg-collected { color: var(--text-dim); }
+
 /* ── Trace Countdown ────────────────────────────────────── */
 
 .trace-countdown {
