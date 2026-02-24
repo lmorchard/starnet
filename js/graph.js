@@ -27,7 +27,7 @@ let cy = null;
 export function initGraph(networkData, onNodeClick) {
   const elements = buildElements(networkData);
 
-  cy = cytoscape({
+  cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
     elements,
     layout: { name: "preset" },
