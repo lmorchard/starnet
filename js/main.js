@@ -1,6 +1,6 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle } from "./graph.js";
-import { initState, getState, selectNode, probeNode } from "./state.js";
+import { initState, getState, selectNode, probeNode, launchExploit } from "./state.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 let sidebarMode = "node";
@@ -26,7 +26,14 @@ function init() {
   });
   document.addEventListener("starnet:action:exploit", () => {
     sidebarMode = "exploit-select";
-    // Re-render with exploit selection mode
+    const s = getState();
+    if (s.selectedNodeId) {
+      renderSidebarNode(document.getElementById("sidebar"), s.nodes[s.selectedNodeId], s);
+    }
+  });
+
+  document.addEventListener("starnet:action:escalate", () => {
+    sidebarMode = "exploit-select";
     const s = getState();
     if (s.selectedNodeId) {
       renderSidebarNode(document.getElementById("sidebar"), s.nodes[s.selectedNodeId], s);
@@ -38,6 +45,12 @@ function init() {
     if (s.selectedNodeId) {
       renderSidebarNode(document.getElementById("sidebar"), s.nodes[s.selectedNodeId], s);
     }
+  });
+
+  document.addEventListener("starnet:action:launch-exploit", (evt) => {
+    const { nodeId, exploitId } = evt.detail;
+    launchExploit(nodeId, exploitId);
+    sidebarMode = "node";
   });
 
   document.dispatchEvent(
@@ -157,10 +170,23 @@ function renderSidebarNode(sidebar, node, state) {
       <div class="nd-hand">
         ${state.player.hand.map(renderExploitCard).join("")}
       </div>
+      ${renderLog(state.log)}
     </div>`;
 
   // Wire action buttons after DOM insertion
   wireActionButtons(node);
+}
+
+function renderLog(log) {
+  if (!log || log.length === 0) return "";
+  return `
+    <div class="nd-divider">──────────────────</div>
+    <div class="nd-section-label">LOG</div>
+    <div class="nd-log">
+      ${log.map((entry) =>
+        `<div class="log-entry log-${entry.type}">&gt; ${entry.text}</div>`
+      ).join("")}
+    </div>`;
 }
 
 function renderActions(node) {

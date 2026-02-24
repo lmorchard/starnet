@@ -407,6 +407,20 @@ html, body {
 
 .nd-hand.selectable { gap: 0.5rem; }
 
+/* ── Action Log ─────────────────────────────────────────── */
+
+.nd-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+}
+
+.log-entry        { color: var(--text-dim); }
+.log-entry.log-success { color: var(--green); }
+.log-entry.log-failure { color: var(--red); }
+.log-entry.log-meta    { color: #335533; font-size: 0.65rem; }
+
 /* ── Animations ─────────────────────────────────────────── */
 
 @keyframes pulse {

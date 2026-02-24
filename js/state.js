@@ -2,6 +2,7 @@
 // After each mutation, a 'starnet:statechange' event is dispatched.
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
+import { resolveExploit } from "./combat.js";
 
 let state = null;
 
@@ -44,6 +45,7 @@ export function initState(networkData) {
     selectedNodeId: null,
     phase: "playing",       // 'playing' | 'ended'
     runOutcome: null,       // 'success' | 'caught'
+    log: [],               // recent action messages [{text, type}]
   };
 
   // Make start node accessible and reveal its neighbors
@@ -160,6 +162,71 @@ export function propagateAlertEvent(fromNodeId) {
   });
 }
 
+// ── Exploit launch ───────────────────────────────────────
+
+export function launchExploit(nodeId, exploitId) {
+  const node = state.nodes[nodeId];
+  const exploit = state.player.hand.find((c) => c.id === exploitId);
+  if (!node || !exploit || exploit.decayState === "disclosed") return;
+
+  const result = resolveExploit(exploit, node);
+
+  // Consume a use
+  exploit.usesRemaining = Math.max(0, exploit.usesRemaining - 1);
+  if (exploit.usesRemaining === 0 && exploit.decayState === "fresh") {
+    exploit.decayState = "worn";
+  }
+
+  if (result.success) {
+    // Advance access level
+    if (node.accessLevel === "locked") {
+      node.accessLevel = "compromised";
+      node.visibility = "accessible";
+      revealNeighbors(nodeId);
+    } else if (node.accessLevel === "compromised") {
+      node.accessLevel = "owned";
+      revealNeighbors(nodeId);
+    }
+    addLog(result.flavor, "success");
+  } else {
+    // Raise node alert
+    const idx = ALERT_ORDER.indexOf(node.alertState);
+    if (idx < ALERT_ORDER.length - 1) {
+      node.alertState = ALERT_ORDER[idx + 1];
+    }
+
+    // Disclose exploit if detected
+    if (result.disclosed) {
+      exploit.decayState = "disclosed";
+    }
+
+    // Propagate alert if detection node
+    if (DETECTION_TYPES.has(node.type)) {
+      propagateAlertEvent(nodeId);
+    }
+
+    addLog(result.flavor, "failure");
+  }
+
+  // Log success chance for transparency
+  addLog(
+    `Roll: ${result.roll} vs ${result.successChance}% chance${result.matchingVulns.length > 0 ? " (vuln match)" : ""}`,
+    "meta"
+  );
+
+  emit();
+  return result;
+}
+
+// ── Message log ──────────────────────────────────────────
+
+const MAX_LOG = 6;
+
+function addLog(text, type = "info") {
+  state.log.unshift({ text, type });
+  if (state.log.length > MAX_LOG) state.log.length = MAX_LOG;
+}
+
 // ── Selection ────────────────────────────────────────────
 
 export function selectNode(nodeId) {
@@ -170,6 +237,7 @@ export function selectNode(nodeId) {
 // ── Event dispatch ───────────────────────────────────────
 
 function emit() {
+  window._starnetState = state; // dev convenience
   document.dispatchEvent(
     new CustomEvent("starnet:statechange", { detail: state })
   );
