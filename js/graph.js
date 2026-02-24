@@ -82,63 +82,61 @@ function buildStylesheet() {
       style: {
         display: "element",
         shape: "ellipse",
-        width: 40,
-        height: 40,
-        "background-color": "#111",
+        width: 36,
+        height: 36,
+        "background-color": "#0d0d14",
         "border-width": 1,
-        "border-color": "#334",
+        "border-color": "#223333",
         "border-style": "dashed",
         label: "???",
-        color: "#334",
+        color: "#224422",
         "font-family": "Courier New, monospace",
-        "font-size": 9,
+        "font-size": 8,
         "text-valign": "bottom",
-        "text-margin-y": 4,
+        "text-margin-y": 5,
       },
     },
-    // Accessible nodes (base style — per-node overrides via data)
+    // Accessible nodes — base (cyan border)
     {
       selector: "node.accessible",
       style: {
         display: "element",
-        width: 44,
-        height: 44,
-        "background-color": "#0a0a14",
+        width: 46,
+        height: 46,
+        "background-color": "#070710",
         "border-width": 2,
         "border-color": "#00ffff",
         label: "data(label)",
         color: "#00ff41",
         "font-family": "Courier New, monospace",
         "font-size": 9,
+        "font-weight": "bold",
         "text-valign": "bottom",
-        "text-margin-y": 4,
+        "text-margin-y": 6,
         "text-outline-color": "#0a0a0f",
         "text-outline-width": 2,
       },
     },
-    // Alert state overrides for accessible nodes
+    // Alert state: yellow
     {
       selector: "node.accessible.alert-yellow",
-      style: {
-        "border-color": "#ffff00",
-      },
+      style: { "border-color": "#ffff00" },
     },
+    // Alert state: red
     {
       selector: "node.accessible.alert-red",
-      style: {
-        "border-color": "#ff2020",
-      },
+      style: { "border-color": "#ff2020", "border-width": 3 },
     },
-    // Access level fill overrides
+    // Access level fill
     {
       selector: "node.accessible.compromised",
-      style: { "background-color": "#050518" },
+      style: { "background-color": "#04041a" },
     },
     {
       selector: "node.accessible.owned",
-      style: { "background-color": "#041408" },
+      style: { "background-color": "#031208" },
     },
-    // Selected node
+    // Selected node — magenta ring
     {
       selector: "node:selected",
       style: {
@@ -162,6 +160,16 @@ function buildStylesheet() {
         "curve-style": "bezier",
         width: 1.5,
         opacity: 0.7,
+      },
+    },
+    // Edges between owned nodes — brighter
+    {
+      selector: "edge.owned-path",
+      style: {
+        "line-color": "#00ff41",
+        "target-arrow-color": "#00ff41",
+        opacity: 0.5,
+        width: 2,
       },
     },
   ];
@@ -202,12 +210,21 @@ export function updateNodeStyle(nodeId, nodeState) {
 
 function updateEdgeVisibility() {
   cy.edges().forEach((edge) => {
-    const sourceVisible = !cy.getElementById(edge.data("source")).hasClass("hidden");
-    const targetVisible = !cy.getElementById(edge.data("target")).hasClass("hidden");
-    if (sourceVisible && targetVisible) {
+    const src = cy.getElementById(edge.data("source"));
+    const tgt = cy.getElementById(edge.data("target"));
+    const srcVisible = !src.hasClass("hidden");
+    const tgtVisible = !tgt.hasClass("hidden");
+
+    if (srcVisible && tgtVisible) {
       edge.removeClass("hidden").addClass("visible");
+      // Highlight path between two owned nodes
+      if (src.hasClass("owned") && tgt.hasClass("owned")) {
+        edge.addClass("owned-path");
+      } else {
+        edge.removeClass("owned-path");
+      }
     } else {
-      edge.removeClass("visible").addClass("hidden");
+      edge.removeClass("visible owned-path").addClass("hidden");
     }
   });
 }
