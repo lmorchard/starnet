@@ -421,6 +421,80 @@ html, body {
 .log-entry.log-failure { color: var(--red); }
 .log-entry.log-meta    { color: #335533; font-size: 0.65rem; }
 
+/* ── Trace Countdown ────────────────────────────────────── */
+
+.trace-countdown {
+  color: var(--red) !important;
+  text-shadow: 0 0 8px var(--red);
+  animation: pulse 0.5s ease-in-out infinite;
+  letter-spacing: 0.1em;
+}
+
+/* ── End Screen ─────────────────────────────────────────── */
+
+#end-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.end-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 24px rgba(0, 255, 255, 0.2);
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 320px;
+}
+
+.end-title {
+  font-size: 1.1rem;
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.end-divider {
+  color: var(--border);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.end-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  font-size: 0.82rem;
+}
+
+.end-key { color: var(--text-dim); letter-spacing: 0.08em; }
+.end-val { color: var(--green); text-shadow: 0 0 4px var(--green); }
+.end-val.end-zero { color: var(--red); text-shadow: 0 0 4px var(--red); }
+
+.end-btn {
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
+}
+
+.end-btn:hover {
+  background: rgba(0, 255, 255, 0.1);
+}
+
 /* ── Animations ─────────────────────────────────────────── */
 
 @keyframes pulse {

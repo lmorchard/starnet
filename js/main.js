@@ -1,6 +1,6 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle } from "./graph.js";
-import { initState, getState, selectNode, probeNode, launchExploit } from "./state.js";
+import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, endRun } from "./state.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 let sidebarMode = "node";
@@ -53,6 +53,15 @@ function init() {
     sidebarMode = "node";
   });
 
+  document.addEventListener("starnet:action:reconfigure", (evt) => {
+    reconfigureNode(evt.detail.nodeId);
+    sidebarMode = "node";
+  });
+
+  document.getElementById("jack-out-btn").addEventListener("click", () => {
+    endRun("success");
+  });
+
   document.dispatchEvent(
     new CustomEvent("starnet:statechange", { detail: getState() })
   );
@@ -94,7 +103,29 @@ function syncHud(state) {
     level === "yellow" ? "var(--yellow)" :
                          "var(--red)";
 
+  // Trace countdown in HUD
+  const existingCountdown = document.getElementById("trace-countdown");
+  if (state.traceSecondsRemaining !== null && state.phase === "playing") {
+    if (existingCountdown) {
+      existingCountdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
+    } else {
+      const el = document.createElement("span");
+      el.id = "trace-countdown";
+      el.className = "hud-value trace-countdown";
+      el.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
+      document.getElementById("jack-out-btn").before(el);
+    }
+  } else if (existingCountdown) {
+    existingCountdown.remove();
+  }
+
   document.getElementById("jack-out-btn").disabled = state.phase !== "playing";
+
+  // End screen
+  if (state.phase === "ended") {
+    renderEndScreen(state);
+    return;
+  }
 
   const sidebar = document.getElementById("sidebar");
   if (state.selectedNodeId) {
@@ -177,6 +208,61 @@ function renderSidebarNode(sidebar, node, state) {
   wireActionButtons(node);
 }
 
+function renderEndScreen(state) {
+  const caught = state.runOutcome === "caught";
+  const nodesCompromised = Object.values(state.nodes).filter(
+    (n) => n.accessLevel !== "locked"
+  ).length;
+  const nodesOwned = Object.values(state.nodes).filter(
+    (n) => n.accessLevel === "owned"
+  ).length;
+  const macguffinsLooted = Object.values(state.nodes).reduce(
+    (sum, n) => sum + (n.looted ? n.macguffins.length : 0), 0
+  );
+
+  const overlay = document.getElementById("end-screen") || (() => {
+    const el = document.createElement("div");
+    el.id = "end-screen";
+    document.getElementById("app").appendChild(el);
+    return el;
+  })();
+
+  overlay.innerHTML = `
+    <div class="end-box">
+      <div class="end-title">${caught ? "▶ TRACED ◀" : "▶ RUN COMPLETE ◀"}</div>
+      <div class="end-divider">════════════════════════</div>
+      <div class="end-row">
+        <span class="end-key">CASH EXTRACTED</span>
+        <span class="end-val ${caught ? "end-zero" : ""}">¥${state.player.cash.toLocaleString()}</span>
+      </div>
+      <div class="end-row">
+        <span class="end-key">NODES COMPROMISED</span>
+        <span class="end-val">${nodesCompromised}</span>
+      </div>
+      <div class="end-row">
+        <span class="end-key">NODES OWNED</span>
+        <span class="end-val">${nodesOwned}</span>
+      </div>
+      <div class="end-row">
+        <span class="end-key">MACGUFFINS LOOTED</span>
+        <span class="end-val">${macguffinsLooted}</span>
+      </div>
+      <div class="end-divider">════════════════════════</div>
+      <button class="end-btn" id="run-again-btn">[ RUN AGAIN ]</button>
+    </div>`;
+
+  document.getElementById("run-again-btn").addEventListener("click", () => {
+    overlay.remove();
+    // Re-init game state
+    import("./state.js").then(({ initState }) => {
+      import("../data/network.js").then(({ NETWORK }) => {
+        sidebarMode = "node";
+        initState(NETWORK);
+      });
+    });
+  });
+}
+
 function renderLog(log) {
   if (!log || log.length === 0) return "";
   return `
@@ -202,7 +288,10 @@ function renderActions(node) {
   if (node.accessLevel === "compromised") {
     btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit."));
     btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections.", true));
-    btns.push(actionBtn("reconfigure", "RECONFIGURE", "Modify node event forwarding.", true));
+    const isDetector = node.type === "ids";
+    const reconfigStub = !isDetector || node.eventForwardingDisabled;
+    const reconfigLabel = node.eventForwardingDisabled ? "RECONFIGURE (done)" : "RECONFIGURE";
+    btns.push(actionBtn("reconfigure", reconfigLabel, "Disable event forwarding to security monitor.", reconfigStub));
   }
 
   if (node.accessLevel === "owned") {
@@ -210,7 +299,10 @@ function renderActions(node) {
     btns.push(actionBtn("subvert", "SUBVERT", "Deceive connected security monitors.", true));
     btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit.", true));
     btns.push(actionBtn("read", "READ", "Scan node contents.", true));
-    btns.push(actionBtn("reconfigure", "RECONFIGURE", "Modify node event forwarding.", true));
+    const isDetector = node.type === "ids";
+    const reconfigStub = !isDetector || node.eventForwardingDisabled;
+    const reconfigLabel = node.eventForwardingDisabled ? "RECONFIGURE (done)" : "RECONFIGURE";
+    btns.push(actionBtn("reconfigure", reconfigLabel, "Disable event forwarding to security monitor.", reconfigStub));
   }
 
   return btns.join("") || `<span class="nd-dim">No actions available.</span>`;

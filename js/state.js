@@ -112,12 +112,42 @@ export function raiseNodeAlert(nodeId) {
   emit();
 }
 
+const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
+
 export function raiseGlobalAlert() {
-  const order = ["green", "yellow", "red", "trace"];
-  const idx = order.indexOf(state.globalAlert);
-  if (idx < order.length - 1) {
-    state.globalAlert = order[idx + 1];
+  const idx = GLOBAL_ALERT_ORDER.indexOf(state.globalAlert);
+  if (idx < GLOBAL_ALERT_ORDER.length - 1) {
+    state.globalAlert = GLOBAL_ALERT_ORDER[idx + 1];
   }
+
+  if (state.globalAlert === "trace" && state.traceSecondsRemaining === null) {
+    startTraceCountdown();
+  }
+
+  emit();
+}
+
+function startTraceCountdown() {
+  state.traceSecondsRemaining = 60;
+  const interval = setInterval(() => {
+    if (!state || state.phase !== "playing") {
+      clearInterval(interval);
+      return;
+    }
+    state.traceSecondsRemaining -= 1;
+    if (state.traceSecondsRemaining <= 0) {
+      clearInterval(interval);
+      endRun("caught");
+    } else {
+      emit();
+    }
+  }, 1000);
+}
+
+export function endRun(outcome) {
+  state.phase = "ended";
+  state.runOutcome = outcome;
+  if (outcome === "caught") state.player.cash = 0;
   emit();
 }
 
@@ -158,8 +188,42 @@ export function propagateAlertEvent(fromNodeId) {
       if (idx < ALERT_ORDER.length - 1) {
         neighbor.alertState = ALERT_ORDER[idx + 1];
       }
+      // Recompute global alert based on monitor states
+      recomputeGlobalAlert();
     }
   });
+}
+
+function recomputeGlobalAlert() {
+  const monitors = Object.values(state.nodes).filter((n) =>
+    MONITOR_TYPES.has(n.type)
+  );
+  const detectors = Object.values(state.nodes).filter((n) =>
+    DETECTION_TYPES.has(n.type)
+  );
+
+  const redMonitors = monitors.filter((n) => n.alertState === "red").length;
+  const redDetectors = detectors.filter((n) =>
+    n.alertState === "red" && !n.eventForwardingDisabled
+  ).length;
+  const yellowDetectors = detectors.filter((n) =>
+    n.alertState !== "green" && !n.eventForwardingDisabled
+  ).length;
+
+  let newLevel = "green";
+  if (yellowDetectors >= 1)  newLevel = "yellow";
+  if (redDetectors >= 1)     newLevel = "red";
+  if (redDetectors >= 2 || redMonitors >= 1) newLevel = "trace";
+
+  // Only escalate, never de-escalate
+  const current = GLOBAL_ALERT_ORDER.indexOf(state.globalAlert);
+  const next = GLOBAL_ALERT_ORDER.indexOf(newLevel);
+  if (next > current) {
+    state.globalAlert = newLevel;
+    if (state.globalAlert === "trace" && state.traceSecondsRemaining === null) {
+      startTraceCountdown();
+    }
+  }
 }
 
 // ── Exploit launch ───────────────────────────────────────
@@ -200,9 +264,11 @@ export function launchExploit(nodeId, exploitId) {
       exploit.decayState = "disclosed";
     }
 
-    // Propagate alert if detection node
+    // Propagate alert if detection node, then recompute global
     if (DETECTION_TYPES.has(node.type)) {
       propagateAlertEvent(nodeId);
+    } else {
+      recomputeGlobalAlert();
     }
 
     addLog(result.flavor, "failure");
@@ -216,6 +282,17 @@ export function launchExploit(nodeId, exploitId) {
 
   emit();
   return result;
+}
+
+// ── Reconfigure ──────────────────────────────────────────
+
+export function reconfigureNode(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node) return;
+  node.eventForwardingDisabled = true;
+  addLog(`${node.label}: event forwarding disabled. Detection subverted.`, "success");
+  recomputeGlobalAlert();
+  emit();
 }
 
 // ── Message log ──────────────────────────────────────────
