@@ -119,6 +119,47 @@ export function raiseGlobalAlert() {
   emit();
 }
 
+// ── Probe action ─────────────────────────────────────────
+
+// Detection node types that forward events to security monitors
+const DETECTION_TYPES = new Set(["ids"]);
+const MONITOR_TYPES   = new Set(["security-monitor"]);
+
+export function probeNode(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node || node.probed) return;
+
+  node.probed = true;
+
+  // Raise local alert (green → yellow)
+  const idx = ALERT_ORDER.indexOf(node.alertState);
+  if (idx < ALERT_ORDER.length - 1) {
+    node.alertState = ALERT_ORDER[idx + 1];
+  }
+
+  // If this is a detection node, propagate to connected security monitors
+  if (DETECTION_TYPES.has(node.type)) {
+    propagateAlertEvent(nodeId);
+  }
+
+  emit();
+}
+
+export function propagateAlertEvent(fromNodeId) {
+  const fromNode = state.nodes[fromNodeId];
+  if (!fromNode || fromNode.eventForwardingDisabled) return;
+
+  (state.adjacency[fromNodeId] || []).forEach((neighborId) => {
+    const neighbor = state.nodes[neighborId];
+    if (neighbor && MONITOR_TYPES.has(neighbor.type)) {
+      const idx = ALERT_ORDER.indexOf(neighbor.alertState);
+      if (idx < ALERT_ORDER.length - 1) {
+        neighbor.alertState = ALERT_ORDER[idx + 1];
+      }
+    }
+  });
+}
+
 // ── Selection ────────────────────────────────────────────
 
 export function selectNode(nodeId) {
