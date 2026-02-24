@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STARNET</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Cytoscape.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- HUD -->
+    <header id="hud">
+      <span class="hud-title">★ STARNET</span>
+
+      <div class="hud-alert">
+        <div class="alert-dot" id="alert-dot"></div>
+        <span class="hud-label">ALERT:</span>
+        <span class="hud-value" id="alert-level">GREEN</span>
+      </div>
+
+      <span class="hud-label">WALLET:</span>
+      <span class="hud-value" id="wallet">¥0</span>
+
+      <button id="jack-out-btn" disabled>[ JACK OUT ]</button>
+    </header>
+
+    <!-- Main area: graph + sidebar -->
+    <main id="main">
+      <div id="graph-container">
+        <div id="cy"></div>
+      </div>
+
+      <aside id="sidebar">
+        <div class="sidebar-placeholder">
+          &gt; SELECT A NODE<br />
+          &gt; TO BEGIN INTRUSION
+        </div>
+      </aside>
+    </main>
+
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

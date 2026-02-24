@@ -1,0 +1,199 @@
+/* Starnet — Cyberpunk Vector Phosphene Aesthetic */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:         #0a0a0f;
+  --bg-panel:   #0d0d14;
+  --bg-panel2:  #111120;
+  --cyan:       #00ffff;
+  --cyan-dim:   #004444;
+  --green:      #00ff41;
+  --green-dim:  #003311;
+  --magenta:    #ff00ff;
+  --yellow:     #ffff00;
+  --red:        #ff2020;
+  --grey:       #334;
+  --text:       #00ff41;
+  --text-dim:   #336633;
+  --border:     #0a3a3a;
+  --font-mono:  "Courier New", "Lucida Console", monospace;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* ── Layout ────────────────────────────────────────────── */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
+#hud {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+#main {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+#graph-container {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  /* Scanline overlay */
+  background: var(--bg);
+}
+
+#graph-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.18) 3px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+#cy {
+  width: 100%;
+  height: 100%;
+}
+
+#sidebar {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+/* ── HUD ────────────────────────────────────────────────── */
+
+#hud .hud-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--cyan);
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 8px var(--cyan);
+  margin-right: auto;
+}
+
+#hud .hud-label {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+
+#hud .hud-value {
+  color: var(--green);
+  font-size: 0.9rem;
+  text-shadow: 0 0 6px var(--green);
+}
+
+#hud .hud-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#hud .alert-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+#hud .alert-dot.yellow {
+  background: var(--yellow);
+  box-shadow: 0 0 6px var(--yellow);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+#hud .alert-dot.red {
+  background: var(--red);
+  box-shadow: 0 0 10px var(--red);
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+#hud .alert-dot.trace {
+  background: var(--red);
+  box-shadow: 0 0 14px var(--red);
+  animation: pulse 0.3s ease-in-out infinite;
+}
+
+#jack-out-btn {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  text-shadow: 0 0 6px var(--red);
+  box-shadow: 0 0 6px rgba(255, 32, 32, 0.3);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+#jack-out-btn:hover {
+  background: rgba(255, 32, 32, 0.15);
+  box-shadow: 0 0 12px rgba(255, 32, 32, 0.6);
+}
+
+#jack-out-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+
+.sidebar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  text-align: center;
+  padding: 2rem;
+  line-height: 2;
+}
+
+/* ── Animations ─────────────────────────────────────────── */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
