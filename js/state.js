@@ -1,6 +1,8 @@
 // Central game state — all mutations go through these functions.
 // After each mutation, a 'starnet:statechange' event is dispatched.
 
+import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
+
 let state = null;
 
 export function initState(networkData) {
@@ -15,8 +17,8 @@ export function initState(networkData) {
       accessLevel: "locked",      // 'locked' | 'compromised' | 'owned'
       alertState: "green",        // 'green' | 'yellow' | 'red'
       probed: false,
-      vulnerabilities: [],        // populated in later phases
-      macguffins: [],             // populated in later phases
+      vulnerabilities: generateVulnerabilities(n.grade),
+      macguffins: [],             // populated in Phase 8
       looted: false,
       eventForwardingDisabled: false,
     };
@@ -35,7 +37,7 @@ export function initState(networkData) {
     adjacency,
     player: {
       cash: 0,
-      hand: [],
+      hand: generateStartingHand(),
     },
     globalAlert: "green",   // 'green' | 'yellow' | 'red' | 'trace'
     traceSecondsRemaining: null,

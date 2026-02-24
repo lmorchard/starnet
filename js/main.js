@@ -67,7 +67,7 @@ function syncHud(state) {
   const sidebar = document.getElementById("sidebar");
   if (state.selectedNodeId) {
     const node = state.nodes[state.selectedNodeId];
-    renderSidebarNode(sidebar, node);
+    renderSidebarNode(sidebar, node, state);
   } else {
     sidebar.innerHTML = `<div class="sidebar-placeholder">
       &gt; SELECT A NODE<br />&gt; TO BEGIN INTRUSION
@@ -75,7 +75,31 @@ function syncHud(state) {
   }
 }
 
-function renderSidebarNode(sidebar, node) {
+function renderExploitCard(card) {
+  const rarityClass = `rarity-${card.rarity}`;
+  const disclosed = card.decayState === "disclosed";
+  const worn = card.decayState === "worn";
+  const qualityPips = Math.round(card.quality * 5);
+  const pips = "█".repeat(qualityPips) + "░".repeat(5 - qualityPips);
+
+  return `<div class="exploit-card ${rarityClass} ${disclosed ? "disclosed" : ""}">
+    <div class="ec-header">
+      <span class="ec-name">${card.name}</span>
+      <span class="ec-rarity">[${card.rarity.toUpperCase()}]</span>
+    </div>
+    <div class="ec-row">
+      <span class="ec-key">QUAL</span>
+      <span class="ec-pips">${pips}</span>
+    </div>
+    <div class="ec-row">
+      <span class="ec-key">USES</span>
+      <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
+    </div>
+    <div class="ec-vulns">${card.targetVulnTypes.join(" · ")}</div>
+  </div>`;
+}
+
+function renderSidebarNode(sidebar, node, state) {
   if (node.visibility === "revealed") {
     sidebar.innerHTML = `<div class="sidebar-placeholder">
       [???] UNKNOWN NODE<br /><br />
@@ -113,6 +137,11 @@ function renderSidebarNode(sidebar, node) {
       <div class="nd-divider">──────────────────</div>
       <div class="nd-actions">
         <span class="nd-dim">[actions coming in Phase 5]</span>
+      </div>
+      <div class="nd-divider">──────────────────</div>
+      <div class="nd-section-label">EXPLOIT HAND</div>
+      <div class="nd-hand">
+        ${state.player.hand.map(renderExploitCard).join("")}
       </div>
     </div>`;
 }
