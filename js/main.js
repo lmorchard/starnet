@@ -418,6 +418,15 @@ function renderExploitSelect(sidebarNode, node) {
   });
 }
 
+function cardSortKey(card, node) {
+  if (card.decayState === "disclosed") return 3;
+  if (!node?.probed) return 1;
+  const knownVulnIds = node.vulnerabilities
+    .filter((v) => !v.patched && !v.hidden)
+    .map((v) => v.id);
+  return card.targetVulnTypes.some((t) => knownVulnIds.includes(t)) ? 0 : 2;
+}
+
 function syncHandPane(state) {
   const el = document.getElementById("sidebar-hand");
   if (!el) return;
@@ -425,12 +434,18 @@ function syncHandPane(state) {
   const isSelecting = sidebarMode === "exploit-select" && state.selectedNodeId;
   const targetNode = isSelecting ? state.nodes[state.selectedNodeId] : null;
 
+  // Sort by match relevance whenever a node is selected, even outside exploit-select
+  const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
+  const sortedHand = selectedNode
+    ? [...state.player.hand].sort((a, b) => cardSortKey(a, selectedNode) - cardSortKey(b, selectedNode))
+    : state.player.hand;
+
   el.innerHTML = `
     <div class="nd-section-label">EXPLOIT HAND</div>
     <div class="nd-hand ${isSelecting ? "selectable" : ""}">
-      ${state.player.hand.length === 0
+      ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
-        : state.player.hand.map((c) => renderExploitCard(c, targetNode)).join("")}
+        : sortedHand.map((c) => renderExploitCard(c, targetNode)).join("")}
     </div>`;
 
   if (isSelecting) {
