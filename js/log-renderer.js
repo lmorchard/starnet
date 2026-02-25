@@ -68,8 +68,9 @@ export function initLogRenderer() {
       outcome === "caught" ? "error" : "success"));
 
   // ── ICE events ───────────────────────────────────────────
-  on(E.ICE_MOVED, ({ fromLabel, toLabel, fromVisible, toVisible }) => {
-    if (fromVisible || toVisible) {
+  on(E.ICE_MOVED, ({ fromLabel, toLabel, toVisible }) => {
+    // Only log when ICE enters visible territory — "ICE leaving" is noise
+    if (toVisible) {
       add(`[ICE] Moving: ${fromLabel} → ${toLabel}`, "error");
     }
   });

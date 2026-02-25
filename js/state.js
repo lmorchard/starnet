@@ -621,7 +621,8 @@ export function selectNode(nodeId) {
     );
     if (hasAccessibleNeighbor) {
       node.visibility = "accessible";
-      revealNeighbors(nodeId);
+      // Don't reveal neighbors yet — that only happens on compromise.
+      // Traversal makes the node reachable; exploitation reveals what's beyond it.
       emitEvent(E.NODE_REVEALED, { nodeId, label: node.label });
       emitEvent(E.LOG_ENTRY, { text: `[NODE] ${node.label}: signal traced. Node accessible.`, type: "info" });
     }

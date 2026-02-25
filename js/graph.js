@@ -24,7 +24,8 @@ const GRADE_COLORS = {
 
 let cy = null;
 let prevIceNodeId = null; // tracks ICE's last position for movement flash
-const pulsingNodes = new Set(); // nodeIds currently running the red-alert pulse loop
+const pulsingNodes = new Set();       // nodeIds running red-alert pulse
+const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
 
 function startRedPulse(node) {
   const id = node.id();
@@ -35,7 +36,7 @@ function startRedPulse(node) {
 
 function stopRedPulse(node) {
   pulsingNodes.delete(node.id());
-  node.removeStyle("shadow-blur shadow-opacity");
+  node.stop();
 }
 
 function runRedPulse(node) {
@@ -49,6 +50,34 @@ function runRedPulse(node) {
       node.animate(
         { style: { "border-color": "#ff2020", "border-width": 2 } },
         { duration: 700, complete: () => runRedPulse(node) }
+      );
+    }}
+  );
+}
+
+function startYellowPulse(node) {
+  const id = node.id();
+  if (yellowPulsingNodes.has(id)) return;
+  yellowPulsingNodes.add(id);
+  runYellowPulse(node);
+}
+
+function stopYellowPulse(node) {
+  yellowPulsingNodes.delete(node.id());
+  node.stop();
+}
+
+function runYellowPulse(node) {
+  const id = node.id();
+  if (!yellowPulsingNodes.has(id)) return;
+  // Slow amber background pulse — keeps border free for access-level color
+  node.animate(
+    { style: { "background-color": "#2a1f00" } },
+    { duration: 900, complete: () => {
+      if (!yellowPulsingNodes.has(id)) return;
+      node.animate(
+        { style: { "background-color": "#0f0c00" } },
+        { duration: 1200, complete: () => runYellowPulse(node) }
       );
     }}
   );
@@ -343,11 +372,16 @@ export function updateNodeStyle(nodeId, nodeState) {
     if (nodeState.alertState === "yellow") node.addClass("alert-yellow");
     if (nodeState.alertState === "red") node.addClass("alert-red");
 
-    // Red pulse animation
+    // Alert pulse animations (shadow-blur is invalid in Cytoscape; use bg/border instead)
     if (nodeState.alertState === "red") {
+      if (yellowPulsingNodes.has(nodeId)) stopYellowPulse(node);
       startRedPulse(node);
-    } else if (pulsingNodes.has(nodeId)) {
-      stopRedPulse(node);
+    } else if (nodeState.alertState === "yellow") {
+      if (pulsingNodes.has(nodeId)) stopRedPulse(node);
+      startYellowPulse(node);
+    } else {
+      if (pulsingNodes.has(nodeId)) stopRedPulse(node);
+      if (yellowPulsingNodes.has(nodeId)) stopYellowPulse(node);
     }
 
     // Shape by node type
