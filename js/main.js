@@ -3,7 +3,7 @@ import { initGraph, getCy, addIceNode } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
 import { addLogEntry } from "./log-renderer.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
-import { initConsole } from "./console.js";
+import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
@@ -22,6 +22,9 @@ function init() {
   initConsole();
   initVisualRenderer();
   startIce();
+
+  // LLM playtesting API — accessible via browser console or Playwright evaluate
+  window.starnet = { cmd: runCommand, state: getState };
 
   on(E.STATE_CHANGED, (s) => {
     if (s.phase === "ended") stopIce();

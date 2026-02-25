@@ -2,10 +2,11 @@
 // Handles input, history, tab completion, and command dispatch.
 
 import { getState } from "./state.js";
-import { addLogEntry } from "./log-renderer.js";
+import { addLogEntry, getRecentLog } from "./log-renderer.js";
 import { getVisibleTimers } from "./timers.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "log", "help", "cheat"];
+const STATUS_NOUNS = ["ice", "hand", "node", "alert", "mission"];
 
 let history = [];
 let historyIndex = -1;
@@ -48,6 +49,11 @@ export function initConsole() {
   });
 }
 
+// Public API for programmatic command dispatch (LLM playtesting, etc.)
+export function runCommand(raw) {
+  submitCommand(raw);
+}
+
 // ── Command dispatch ──────────────────────────────────────
 
 function submitCommand(raw) {
@@ -71,7 +77,9 @@ function handleCommand(verb, args) {
     case "loot":         return cmdLoot(args);
     case "reconfigure":  return cmdReconfigure(args);
     case "jackout":      return cmdJackout();
-    case "status":       return cmdStatus();
+    case "status":       return cmdStatus(args);
+    case "log":          return cmdLog(args);
+    case "help":         return cmdHelp();
     case "cheat":        return cmdCheat(args);
     default:
       addLogEntry(`Unknown command: ${verb}`, "error");
@@ -240,7 +248,21 @@ function cmdReboot(args) {
   dispatch("starnet:action:reboot", { nodeId: node.id });
 }
 
-function cmdStatus() {
+function cmdStatus(args) {
+  const noun = args[0]?.toLowerCase();
+  if (!noun) return cmdStatusFull();
+  switch (noun) {
+    case "ice":     return cmdStatusIce();
+    case "hand":    return cmdStatusHand();
+    case "node":    return cmdStatusNode(args.slice(1));
+    case "alert":   return cmdStatusAlert();
+    case "mission": return cmdStatusMission();
+    default:
+      addLogEntry(`Unknown status noun: ${noun}. Try: ice hand node alert mission`, "error");
+  }
+}
+
+function cmdStatusFull() {
   const s = getState();
   const timers = getVisibleTimers();
   const lines = [];
@@ -319,6 +341,147 @@ function cmdStatus() {
   lines.forEach((line) => addLogEntry(line, "meta"));
 }
 
+function cmdStatusIce() {
+  const s = getState();
+  const timers = getVisibleTimers();
+  const lines = ["## STATUS: ICE"];
+  if (s.ice?.active) {
+    const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
+    const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
+    lines.push(`- status: ACTIVE  grade: ${s.ice.grade}`);
+    lines.push(`- attention: ${pos}  resident: ${resident}`);
+    const detectTimer = timers.find((t) => t.label === "ICE DETECTION");
+    if (detectTimer) lines.push(`- ⚠ detection in: ${detectTimer.remaining}s`);
+  } else {
+    lines.push(`- status: ${s.ice ? "INACTIVE" : "NONE"}`);
+  }
+  lines.forEach((l) => addLogEntry(l, "meta"));
+}
+
+function cmdStatusHand() {
+  const s = getState();
+  const selectedNode = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  const hand = selectedNode
+    ? [...s.player.hand].sort((a, b) => handSortKey(a, selectedNode) - handSortKey(b, selectedNode))
+    : s.player.hand;
+  const lines = ["## STATUS: HAND"];
+  if (hand.length === 0) {
+    lines.push("- (empty)");
+  } else {
+    hand.forEach((card, i) => {
+      const decay   = card.decayState !== "fresh" ? `  [${card.decayState.toUpperCase()}]` : "";
+      const targets = card.targetVulnTypes.join(", ");
+      lines.push(`- [${i + 1}] ${card.name}  ${card.rarity}  uses:${card.usesRemaining}  targets:${targets}${decay}`);
+    });
+  }
+  lines.forEach((l) => addLogEntry(l, "meta"));
+}
+
+function cmdStatusNode(args) {
+  const s = getState();
+  const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  const lines = [`## STATUS: NODE ${node.id}`];
+  lines.push(`- label: ${node.label}  type: ${node.type}  grade: ${node.grade ?? "N/A"}`);
+  lines.push(`- access: ${node.accessLevel}  alert: ${node.alertState}`);
+  lines.push(`- visibility: ${node.visibility}  probed: ${node.probed}  read: ${node.read}  looted: ${node.looted}`);
+  if (node.rebooting) lines.push(`- REBOOTING`);
+  if (node.eventForwardingDisabled !== undefined) {
+    lines.push(`- event forwarding: ${node.eventForwardingDisabled ? "disabled" : "enabled"}`);
+  }
+  if (node.probed && node.vulnerabilities.length > 0) {
+    const vulns = node.vulnerabilities
+      .filter((v) => !v.hidden)
+      .map((v) => `${v.id}${v.patched ? "(patched)" : ""}`)
+      .join(", ");
+    if (vulns) lines.push(`- vulns: ${vulns}`);
+  }
+  if (node.read && node.macguffins.length > 0) {
+    node.macguffins.forEach((m) => {
+      const isMission = s.mission?.targetMacguffinId === m.id ? " [MISSION]" : "";
+      lines.push(`- item: ${m.name}  ¥${m.cashValue.toLocaleString()}${isMission}  collected:${m.collected}`);
+    });
+  }
+  if (s.ice?.active && s.ice.attentionNodeId === node.id) {
+    lines.push(`- ⚠ ICE present (grade: ${s.ice.grade})`);
+  }
+  lines.forEach((l) => addLogEntry(l, "meta"));
+}
+
+function cmdStatusAlert() {
+  const s = getState();
+  const timers = getVisibleTimers();
+  const lines = ["## STATUS: ALERT"];
+  const traceStr = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";
+  lines.push(`- global: ${s.globalAlert.toUpperCase()}  trace: ${traceStr}`);
+  timers.forEach((t) => lines.push(`- ⚠ ${t.label}: ${t.remaining}s`));
+  const secNodes = Object.values(s.nodes).filter(
+    (n) => n.visibility !== "hidden" && (n.type === "ids" || n.type === "security-monitor")
+  );
+  if (secNodes.length > 0) {
+    lines.push("- security nodes:");
+    secNodes.forEach((n) => {
+      const fwd = n.type === "ids"
+        ? (n.eventForwardingDisabled ? "  [fwd:OFF]" : "  [fwd:ON]")
+        : "";
+      lines.push(`  ${n.id}  [${n.type}]  alert:${n.alertState}${fwd}`);
+    });
+  }
+  lines.forEach((l) => addLogEntry(l, "meta"));
+}
+
+function cmdStatusMission() {
+  const s = getState();
+  const lines = ["## STATUS: MISSION"];
+  if (!s.mission) {
+    lines.push("- no active mission");
+  } else {
+    lines.push(`- target: ${s.mission.targetName}`);
+    lines.push(`- complete: ${s.mission.complete ? "YES" : "NO"}`);
+    // Find the macguffin across all nodes to show value + location
+    let found = null;
+    for (const node of Object.values(s.nodes)) {
+      const m = node.macguffins?.find((m) => m.id === s.mission.targetMacguffinId);
+      if (m) { found = { ...m, nodeId: node.id, nodeLabel: node.label }; break; }
+    }
+    if (found) {
+      lines.push(`- value: ¥${found.cashValue.toLocaleString()}`);
+      lines.push(`- location: ${found.nodeLabel} (${found.nodeId})`);
+      lines.push(`- collected: ${found.collected ? "YES" : "NO"}`);
+    }
+  }
+  lines.forEach((l) => addLogEntry(l, "meta"));
+}
+
+function cmdLog(args) {
+  const n = Math.min(Math.max(parseInt(args[0], 10) || 20, 1), 200);
+  const entries = getRecentLog(n);
+  addLogEntry(`-- LOG REPLAY (last ${entries.length}) --`, "meta");
+  entries.forEach(({ text, type }) => addLogEntry(text, type));
+}
+
+function cmdHelp() {
+  const lines = [
+    "[SYS] Available commands:",
+    "  select <node>             Set active node (by id or label prefix)",
+    "  deselect                  Clear node selection",
+    "  probe [node]              Reveal vulnerabilities. Raises local alert.",
+    "  exploit [node] <card>     Launch exploit. Card by index, id, or name prefix.",
+    "  escalate [node] <card>    Alias for exploit.",
+    "  read [node]               Scan node contents.",
+    "  loot [node]               Collect macguffins from owned node.",
+    "  reconfigure [node]        Disable IDS event forwarding.",
+    "  eject                     Push ICE attention to adjacent node.",
+    "  reboot [node]             Send ICE home. Node offline briefly.",
+    "  jackout                   Disconnect and end run.",
+    "  status [noun]             Game state. Nouns: ice hand node alert mission",
+    "  log [n]                   Replay last n log entries (default: 20).",
+    "  help                      Show this listing.",
+    "  cheat <args>              Cheat commands (see: cheat help).",
+  ];
+  lines.forEach((line) => addLogEntry(line, "meta"));
+}
+
 function cmdJackout() {
   dispatch("starnet:action:jackout");
 }
@@ -366,6 +529,19 @@ function handleTabComplete(input) {
   if (tokens.length === 2) {
     const partial = tokens[1].toLowerCase();
 
+    if (verb === "status") {
+      // Complete status noun
+      const matches = STATUS_NOUNS.filter((n) => n.startsWith(partial));
+      if (matches.length === 1) {
+        input.value = `${tokens[0]} ${matches[0]} `;
+      } else if (matches.length > 1) {
+        const lcp = longestCommonPrefix(matches);
+        if (lcp.length > partial.length) input.value = `${tokens[0]} ${lcp}`;
+        addLogEntry(matches.join("  "), "meta");
+      }
+      return;
+    }
+
     if (verb === "exploit" && s.selectedNodeId) {
       // Node already selected — complete card name
       const candidates = s.player.hand.filter(
@@ -407,6 +583,21 @@ function handleTabComplete(input) {
       const lcp = longestCommonPrefix(candidates.map((c) => c.name.toLowerCase()));
       if (lcp.length > cardPartial.length) input.value = `${tokens[0]} ${tokens[1]} ${lcp}`;
       addLogEntry(candidates.map((c) => c.name).join("  "), "meta");
+    }
+  }
+
+  if (tokens.length === 3 && verb === "status" && tokens[1].toLowerCase() === "node") {
+    // Complete node id for: status node <id>
+    const partial = tokens[2].toLowerCase();
+    const candidates = Object.values(s.nodes)
+      .filter((n) => n.visibility !== "hidden")
+      .filter((n) => n.id.startsWith(partial) || n.label.toLowerCase().startsWith(partial));
+    if (candidates.length === 1) {
+      input.value = `${tokens[0]} ${tokens[1]} ${candidates[0].id} `;
+    } else if (candidates.length > 1) {
+      const lcp = longestCommonPrefix(candidates.map((n) => n.id));
+      if (lcp.length > partial.length) input.value = `${tokens[0]} ${tokens[1]} ${lcp}`;
+      addLogEntry(candidates.map((n) => n.id).join("  "), "meta");
     }
   }
 }

@@ -13,6 +13,10 @@ export function initLogRenderer() {
   on(E.LOG_ENTRY, ({ text, type }) => {
     logBuffer.push({ text, type });
     if (logBuffer.length > MAX_LOG) logBuffer.splice(0, logBuffer.length - MAX_LOG);
+    // Mirror to browser console for LLM playtesting
+    if (type === "error") console.error(text);
+    else if (type === "success") console.info(text);
+    else console.log(text);
     renderLogPane();
   });
 
