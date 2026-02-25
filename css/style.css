@@ -177,7 +177,7 @@ html, body {
   flex: 0 0 auto;
   border-top: 1px solid var(--border);
   overflow-y: auto;
-  max-height: 40%;
+  max-height: 40vh;
   padding: 0.5rem 1rem 0.75rem;
 }
 
