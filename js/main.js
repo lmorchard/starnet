@@ -48,6 +48,7 @@ function init() {
       sidebarMode = "node";
       addLogEntry("Action cancelled.", "info");
     }
+    cancelIceDwell();
     selectNode(evt.detail.nodeId);
   });
 
