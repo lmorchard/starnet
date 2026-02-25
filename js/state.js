@@ -281,14 +281,17 @@ export function launchExploit(nodeId, exploitId) {
 
   if (result.success) {
     // Advance access level
+    result.levelChanged = false;
     if (node.accessLevel === "locked") {
       node.accessLevel = "compromised";
       node.visibility = "accessible";
       revealNeighbors(nodeId);
       accessNeighbors(nodeId); // foothold: adjacent revealed nodes become reachable
+      result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
       node.accessLevel = "owned";
       revealNeighbors(nodeId);
+      result.levelChanged = true;
     }
     addLog(result.flavor, "success");
 

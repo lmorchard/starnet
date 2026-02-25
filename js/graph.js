@@ -233,3 +233,43 @@ function updateEdgeVisibility() {
 export function getCy() {
   return cy;
 }
+
+// Flash a node with a brief animated pulse.
+// type: 'success' (cyan→white→cyan), 'failure' (red flash), 'reveal' (dim cyan pulse)
+export function flashNode(nodeId, type) {
+  if (!cy) return;
+  const node = cy.getElementById(nodeId);
+  if (!node || node.length === 0) return;
+
+  if (type === "success") {
+    node.animate(
+      { style: { "border-color": "#ffffff", "border-width": 5 } },
+      { duration: 150, complete: () => {
+        node.animate(
+          { style: { "border-color": "#00ffff", "border-width": 2 } },
+          { duration: 350, complete: () => node.removeStyle("border-color border-width") }
+        );
+      }}
+    );
+  } else if (type === "failure") {
+    node.animate(
+      { style: { "border-color": "#ff4040", "border-width": 5 } },
+      { duration: 150, complete: () => {
+        node.animate(
+          { style: { "border-color": "#ff2020", "border-width": 3 } },
+          { duration: 350, complete: () => node.removeStyle("border-color border-width") }
+        );
+      }}
+    );
+  } else if (type === "reveal") {
+    node.animate(
+      { style: { "border-color": "#00ffff", "border-width": 3, "background-color": "#0d2020" } },
+      { duration: 250, complete: () => {
+        node.animate(
+          { style: { "border-color": "#223333", "border-width": 1, "background-color": "#0d0d14" } },
+          { duration: 500, complete: () => node.removeStyle("border-color border-width background-color") }
+        );
+      }}
+    );
+  }
+}

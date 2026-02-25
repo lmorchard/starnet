@@ -1,5 +1,5 @@
 import { NETWORK } from "../data/network.js";
-import { initGraph, updateNodeStyle } from "./graph.js";
+import { initGraph, updateNodeStyle, getCy, flashNode } from "./graph.js";
 import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
 import { initConsole } from "./console.js";
 
@@ -76,6 +76,10 @@ function init() {
     if (!clickMode) sidebarMode = "node";
 
     const result = launchExploit(nodeId, exploitId);
+
+    if (result) {
+      flashNode(nodeId, result.success ? "success" : "failure");
+    }
 
     if (clickMode && result?.success) {
       // Success: switch to node view. The emit inside launchExploit already rendered
@@ -165,12 +169,39 @@ function onNodeClick(nodeId) {
 // ── Graph sync ────────────────────────────────────────────
 
 function syncGraph(state) {
+  const cy = getCy();
+
+  // Snapshot currently-hidden nodes before applying style updates
+  const prevHiddenIds = cy
+    ? new Set(cy.nodes(".hidden").map((n) => n.id()))
+    : new Set();
+
   Object.values(state.nodes).forEach((n) => updateNodeStyle(n.id, n));
-  if (!state.selectedNodeId) {
-    import("./graph.js").then(({ getCy }) => {
-      const cy = getCy();
-      if (cy) cy.fit(cy.nodes(".accessible, .revealed"), 40);
+
+  if (!cy) return;
+
+  // Detect nodes that just became visible
+  const newlyVisible = cy.nodes().filter(
+    (n) => prevHiddenIds.has(n.id()) && !n.hasClass("hidden")
+  );
+
+  if (newlyVisible.length > 0) {
+    newlyVisible.forEach((n) => flashNode(n.id(), "reveal"));
+
+    // Nudge viewport only if any newly visible node is outside current extent
+    const extent = cy.extent();
+    const anyOutOfView = newlyVisible.some((n) => {
+      const pos = n.position();
+      return pos.x < extent.x1 || pos.x > extent.x2 ||
+             pos.y < extent.y1 || pos.y > extent.y2;
     });
+
+    if (anyOutOfView) {
+      cy.animate({
+        fit: { eles: cy.nodes(".accessible, .revealed"), padding: 60 },
+        duration: 500,
+      });
+    }
   }
 }
 
