@@ -11,67 +11,60 @@ See `docs/SPEC.md` for the full game design document.
 - **Vanilla HTML/CSS/JS** — no framework, no build tooling
 - **Cytoscape.js** (CDN) — network graph rendering and interaction
 - ES modules via `<script type="module">`
-- No bundler — open `index.html` directly via a local static server (e.g. `npx serve .`)
+- No bundler — open `index.html` directly via a local static server
+- **JSDoc `@ts-check`** — type annotations without a build step; see `js/types.js`
+
+## Makefile
+
+```
+make serve   — start local dev server at http://localhost:3000
+make check   — run tsc type checker (JSDoc annotations, no emit)
+```
+
+Run `make check` after any changes to state shapes, event payloads, or data types in `js/types.js`.
+
+When you notice a command being run frequently during development, consider adding it as a named Makefile target so it's easy to discover and reuse.
 
 ## Architecture
 
 ### File Structure
 
 ```
-index.html          — entry point, layout, loads Cytoscape.js + main.js
-css/style.css       — all styles (cyberpunk vector phosphene aesthetic)
+index.html              — entry point, layout, loads Cytoscape.js + main.js
+css/style.css           — all styles (cyberpunk vector phosphene aesthetic)
 js/
-  main.js           — app init, event wiring, sidebar/HUD rendering
-  state.js          — central game state + all mutation functions
-  graph.js          — Cytoscape.js init and node style sync
-  exploits.js       — vulnerability types, exploit card generator
-  combat.js         — exploit vs node resolution (probability + flavor)
-  loot.js           — macguffin types and node assignment
+  types.js              — JSDoc @typedef definitions (no runtime code)
+  events.js             — pub/sub event bus + event type catalog (E.*)
+  state.js              — central game state + all mutation functions
+  main.js               — app init, action event wiring (@ts-nocheck)
+  graph.js              — Cytoscape.js init and node style sync (@ts-nocheck)
+  visual-renderer.js    — subscribes to events, drives graph + HUD rendering
+  log-renderer.js       — subscribes to events, owns log buffer + pane
+  console.js            — keyboard input, command dispatch, tab completion
+  exploits.js           — vulnerability types, exploit card generator
+  combat.js             — exploit vs node resolution (probability + flavor)
+  loot.js               — macguffin types and node assignment
+  ice.js                — ICE AI movement, detection, dwell timer logic
+  timers.js             — centralized timer system (scheduleEvent, repeating)
+  cheats.js             — playtesting cheat commands (lazy-loaded)
 data/
-  network.js        — static hand-crafted LAN network definition
+  network.js            — static hand-crafted LAN network definition
 docs/
-  SPEC.md           — full game design document
-  dev-sessions/     — session documentation (spec, plan, notes per session)
+  SPEC.md               — full game design document
+  dev-sessions/         — session documentation (spec, plan, notes per session)
 ```
 
 ### State Management
 
 All game state lives in `js/state.js` as a plain object. Rules:
 - **Never mutate state directly** — always use exported functions
-- After every mutation, `emit()` dispatches `starnet:statechange` on `document`
-- Components/UI listen for `starnet:statechange` and re-render from `evt.detail`
-- User actions dispatch custom events upward (e.g. `starnet:action:probe`) which `main.js` handles
+- After every mutation, `emit()` calls `emitEvent(E.STATE_CHANGED, state)`
+- `visual-renderer.js` and `log-renderer.js` subscribe to `E.STATE_CHANGED` and typed game events
+- User actions dispatch DOM custom events upward (e.g. `starnet:action:probe`) which `main.js` handles
 
-State shape (top level):
+**Canonical type definitions live in `js/types.js`.** The `GameState`, `NodeState`, `IceState`, `ExploitCard`, `Vulnerability`, `Macguffin`, and all event payload shapes are defined there as JSDoc `@typedef`s. Import them with:
 ```js
-{
-  nodes: { [id]: NodeState },   // per-node game state
-  adjacency: { [id]: [id] },    // neighbor lookup
-  player: { cash, hand },       // player wallet + exploit cards
-  globalAlert,                  // 'green' | 'yellow' | 'red' | 'trace'
-  traceSecondsRemaining,        // null or countdown integer
-  selectedNodeId,
-  phase,                        // 'playing' | 'ended'
-  runOutcome,                   // 'success' | 'caught'
-  log,                          // recent action messages
-}
-```
-
-### Node State Shape
-
-```js
-{
-  id, type, label, grade,
-  visibility,           // 'hidden' | 'revealed' | 'accessible'
-  accessLevel,          // 'locked' | 'compromised' | 'owned'
-  alertState,           // 'green' | 'yellow' | 'red'
-  probed,               // bool — vulnerabilities revealed
-  read,                 // bool — contents scanned
-  looted,               // bool — macguffins collected
-  vulnerabilities,      // [{id, name, rarity, patched}]
-  macguffins,           // [{id, name, cashValue, collected}]
-  eventForwardingDisabled, // bool — IDS subverted
-}
+/** @typedef {import('./types.js').GameState} GameState */
 ```
 
 ## Game Loop
@@ -99,7 +92,7 @@ Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `pl
 
 Note: this project uses `docs/dev-sessions/` (not `.claude/dev-sessions/`) so session artifacts are tracked in git alongside the source.
 
-Current session: `docs/dev-sessions/2026-02-24-1615-lan-dungeon-prototype-2/`
+Most recent session: `docs/dev-sessions/2026-02-25-1317-jsdoc-types/`
 
 ## Design Principles
 
