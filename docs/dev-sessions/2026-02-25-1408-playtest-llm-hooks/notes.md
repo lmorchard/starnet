@@ -202,13 +202,17 @@ Cards matched gateway vulns (buffer-overflow, unpatched-ssh) but not RTR-A vulns
 
 ### What Didn't Work
 - Starting hand has insufficient vuln diversity for a 4-5 node dungeon — `cheat give matching` triggered twice
-- ICE looping bug discovered post-fix — ICE oscillates instead of tracking; needs investigation
+- ICE looping bug discovered post-fix — ICE oscillates instead of tracking (fixed in cbc6d64)
 - 60s TRACE window is too tight for the current network depth and card economy
-- Console errors for routine ICE events create noise that obscures real errors
+- Console errors for routine ICE events create noise that obscures real errors (fixed in cbc6d64)
 
-### Remaining Issues (Backlog)
-1. ICE oscillation / bouncing loop (new bug — investigate `ice.js` path selection)
-2. ICE log level (routine moves should not be ERROR)
-3. "[NODE] Signal detected." triple-fire (noisy, cause unclear)
-4. TRACE window / network depth balance (systemic design tension)
-5. Starting hand coverage vs network vuln diversity
+### Second Round of Fixes (cbc6d64)
+Post-Run-3 bugs found and fixed before closing the session:
+- **ICE oscillation**: Grade C/B ICE was pathfinding back to `lastDisturbedNodeId` even after detecting there, causing gateway↔neighbor oscillation. Fix: skip pathfinding if `detectedAtNode === target`, fall back to random walk.
+- **ICE log level**: ICE movement events were emitting at `"error"` level, appearing as `console.error()` and rendering red in the log pane. Changed to `"info"`.
+- **Signal detected spam**: On gateway exploit (locked→compromised), `revealNeighbors` cascaded 8 NODE_REVEALED events across the network (3 direct + 5 deeper). The 3 from `accessNeighbors` (revealed→accessible) were spurious and now suppressed via `unlocked: true` flag. Down to 8 total (was 11), which reflects real fog-of-war reveals.
+
+### Remaining Backlog
+1. TRACE window / network depth balance — 60s is too tight for the 3-node mission path at current card economy
+2. Starting hand coverage vs network vuln diversity — `cheat give matching` triggered twice in a single run
+3. "Signal detected." still fires 8x on gateway compromise — batching or a quiet reveal mode would help LLM readability
