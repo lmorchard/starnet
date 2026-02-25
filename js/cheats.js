@@ -7,7 +7,7 @@
 // gated, disabled, or penalized as a unit in future builds.
 // Any use of a cheat command sets state.isCheating = true for the run.
 
-import { getState, setCheating, forceGlobalAlert, revealNeighbors, accessNeighbors } from "./state.js";
+import { getState, setCheating, forceGlobalAlert, cancelTraceCountdown, revealNeighbors, accessNeighbors } from "./state.js";
 import { addLogEntry } from "./log-renderer.js";
 import { generateExploit, generateExploitForVuln } from "./exploits.js";
 
@@ -24,6 +24,8 @@ export function handleCheatCommand(args) {
     return cheatSet(args.slice(1));
   } else if (sub === "own") {
     return cheatOwn(args.slice(1));
+  } else if (sub === "trace") {
+    return cheatTrace(args.slice(1));
   } else if (sub === "help") {
     return cheatHelp();
   } else {
@@ -60,9 +62,17 @@ function cheatGive(args) {
       return false;
     }
     targets.forEach((v) => {
-      const card = generateExploitForVuln(v.id);
-      s.player.hand.push(card);
-      addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" targeting ${v.id}.`, "success");
+      const spent = s.player.hand.find(
+        (c) => c.targetVulnTypes.includes(v.id) && (c.usesRemaining <= 0 || c.decayState === "disclosed")
+      );
+      if (spent) {
+        restoreCard(spent);
+        addLogEntry(`[CHEAT] Restored "${spent.name}" (${v.id}) — uses reset.`, "success");
+      } else {
+        const card = generateExploitForVuln(v.id);
+        s.player.hand.push(card);
+        addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" targeting ${v.id}.`, "success");
+      }
     });
     activateCheat();
     return true;
@@ -141,6 +151,38 @@ function cheatOwn(args) {
   return true;
 }
 
+// CHEAT: trace start | trace end
+function cheatTrace(args) {
+  const action = args[0]?.toLowerCase();
+
+  if (action === "start") {
+    const s = getState();
+    if (s.traceSecondsRemaining !== null) {
+      addLogEntry("[CHEAT] Trace already running.", "error");
+      return false;
+    }
+    forceGlobalAlert("trace");
+    activateCheat();
+    addLogEntry("[CHEAT] Trace initiated.", "success");
+    return true;
+  }
+
+  if (action === "end") {
+    const s = getState();
+    if (s.traceSecondsRemaining === null) {
+      addLogEntry("[CHEAT] No trace active.", "error");
+      return false;
+    }
+    cancelTraceCountdown();
+    activateCheat();
+    addLogEntry("[CHEAT] Trace cancelled.", "success");
+    return true;
+  }
+
+  addLogEntry("Usage: cheat trace start | cheat trace end", "error");
+  return false;
+}
+
 // CHEAT: help
 function cheatHelp() {
   const lines = [
@@ -150,12 +192,21 @@ function cheatHelp() {
     "  cheat give cash <amount>    Add credits to wallet.",
     "  cheat set alert <level>     Force alert level: green yellow red trace",
     "  cheat own <node>            Set node to owned + reveal neighbors.",
+    "  cheat trace start           Start the 60s trace countdown immediately.",
+    "  cheat trace end             Cancel active trace countdown.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
   return true;
 }
 
 // ── Internal ──────────────────────────────────────────────
+
+const USES_BY_RARITY = { common: 3, uncommon: 5, rare: 8 };
+
+function restoreCard(card) {
+  card.usesRemaining = USES_BY_RARITY[card.rarity] ?? 3;
+  card.decayState = "fresh";
+}
 
 function activateCheat() {
   setCheating();

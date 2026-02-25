@@ -318,6 +318,12 @@ function cmdActions() {
     }
   }
 
+  const traceActive = s.traceSecondsRemaining !== null;
+  lines.push(traceActive
+    ? `  cheat trace end          — cancel active trace countdown [${s.traceSecondsRemaining}s remaining]`
+    : `  cheat trace start        — start 60s trace countdown`
+  );
+
   lines.forEach((line) => addLogEntry(line, "meta"));
 }
 
@@ -611,6 +617,8 @@ function cmdHelp() {
     "  cheat give cash <amount>    Add credits to wallet.",
     "  cheat set alert <level>     Force alert level: green yellow red trace",
     "  cheat own <node>            Set node to owned + reveal neighbors.",
+    "  cheat trace start           Start 60s trace countdown immediately.",
+    "  cheat trace end             Cancel active trace countdown.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
 }

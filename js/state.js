@@ -222,22 +222,36 @@ export function raiseGlobalAlert() {
   emit();
 }
 
+let _traceIntervalId = null;
+
 function startTraceCountdown() {
   state.traceSecondsRemaining = 60;
   emitEvent(E.ALERT_TRACE_STARTED, { seconds: 60 });
-  const interval = setInterval(() => {
+  _traceIntervalId = setInterval(() => {
     if (!state || state.phase !== "playing") {
-      clearInterval(interval);
+      clearInterval(_traceIntervalId);
+      _traceIntervalId = null;
       return;
     }
     state.traceSecondsRemaining -= 1;
     if (state.traceSecondsRemaining <= 0) {
-      clearInterval(interval);
+      clearInterval(_traceIntervalId);
+      _traceIntervalId = null;
       endRun("caught");
     } else {
       emit();
     }
   }, 1000);
+}
+
+export function cancelTraceCountdown() {
+  if (_traceIntervalId !== null) {
+    clearInterval(_traceIntervalId);
+    _traceIntervalId = null;
+  }
+  state.traceSecondsRemaining = null;
+  state.globalAlert = "red";
+  emit();
 }
 
 export function endRun(outcome) {
