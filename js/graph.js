@@ -23,6 +23,7 @@ const GRADE_COLORS = {
 };
 
 let cy = null;
+let prevIceNodeId = null; // tracks ICE's last position for movement flash
 
 export function initGraph(networkData, onNodeClick) {
   const elements = buildElements(networkData);
@@ -320,6 +321,7 @@ export function getCy() {
 
 export function addIceNode() {
   if (!cy) return;
+  prevIceNodeId = null;
   if (cy.getElementById("ice-0").length > 0) return; // already added
   cy.add({
     data: { id: "ice-0", label: "ICE" },
@@ -338,8 +340,14 @@ export function syncIceGraph(iceState, nodeStates) {
   if (!iceState.active) {
     iceNode.style("display", "none");
     clearIceTrace();
+    prevIceNodeId = null;
     return;
   }
+
+  // Detect movement before updating prevIceNodeId
+  const moved = prevIceNodeId !== null && prevIceNodeId !== iceState.attentionNodeId;
+  const fromId = prevIceNodeId;
+  prevIceNodeId = iceState.attentionNodeId;
 
   const atNodeState = nodeStates[iceState.attentionNodeId];
   const isVisible =
@@ -356,6 +364,23 @@ export function syncIceGraph(iceState, nodeStates) {
     iceNode.style("display", "none");
   }
 
+  // Flash movement path along edges (staggered, fog-of-war respecting)
+  if (moved && fromId) {
+    flashIcePath(fromId, iceState.attentionNodeId);
+    // Pulse the ICE node on arrival — especially visible when materializing from dark territory
+    if (isVisible) {
+      setTimeout(() => {
+        iceNode.animate(
+          { style: { width: 42, height: 42, "border-width": 5 } },
+          { duration: 120, complete: () => iceNode.animate(
+            { style: { width: 28, height: 28, "border-width": 2 } },
+            { duration: 300, complete: () => iceNode.removeStyle("width height border-width") }
+          )}
+        );
+      }, 100); // slight delay so position animation starts first
+    }
+  }
+
   // Trace-back path: only when attention is on an owned node
   clearIceTrace();
   const isOwned = atNodeState?.accessLevel === "owned";
@@ -368,6 +393,56 @@ function clearIceTrace() {
   cy.nodes(".ice-traced").removeClass("ice-traced");
   cy.nodes(".ice-resident").removeClass("ice-resident");
   cy.edges(".ice-trace").removeClass("ice-trace");
+}
+
+// Flash edges along the BFS path from fromId to toId, staggered per hop.
+// Only flashes edges that are currently visible (respects fog of war).
+function flashIcePath(fromId, toId) {
+  // BFS: find shortest path, recording edge objects
+  const visited = new Map([[fromId, { prev: null, edge: null }]]);
+  const queue = [fromId];
+  let found = false;
+
+  outer: while (queue.length) {
+    const cur = queue.shift();
+    for (const edge of cy.edges()) {
+      const s = edge.data("source");
+      const t = edge.data("target");
+      let neighbor = null;
+      if (s === cur && !visited.has(t)) neighbor = t;
+      else if (t === cur && !visited.has(s)) neighbor = s;
+      if (neighbor !== null) {
+        visited.set(neighbor, { prev: cur, edge });
+        if (neighbor === toId) { found = true; break outer; }
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  if (!found) return;
+
+  // Reconstruct ordered edge list (from → to direction)
+  const pathEdges = [];
+  let cur = toId;
+  while (cur !== fromId) {
+    const { prev, edge } = visited.get(cur);
+    pathEdges.unshift(edge);
+    cur = prev;
+  }
+
+  // Flash each edge in sequence; skip edges that are hidden (fog of war)
+  pathEdges.forEach((edge, i) => {
+    if (edge.hasClass("hidden")) return;
+    setTimeout(() => {
+      edge.animate(
+        { style: { "line-color": "#ff00aa", width: 3, opacity: 1 } },
+        { duration: 150, complete: () => edge.animate(
+          { style: { "line-color": "#440033", width: 1.5, opacity: 0.4 } },
+          { duration: 400, complete: () => edge.removeStyle("line-color width opacity") }
+        )}
+      );
+    }, i * 100);
+  });
 }
 
 function drawIceTrace(fromId, toId, nodeStates) {
