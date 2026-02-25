@@ -153,6 +153,16 @@ function syncHud(state) {
   }
 
   document.getElementById("jack-out-btn").disabled = state.phase !== "playing";
+
+  // Cheat mode indicator
+  const existingCheatLabel = document.getElementById("cheat-label");
+  if (state.isCheating && !existingCheatLabel) {
+    const el = document.createElement("span");
+    el.id = "cheat-label";
+    el.className = "hud-cheat-label";
+    el.textContent = "// CHEAT";
+    document.getElementById("hud").appendChild(el);
+  }
   syncLogPane(state.log);
 
   // End screen

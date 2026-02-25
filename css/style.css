@@ -591,6 +591,16 @@ html, body {
   background: rgba(0, 255, 255, 0.1);
 }
 
+/* ── Cheat mode ─────────────────────────────────────────── */
+
+.hud-cheat-label {
+  color: var(--magenta);
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 8px var(--magenta);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 /* ── Animations ─────────────────────────────────────────── */
 
 @keyframes pulse {

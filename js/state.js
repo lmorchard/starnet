@@ -58,6 +58,7 @@ export function initState(networkData) {
     phase: "playing",       // 'playing' | 'ended'
     runOutcome: null,       // 'success' | 'caught'
     log: [],               // recent action messages [{text, type}]
+    isCheating: false,     // set true on first cheat command use
   };
 
   // Assign macguffins to loot nodes
@@ -83,7 +84,7 @@ export function accessNode(nodeId) {
   revealNeighbors(nodeId);
 }
 
-export function revealNeighbors(nodeId) {
+export function revealNeighbors(nodeId) { // also used by cheats.js
   (state.adjacency[nodeId] || []).forEach((neighborId) => {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "hidden") {
@@ -369,6 +370,26 @@ function addLog(text, type = "info") {
 // Public: for external callers (console, cheats) — adds log entry and emits
 export function addLogEntry(text, type = "info") {
   addLog(text, type);
+  emit();
+}
+
+// ── Cheat state mutations ─────────────────────────────────
+
+export function setCheating() {
+  if (!state.isCheating) {
+    state.isCheating = true;
+    emit();
+  }
+}
+
+// Bypass the escalation-only rule — for cheat use only
+export function forceGlobalAlert(level) {
+  const valid = GLOBAL_ALERT_ORDER.includes(level);
+  if (!valid) return;
+  state.globalAlert = level;
+  if (level === "trace" && state.traceSecondsRemaining === null) {
+    startTraceCountdown();
+  }
   emit();
 }
 
