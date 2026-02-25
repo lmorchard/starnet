@@ -26,8 +26,11 @@ function init() {
 
   document.addEventListener("starnet:action:select", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> select ${evt.detail.nodeId}`, "command");
+    if (sidebarMode !== "node") {
+      sidebarMode = "node";
+      addLogEntry("Action cancelled.", "info");
+    }
     selectNode(evt.detail.nodeId);
-    sidebarMode = "node";
   });
 
   document.addEventListener("starnet:action:probe", (evt) => {
