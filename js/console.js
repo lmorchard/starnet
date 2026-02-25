@@ -255,7 +255,7 @@ function handleTabComplete(input) {
       } else if (candidates.length > 1) {
         addLogEntry(candidates.map((c) => c.name).join("  "), "meta");
       }
-    } else if (["probe", "exploit", "read", "loot", "reconfigure"].includes(verb)) {
+    } else if (["select", "probe", "exploit", "read", "loot", "reconfigure"].includes(verb)) {
       // Complete node
       const candidates = Object.values(s.nodes)
         .filter((n) => n.visibility !== "hidden")
