@@ -223,6 +223,16 @@ function cmdCheat(args) {
 
 // ── Tab completion ────────────────────────────────────────
 
+function longestCommonPrefix(strings) {
+  if (strings.length === 0) return "";
+  let prefix = strings[0];
+  for (let i = 1; i < strings.length; i++) {
+    while (!strings[i].startsWith(prefix)) prefix = prefix.slice(0, -1);
+    if (!prefix) return "";
+  }
+  return prefix;
+}
+
 function handleTabComplete(input) {
   const value = input.value;
   const tokens = value.split(/\s+/);
@@ -235,6 +245,8 @@ function handleTabComplete(input) {
     if (matches.length === 1) {
       input.value = matches[0] + " ";
     } else if (matches.length > 1) {
+      const lcp = longestCommonPrefix(matches);
+      if (lcp.length > partial.length) input.value = lcp;
       addLogEntry(matches.join("  "), "meta");
     }
     return;
@@ -253,6 +265,8 @@ function handleTabComplete(input) {
       if (candidates.length === 1) {
         input.value = `${tokens[0]} ${candidates[0].name} `;
       } else if (candidates.length > 1) {
+        const lcp = longestCommonPrefix(candidates.map((c) => c.name.toLowerCase()));
+        if (lcp.length > partial.length) input.value = `${tokens[0]} ${lcp}`;
         addLogEntry(candidates.map((c) => c.name).join("  "), "meta");
       }
     } else if (["select", "probe", "exploit", "read", "loot", "reconfigure"].includes(verb)) {
@@ -264,6 +278,8 @@ function handleTabComplete(input) {
       if (candidates.length === 1) {
         input.value = `${tokens[0]} ${candidates[0].id} `;
       } else if (candidates.length > 1) {
+        const lcp = longestCommonPrefix(candidates.map((n) => n.id));
+        if (lcp.length > partial.length) input.value = `${tokens[0]} ${lcp}`;
         addLogEntry(candidates.map((n) => n.id).join("  "), "meta");
       }
     }
@@ -272,13 +288,15 @@ function handleTabComplete(input) {
 
   if (tokens.length === 3 && verb === "exploit") {
     // Complete card name (explicit form: exploit <node> <card>)
-    const partial = tokens.slice(2).join(" ").toLowerCase();
+    const cardPartial = tokens.slice(2).join(" ").toLowerCase();
     const candidates = s.player.hand.filter(
-      (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(partial)
+      (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(cardPartial)
     );
     if (candidates.length === 1) {
       input.value = `${tokens[0]} ${tokens[1]} ${candidates[0].name} `;
     } else if (candidates.length > 1) {
+      const lcp = longestCommonPrefix(candidates.map((c) => c.name.toLowerCase()));
+      if (lcp.length > cardPartial.length) input.value = `${tokens[0]} ${tokens[1]} ${lcp}`;
       addLogEntry(candidates.map((c) => c.name).join("  "), "meta");
     }
   }
