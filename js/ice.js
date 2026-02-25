@@ -1,9 +1,10 @@
 // ICE AI — movement tick logic, detection, and dwell timer handling.
 // Imported by main.js; uses timer system for all timed events.
 
-import { getState, moveIceAttention, addLogEntry } from "./state.js";
+import { getState, moveIceAttention } from "./state.js";
 import { propagateAlertEvent } from "./state.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType } from "./timers.js";
+import { emitEvent, E } from "./events.js";
 
 // Grade → movement interval (ms)
 const MOVE_INTERVALS = { S: 2500, A: 3000, B: 4500, C: 5000, D: 7000, F: 8000 };
@@ -92,14 +93,12 @@ export function handleIceTick() {
   const fromId = attentionNodeId; // capture before move
   moveIceAttention(nextNode);
 
-  // Log movement when visible to player (either endpoint is compromised/owned)
+  // Emit movement event (log-renderer formats based on visibility)
   const fromVisible = isPlayerVisible(s.nodes[fromId]);
   const toVisible = isPlayerVisible(s.nodes[nextNode]);
-  if (fromVisible || toVisible) {
-    const fromLabel = fromVisible ? (s.nodes[fromId]?.label ?? fromId) : "???";
-    const toLabel = toVisible ? (s.nodes[nextNode]?.label ?? nextNode) : "???";
-    addLogEntry(`// ICE: ${fromLabel} → ${toLabel}`, "error");
-  }
+  const fromLabel = fromVisible ? (s.nodes[fromId]?.label ?? fromId) : "???";
+  const toLabel = toVisible ? (s.nodes[nextNode]?.label ?? nextNode) : "???";
+  emitEvent(E.ICE_MOVED, { fromId, toId: nextNode, fromLabel, toLabel, fromVisible, toVisible });
 
   checkIceDetection(nextNode);
 }
@@ -116,10 +115,10 @@ function checkIceDetection(nodeId) {
     // Instant detection — no escape possible
     triggerDetection(nodeId);
   } else {
-    // Schedule timer first so it's in the Map when addLogEntry triggers the UI re-render
+    // Schedule timer first so it's in the Map before the event triggers a re-render
     const timerId = scheduleEvent("ice-detect", dwellMs, { nodeId }, { label: "ICE DETECTION" });
     s.ice.dwellTimerId = timerId;
-    addLogEntry(`// ICE AT ${s.nodes[nodeId]?.label ?? nodeId} — DISENGAGE OR EJECT`, "error");
+    emitEvent(E.ICE_DETECT_PENDING, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId, dwellMs });
   }
 }
 
@@ -133,7 +132,8 @@ export function handleIceDetect({ nodeId }) {
 }
 
 function triggerDetection(nodeId) {
-  addLogEntry("// DETECTED — ICE has locked your signal.", "error");
+  const s = getState();
+  emitEvent(E.ICE_DETECTED, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId });
   propagateAlertEvent(nodeId);
 }
 
