@@ -70,6 +70,28 @@ export function resolveExploit(exploit, node) {
   };
 }
 
+/**
+ * Apply card decay after an exploit attempt.
+ * Consumes one use, transitions decay state, and handles partial burn / full
+ * disclose on detected failures. Mutates both exploit and result in place.
+ */
+export function applyCardDecay(exploit, result) {
+  exploit.usesRemaining = Math.max(0, exploit.usesRemaining - 1);
+  if (exploit.usesRemaining === 0 && exploit.decayState === "fresh") {
+    exploit.decayState = "worn";
+  }
+
+  if (!result.success && result.disclosed) {
+    const partialBurn = exploit.usesRemaining > 1 && Math.random() < 0.6;
+    if (partialBurn) {
+      exploit.usesRemaining--;
+      result.partialBurn = true;
+    } else {
+      exploit.decayState = "disclosed";
+    }
+  }
+}
+
 // ── Flavor text ───────────────────────────────────────────
 
 const SUCCESS_FLAVORS = [

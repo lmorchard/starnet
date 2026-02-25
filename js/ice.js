@@ -6,7 +6,8 @@
 /** @typedef {import('./types.js').IceState} IceState */
 /** @typedef {import('./types.js').NodeState} NodeState */
 
-import { getState, moveIceAttention, propagateAlertEvent, recordIceDetection, disableIce } from "./state.js";
+import { getState, moveIceAttention, disableIce } from "./state.js";
+import { propagateAlertEvent, recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
 
