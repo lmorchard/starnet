@@ -14,7 +14,6 @@
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
-import { resolveExploit, applyCardDecay } from "./combat.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
 import { clearAll as clearAllTimers, scheduleEvent } from "./timers.js";
 import { emitEvent, E } from "./events.js";
@@ -244,99 +243,6 @@ export function probeNode(nodeId) {
   emit();
 }
 
-
-// ── Exploit launch ───────────────────────────────────────
-
-export function launchExploit(nodeId, exploitId) {
-  const node = state.nodes[nodeId];
-  const exploit = state.player.hand.find((c) => c.id === exploitId);
-  if (!node || !exploit || exploit.decayState === "disclosed") return;
-
-  if (exploit.usesRemaining === 0) {
-    emitEvent(E.LOG_ENTRY, { text: `${exploit.name}: No uses remaining.`, type: "error" });
-    emit();
-    return null;
-  }
-
-  const result = resolveExploit(exploit, node);
-  applyCardDecay(exploit, result);
-
-  if (result.success) {
-    // Advance access level
-    result.levelChanged = false;
-    const prevAccess = node.accessLevel;
-    if (node.accessLevel === "locked") {
-      node.accessLevel = "compromised";
-      node.visibility = "accessible";
-      revealNeighbors(nodeId);
-      accessNeighbors(nodeId);
-      result.levelChanged = true;
-    } else if (node.accessLevel === "compromised") {
-      node.accessLevel = "owned";
-      node.alertState = "green";
-      revealNeighbors(nodeId);
-      accessNeighbors(nodeId);
-      result.levelChanged = true;
-    }
-
-    emitEvent(E.EXPLOIT_SUCCESS, {
-      nodeId,
-      label: node.label,
-      exploitName: exploit.name,
-      flavor: result.flavor,
-      roll: result.roll,
-      successChance: result.successChance,
-      matchingVulns: result.matchingVulns,
-    });
-
-    if (result.levelChanged) {
-      emitEvent(E.NODE_ACCESSED, { nodeId, label: node.label, prev: prevAccess, next: node.accessLevel });
-    }
-
-    // Reveal any staged vulnerabilities unlocked by the exploit's target types
-    const usedTypes = exploit.targetVulnTypes;
-    node.vulnerabilities.forEach((v) => {
-      if (v.hidden && v.unlockedBy && usedTypes.includes(v.unlockedBy)) {
-        v.hidden = false;
-        emitEvent(E.EXPLOIT_SURFACE, { nodeId, label: node.label });
-      }
-    });
-  } else {
-    // Raise node alert
-    const prevAlert = node.alertState;
-    const idx = ALERT_ORDER.indexOf(node.alertState);
-    if (idx < ALERT_ORDER.length - 1) {
-      node.alertState = ALERT_ORDER[idx + 1];
-    }
-
-    // Track disturbance for ICE pathfinding
-    state.lastDisturbedNodeId = nodeId;
-
-    emitEvent(E.EXPLOIT_FAILURE, {
-      nodeId,
-      label: node.label,
-      exploitName: exploit.name,
-      flavor: result.flavor,
-      roll: result.roll,
-      successChance: result.successChance,
-      matchingVulns: result.matchingVulns,
-    });
-
-    if (node.alertState !== prevAlert) {
-      // alert.js listener handles propagation / global recompute
-      emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: node.alertState });
-    }
-
-    if (result.disclosed && !result.partialBurn) {
-      emitEvent(E.EXPLOIT_DISCLOSED, { exploitName: exploit.name });
-    } else if (result.partialBurn) {
-      emitEvent(E.EXPLOIT_PARTIAL_BURN, { exploitName: exploit.name, usesRemaining: exploit.usesRemaining });
-    }
-  }
-
-  emit();
-  return result;
-}
 
 // ── Read & Loot ───────────────────────────────────────────
 

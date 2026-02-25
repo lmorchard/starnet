@@ -1,7 +1,8 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
-import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
+import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
+import { launchExploit } from "./combat.js";
 import { addLogEntry } from "./log-renderer.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
