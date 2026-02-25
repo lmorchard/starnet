@@ -475,10 +475,11 @@ function cmdHelp() {
     "  log [n]                   Replay last n log entries (default: 20).",
     "  help                      Show this listing.",
     "  // CHEAT — playtesting only. Cheaters never win.",
-    "  cheat give card [rarity]  Add exploit card. Rarities: common uncommon rare",
-    "  cheat give cash <amount>  Add credits to wallet.",
-    "  cheat set alert <level>   Force alert level: green yellow red trace",
-    "  cheat own <node>          Set node to owned + reveal neighbors.",
+    "  cheat give matching [node]  Add exploits matching node's vulns (balance rescue).",
+    "  cheat give card [rarity]    Add random exploit card.",
+    "  cheat give cash <amount>    Add credits to wallet.",
+    "  cheat set alert <level>     Force alert level: green yellow red trace",
+    "  cheat own <node>            Set node to owned + reveal neighbors.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
 }

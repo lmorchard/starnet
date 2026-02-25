@@ -9,7 +9,7 @@
 
 import { getState, setCheating, forceGlobalAlert, revealNeighbors, accessNeighbors } from "./state.js";
 import { addLogEntry } from "./log-renderer.js";
-import { generateExploit } from "./exploits.js";
+import { generateExploit, generateExploitForVuln } from "./exploits.js";
 
 const VALID_RARITIES = ["common", "uncommon", "rare"];
 const VALID_ALERTS   = ["green", "yellow", "red", "trace"];
@@ -36,13 +36,45 @@ export function handleCheatCommand(args) {
 function cheatGive(args) {
   const what = args[0]?.toLowerCase();
 
+  if (what === "matching") {
+    const token = args[1];
+    const s = getState();
+    let node = null;
+    if (token) {
+      const lower = token.toLowerCase();
+      node = s.nodes[token] || Object.values(s.nodes).find((n) => n.label.toLowerCase().startsWith(lower));
+    } else {
+      node = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+    }
+    if (!node) {
+      addLogEntry("No node selected. Usage: cheat give matching [nodeId]", "error");
+      return false;
+    }
+    if (!node.probed) {
+      addLogEntry(`[CHEAT] ${node.label}: probe the node first to reveal vulnerabilities.`, "error");
+      return false;
+    }
+    const targets = node.vulnerabilities.filter((v) => !v.patched && !v.hidden);
+    if (targets.length === 0) {
+      addLogEntry(`[CHEAT] ${node.label}: no unpatched vulnerabilities to match.`, "error");
+      return false;
+    }
+    targets.forEach((v) => {
+      const card = generateExploitForVuln(v.id);
+      s.player.hand.push(card);
+      addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" targeting ${v.id}.`, "success");
+    });
+    activateCheat();
+    return true;
+  }
+
   if (what === "card") {
     const rarity = VALID_RARITIES.includes(args[1]) ? args[1] : null;
     const card = generateExploit(rarity);
     const s = getState();
     s.player.hand.push(card);
     activateCheat();
-    addLogEntry(`CHEAT: Added ${card.rarity} exploit "${card.name}" to hand.`, "success");
+    addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" to hand.`, "success");
     return true;
   }
 
@@ -55,11 +87,11 @@ function cheatGive(args) {
     const s = getState();
     s.player.cash += amount;
     activateCheat();
-    addLogEntry(`CHEAT: Added ¥${amount.toLocaleString()} to wallet.`, "success");
+    addLogEntry(`[CHEAT] Added ¥${amount.toLocaleString()} to wallet.`, "success");
     return true;
   }
 
-  addLogEntry("Usage: cheat give card [common|uncommon|rare]  |  cheat give cash <amount>", "error");
+  addLogEntry("Usage: cheat give matching [nodeId]  |  cheat give card [rarity]  |  cheat give cash <amount>", "error");
   return false;
 }
 
@@ -75,7 +107,7 @@ function cheatSet(args) {
     }
     activateCheat();
     forceGlobalAlert(level);
-    addLogEntry(`CHEAT: Global alert forced to ${level.toUpperCase()}.`, "success");
+    addLogEntry(`[CHEAT] Global alert forced to ${level.toUpperCase()}.`, "success");
     return true;
   }
 
@@ -105,7 +137,7 @@ function cheatOwn(args) {
   revealNeighbors(node.id);
   accessNeighbors(node.id);
   activateCheat();
-  addLogEntry(`CHEAT: ${node.label} set to OWNED.`, "success");
+  addLogEntry(`[CHEAT] ${node.label} set to OWNED.`, "success");
   return true;
 }
 
@@ -113,10 +145,11 @@ function cheatOwn(args) {
 function cheatHelp() {
   const lines = [
     "[CHEAT] Playtesting only. Cheaters never win.",
-    "  cheat give card [rarity]  Add exploit card. Rarities: common uncommon rare",
-    "  cheat give cash <amount>  Add credits to wallet.",
-    "  cheat set alert <level>   Force alert level: green yellow red trace",
-    "  cheat own <node>          Set node to owned + reveal neighbors.",
+    "  cheat give matching [node]  Add exploits matching node's vulns (balance rescue).",
+    "  cheat give card [rarity]    Add random exploit card. Rarities: common uncommon rare",
+    "  cheat give cash <amount>    Add credits to wallet.",
+    "  cheat set alert <level>     Force alert level: green yellow red trace",
+    "  cheat own <node>            Set node to owned + reveal neighbors.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
   return true;
