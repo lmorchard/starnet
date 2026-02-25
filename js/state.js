@@ -396,10 +396,6 @@ export function launchExploit(nodeId, exploitId) {
       revealNeighbors(nodeId);
       accessNeighbors(nodeId);
       result.levelChanged = true;
-      // Owning the ICE resident node disables ICE
-      if (state.ice?.active && state.ice.residentNodeId === nodeId) {
-        disableIce();
-      }
     }
 
     emitEvent(E.EXPLOIT_SUCCESS, {
@@ -605,8 +601,8 @@ export function rebootNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node || node.rebooting) return;
 
-  // Send ICE attention back to resident node and emit ICE_REBOOTED
-  if (state.ice?.active) {
+  // Send ICE attention back to resident node only if ICE is currently on this node
+  if (state.ice?.active && state.ice.attentionNodeId === nodeId) {
     rebootIce();
     emitEvent(E.ICE_REBOOTED, {
       residentNodeId: state.ice.residentNodeId,

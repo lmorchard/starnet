@@ -6,9 +6,9 @@
 /** @typedef {import('./types.js').IceState} IceState */
 /** @typedef {import('./types.js').NodeState} NodeState */
 
-import { getState, moveIceAttention, propagateAlertEvent, recordIceDetection } from "./state.js";
+import { getState, moveIceAttention, propagateAlertEvent, recordIceDetection, disableIce } from "./state.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType } from "./timers.js";
-import { emitEvent, E } from "./events.js";
+import { emitEvent, on, E } from "./events.js";
 
 // Grade → movement interval (ms)
 const MOVE_INTERVALS = { S: 2500, A: 3000, B: 4500, C: 5000, D: 7000, F: 8000 };
@@ -27,6 +27,15 @@ export function stopIce() {
   cancelAllByType("ice-move");
   cancelAllByType("ice-detect");
 }
+
+// Owning the ICE resident node shuts ICE down.
+on(E.NODE_ACCESSED, ({ nodeId, next }) => {
+  const s = getState();
+  if (next === "owned" && s.ice?.active && s.ice.residentNodeId === nodeId) {
+    stopIce();
+    disableIce();
+  }
+});
 
 function isPlayerVisible(nodeState) {
   return nodeState?.accessLevel === "compromised" || nodeState?.accessLevel === "owned";
