@@ -288,12 +288,12 @@ function renderActions(node, state) {
 
   if (node.accessLevel === "compromised") {
     btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit."));
-    const readDone = node.read;
-    btns.push(actionBtn("read", readDone ? "READ (done)" : "READ", "Scan node contents for loot or connections.", readDone));
-    const isDetector = node.type === "ids";
-    const reconfigStub = !isDetector || node.eventForwardingDisabled;
-    const reconfigLabel = node.eventForwardingDisabled ? "RECONFIGURE (done)" : "RECONFIGURE";
-    btns.push(actionBtn("reconfigure", reconfigLabel, "Disable event forwarding to security monitor.", reconfigStub));
+    if (!node.read) {
+      btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections."));
+    }
+    if (node.type === "ids" && !node.eventForwardingDisabled) {
+      btns.push(actionBtn("reconfigure", "RECONFIGURE", "Disable event forwarding to security monitor."));
+    }
   }
 
   if (node.accessLevel === "owned") {
@@ -304,17 +304,16 @@ function renderActions(node, state) {
     if (!node.rebooting) {
       btns.push(actionBtn("reboot", "REBOOT", "Force ICE home and take node offline 1–3s."));
     }
-
+    if (!node.read) {
+      btns.push(actionBtn("read", "READ", "Scan node contents."));
+    }
     const hasLoot = node.macguffins.some((m) => !m.collected);
-    btns.push(actionBtn("loot", node.looted ? "LOOT (done)" : "LOOT", "Collect macguffins for cash.", node.looted || !hasLoot));
-    btns.push(actionBtn("subvert", "SUBVERT", "Deceive connected security monitors.", true));
-    btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit.", true));
-    const readDone = node.read;
-    btns.push(actionBtn("read", readDone ? "READ (done)" : "READ", "Scan node contents.", readDone));
-    const isDetector = node.type === "ids";
-    const reconfigStub = !isDetector || node.eventForwardingDisabled;
-    const reconfigLabel = node.eventForwardingDisabled ? "RECONFIGURE (done)" : "RECONFIGURE";
-    btns.push(actionBtn("reconfigure", reconfigLabel, "Disable event forwarding to security monitor.", reconfigStub));
+    if (hasLoot) {
+      btns.push(actionBtn("loot", "LOOT", "Collect macguffins for cash."));
+    }
+    if (node.type === "ids" && !node.eventForwardingDisabled) {
+      btns.push(actionBtn("reconfigure", "RECONFIGURE", "Disable event forwarding to security monitor."));
+    }
   }
 
   return btns.join("") || `<span class="nd-dim">No actions available.</span>`;

@@ -14,7 +14,6 @@
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
-import { resolveExploit } from "./combat.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
 import { clearAll as clearAllTimers, scheduleEvent } from "./timers.js";
 import { emitEvent, E } from "./events.js";
@@ -156,7 +155,8 @@ export function accessNeighbors(nodeId) {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "revealed") {
       neighbor.visibility = "accessible";
-      revealNeighbors(neighborId); // expose the next ring
+      emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label, unlocked: true });
+      // Don't cascade reveals here — deeper connections only exposed on compromise, not access.
     }
   });
 }
@@ -189,7 +189,7 @@ export function setAccessLevel(nodeId, level) {
 // ── Alert system ─────────────────────────────────────────
 
 /** @type {NodeAlertLevel[]} */
-const ALERT_ORDER = ["green", "yellow", "red"];
+export const ALERT_ORDER = ["green", "yellow", "red"];
 
 export function raiseNodeAlert(nodeId) {
   const node = state.nodes[nodeId];
@@ -203,41 +203,6 @@ export function raiseNodeAlert(nodeId) {
   emit();
 }
 
-/** @type {GlobalAlertLevel[]} */
-const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
-
-export function raiseGlobalAlert() {
-  const prev = state.globalAlert;
-  const idx = GLOBAL_ALERT_ORDER.indexOf(state.globalAlert);
-  if (idx < GLOBAL_ALERT_ORDER.length - 1) {
-    state.globalAlert = GLOBAL_ALERT_ORDER[idx + 1];
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: state.globalAlert });
-  }
-
-  if (state.globalAlert === "trace" && state.traceSecondsRemaining === null) {
-    startTraceCountdown();
-  }
-
-  emit();
-}
-
-function startTraceCountdown() {
-  state.traceSecondsRemaining = 60;
-  emitEvent(E.ALERT_TRACE_STARTED, { seconds: 60 });
-  const interval = setInterval(() => {
-    if (!state || state.phase !== "playing") {
-      clearInterval(interval);
-      return;
-    }
-    state.traceSecondsRemaining -= 1;
-    if (state.traceSecondsRemaining <= 0) {
-      clearInterval(interval);
-      endRun("caught");
-    } else {
-      emit();
-    }
-  }, 1000);
-}
 
 export function endRun(outcome) {
   clearAllTimers();
@@ -249,10 +214,6 @@ export function endRun(outcome) {
 }
 
 // ── Probe action ─────────────────────────────────────────
-
-// Detection node types that forward events to security monitors
-const DETECTION_TYPES = new Set(["ids"]);
-const MONITOR_TYPES   = new Set(["security-monitor"]);
 
 export function probeNode(nodeId) {
   const node = state.nodes[nodeId];
@@ -275,190 +236,13 @@ export function probeNode(nodeId) {
 
   emitEvent(E.NODE_PROBED, { nodeId, label: node.label });
   if (node.alertState !== prevAlert) {
+    // alert.js listener handles propagation to monitors / global recompute
     emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: node.alertState });
   }
 
-  // If this is a detection node, propagate to connected security monitors
-  if (DETECTION_TYPES.has(node.type)) {
-    propagateAlertEvent(nodeId);
-  }
-
   emit();
 }
 
-export function propagateAlertEvent(fromNodeId) {
-  const fromNode = state.nodes[fromNodeId];
-  if (!fromNode || fromNode.eventForwardingDisabled) return;
-
-  (state.adjacency[fromNodeId] || []).forEach((neighborId) => {
-    const neighbor = state.nodes[neighborId];
-    if (neighbor && MONITOR_TYPES.has(neighbor.type)) {
-      const idx = ALERT_ORDER.indexOf(neighbor.alertState);
-      if (idx < ALERT_ORDER.length - 1) {
-        neighbor.alertState = ALERT_ORDER[idx + 1];
-      }
-      emitEvent(E.ALERT_PROPAGATED, {
-        fromNodeId,
-        fromLabel: fromNode.label,
-        toNodeId: neighborId,
-        toLabel: neighbor.label,
-      });
-      // Recompute global alert based on monitor states
-      recomputeGlobalAlert();
-    }
-  });
-}
-
-function recomputeGlobalAlert() {
-  const monitors = Object.values(state.nodes).filter((n) =>
-    MONITOR_TYPES.has(n.type)
-  );
-  const detectors = Object.values(state.nodes).filter((n) =>
-    DETECTION_TYPES.has(n.type)
-  );
-
-  const redMonitors = monitors.filter((n) => n.alertState === "red").length;
-  const redDetectors = detectors.filter((n) =>
-    n.alertState === "red" && !n.eventForwardingDisabled
-  ).length;
-  const yellowDetectors = detectors.filter((n) =>
-    n.alertState !== "green" && !n.eventForwardingDisabled
-  ).length;
-
-  /** @type {GlobalAlertLevel} */
-  let newLevel = "green";
-  if (yellowDetectors >= 1)  newLevel = "yellow";
-  if (redDetectors >= 1)     newLevel = "red";
-  if (redDetectors >= 2 || redMonitors >= 1) newLevel = "trace";
-
-  // Only escalate, never de-escalate
-  const current = GLOBAL_ALERT_ORDER.indexOf(state.globalAlert);
-  const next = GLOBAL_ALERT_ORDER.indexOf(newLevel);
-  if (next > current) {
-    const prev = state.globalAlert;
-    state.globalAlert = newLevel;
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: state.globalAlert });
-    if (state.globalAlert === "trace" && state.traceSecondsRemaining === null) {
-      startTraceCountdown();
-    }
-  }
-}
-
-// ── Exploit launch ───────────────────────────────────────
-
-export function launchExploit(nodeId, exploitId) {
-  const node = state.nodes[nodeId];
-  const exploit = state.player.hand.find((c) => c.id === exploitId);
-  if (!node || !exploit || exploit.decayState === "disclosed") return;
-
-  if (exploit.usesRemaining === 0) {
-    emitEvent(E.LOG_ENTRY, { text: `${exploit.name}: No uses remaining.`, type: "error" });
-    emit();
-    return null;
-  }
-
-  const result = resolveExploit(exploit, node);
-
-  // Consume a use
-  exploit.usesRemaining = Math.max(0, exploit.usesRemaining - 1);
-  if (exploit.usesRemaining === 0 && exploit.decayState === "fresh") {
-    exploit.decayState = "worn";
-  }
-
-  if (result.success) {
-    // Advance access level
-    result.levelChanged = false;
-    const prevAccess = node.accessLevel;
-    if (node.accessLevel === "locked") {
-      node.accessLevel = "compromised";
-      node.visibility = "accessible";
-      revealNeighbors(nodeId);
-      result.levelChanged = true;
-    } else if (node.accessLevel === "compromised") {
-      node.accessLevel = "owned";
-      revealNeighbors(nodeId);
-      result.levelChanged = true;
-      // Owning the ICE resident node disables ICE
-      if (state.ice?.active && state.ice.residentNodeId === nodeId) {
-        disableIce();
-      }
-    }
-
-    emitEvent(E.EXPLOIT_SUCCESS, {
-      nodeId,
-      label: node.label,
-      exploitName: exploit.name,
-      flavor: result.flavor,
-      roll: result.roll,
-      successChance: result.successChance,
-      matchingVulns: result.matchingVulns,
-    });
-
-    if (result.levelChanged) {
-      emitEvent(E.NODE_ACCESSED, { nodeId, label: node.label, prev: prevAccess, next: node.accessLevel });
-    }
-
-    // Reveal any staged vulnerabilities unlocked by the exploit's target types
-    const usedTypes = exploit.targetVulnTypes;
-    node.vulnerabilities.forEach((v) => {
-      if (v.hidden && v.unlockedBy && usedTypes.includes(v.unlockedBy)) {
-        v.hidden = false;
-        emitEvent(E.EXPLOIT_SURFACE, { nodeId, label: node.label });
-      }
-    });
-  } else {
-    // Raise node alert
-    const prevAlert = node.alertState;
-    const idx = ALERT_ORDER.indexOf(node.alertState);
-    if (idx < ALERT_ORDER.length - 1) {
-      node.alertState = ALERT_ORDER[idx + 1];
-    }
-
-    // Disclose exploit if detected — partial burn (extra use) or full disclose
-    if (result.disclosed) {
-      const partialBurn = exploit.usesRemaining > 1 && Math.random() < 0.6;
-      if (partialBurn) {
-        exploit.usesRemaining--;
-        result.partialBurn = true;
-      } else {
-        exploit.decayState = "disclosed";
-      }
-    }
-
-    // Track disturbance for ICE pathfinding
-    state.lastDisturbedNodeId = nodeId;
-
-    // Propagate alert if detection node, then recompute global
-    if (DETECTION_TYPES.has(node.type)) {
-      propagateAlertEvent(nodeId);
-    } else {
-      recomputeGlobalAlert();
-    }
-
-    emitEvent(E.EXPLOIT_FAILURE, {
-      nodeId,
-      label: node.label,
-      exploitName: exploit.name,
-      flavor: result.flavor,
-      roll: result.roll,
-      successChance: result.successChance,
-      matchingVulns: result.matchingVulns,
-    });
-
-    if (node.alertState !== prevAlert) {
-      emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: node.alertState });
-    }
-
-    if (result.disclosed && !result.partialBurn) {
-      emitEvent(E.EXPLOIT_DISCLOSED, { exploitName: exploit.name });
-    } else if (result.partialBurn) {
-      emitEvent(E.EXPLOIT_PARTIAL_BURN, { exploitName: exploit.name, usesRemaining: exploit.usesRemaining });
-    }
-  }
-
-  emit();
-  return result;
-}
 
 // ── Read & Loot ───────────────────────────────────────────
 
@@ -508,8 +292,8 @@ export function reconfigureNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return;
   node.eventForwardingDisabled = true;
+  // alert.js listener on NODE_RECONFIGURED handles global alert recompute
   emitEvent(E.NODE_RECONFIGURED, { nodeId, label: node.label });
-  recomputeGlobalAlert();
   emit();
 }
 
@@ -522,20 +306,6 @@ export function setCheating() {
   }
 }
 
-// Bypass the escalation-only rule — for cheat use only
-export function forceGlobalAlert(level) {
-  const valid = GLOBAL_ALERT_ORDER.includes(level);
-  if (!valid) return;
-  const prev = state.globalAlert;
-  state.globalAlert = level;
-  if (level !== prev) {
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: level });
-  }
-  if (level === "trace" && state.traceSecondsRemaining === null) {
-    startTraceCountdown();
-  }
-  emit();
-}
 
 // ── ICE mutations ─────────────────────────────────────────
 
@@ -568,27 +338,13 @@ export function disableIce() {
   emit();
 }
 
-// Detection thresholds: how many detections before trace starts, by grade
-const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
-
-export function recordIceDetection(nodeId) {
-  if (!state.ice?.active) return;
-  state.ice.detectedAtNode = nodeId;
-  state.ice.detectionCount++;
-  // Don't restart trace if already counting down
-  if (state.traceSecondsRemaining !== null) return;
-  const threshold = DETECTION_TRACE_THRESHOLD[state.ice.grade] ?? 2;
-  if (state.ice.detectionCount >= threshold) {
-    startTraceCountdown();
-  }
-}
 
 export function rebootNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node || node.rebooting) return;
 
-  // Send ICE attention back to resident node and emit ICE_REBOOTED
-  if (state.ice?.active) {
+  // Send ICE attention back to resident node only if ICE is currently on this node
+  if (state.ice?.active && state.ice.attentionNodeId === nodeId) {
     rebootIce();
     emitEvent(E.ICE_REBOOTED, {
       residentNodeId: state.ice.residentNodeId,
@@ -658,7 +414,7 @@ export function deselectNode() {
 
 // ── Event dispatch ───────────────────────────────────────
 
-function emit() {
+export function emit() {
   // @ts-ignore — dev convenience; not part of the typed window interface
   window._starnetState = state;
   emitEvent(E.STATE_CHANGED, state);
