@@ -61,6 +61,33 @@ Post-plan additions (bugs found during playtesting):
 
 ---
 
+## Post-Retro: Playtesting Pass (continuation session)
+
+A second round of work in the same session, covering bugs surfaced by Playwright playtesting plus three UX improvements. Four commits beyond the original retro.
+
+### Bugs Fixed
+
+| Bug | Root Cause | Fix |
+|---|---|---|
+| Hand disappears + exploit mode broken on EXPLOIT click | `exploit`/`escalate`/`cancel` handlers called `getElementById("sidebar")` (the whole `<aside>`), destroying both sidebar panes and leaving both IDs returning null on all subsequent renders | Changed to `getElementById("sidebar-node")`, added `syncHandPane` after each |
+| Sidebar stuck in exploit-select after success | `sidebarMode = "node"` set after `launchExploit()` call; `emit()` inside `launchExploit` fires synchronously so `syncHud` ran while mode was still `"exploit-select"` | Moved `sidebarMode = "node"` to before the `launchExploit` call |
+| Deeper network unreachable after compromising gateway | `revealNeighbors` only promotes `hidden→revealed`, never `revealed→accessible`; compromising gateway left all neighbors as `???` with no action buttons | Added `accessNeighbors()` to `state.js`: promotes revealed neighbors to accessible and calls `revealNeighbors` on each to expose the next ring. Called on `locked→compromised` transition and in `cheatOwn` |
+| Multi-attempt exploit exiting to node view on failure | `sidebarMode = "node"` in the card click listener ran after `dispatchEvent()` returned (dispatch is synchronous), overwriting the correct mode the handler had already set | Removed `sidebarMode` assignment from the click listener entirely; handler solely owns mode decisions |
+| Selecting new node while in exploit-select rendered new node in exploit-select view | `sidebarMode = "node"` in the select handler was set after `selectNode()`, but `selectNode` calls `emit()` synchronously | Moved mode reset before `selectNode()` call |
+
+### Features Added
+
+- **Multi-attempt exploit** (`clickMode` flag) — Failed exploit attempts stay in exploit-select so the player can keep trying cards. Only exits on success, cancel, or console use.
+- **Exploit hand sort** (`cardSortKey`) — When a node is selected, matching cards (targetVulnTypes intersects probed vulns) float to the top. Disclosed cards sink to bottom. Display-only sort; state not mutated.
+- **Auto-cancel on node select** — Selecting any node while a command is in progress (any `sidebarMode !== "node"`) logs "Action cancelled." and resets to node view before rendering the new selection.
+
+### Technical Insights
+
+- **`document.dispatchEvent()` is synchronous.** The entire handler runs and returns before the next line after the dispatch call executes. This caused two separate bugs in this session: mode assignments after dispatch calls that were actually too late. Rule: if a state variable controls rendering triggered by an emit inside a function you're about to call, set it *before* the call.
+- **Element ID scoping matters when using `innerHTML`.** Setting `innerHTML` on a container destroys all child elements, invalidating any existing references to those children by ID. Using the wrong container element (`sidebar` vs `sidebar-node`) silently nuked both sidebar panes.
+
+---
+
 ## Ideas for Next Session
 
 - **Mission objectives** — right now it's freeform macguffin hunting. A mission briefing at game start with specific targets would add direction.
