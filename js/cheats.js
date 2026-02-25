@@ -3,7 +3,7 @@
 // gated, disabled, or penalized as a unit in future builds.
 // Any use of a cheat command sets state.isCheating = true for the run.
 
-import { getState, addLogEntry, setCheating, forceGlobalAlert, revealNeighbors } from "./state.js";
+import { getState, addLogEntry, setCheating, forceGlobalAlert, revealNeighbors, accessNeighbors } from "./state.js";
 import { generateExploit } from "./exploits.js";
 
 const VALID_RARITIES = ["common", "uncommon", "rare"];
@@ -96,6 +96,7 @@ function cheatOwn(args) {
   node.accessLevel = "owned";
   node.visibility = "accessible";
   revealNeighbors(node.id);
+  accessNeighbors(node.id);
   activateCheat();
   addLogEntry(`CHEAT: ${node.label} set to OWNED.`, "success");
   return true;

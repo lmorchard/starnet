@@ -93,6 +93,18 @@ export function revealNeighbors(nodeId) { // also used by cheats.js
   });
 }
 
+// Promote already-revealed neighbors to accessible (foothold mechanic).
+// Called when a node is compromised — adjacent nodes become reachable for probe/exploit.
+export function accessNeighbors(nodeId) {
+  (state.adjacency[nodeId] || []).forEach((neighborId) => {
+    const neighbor = state.nodes[neighborId];
+    if (neighbor && neighbor.visibility === "revealed") {
+      neighbor.visibility = "accessible";
+      revealNeighbors(neighborId); // expose the next ring
+    }
+  });
+}
+
 export function setAccessLevel(nodeId, level) {
   const node = state.nodes[nodeId];
   if (!node) return;
@@ -263,6 +275,7 @@ export function launchExploit(nodeId, exploitId) {
       node.accessLevel = "compromised";
       node.visibility = "accessible";
       revealNeighbors(nodeId);
+      accessNeighbors(nodeId); // foothold: adjacent revealed nodes become reachable
     } else if (node.accessLevel === "compromised") {
       node.accessLevel = "owned";
       revealNeighbors(nodeId);

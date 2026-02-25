@@ -40,31 +40,50 @@ function init() {
     sidebarMode = "exploit-select";
     const s = getState();
     if (s.selectedNodeId) {
-      renderSidebarNode(document.getElementById("sidebar"), s.nodes[s.selectedNodeId], s);
+      renderSidebarNode(document.getElementById("sidebar-node"), s.nodes[s.selectedNodeId], s);
     }
+    syncHandPane(getState());
   });
 
   document.addEventListener("starnet:action:escalate", () => {
     sidebarMode = "exploit-select";
     const s = getState();
     if (s.selectedNodeId) {
-      renderSidebarNode(document.getElementById("sidebar"), s.nodes[s.selectedNodeId], s);
+      renderSidebarNode(document.getElementById("sidebar-node"), s.nodes[s.selectedNodeId], s);
     }
+    syncHandPane(getState());
   });
 
   document.addEventListener("starnet:action:cancel", () => {
     sidebarMode = "node";
     const s = getState();
     if (s.selectedNodeId) {
-      renderSidebarNode(document.getElementById("sidebar"), s.nodes[s.selectedNodeId], s);
+      renderSidebarNode(document.getElementById("sidebar-node"), s.nodes[s.selectedNodeId], s);
     }
+    syncHandPane(getState());
   });
 
   document.addEventListener("starnet:action:launch-exploit", (evt) => {
     const { nodeId, exploitId } = evt.detail;
     if (!evt.detail.fromConsole) addLogEntry(`> exploit ${nodeId} ${exploitId}`, "command");
-    launchExploit(nodeId, exploitId);
-    sidebarMode = "node";
+
+    // Click UI (exploit-select mode): stay in exploit-select on failure so the player can
+    // keep trying cards. Console shots are always single-shot and exit to node view.
+    const clickMode = sidebarMode === "exploit-select" && !evt.detail.fromConsole;
+    if (!clickMode) sidebarMode = "node";
+
+    const result = launchExploit(nodeId, exploitId);
+
+    if (clickMode && result?.success) {
+      // Success: switch to node view. The emit inside launchExploit already rendered
+      // exploit-select mode, so we need a forced re-render in node mode.
+      sidebarMode = "node";
+      const s = getState();
+      if (s.selectedNodeId) {
+        renderSidebarNode(document.getElementById("sidebar-node"), s.nodes[s.selectedNodeId], s);
+      }
+      syncHandPane(s);
+    }
   });
 
   document.addEventListener("starnet:action:reconfigure", (evt) => {
@@ -423,7 +442,6 @@ function syncHandPane(state) {
             detail: { nodeId: state.selectedNodeId, exploitId },
           })
         );
-        sidebarMode = "node";
       });
     });
   }
