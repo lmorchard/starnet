@@ -572,12 +572,12 @@ html, body {
   font-size: 0.7rem;
 }
 
-.log-entry           { color: var(--text-dim); }
+.log-entry           { color: #4daa55; }
 .log-entry.log-success { color: #7fff7f; font-weight: bold; text-shadow: 0 0 4px rgba(0, 255, 65, 0.5); }
 .log-entry.log-failure { color: var(--red); font-weight: bold; text-shadow: 0 0 4px rgba(255, 32, 32, 0.5); }
-.log-entry.log-meta    { color: #335533; font-size: 0.65rem; }
+.log-entry.log-meta    { color: #517a57; font-size: 0.73rem; }
 .log-entry.log-command { color: var(--cyan); }
-.log-entry.log-error   { color: var(--red); font-size: 0.78rem; }
+.log-entry.log-error   { color: var(--red); font-size: 0.87rem; }
 
 /* ── Macguffins ─────────────────────────────────────────── */
 
