@@ -373,6 +373,26 @@ html, body {
   font-size: 0.8rem;
 }
 
+.ice-timers {
+  margin-bottom: 0.4rem;
+}
+
+.ice-timer {
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0;
+}
+
+.ice-timer-detect {
+  color: #ff2020;
+  text-shadow: 0 0 6px #ff2020;
+}
+
+.ice-timer-reboot {
+  color: #888800;
+}
+
 .nd-actions {
   display: flex;
   flex-direction: column;

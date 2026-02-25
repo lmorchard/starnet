@@ -1,5 +1,5 @@
 import { NETWORK } from "../data/network.js";
-import { initGraph, updateNodeStyle, getCy, flashNode } from "./graph.js";
+import { initGraph, updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
 import { getVisibleTimers } from "./timers.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
@@ -11,6 +11,7 @@ let sidebarMode = "node";
 function init() {
   initState(NETWORK);
   const cy = initGraph(NETWORK, onNodeClick);
+  addIceNode();
   initConsole();
   startIce();
 
@@ -211,6 +212,16 @@ function syncGraph(state) {
       duration: 500,
     });
   }
+
+  // ICE overlay
+  if (state.ice) {
+    syncIceGraph(state.ice, state.nodes);
+    const iceNode = cy.getElementById("ice-0");
+    if (iceNode && iceNode.length > 0) {
+      const docked = state.ice.active && state.ice.attentionNodeId === state.selectedNodeId;
+      docked ? iceNode.addClass("docked") : iceNode.removeClass("docked");
+    }
+  }
 }
 
 // ── HUD sync ──────────────────────────────────────────────
@@ -350,6 +361,7 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-divider">──────────────────</div>
       <div class="nd-dim nd-indent">No valuables detected.</div>` : ""}
       <div class="nd-divider">──────────────────</div>
+      ${renderIceTimers()}
       <div class="nd-section-label">ACTIONS</div>
       <div class="nd-actions">
         ${renderActions(node)}
@@ -425,12 +437,23 @@ function renderEndScreen(state) {
       import("../data/network.js").then(({ NETWORK }) => {
         sidebarMode = "node";
         initState(NETWORK);
+        addIceNode();
         startIce();
       });
     });
   });
 }
 
+
+function renderIceTimers() {
+  const timers = getVisibleTimers();
+  const rows = timers.map((t) => {
+    const isDetect = t.label === "ICE DETECTION";
+    const cls = isDetect ? "ice-timer-detect" : "ice-timer-reboot";
+    return `<div class="ice-timer ${cls}">⚠ ${t.label}: ${t.remaining}s</div>`;
+  }).join("");
+  return rows ? `<div class="ice-timers">${rows}</div>` : "";
+}
 
 function renderActions(node) {
   const btns = [];

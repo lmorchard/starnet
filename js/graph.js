@@ -145,6 +145,71 @@ function buildStylesheet() {
         "border-width": 3,
       },
     },
+    // ICE entity node
+    {
+      selector: "node.ice",
+      style: {
+        shape: "star",
+        width: 28,
+        height: 28,
+        "background-color": "#1a0010",
+        "border-color": "#ff00aa",
+        "border-width": 2,
+        label: "ICE",
+        color: "#ff00aa",
+        "font-family": "Courier New, monospace",
+        "font-size": 7,
+        "font-weight": "bold",
+        "text-valign": "bottom",
+        "text-margin-y": 4,
+        "z-index": 10,
+      },
+    },
+    // ICE pulsing when docked on player's selected node
+    {
+      selector: "node.ice.docked",
+      style: {
+        "border-color": "#ff2020",
+        "border-width": 4,
+      },
+    },
+    // Trace-back waypoint nodes (hidden nodes revealed as part of ICE trace)
+    {
+      selector: "node.ice-traced",
+      style: {
+        display: "element",
+        shape: "ellipse",
+        width: 20,
+        height: 20,
+        "background-color": "#150010",
+        "border-color": "#660033",
+        "border-width": 1,
+        "border-style": "dashed",
+        label: "???",
+        color: "#440022",
+        "font-family": "Courier New, monospace",
+        "font-size": 7,
+        "text-valign": "bottom",
+        "text-margin-y": 4,
+      },
+    },
+    // ICE resident node — distinct hostile border
+    {
+      selector: "node.ice-resident",
+      style: {
+        "border-color": "#ff00aa",
+        "border-width": 3,
+      },
+    },
+    // Rebooting node — dimmed and dashed
+    {
+      selector: "node.rebooting",
+      style: {
+        "border-color": "#888800",
+        "border-style": "dashed",
+        opacity: 0.5,
+      },
+    },
     // Edges hidden
     {
       selector: "edge.hidden",
@@ -173,6 +238,18 @@ function buildStylesheet() {
         width: 2,
       },
     },
+    // ICE trace-back path edges
+    {
+      selector: "edge.ice-trace",
+      style: {
+        display: "element",
+        "line-color": "#440033",
+        "line-style": "dashed",
+        "target-arrow-shape": "none",
+        width: 1,
+        opacity: 0.6,
+      },
+    },
   ];
 }
 
@@ -181,6 +258,13 @@ export function updateNodeStyle(nodeId, nodeState) {
   if (!cy) return;
   const node = cy.getElementById(nodeId);
   if (!node) return;
+
+  // Rebooting state
+  if (nodeState.rebooting) {
+    node.addClass("rebooting");
+  } else {
+    node.removeClass("rebooting");
+  }
 
   // Visibility class
   node.removeClass("hidden revealed accessible");
@@ -232,6 +316,107 @@ function updateEdgeVisibility() {
 
 export function getCy() {
   return cy;
+}
+
+export function addIceNode() {
+  if (!cy) return;
+  if (cy.getElementById("ice-0").length > 0) return; // already added
+  cy.add({
+    data: { id: "ice-0", label: "ICE" },
+    position: { x: 0, y: 0 },
+    classes: ["ice"],
+  });
+  // ICE node should not respond to clicks like network nodes
+  cy.getElementById("ice-0").ungrabify();
+}
+
+export function syncIceGraph(iceState, nodeStates) {
+  if (!cy || !iceState) return;
+  const iceNode = cy.getElementById("ice-0");
+  if (!iceNode || iceNode.length === 0) return;
+
+  if (!iceState.active) {
+    iceNode.style("display", "none");
+    clearIceTrace();
+    return;
+  }
+
+  const atNodeState = nodeStates[iceState.attentionNodeId];
+  const isVisible =
+    atNodeState?.accessLevel === "compromised" ||
+    atNodeState?.accessLevel === "owned";
+
+  if (isVisible) {
+    const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
+    if (attentionCyNode && attentionCyNode.length > 0) {
+      iceNode.style("display", "element");
+      iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
+    }
+  } else {
+    iceNode.style("display", "none");
+  }
+
+  // Trace-back path: only when attention is on an owned node
+  clearIceTrace();
+  const isOwned = atNodeState?.accessLevel === "owned";
+  if (isVisible && isOwned && iceState.residentNodeId !== iceState.attentionNodeId) {
+    drawIceTrace(iceState.attentionNodeId, iceState.residentNodeId, nodeStates);
+  }
+}
+
+function clearIceTrace() {
+  cy.nodes(".ice-traced").removeClass("ice-traced");
+  cy.nodes(".ice-resident").removeClass("ice-resident");
+  cy.edges(".ice-trace").removeClass("ice-trace");
+}
+
+function drawIceTrace(fromId, toId, nodeStates) {
+  // BFS to find shortest path from attention focus back to resident node
+  const visited = new Map([[fromId, null]]); // node → predecessor
+  const queue = [fromId];
+  let found = false;
+
+  while (queue.length && !found) {
+    const cur = queue.shift();
+    for (const edge of cy.edges()) {
+      const s = edge.data("source");
+      const t = edge.data("target");
+      let neighbor = null;
+      if (s === cur && !visited.has(t)) neighbor = t;
+      else if (t === cur && !visited.has(s)) neighbor = s;
+      if (neighbor !== null) {
+        visited.set(neighbor, cur);
+        if (neighbor === toId) { found = true; break; }
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  if (!found) return;
+
+  // Walk path from toId back to fromId, marking waypoints and edges
+  let cur = toId;
+  while (cur && cur !== fromId) {
+    const cyNode = cy.getElementById(cur);
+    if (cyNode.length > 0) {
+      if (cyNode.hasClass("hidden")) {
+        // Reveal hidden nodes along the path as traced waypoints
+        cyNode.addClass("ice-traced");
+      }
+    }
+    const prev = visited.get(cur);
+    if (prev !== undefined && prev !== null) {
+      cy.edges().filter((e) => {
+        const s = e.data("source");
+        const t = e.data("target");
+        return (s === prev && t === cur) || (s === cur && t === prev);
+      }).addClass("ice-trace");
+    }
+    cur = prev;
+  }
+
+  // Mark the resident node distinctly
+  cy.getElementById(toId).addClass("ice-resident");
 }
 
 // Flash a node with a brief animated pulse.
