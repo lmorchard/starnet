@@ -1,6 +1,6 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph } from "./graph.js";
-import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
+import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry, ejectIce, rebootNode, completeReboot } from "./state.js";
 import { getVisibleTimers } from "./timers.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole } from "./console.js";
@@ -129,6 +129,20 @@ function init() {
   document.addEventListener("starnet:action:jackout", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> jackout`, "command");
     endRun("success");
+  });
+
+  document.addEventListener("starnet:action:eject", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> eject`, "command");
+    ejectIce();
+  });
+
+  document.addEventListener("starnet:action:reboot", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> reboot ${evt.detail.nodeId}`, "command");
+    rebootNode(evt.detail.nodeId);
+  });
+
+  document.addEventListener("starnet:timer:reboot-complete", (evt) => {
+    completeReboot(evt.detail.nodeId);
   });
 
   document.dispatchEvent(
@@ -364,7 +378,7 @@ function renderSidebarNode(sidebarNode, node, state) {
       ${renderIceTimers()}
       <div class="nd-section-label">ACTIONS</div>
       <div class="nd-actions">
-        ${renderActions(node)}
+        ${renderActions(node, state)}
       </div>
     </div>`;
 
@@ -455,7 +469,7 @@ function renderIceTimers() {
   return rows ? `<div class="ice-timers">${rows}</div>` : "";
 }
 
-function renderActions(node) {
+function renderActions(node, state) {
   const btns = [];
 
   if (node.accessLevel === "locked") {
@@ -476,6 +490,14 @@ function renderActions(node) {
   }
 
   if (node.accessLevel === "owned") {
+    const icePresent = state?.ice?.active && state.ice.attentionNodeId === node.id;
+    if (icePresent) {
+      btns.push(actionBtn("eject", "EJECT", "Boot ICE attention to a random adjacent node."));
+    }
+    if (!node.rebooting) {
+      btns.push(actionBtn("reboot", "REBOOT", "Force ICE home and take node offline 1–3s."));
+    }
+
     const hasLoot = node.macguffins.some((m) => !m.collected);
     btns.push(actionBtn("loot", node.looted ? "LOOT (done)" : "LOOT", "Collect macguffins for cash.", node.looted || !hasLoot));
     btns.push(actionBtn("subvert", "SUBVERT", "Deceive connected security monitors.", true));

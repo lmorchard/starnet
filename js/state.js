@@ -4,7 +4,7 @@
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
 import { resolveExploit } from "./combat.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
-import { clearAll as clearAllTimers } from "./timers.js";
+import { clearAll as clearAllTimers, scheduleEvent } from "./timers.js";
 
 let state = null;
 
@@ -35,6 +35,7 @@ export function initState(networkData) {
       read: false,
       looted: false,
       eventForwardingDisabled: false,
+      rebooting: false,           // true while node is temporarily offline after REBOOT
     };
   });
 
@@ -496,9 +497,45 @@ export function disableIce() {
   emit();
 }
 
+export function rebootNode(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node || node.rebooting) return;
+
+  // Send ICE attention back to resident node
+  rebootIce();
+
+  // Deselect the player from this node
+  if (state.selectedNodeId === nodeId) {
+    state.selectedNodeId = null;
+  }
+
+  // Lock the node temporarily
+  node.rebooting = true;
+  addLog(`${node.label}: REBOOTING — node offline temporarily.`, "info");
+
+  const durationMs = 1000 + Math.random() * 2000; // 1–3s
+  scheduleEvent("reboot-complete", durationMs, { nodeId }, { label: `REBOOT: ${node.label}` });
+
+  emit();
+}
+
+export function completeReboot(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node) return;
+  node.rebooting = false;
+  addLog(`${node.label}: back online.`, "info");
+  emit();
+}
+
 // ── Selection ────────────────────────────────────────────
 
 export function selectNode(nodeId) {
+  const node = state.nodes[nodeId];
+  if (node?.rebooting) {
+    addLog(`${node.label}: node is rebooting.`, "error");
+    emit();
+    return;
+  }
   state.selectedNodeId = nodeId;
   emit();
 }

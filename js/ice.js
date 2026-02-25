@@ -76,6 +76,15 @@ export function handleIceTick() {
     }
   }
 
+  // Don't move ICE to a rebooting node — pick a non-rebooting neighbor instead
+  if (s.nodes[nextNode]?.rebooting) {
+    const nonRebooting = neighbors.filter((n) => !s.nodes[n]?.rebooting);
+    nextNode = nonRebooting.length > 0
+      ? nonRebooting[Math.floor(Math.random() * nonRebooting.length)]
+      : null;
+    if (!nextNode) return;
+  }
+
   moveIceAttention(nextNode);
   checkIceDetection(nextNode);
 }

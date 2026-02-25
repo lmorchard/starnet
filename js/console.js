@@ -3,7 +3,7 @@
 
 import { addLogEntry, getState } from "./state.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "read", "loot", "reconfigure", "jackout", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "cheat"];
 
 let history = [];
 let historyIndex = -1;
@@ -63,6 +63,8 @@ function handleCommand(verb, args) {
     case "probe":        return cmdProbe(args);
     case "exploit":
     case "escalate":     return cmdExploit(args);
+    case "eject":        return cmdEject();
+    case "reboot":       return cmdReboot(args);
     case "read":         return cmdRead(args);
     case "loot":         return cmdLoot(args);
     case "reconfigure":  return cmdReconfigure(args);
@@ -214,6 +216,25 @@ function cmdReconfigure(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
   dispatch("starnet:action:reconfigure", { nodeId: node.id });
+}
+
+function cmdEject() {
+  const s = getState();
+  if (!s.ice?.active || s.ice.attentionNodeId !== s.selectedNodeId) {
+    addLogEntry("No ICE present at selected node.", "error");
+    return;
+  }
+  dispatch("starnet:action:eject", { nodeId: s.selectedNodeId });
+}
+
+function cmdReboot(args) {
+  const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  if (node.accessLevel !== "owned") {
+    addLogEntry(`${node.label}: must be owned to reboot.`, "error");
+    return;
+  }
+  dispatch("starnet:action:reboot", { nodeId: node.id });
 }
 
 function cmdJackout() {
