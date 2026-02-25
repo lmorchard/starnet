@@ -254,11 +254,16 @@ function cmdActions() {
   // jackout always available
   lines.push("  jackout                  — disconnect and end run");
 
-  // select: list accessible non-rebooting nodes
+  // select: list accessible non-rebooting nodes + revealed nodes (traverse)
   const accessible = Object.values(s.nodes)
     .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
-  if (accessible.length > 0) {
-    lines.push(`  select <nodeId>          — accessible: ${accessible.map((n) => n.id).join(", ")}`);
+  const revealed = Object.values(s.nodes)
+    .filter((n) => n.visibility === "revealed" && n.id !== s.selectedNodeId);
+  if (accessible.length > 0 || revealed.length > 0) {
+    const parts = [];
+    if (accessible.length > 0) parts.push(`accessible: ${accessible.map((n) => n.id).join(", ")}`);
+    if (revealed.length > 0) parts.push(`traverse: ${revealed.map((n) => n.id).join(", ")}`);
+    lines.push(`  select <nodeId>          — ${parts.join("  |  ")}`);
   }
 
   if (sel) {
@@ -349,7 +354,7 @@ function cmdStatusSummary() {
   // Selected node
   if (s.selectedNodeId) {
     const sel = s.nodes[s.selectedNodeId];
-    lines.push(`  Selected: ${s.selectedNodeId} [${sel.type}] ${sel.accessLevel}`);
+    lines.push(`  Selected: ${s.selectedNodeId} [${sel.type}] ${sel.accessLevel}  |  Node alert: ${sel.alertState.toUpperCase()}`);
   } else {
     lines.push(`  Selected: none`);
   }

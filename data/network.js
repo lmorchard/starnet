@@ -122,7 +122,7 @@ export const NETWORK = {
   startNode: "gateway",
 
   ice: {
-    grade: "C",       // D/F=random walk, C/B=disturbance-tracking, A/S=player-seeking
-    startNode: null,  // null = random node at init
+    grade: "C",          // D/F=random walk, C/B=disturbance-tracking, A/S=player-seeking
+    startNode: "security-monitor",  // far end of the network; 3 hops from gateway
   },
 };

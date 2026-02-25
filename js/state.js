@@ -156,6 +156,7 @@ export function accessNeighbors(nodeId) {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "revealed") {
       neighbor.visibility = "accessible";
+      emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label });
       revealNeighbors(neighborId); // expose the next ring
     }
   });
@@ -373,10 +374,12 @@ export function launchExploit(nodeId, exploitId) {
       node.accessLevel = "compromised";
       node.visibility = "accessible";
       revealNeighbors(nodeId);
+      accessNeighbors(nodeId);
       result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
       node.accessLevel = "owned";
       revealNeighbors(nodeId);
+      accessNeighbors(nodeId);
       result.levelChanged = true;
       // Owning the ICE resident node disables ICE
       if (state.ice?.active && state.ice.residentNodeId === nodeId) {

@@ -48,7 +48,7 @@ export function resolveExploit(exploit, node) {
   );
 
   const gradeModifier = GRADE_MODIFIER[node.grade] ?? 0.3;
-  const matchBonus = matchingVulns.length > 0 ? 0.2 : 0;
+  const matchBonus = matchingVulns.length > 0 ? 0.4 : 0;
   const successChance = Math.min(0.95, exploit.quality * gradeModifier + matchBonus);
 
   const roll = Math.random();
@@ -66,7 +66,7 @@ export function resolveExploit(exploit, node) {
     successChance: Math.round(successChance * 100),
     roll: Math.round(roll * 100),
     matchingVulns,
-    flavor: success ? pickSuccessFlavor(exploit, matchingVulns) : pickFailFlavor(exploit, disclosed),
+    flavor: success ? pickSuccessFlavor(exploit, matchingVulns) : pickFailFlavor(exploit, disclosed, matchingVulns),
   };
 }
 
@@ -82,18 +82,25 @@ const SUCCESS_FLAVORS = [
   () => `Exploit chain succeeded. Privilege level elevated.`,
 ];
 
-const FAIL_FLAVORS = [
-  (exploit, disclosed) =>
-    disclosed
-      ? `${exploit.name} triggered an IDS signature. Exploit characteristics logged.`
-      : `${exploit.name} failed — target patched or not vulnerable.`,
-  (_, disclosed) =>
-    disclosed
-      ? `Connection fingerprinted. Exploit pattern recorded by blue team.`
-      : `Exploit rejected. No matching attack surface found.`,
-  () => `Intrusion attempt detected and blocked.`,
-  (_, disclosed) =>
-    disclosed ? `Attack signature captured. This exploit is now burned.` : `Access denied.`,
+// Detected failure messages (exploit was logged/burned)
+const FAIL_FLAVORS_DETECTED = [
+  (exploit) => `${exploit.name} triggered an IDS signature. Exploit characteristics logged.`,
+  () => `Connection fingerprinted. Exploit pattern recorded by blue team.`,
+  (exploit) => `Attack signature captured. ${exploit.name} is now burned.`,
+];
+
+// Silent failure messages (failed without detection — split by whether a vuln matched)
+const FAIL_FLAVORS_MATCH = [
+  (exploit) => `${exploit.name}: access denied — hardened target.`,
+  () => `Authentication challenge failed.`,
+  () => `Intrusion attempt blocked.`,
+  (exploit) => `${exploit.name}: exploit ineffective against current defenses.`,
+];
+
+const FAIL_FLAVORS_NO_MATCH = [
+  (exploit) => `${exploit.name}: no matching attack surface found.`,
+  (exploit) => `${exploit.name}: target not vulnerable to this approach.`,
+  () => `Intrusion attempt blocked.`,
 ];
 
 function pickSuccessFlavor(exploit, vulns) {
@@ -101,7 +108,12 @@ function pickSuccessFlavor(exploit, vulns) {
   return fn(exploit, vulns);
 }
 
-function pickFailFlavor(exploit, disclosed) {
-  const fn = FAIL_FLAVORS[Math.floor(Math.random() * FAIL_FLAVORS.length)];
-  return fn(exploit, disclosed);
+function pickFailFlavor(exploit, disclosed, matchingVulns) {
+  if (disclosed) {
+    const fn = FAIL_FLAVORS_DETECTED[Math.floor(Math.random() * FAIL_FLAVORS_DETECTED.length)];
+    return fn(exploit);
+  }
+  const pool = matchingVulns.length > 0 ? FAIL_FLAVORS_MATCH : FAIL_FLAVORS_NO_MATCH;
+  const fn = pool[Math.floor(Math.random() * pool.length)];
+  return fn(exploit);
 }
