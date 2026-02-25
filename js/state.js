@@ -157,7 +157,7 @@ export function accessNeighbors(nodeId) {
     if (neighbor && neighbor.visibility === "revealed") {
       neighbor.visibility = "accessible";
       emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label, unlocked: true });
-      revealNeighbors(neighborId); // expose the next ring
+      // Don't cascade reveals here — deeper connections only exposed on compromise, not access.
     }
   });
 }
