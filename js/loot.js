@@ -91,6 +91,17 @@ const LOOT_CONFIG = {
   workstation:  { count: [0, 1] },
 };
 
+// Pick one macguffin at random from all loot nodes, mark it as the mission target,
+// and multiply its cash value by 10. Returns { id, name } for state to record.
+export function flagMissionMacguffin(nodes) {
+  const all = nodes.flatMap((n) => n.macguffins);
+  if (all.length === 0) return null;
+  const target = randomFrom(all);
+  target.isMission = true;
+  target.cashValue *= 10;
+  return { id: target.id, name: target.name };
+}
+
 export function assignMacguffins(nodes) {
   nodes.forEach((node) => {
     const config = LOOT_CONFIG[node.type];

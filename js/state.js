@@ -3,7 +3,7 @@
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
 import { resolveExploit } from "./combat.js";
-import { assignMacguffins } from "./loot.js";
+import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
 
 let state = null;
 
@@ -63,6 +63,16 @@ export function initState(networkData) {
 
   // Assign macguffins to loot nodes
   assignMacguffins(Object.values(nodes));
+
+  // Flag one macguffin as the mission target (10x value)
+  const missionTarget = flagMissionMacguffin(Object.values(nodes));
+  state.mission = missionTarget
+    ? { targetMacguffinId: missionTarget.id, targetName: missionTarget.name, complete: false }
+    : null;
+
+  if (state.mission) {
+    addLog(`// MISSION: Retrieve ${state.mission.targetName}`, "info");
+  }
 
   // Make start node accessible and reveal its neighbors
   accessNode(networkData.startNode);
@@ -356,6 +366,15 @@ export function lootNode(nodeId) {
   node.looted = true;
   state.player.cash += total;
   addLog(`Looted ${uncollected.length} item(s) from ${node.label}. +¥${total.toLocaleString()}`, "success");
+
+  if (state.mission && !state.mission.complete) {
+    const gotMission = uncollected.some((m) => m.id === state.mission.targetMacguffinId);
+    if (gotMission) {
+      state.mission.complete = true;
+      addLog(`// MISSION TARGET ACQUIRED: ${state.mission.targetName}`, "success");
+    }
+  }
+
   emit();
 }
 

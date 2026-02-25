@@ -35,6 +35,7 @@ export function initGraph(networkData, onNodeClick) {
     userZoomingEnabled: true,
     userPanningEnabled: true,
     boxSelectionEnabled: false,
+    wheelSensitivity: 0.3,
   });
 
   cy.on("tap", "node", (evt) => {

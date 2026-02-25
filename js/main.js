@@ -117,6 +117,30 @@ function init() {
   );
 }
 
+// ── Mission pane ──────────────────────────────────────────
+
+function syncMissionPane(state) {
+  const el = document.getElementById("sidebar-mission");
+  if (!el || !state.mission) return;
+
+  let statusClass, statusText;
+  if (state.mission.complete) {
+    statusClass = "mission-status-complete";
+    statusText = "STATUS: ██ COMPLETE";
+  } else if (state.phase === "ended") {
+    statusClass = "mission-status-failed";
+    statusText = "STATUS: ░░ FAILED";
+  } else {
+    statusClass = "mission-status-active";
+    statusText = "STATUS: ▶ ACTIVE";
+  }
+
+  el.innerHTML = `
+    <div class="mission-label">// MISSION</div>
+    <div class="mission-target">⬡ ${state.mission.targetName}</div>
+    <div class="${statusClass}">${statusText}</div>`;
+}
+
 // ── Log pane ──────────────────────────────────────────────
 
 function syncLogPane(log) {
@@ -194,6 +218,7 @@ function syncHud(state) {
     document.getElementById("hud").appendChild(el);
   }
   syncLogPane(state.log);
+  syncMissionPane(state);
 
   // End screen
   if (state.phase === "ended") {
@@ -272,8 +297,9 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-section-label">CONTENTS</div>
       <div class="nd-macguffins">
         ${node.macguffins.map((m) => `
-          <div class="macguffin ${m.collected ? "collected" : ""}">
+          <div class="macguffin ${m.collected ? "collected" : ""} ${m.isMission ? "mission-target" : ""}">
             <span class="mg-name">${m.name}</span>
+            ${m.isMission && !m.collected ? `<span class="mg-mission-tag">★ MISSION</span>` : ""}
             <span class="mg-value ${m.collected ? "mg-collected" : ""}">
               ${m.collected ? "EXTRACTED" : `¥${m.cashValue.toLocaleString()}`}
             </span>
@@ -311,6 +337,15 @@ function renderEndScreen(state) {
     return el;
   })();
 
+  const missionRow = state.mission ? (() => {
+    const complete = state.mission.complete;
+    const cls = complete ? "end-val end-mission-complete" : "end-val end-zero";
+    return `<div class="end-row">
+      <span class="end-key">MISSION</span>
+      <span class="${cls}">${complete ? "COMPLETE" : "FAILED"}</span>
+    </div>`;
+  })() : "";
+
   overlay.innerHTML = `
     <div class="end-box">
       <div class="end-title">${caught ? "▶ TRACED ◀" : "▶ RUN COMPLETE ◀"}</div>
@@ -319,6 +354,7 @@ function renderEndScreen(state) {
         <span class="end-key">CASH EXTRACTED</span>
         <span class="end-val ${caught ? "end-zero" : ""}">¥${state.player.cash.toLocaleString()}</span>
       </div>
+      ${missionRow}
       <div class="end-row">
         <span class="end-key">NODES COMPROMISED</span>
         <span class="end-val">${nodesCompromised}</span>

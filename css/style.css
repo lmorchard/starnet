@@ -167,6 +167,31 @@ html, body {
   overflow: hidden;
 }
 
+#sidebar-mission {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  background: #0a0a12;
+}
+
+.mission-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  margin-bottom: 0.2rem;
+}
+
+.mission-target {
+  font-size: 0.78rem;
+  color: var(--yellow);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+}
+
+.mission-status-active   { font-size: 0.7rem; color: var(--yellow); }
+.mission-status-complete { font-size: 0.7rem; color: var(--green); text-shadow: 0 0 4px var(--green); }
+.mission-status-failed   { font-size: 0.7rem; color: var(--red); }
+
 #sidebar-node {
   flex: 1 1 auto;
   overflow-y: auto;
@@ -501,8 +526,8 @@ html, body {
 }
 
 .log-entry           { color: var(--text-dim); }
-.log-entry.log-success { color: var(--green); }
-.log-entry.log-failure { color: var(--red); }
+.log-entry.log-success { color: #7fff7f; font-weight: bold; text-shadow: 0 0 4px rgba(0, 255, 65, 0.5); }
+.log-entry.log-failure { color: var(--red); font-weight: bold; text-shadow: 0 0 4px rgba(255, 32, 32, 0.5); }
 .log-entry.log-meta    { color: #335533; font-size: 0.65rem; }
 .log-entry.log-command { color: var(--cyan); }
 .log-entry.log-error   { color: var(--red); font-size: 0.78rem; }
@@ -530,6 +555,18 @@ html, body {
 .mg-name  { color: var(--green); flex: 1; }
 .mg-value { color: var(--cyan); white-space: nowrap; }
 .mg-collected { color: var(--text-dim); }
+
+.macguffin.mission-target .mg-name {
+  color: var(--yellow);
+  text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
+}
+
+.mg-mission-tag {
+  font-size: 0.62rem;
+  color: var(--yellow);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
 
 /* ── Trace Countdown ────────────────────────────────────── */
 
@@ -587,6 +624,7 @@ html, body {
 .end-key { color: var(--text-dim); letter-spacing: 0.08em; }
 .end-val { color: var(--green); text-shadow: 0 0 4px var(--green); }
 .end-val.end-zero { color: var(--red); text-shadow: 0 0 4px var(--red); }
+.end-val.end-mission-complete { color: var(--yellow); text-shadow: 0 0 6px rgba(255, 255, 0, 0.5); }
 
 .end-btn {
   background: transparent;
