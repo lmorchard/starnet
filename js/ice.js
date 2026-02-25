@@ -121,7 +121,11 @@ export function handleIceTick() {
 function checkIceDetection(nodeId) {
   const s = getState();
   if (!s.ice || !s.ice.active) return;
-  if (s.selectedNodeId !== nodeId) return;
+  if (s.selectedNodeId !== nodeId) {
+    // ICE moved away from player's node — cancel any pending dwell timer
+    cancelAllByType("ice-detect");
+    return;
+  }
   if (s.ice.detectedAtNode === nodeId) return; // already detected here; player must move first
 
   const dwellMs = DWELL_TIMES[s.ice.grade];
