@@ -100,6 +100,46 @@ All items from the spec checked off:
 
 ---
 
+## Session 4b — Polish & UX (2026-02-25)
+
+This was a continuation conversation on the same branch, addressing UX issues and incremental improvements discovered through play.
+
+### What Was Done
+
+- **Access level visual distinction** — border color now encodes access level: dim teal (locked), bright cyan (compromised), terminal green / 3px (owned). Previously all three shared the same cyan border.
+- **Alert visual distinction** — alerts moved off the border entirely onto an independent channel: background tint + shadow glow. Yellow: steady amber glow. Red: pulsing glow (JS animation loop, shadow-blur 8→22→8, ~1.1s cycle). Border now exclusively encodes access level; alert and access are fully orthogonal.
+- **Selection bug fix** — replaced Cytoscape's native `:selected` pseudo-class with a game-managed `game-selected` class. Previously the visual selection (magenta border) and game's `selectedNodeId` drifted out of sync: deselect cleared the sidebar but not the graph, clicking empty space cleared the graph but not the sidebar. Fix: `syncSelection(nodeId)` called on every statechange, native Cytoscape selection suppressed with `evt.target.unselect()`.
+- **Background tap → deselect** — clicking empty graph space now dispatches `starnet:action:deselect` via an `onBackgroundTap` callback passed to `initGraph`.
+- **Run-again zoom reset** — on new run, `cy.fit()` called immediately after `initState` so the viewport resets to the initial node cluster. Previously the zoom stayed at the previous run's position.
+- **Direct card clicking** — removed the EXPLOIT button; cards in the hand pane are always clickable when a node is selected. `isSelecting` condition simplified to `!!state.selectedNodeId`.
+- **ICE movement logging** — when ICE moves and either endpoint is on a compromised/owned node, a `// ICE: [from] → [to]` log entry is emitted. Uses `???` for non-visible endpoints.
+- **Exploit partial burn** — when disclosure fires, 60% chance of partial burn (1 extra use consumed, exploit survives) vs 40% full disclose. Guards on `usesRemaining > 1`. Logs `"signature partially leaked — N uses remaining"`.
+- **`status` console command** — dumps full game state in markdown: player cash/hand, alert/timers, ICE state, selected node, all accessible nodes with probed vulns, hand contents with decay state.
+- **Design principles in CLAUDE.md** — two new principles: (1) every visual event must have a corresponding log entry; (2) the console must be LLM-legible.
+- **Near-future iteration notes** — recorded the console-as-LLM-interface and unified game event bus architectural directions.
+
+### Insights
+
+**Two visual channels are better than one.** The original design encoded everything (access level, alert state) through border color. Separating them — border for access, glow/tint for alert — makes both more readable and eliminates override conflicts in the Cytoscape stylesheet. The key implementation detail: access-level styles must come before alert styles in the stylesheet so alerts can override if needed; but with independent channels there's nothing to override.
+
+**Cytoscape native selection is a trap.** The `:selected` pseudo-class is set/cleared by Cytoscape independently of game state, so any game that has its own selection model will drift. The fix (custom class, suppress native selection) is simple but the trap is easy to fall into. Worth noting in onboarding docs if this codebase grows.
+
+**"Forcing function" thinking is valuable.** The observation that a unified game event bus would make it *architecturally impossible* to add a visual without a log entry is a good design principle even if we don't implement it yet. The principle is captured in CLAUDE.md; the mechanism can come later.
+
+**LLM-legibility as a design constraint is novel and useful.** Treating the console as a complete text interface for an AI agent — not just a developer tool — immediately surfaces gaps (missing log entries, ambiguous state) that a purely human-focused design would miss.
+
+### Efficiency
+
+All work was reactive (no upfront plan) — user raised issues one at a time and they were addressed sequentially. This worked well because the issues were mostly independent. The selection bug fix required the most investigation (reading main.js to understand the full wiring), but was straightforward once the root cause was clear.
+
+No regressions or debugging cycles. The Cytoscape animate `null` values bug (from the previous context) was already fixed; no similar issues this session.
+
+### Conversation Turns
+
+Approximately 15–18 exchanges across the polish work plus the design discussion.
+
+---
+
 ## Near-Future Iteration Topics
 
 ### Console as LLM Interface
