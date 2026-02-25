@@ -24,6 +24,12 @@ function init() {
   // Action event listeners — handle both click-dispatched and console-dispatched events.
   // Click-sourced events (no fromConsole flag) echo their equivalent command to the log.
 
+  document.addEventListener("starnet:action:select", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> select ${evt.detail.nodeId}`, "command");
+    selectNode(evt.detail.nodeId);
+    sidebarMode = "node";
+  });
+
   document.addEventListener("starnet:action:probe", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
     probeNode(evt.detail.nodeId);
@@ -98,14 +104,16 @@ function syncLogPane(log) {
     const prefix = (entry.type === "command" || entry.type === "error") ? "" : "&gt; ";
     return `<div class="log-entry log-${entry.type}">${prefix}${entry.text}</div>`;
   }).join("");
+  el.scrollTop = el.scrollHeight;
 }
 
 function onNodeClick(nodeId) {
   const s = getState();
   const node = s.nodes[nodeId];
   if (!node || node.visibility === "hidden") return;
-  sidebarMode = "node";
-  selectNode(nodeId);
+  document.dispatchEvent(
+    new CustomEvent("starnet:action:select", { detail: { nodeId } })
+  );
 }
 
 // ── Graph sync ────────────────────────────────────────────
@@ -171,21 +179,22 @@ function syncHud(state) {
     return;
   }
 
-  const sidebar = document.getElementById("sidebar");
+  const sidebarNode = document.getElementById("sidebar-node");
   if (state.selectedNodeId) {
-    renderSidebarNode(sidebar, state.nodes[state.selectedNodeId], state);
+    renderSidebarNode(sidebarNode, state.nodes[state.selectedNodeId], state);
   } else {
-    sidebar.innerHTML = `<div class="sidebar-placeholder">
+    sidebarNode.innerHTML = `<div class="sidebar-placeholder">
       &gt; SELECT A NODE<br />&gt; TO BEGIN INTRUSION
     </div>`;
   }
+  syncHandPane(state);
 }
 
 // ── Sidebar rendering ─────────────────────────────────────
 
-function renderSidebarNode(sidebar, node, state) {
+function renderSidebarNode(sidebarNode, node, state) {
   if (node.visibility === "revealed") {
-    sidebar.innerHTML = `<div class="sidebar-placeholder">
+    sidebarNode.innerHTML = `<div class="sidebar-placeholder">
       [???] UNKNOWN NODE<br /><br />
       Signal detected on network.<br />
       Gain access to a connected node<br />to probe further.
@@ -194,7 +203,7 @@ function renderSidebarNode(sidebar, node, state) {
   }
 
   if (sidebarMode === "exploit-select") {
-    renderExploitSelect(sidebar, node, state);
+    renderExploitSelect(sidebarNode, node);
     return;
   }
 
@@ -216,7 +225,7 @@ function renderSidebarNode(sidebar, node, state) {
        </div>`
     : `<div class="nd-dim nd-indent">Run PROBE to reveal vulnerabilities.</div>`;
 
-  sidebar.innerHTML = `
+  sidebarNode.innerHTML = `
     <div class="node-detail">
       <div class="nd-header">
         <span class="nd-type">[${node.type.toUpperCase()}]</span>
@@ -254,11 +263,6 @@ function renderSidebarNode(sidebar, node, state) {
       <div class="nd-section-label">ACTIONS</div>
       <div class="nd-actions">
         ${renderActions(node)}
-      </div>
-      <div class="nd-divider">──────────────────</div>
-      <div class="nd-section-label">EXPLOIT HAND</div>
-      <div class="nd-hand">
-        ${state.player.hand.map(renderExploitCard).join("")}
       </div>
     </div>`;
 
@@ -375,46 +379,54 @@ function wireActionButtons(node) {
   });
 }
 
-function renderExploitSelect(sidebar, node, state) {
-  const usableCards = state.player.hand.filter(
-    (c) => c.decayState !== "disclosed"
-  );
-
-  sidebar.innerHTML = `
+function renderExploitSelect(sidebarNode, node) {
+  sidebarNode.innerHTML = `
     <div class="node-detail">
       <div class="nd-header">
         <span class="nd-type">[SELECT EXPLOIT]</span>
         <span class="nd-label">${node.label}</span>
       </div>
       <div class="nd-dim nd-indent">
-        Choose an exploit to launch against this node.
-        ${node.probed ? "Known vulnerabilities are highlighted." : "Probe the node first for better odds."}
-      </div>
-      <div class="nd-divider">──────────────────</div>
-      <div class="nd-hand selectable">
-        ${usableCards.map((card) => renderExploitCard(card, node)).join("")}
-        ${usableCards.length === 0 ? '<span class="nd-dim">No usable exploits.</span>' : ""}
+        Choose an exploit from your hand below.
+        ${node.probed ? "Matching cards are highlighted." : "Probe the node first for better odds."}
       </div>
       <div class="nd-divider">──────────────────</div>
       <button class="action-btn" data-action="cancel">[ CANCEL ]</button>
     </div>`;
 
-  // Wire exploit card clicks
-  sidebar.querySelectorAll(".exploit-card.selectable-card").forEach((el) => {
-    el.addEventListener("click", () => {
-      const exploitId = el.dataset.exploitId;
-      document.dispatchEvent(
-        new CustomEvent("starnet:action:launch-exploit", {
-          detail: { nodeId: node.id, exploitId },
-        })
-      );
-      sidebarMode = "node";
-    });
-  });
-
-  sidebar.querySelector("[data-action='cancel']")?.addEventListener("click", () => {
+  sidebarNode.querySelector("[data-action='cancel']")?.addEventListener("click", () => {
     document.dispatchEvent(new CustomEvent("starnet:action:cancel"));
   });
+}
+
+function syncHandPane(state) {
+  const el = document.getElementById("sidebar-hand");
+  if (!el) return;
+
+  const isSelecting = sidebarMode === "exploit-select" && state.selectedNodeId;
+  const targetNode = isSelecting ? state.nodes[state.selectedNodeId] : null;
+
+  el.innerHTML = `
+    <div class="nd-section-label">EXPLOIT HAND</div>
+    <div class="nd-hand ${isSelecting ? "selectable" : ""}">
+      ${state.player.hand.length === 0
+        ? '<span class="nd-dim">No exploits in hand.</span>'
+        : state.player.hand.map((c) => renderExploitCard(c, targetNode)).join("")}
+    </div>`;
+
+  if (isSelecting) {
+    el.querySelectorAll(".exploit-card.selectable-card").forEach((cardEl) => {
+      cardEl.addEventListener("click", () => {
+        const exploitId = cardEl.dataset.exploitId;
+        document.dispatchEvent(
+          new CustomEvent("starnet:action:launch-exploit", {
+            detail: { nodeId: state.selectedNodeId, exploitId },
+          })
+        );
+        sidebarMode = "node";
+      });
+    });
+  }
 }
 
 function renderExploitCard(card, targetNode = null) {
@@ -428,7 +440,7 @@ function renderExploitCard(card, targetNode = null) {
   let matchClass = "";
   if (targetNode?.probed) {
     const knownVulnIds = targetNode.vulnerabilities
-      .filter((v) => !v.patched)
+      .filter((v) => !v.patched && !v.hidden)
       .map((v) => v.id);
     const hasMatch = card.targetVulnTypes.some((t) => knownVulnIds.includes(t));
     matchClass = hasMatch ? "match" : "no-match";

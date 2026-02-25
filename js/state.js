@@ -363,8 +363,8 @@ const MAX_LOG = 8;
 
 // Private: used internally by state mutations (callers must emit() themselves)
 function addLog(text, type = "info") {
-  state.log.unshift({ text, type });
-  if (state.log.length > MAX_LOG) state.log.length = MAX_LOG;
+  state.log.push({ text, type });
+  if (state.log.length > MAX_LOG) state.log.splice(0, state.log.length - MAX_LOG);
 }
 
 // Public: for external callers (console, cheats) — adds log entry and emits
