@@ -76,8 +76,9 @@ export function initState(networkData) {
     ? { targetMacguffinId: missionTarget.id, targetName: missionTarget.name, complete: false }
     : null;
 
-  // Make start node accessible and reveal its neighbors
-  accessNode(networkData.startNode);
+  // Make start node accessible — neighbors stay hidden until compromised
+  state.nodes[networkData.startNode].visibility = "accessible";
+  emitEvent(E.NODE_REVEALED, { nodeId: networkData.startNode, label: state.nodes[networkData.startNode].label });
 
   // Spawn ICE if defined in network data
   if (networkData.ice) {
