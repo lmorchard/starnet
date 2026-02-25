@@ -21,7 +21,7 @@ function init() {
   initConsole();
   initVisualRenderer();  // must subscribe before initState fires STATE_CHANGED
   initState(NETWORK);
-  cy.fit(cy.nodes(".accessible, .revealed"), 50);
+  fitGraph(cy);
   startIce();
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate
@@ -149,10 +149,21 @@ function init() {
     sidebarMode = "node";
     initState(NETWORK);
     const cy = getCy();
-    if (cy) cy.fit(cy.nodes(".accessible, .revealed"), 50);
+    if (cy) fitGraph(cy);
     addIceNode();
     startIce();
   });
+}
+
+function fitGraph(cy) {
+  const visible = cy.nodes(".accessible, .revealed");
+  if (visible.length <= 1) {
+    // Single node — fit would zoom in absurdly; just center at a sane zoom level
+    cy.zoom(1.5);
+    cy.center(visible);
+  } else {
+    cy.fit(visible, 50);
+  }
 }
 
 function onNodeClick(nodeId) {

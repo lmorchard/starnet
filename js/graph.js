@@ -401,8 +401,11 @@ function updateEdgeVisibility() {
     const tgt = cy.getElementById(edge.data("target"));
     const srcVisible = !src.hasClass("hidden");
     const tgtVisible = !tgt.hasClass("hidden");
+    // Require at least one accessible endpoint — don't reveal edges between two ??? nodes
+    const srcAccessible = src.hasClass("accessible");
+    const tgtAccessible = tgt.hasClass("accessible");
 
-    if (srcVisible && tgtVisible) {
+    if (srcVisible && tgtVisible && (srcAccessible || tgtAccessible)) {
       edge.removeClass("hidden").addClass("visible");
       // Highlight path between two owned nodes
       if (src.hasClass("owned") && tgt.hasClass("owned")) {

@@ -34,12 +34,15 @@ export function initVisualRenderer() {
     clearTimeout(revealFitTimer);
     revealFitTimer = setTimeout(() => {
       const cy = getCy();
-      if (cy) {
-        cy.animate({
-          fit: { eles: cy.nodes(".accessible, .revealed"), padding: 50 },
-          duration: 500,
-        });
-      }
+      if (!cy) return;
+      const visible = cy.nodes(".accessible, .revealed");
+      // Skip animated fit for a single node — it would zoom in absurdly.
+      // The initial fitGraph() in main.js already positioned it correctly.
+      if (visible.length <= 1) return;
+      cy.animate({
+        fit: { eles: visible, padding: 50 },
+        duration: 500,
+      });
     }, 50);
   });
 }
