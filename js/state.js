@@ -392,6 +392,7 @@ export function launchExploit(nodeId, exploitId) {
       result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
       node.accessLevel = "owned";
+      node.alertState = "green";
       revealNeighbors(nodeId);
       accessNeighbors(nodeId);
       result.levelChanged = true;

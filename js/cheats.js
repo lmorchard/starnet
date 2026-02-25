@@ -143,6 +143,7 @@ function cheatOwn(args) {
   }
 
   node.accessLevel = "owned";
+  node.alertState = "green";
   node.visibility = "accessible";
   revealNeighbors(node.id);
   accessNeighbors(node.id);
