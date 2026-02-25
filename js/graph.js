@@ -107,7 +107,7 @@ function buildStylesheet() {
         "background-color": "#070710",
         "border-width": 2,
         "border-color": "#00ffff",
-        label: "data(label)",
+        label: "data(id)",
         color: "#00ff41",
         "font-family": "Courier New, monospace",
         "font-size": 9,
