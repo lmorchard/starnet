@@ -90,6 +90,8 @@ export function initState(networkData) {
       attentionNodeId: residentNodeId,
       active: true,
       dwellTimerId: null,
+      detectedAtNode: null,   // suppresses re-detection at same node until player moves
+      detectionCount: 0,      // cumulative; triggers trace at grade-based threshold
     };
   }
 
@@ -351,7 +353,6 @@ export function launchExploit(nodeId, exploitId) {
       node.accessLevel = "compromised";
       node.visibility = "accessible";
       revealNeighbors(nodeId);
-      accessNeighbors(nodeId); // foothold: adjacent revealed nodes become reachable
       result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
       node.accessLevel = "owned";
@@ -547,6 +548,21 @@ export function disableIce() {
   emit();
 }
 
+// Detection thresholds: how many detections before trace starts, by grade
+const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
+
+export function recordIceDetection(nodeId) {
+  if (!state.ice?.active) return;
+  state.ice.detectedAtNode = nodeId;
+  state.ice.detectionCount++;
+  // Don't restart trace if already counting down
+  if (state.traceSecondsRemaining !== null) return;
+  const threshold = DETECTION_TRACE_THRESHOLD[state.ice.grade] ?? 2;
+  if (state.ice.detectionCount >= threshold) {
+    startTraceCountdown();
+  }
+}
+
 export function rebootNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node || node.rebooting) return;
@@ -594,6 +610,23 @@ export function selectNode(nodeId) {
     return;
   }
   state.selectedNodeId = nodeId;
+  // Moving to a new node resets the per-node detection flag so ICE can detect again if it follows
+  if (state.ice) state.ice.detectedAtNode = null;
+
+  // Traversal: selecting a revealed ("???") node adjacent to any accessible node makes it
+  // accessible. This is how the player explores deeper into the network.
+  if (node && node.visibility === "revealed") {
+    const hasAccessibleNeighbor = (state.adjacency[nodeId] || []).some(
+      (nid) => state.nodes[nid]?.visibility === "accessible"
+    );
+    if (hasAccessibleNeighbor) {
+      node.visibility = "accessible";
+      revealNeighbors(nodeId);
+      emitEvent(E.NODE_REVEALED, { nodeId, label: node.label });
+      emitEvent(E.LOG_ENTRY, { text: `[NODE] ${node.label}: signal traced. Node accessible.`, type: "info" });
+    }
+  }
+
   emit();
 }
 

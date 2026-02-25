@@ -41,12 +41,13 @@ function stopRedPulse(node) {
 function runRedPulse(node) {
   const id = node.id();
   if (!pulsingNodes.has(id)) return;
+  // shadow-blur/shadow-opacity are invalid for animate(); use border instead
   node.animate(
-    { style: { "shadow-blur": 22, "shadow-opacity": 1.0 } },
+    { style: { "border-color": "#ff6060", "border-width": 4 } },
     { duration: 400, complete: () => {
       if (!pulsingNodes.has(id)) return;
       node.animate(
-        { style: { "shadow-blur": 8, "shadow-opacity": 0.5 } },
+        { style: { "border-color": "#ff2020", "border-width": 2 } },
         { duration: 700, complete: () => runRedPulse(node) }
       );
     }}

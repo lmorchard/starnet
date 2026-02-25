@@ -1,8 +1,7 @@
 // ICE AI — movement tick logic, detection, and dwell timer handling.
 // Imported by main.js; uses timer system for all timed events.
 
-import { getState, moveIceAttention } from "./state.js";
-import { propagateAlertEvent } from "./state.js";
+import { getState, moveIceAttention, propagateAlertEvent, recordIceDetection } from "./state.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType } from "./timers.js";
 import { emitEvent, E } from "./events.js";
 
@@ -107,6 +106,7 @@ function checkIceDetection(nodeId) {
   const s = getState();
   if (!s.ice || !s.ice.active) return;
   if (s.selectedNodeId !== nodeId) return;
+  if (s.ice.detectedAtNode === nodeId) return; // already detected here; player must move first
 
   const dwellMs = DWELL_TIMES[s.ice.grade];
   cancelAllByType("ice-detect");
@@ -135,6 +135,7 @@ function triggerDetection(nodeId) {
   const s = getState();
   emitEvent(E.ICE_DETECTED, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId });
   propagateAlertEvent(nodeId);
+  recordIceDetection(nodeId); // tracks count and may start trace
 }
 
 export function cancelIceDwell() {

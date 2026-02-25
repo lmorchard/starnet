@@ -20,8 +20,10 @@ export function handleCheatCommand(args) {
     return cheatSet(args.slice(1));
   } else if (sub === "own") {
     return cheatOwn(args.slice(1));
+  } else if (sub === "help") {
+    return cheatHelp();
   } else {
-    addLogEntry(`Unknown cheat: ${args.join(" ")}. Try: give card, give cash, set alert, own <node>`, "error");
+    addLogEntry(`Unknown cheat: ${args.join(" ")}. Run "cheat help" for usage.`, "error");
     return false;
   }
 }
@@ -100,6 +102,19 @@ function cheatOwn(args) {
   accessNeighbors(node.id);
   activateCheat();
   addLogEntry(`CHEAT: ${node.label} set to OWNED.`, "success");
+  return true;
+}
+
+// CHEAT: help
+function cheatHelp() {
+  const lines = [
+    "[CHEAT] Playtesting only. Cheaters never win.",
+    "  cheat give card [rarity]  Add exploit card. Rarities: common uncommon rare",
+    "  cheat give cash <amount>  Add credits to wallet.",
+    "  cheat set alert <level>   Force alert level: green yellow red trace",
+    "  cheat own <node>          Set node to owned + reveal neighbors.",
+  ];
+  lines.forEach((line) => addLogEntry(line, "meta"));
   return true;
 }
 

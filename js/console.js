@@ -477,7 +477,11 @@ function cmdHelp() {
     "  status [noun]             Game state. Nouns: ice hand node alert mission",
     "  log [n]                   Replay last n log entries (default: 20).",
     "  help                      Show this listing.",
-    "  cheat <args>              Cheat commands (see: cheat help).",
+    "  // CHEAT — playtesting only. Cheaters never win.",
+    "  cheat give card [rarity]  Add exploit card. Rarities: common uncommon rare",
+    "  cheat give cash <amount>  Add credits to wallet.",
+    "  cheat set alert <level>   Force alert level: green yellow red trace",
+    "  cheat own <node>          Set node to owned + reveal neighbors.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
 }

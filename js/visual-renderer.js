@@ -9,6 +9,11 @@ import { getVisibleTimers } from "./timers.js";
 // Updated by main.js via setSidebarMode() when action events change mode.
 let sidebarMode = "node";
 
+// Debounce handle for NODE_REVEALED viewport fit.
+// Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
+// queue overlapping cy.animate() calls that fight each other.
+let revealFitTimer = null;
+
 export function setSidebarMode(mode) {
   sidebarMode = mode;
 }
@@ -25,14 +30,17 @@ export function initVisualRenderer() {
   on(E.NODE_ACCESSED,   ({ nodeId }) => flashNode(nodeId, "success"));
   on(E.NODE_REVEALED,   ({ nodeId }) => {
     flashNode(nodeId, "reveal");
-    // Fit viewport to show newly visible nodes
-    const cy = getCy();
-    if (cy) {
-      cy.animate({
-        fit: { eles: cy.nodes(".accessible, .revealed"), padding: 50 },
-        duration: 500,
-      });
-    }
+    // Debounce fit — batch simultaneous reveals into one viewport adjustment
+    clearTimeout(revealFitTimer);
+    revealFitTimer = setTimeout(() => {
+      const cy = getCy();
+      if (cy) {
+        cy.animate({
+          fit: { eles: cy.nodes(".accessible, .revealed"), padding: 50 },
+          duration: 500,
+        });
+      }
+    }, 50);
   });
 }
 
