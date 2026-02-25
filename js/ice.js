@@ -101,10 +101,10 @@ function checkIceDetection(nodeId) {
     // Instant detection — no escape possible
     triggerDetection(nodeId);
   } else {
-    const label = `ICE DETECTION`;
-    addLogEntry(`// ICE AT ${s.nodes[nodeId]?.label ?? nodeId} — DISENGAGE OR EJECT`, "error");
-    const timerId = scheduleEvent("ice-detect", dwellMs, { nodeId }, { label });
+    // Schedule timer first so it's in the Map when addLogEntry triggers the UI re-render
+    const timerId = scheduleEvent("ice-detect", dwellMs, { nodeId }, { label: "ICE DETECTION" });
     s.ice.dwellTimerId = timerId;
+    addLogEntry(`// ICE AT ${s.nodes[nodeId]?.label ?? nodeId} — DISENGAGE OR EJECT`, "error");
   }
 }
 
