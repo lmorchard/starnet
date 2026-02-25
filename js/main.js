@@ -2,6 +2,7 @@ import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle, getCy, flashNode } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
 import { getVisibleTimers } from "./timers.js";
+import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole } from "./console.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
@@ -11,10 +12,13 @@ function init() {
   initState(NETWORK);
   const cy = initGraph(NETWORK, onNodeClick);
   initConsole();
+  startIce();
 
   document.addEventListener("starnet:statechange", (evt) => {
-    syncGraph(evt.detail);
-    syncHud(evt.detail);
+    const s = evt.detail;
+    if (s.phase === "ended") stopIce();
+    syncGraph(s);
+    syncHud(s);
   });
 
   // Wire HUD jack-out button → dispatches action event
@@ -35,9 +39,13 @@ function init() {
   });
 
   document.addEventListener("starnet:action:deselect", () => {
+    cancelIceDwell();
     deselectNode();
     sidebarMode = "node";
   });
+
+  document.addEventListener("starnet:timer:ice-move", () => handleIceTick());
+  document.addEventListener("starnet:timer:ice-detect", (evt) => handleIceDetect(evt.detail));
 
   document.addEventListener("starnet:action:probe", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
@@ -412,11 +420,12 @@ function renderEndScreen(state) {
 
   document.getElementById("run-again-btn").addEventListener("click", () => {
     overlay.remove();
-    // Re-init game state
+    // Re-init game state and restart ICE
     import("./state.js").then(({ initState }) => {
       import("../data/network.js").then(({ NETWORK }) => {
         sidebarMode = "node";
         initState(NETWORK);
+        startIce();
       });
     });
   });
