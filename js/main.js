@@ -14,13 +14,14 @@ let sidebarMode = "node";
 
 function init() {
   initLogRenderer();
-  initState(NETWORK);
   const cy = initGraph(NETWORK, onNodeClick, () => {
     document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
   });
   addIceNode();
   initConsole();
-  initVisualRenderer();
+  initVisualRenderer();  // must subscribe before initState fires STATE_CHANGED
+  initState(NETWORK);
+  cy.fit(cy.nodes(".accessible, .revealed"), 50);
   startIce();
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate
@@ -148,7 +149,7 @@ function init() {
     sidebarMode = "node";
     initState(NETWORK);
     const cy = getCy();
-    if (cy) cy.fit(cy.nodes(".accessible, .revealed"), 80);
+    if (cy) cy.fit(cy.nodes(".accessible, .revealed"), 50);
     addIceNode();
     startIce();
   });

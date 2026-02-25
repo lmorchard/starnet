@@ -29,7 +29,7 @@ export function initVisualRenderer() {
     const cy = getCy();
     if (cy) {
       cy.animate({
-        fit: { eles: cy.nodes(".accessible, .revealed"), padding: 80 },
+        fit: { eles: cy.nodes(".accessible, .revealed"), padding: 50 },
         duration: 500,
       });
     }
