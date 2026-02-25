@@ -86,6 +86,9 @@ function runYellowPulse(node) {
 export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   const elements = buildElements(networkData);
 
+  // HACK: Cytoscape warns about wheelSensitivity being non-default; suppress that one specific warning.
+  const _warn = console.warn;
+  console.warn = (...args) => { if (!String(args[0]).includes("wheel sensitivity")) _warn(...args); };
   cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
     elements,
@@ -96,6 +99,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     boxSelectionEnabled: false,
     wheelSensitivity: 0.3,
   });
+  console.warn = _warn;
 
   cy.on("tap", "node", (evt) => {
     evt.target.unselect(); // prevent Cytoscape native selection from conflicting with game state
@@ -180,10 +184,6 @@ function buildStylesheet() {
         "text-margin-y": 6,
         "text-outline-color": "#0a0a0f",
         "text-outline-width": 2,
-        "shadow-blur": 0,
-        "shadow-opacity": 0,
-        "shadow-offset-x": 0,
-        "shadow-offset-y": 0,
       },
     },
     // Access level — compromised (cyan border = partial access)
@@ -203,28 +203,18 @@ function buildStylesheet() {
         "border-width": 3,
       },
     },
-    // Alert state: yellow — amber tint + yellow glow (border unchanged = access level)
+    // Alert state: yellow — amber background tint (pulse driven by JS animation; border unchanged = access level)
     {
       selector: "node.accessible.alert-yellow",
       style: {
         "background-color": "#1a1400",
-        "shadow-blur": 14,
-        "shadow-color": "#ffff00",
-        "shadow-offset-x": 0,
-        "shadow-offset-y": 0,
-        "shadow-opacity": 0.7,
       },
     },
-    // Alert state: red — red tint + red glow (pulse driven by JS animation)
+    // Alert state: red — red background tint (pulse driven by JS animation)
     {
       selector: "node.accessible.alert-red",
       style: {
         "background-color": "#1a0000",
-        "shadow-blur": 8,
-        "shadow-color": "#ff2020",
-        "shadow-offset-x": 0,
-        "shadow-offset-y": 0,
-        "shadow-opacity": 0.5,
       },
     },
     // Selected node — magenta ring (managed by game state, not Cytoscape native selection)

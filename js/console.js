@@ -4,6 +4,7 @@
 import { getState } from "./state.js";
 import { addLogEntry, getRecentLog } from "./log-renderer.js";
 import { getVisibleTimers } from "./timers.js";
+import { exploitSortKey } from "./exploits.js";
 
 const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "log", "help", "cheat"];
 const STATUS_NOUNS = ["ice", "hand", "node", "alert", "mission"];
@@ -123,15 +124,6 @@ function resolveImplicitNode() {
 }
 
 // Mirrors the sort order used by the hand pane when a node is selected.
-function handSortKey(card, node) {
-  if (card.decayState === "disclosed") return 3;
-  if (!node?.probed) return 1;
-  const knownVulnIds = node.vulnerabilities
-    .filter((v) => !v.patched && !v.hidden)
-    .map((v) => v.id);
-  return card.targetVulnTypes.some((t) => knownVulnIds.includes(t)) ? 0 : 2;
-}
-
 function resolveCard(token) {
   const s = getState();
   if (!token) return null;
@@ -142,7 +134,7 @@ function resolveCard(token) {
   if (!isNaN(num) && num >= 1 && num <= s.player.hand.length) {
     const selectedNode = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
     const hand = selectedNode
-      ? [...s.player.hand].sort((a, b) => handSortKey(a, selectedNode) - handSortKey(b, selectedNode))
+      ? [...s.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
       : s.player.hand;
     return hand[num - 1] || null;
   }
@@ -362,7 +354,7 @@ function cmdStatusHand() {
   const s = getState();
   const selectedNode = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
   const hand = selectedNode
-    ? [...s.player.hand].sort((a, b) => handSortKey(a, selectedNode) - handSortKey(b, selectedNode))
+    ? [...s.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : s.player.hand;
   const lines = ["## STATUS: HAND"];
   if (hand.length === 0) {

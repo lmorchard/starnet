@@ -4,6 +4,7 @@
 import { on, E } from "./events.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
+import { exploitSortKey } from "./exploits.js";
 
 // Sidebar UI mode — kept here since it affects render output.
 // Updated by main.js via setSidebarMode() when action events change mode.
@@ -329,15 +330,6 @@ function wireActionButtons(node) {
 
 // ── Hand pane ─────────────────────────────────────────────
 
-function cardSortKey(card, node) {
-  if (card.decayState === "disclosed") return 3;
-  if (!node?.probed) return 1;
-  const knownVulnIds = node.vulnerabilities
-    .filter((v) => !v.patched && !v.hidden)
-    .map((v) => v.id);
-  return card.targetVulnTypes.some((t) => knownVulnIds.includes(t)) ? 0 : 2;
-}
-
 function syncHandPane(state) {
   const el = document.getElementById("sidebar-hand");
   if (!el) return;
@@ -345,7 +337,7 @@ function syncHandPane(state) {
   const isSelecting = !!state.selectedNodeId;
   const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
   const sortedHand = selectedNode
-    ? [...state.player.hand].sort((a, b) => cardSortKey(a, selectedNode) - cardSortKey(b, selectedNode))
+    ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : state.player.hand;
 
   el.innerHTML = `
