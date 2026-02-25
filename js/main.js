@@ -4,11 +4,13 @@ import { initState, getState, selectNode, deselectNode, probeNode, launchExploit
 import { getVisibleTimers } from "./timers.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole } from "./console.js";
+import { on, E } from "./events.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 let sidebarMode = "node";
 
 function init() {
+  initLogPane();
   initState(NETWORK);
   const cy = initGraph(NETWORK, onNodeClick, () => {
     document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
@@ -17,8 +19,7 @@ function init() {
   initConsole();
   startIce();
 
-  document.addEventListener("starnet:statechange", (evt) => {
-    const s = evt.detail;
+  on(E.STATE_CHANGED, (s) => {
     if (s.phase === "ended") stopIce();
     syncGraph(s);
     syncHud(s);
@@ -147,9 +148,6 @@ function init() {
     completeReboot(evt.detail.nodeId);
   });
 
-  document.dispatchEvent(
-    new CustomEvent("starnet:statechange", { detail: getState() })
-  );
 }
 
 // ── Mission pane ──────────────────────────────────────────
@@ -177,11 +175,23 @@ function syncMissionPane(state) {
 }
 
 // ── Log pane ──────────────────────────────────────────────
+// Temporary: log buffer lives here until log-renderer.js takes over in Step 4.
 
-function syncLogPane(log) {
+const MAX_LOG = 8;
+const logBuffer = [];
+
+function initLogPane() {
+  on(E.LOG_ENTRY, ({ text, type }) => {
+    logBuffer.push({ text, type });
+    if (logBuffer.length > MAX_LOG) logBuffer.splice(0, logBuffer.length - MAX_LOG);
+    renderLogPane();
+  });
+}
+
+function renderLogPane() {
   const el = document.getElementById("log-entries");
   if (!el) return;
-  el.innerHTML = (log || []).map((entry) => {
+  el.innerHTML = logBuffer.map((entry) => {
     const prefix = (entry.type === "command" || entry.type === "error") ? "" : "&gt; ";
     return `<div class="log-entry log-${entry.type}">${prefix}${entry.text}</div>`;
   }).join("");
@@ -286,7 +296,6 @@ function syncHud(state) {
     el.textContent = "// CHEAT";
     document.getElementById("hud").appendChild(el);
   }
-  syncLogPane(state.log);
   syncMissionPane(state);
 
   // End screen

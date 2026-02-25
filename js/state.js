@@ -1,10 +1,11 @@
 // Central game state — all mutations go through these functions.
-// After each mutation, a 'starnet:statechange' event is dispatched.
+// After each mutation, emitEvent(E.STATE_CHANGED, state) is called via emit().
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
 import { resolveExploit } from "./combat.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
 import { clearAll as clearAllTimers, scheduleEvent } from "./timers.js";
+import { emitEvent, E } from "./events.js";
 
 let state = null;
 
@@ -59,7 +60,6 @@ export function initState(networkData) {
     selectedNodeId: null,
     phase: "playing",       // 'playing' | 'ended'
     runOutcome: null,       // 'success' | 'caught'
-    log: [],               // recent action messages [{text, type}]
     isCheating: false,     // set true on first cheat command use
     ice: null,             // populated below if network defines ICE
     lastDisturbedNodeId: null,
@@ -441,15 +441,12 @@ export function reconfigureNode(nodeId) {
 
 // ── Message log ──────────────────────────────────────────
 
-const MAX_LOG = 8;
-
-// Private: used internally by state mutations (callers must emit() themselves)
+// Private: emit a log entry event. Callers must still call emit() for state:changed.
 function addLog(text, type = "info") {
-  state.log.push({ text, type });
-  if (state.log.length > MAX_LOG) state.log.splice(0, state.log.length - MAX_LOG);
+  emitEvent(E.LOG_ENTRY, { text, type });
 }
 
-// Public: for external callers (console, cheats) — adds log entry and emits
+// Public: for external callers (console, cheats) — adds log entry and emits state change
 export function addLogEntry(text, type = "info") {
   addLog(text, type);
   emit();
@@ -558,7 +555,5 @@ export function deselectNode() {
 
 function emit() {
   window._starnetState = state; // dev convenience
-  document.dispatchEvent(
-    new CustomEvent("starnet:statechange", { detail: state })
-  );
+  emitEvent(E.STATE_CHANGED, state);
 }
