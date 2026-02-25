@@ -24,8 +24,36 @@ const GRADE_COLORS = {
 
 let cy = null;
 let prevIceNodeId = null; // tracks ICE's last position for movement flash
+const pulsingNodes = new Set(); // nodeIds currently running the red-alert pulse loop
 
-export function initGraph(networkData, onNodeClick) {
+function startRedPulse(node) {
+  const id = node.id();
+  if (pulsingNodes.has(id)) return;
+  pulsingNodes.add(id);
+  runRedPulse(node);
+}
+
+function stopRedPulse(node) {
+  pulsingNodes.delete(node.id());
+  node.removeStyle("shadow-blur shadow-opacity");
+}
+
+function runRedPulse(node) {
+  const id = node.id();
+  if (!pulsingNodes.has(id)) return;
+  node.animate(
+    { style: { "shadow-blur": 22, "shadow-opacity": 1.0 } },
+    { duration: 400, complete: () => {
+      if (!pulsingNodes.has(id)) return;
+      node.animate(
+        { style: { "shadow-blur": 8, "shadow-opacity": 0.5 } },
+        { duration: 700, complete: () => runRedPulse(node) }
+      );
+    }}
+  );
+}
+
+export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   const elements = buildElements(networkData);
 
   cy = window._cy = cytoscape({
@@ -40,8 +68,13 @@ export function initGraph(networkData, onNodeClick) {
   });
 
   cy.on("tap", "node", (evt) => {
+    evt.target.unselect(); // prevent Cytoscape native selection from conflicting with game state
     const nodeId = evt.target.id();
     onNodeClick(nodeId);
+  });
+
+  cy.on("tap", (evt) => {
+    if (evt.target === cy && onBackgroundTap) onBackgroundTap();
   });
 
   return cy;
@@ -98,7 +131,7 @@ function buildStylesheet() {
         "text-margin-y": 5,
       },
     },
-    // Accessible nodes — base (cyan border)
+    // Accessible nodes — base (dim teal border = locked, no glow)
     {
       selector: "node.accessible",
       style: {
@@ -107,7 +140,7 @@ function buildStylesheet() {
         height: 46,
         "background-color": "#070710",
         "border-width": 2,
-        "border-color": "#00ffff",
+        "border-color": "#004444",
         label: "data(id)",
         color: "#00ff41",
         "font-family": "Courier New, monospace",
@@ -117,30 +150,56 @@ function buildStylesheet() {
         "text-margin-y": 6,
         "text-outline-color": "#0a0a0f",
         "text-outline-width": 2,
+        "shadow-blur": 0,
+        "shadow-opacity": 0,
+        "shadow-offset-x": 0,
+        "shadow-offset-y": 0,
       },
     },
-    // Alert state: yellow
-    {
-      selector: "node.accessible.alert-yellow",
-      style: { "border-color": "#ffff00" },
-    },
-    // Alert state: red
-    {
-      selector: "node.accessible.alert-red",
-      style: { "border-color": "#ff2020", "border-width": 3 },
-    },
-    // Access level fill
+    // Access level — compromised (cyan border = partial access)
     {
       selector: "node.accessible.compromised",
-      style: { "background-color": "#04041a" },
+      style: {
+        "background-color": "#04041a",
+        "border-color": "#00ffff",
+      },
     },
+    // Access level — owned (green border = full control)
     {
       selector: "node.accessible.owned",
-      style: { "background-color": "#031208" },
+      style: {
+        "background-color": "#031208",
+        "border-color": "#00ff41",
+        "border-width": 3,
+      },
     },
-    // Selected node — magenta ring
+    // Alert state: yellow — amber tint + yellow glow (border unchanged = access level)
     {
-      selector: "node:selected",
+      selector: "node.accessible.alert-yellow",
+      style: {
+        "background-color": "#1a1400",
+        "shadow-blur": 14,
+        "shadow-color": "#ffff00",
+        "shadow-offset-x": 0,
+        "shadow-offset-y": 0,
+        "shadow-opacity": 0.7,
+      },
+    },
+    // Alert state: red — red tint + red glow (pulse driven by JS animation)
+    {
+      selector: "node.accessible.alert-red",
+      style: {
+        "background-color": "#1a0000",
+        "shadow-blur": 8,
+        "shadow-color": "#ff2020",
+        "shadow-offset-x": 0,
+        "shadow-offset-y": 0,
+        "shadow-opacity": 0.5,
+      },
+    },
+    // Selected node — magenta ring (managed by game state, not Cytoscape native selection)
+    {
+      selector: "node.game-selected",
       style: {
         "border-color": "#ff00ff",
         "border-width": 3,
@@ -283,6 +342,13 @@ export function updateNodeStyle(nodeId, nodeState) {
     if (nodeState.alertState === "yellow") node.addClass("alert-yellow");
     if (nodeState.alertState === "red") node.addClass("alert-red");
 
+    // Red pulse animation
+    if (nodeState.alertState === "red") {
+      startRedPulse(node);
+    } else if (pulsingNodes.has(nodeId)) {
+      stopRedPulse(node);
+    }
+
     // Shape by node type
     const networkNode = cy.getElementById(nodeId);
     const type = networkNode.data("type");
@@ -317,6 +383,12 @@ function updateEdgeVisibility() {
 
 export function getCy() {
   return cy;
+}
+
+export function syncSelection(nodeId) {
+  if (!cy) return;
+  cy.nodes().removeClass("game-selected");
+  if (nodeId) cy.getElementById(nodeId).addClass("game-selected");
 }
 
 export function addIceNode() {

@@ -23,6 +23,10 @@ export function stopIce() {
   cancelAllByType("ice-detect");
 }
 
+function isPlayerVisible(nodeState) {
+  return nodeState?.accessLevel === "compromised" || nodeState?.accessLevel === "owned";
+}
+
 // BFS: returns the first hop on the shortest path from src toward dst.
 // Returns null if src === dst or no path exists.
 function nextHopToward(src, dst, adjacency) {
@@ -85,7 +89,18 @@ export function handleIceTick() {
     if (!nextNode) return;
   }
 
+  const fromId = attentionNodeId; // capture before move
   moveIceAttention(nextNode);
+
+  // Log movement when visible to player (either endpoint is compromised/owned)
+  const fromVisible = isPlayerVisible(s.nodes[fromId]);
+  const toVisible = isPlayerVisible(s.nodes[nextNode]);
+  if (fromVisible || toVisible) {
+    const fromLabel = fromVisible ? (s.nodes[fromId]?.label ?? fromId) : "???";
+    const toLabel = toVisible ? (s.nodes[nextNode]?.label ?? nextNode) : "???";
+    addLogEntry(`// ICE: ${fromLabel} → ${toLabel}`, "error");
+  }
+
   checkIceDetection(nextNode);
 }
 

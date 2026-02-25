@@ -97,3 +97,58 @@ All items from the spec checked off:
 - [x] Rebooting node cannot be selected
 - [x] Owning ICE's resident node disables ICE
 - [x] ICE dwell countdown shown in sidebar
+
+---
+
+## Near-Future Iteration Topics
+
+### Console as LLM Interface
+
+The console log + command interface has been identified as a potential LLM legibility layer — sufficient for an AI agent to observe and play the game without the visual graph. Current state:
+
+- `status` command dumps full game state in markdown
+- All game events have (or should have) corresponding log entries
+- All actions are issuable as console commands
+
+**Potential next steps:**
+
+1. **Typed event log**: Replace ad-hoc `addLogEntry` strings with a structured `logEvent(type, payload)` call that both renders a human-readable line and records a machine-readable event. Would enable an LLM to parse a clean event stream rather than scraping text.
+
+2. **Formal log message conventions**: Define consistent prefixes/formats per event category (e.g. `ICE:`, `EXPLOIT:`, `ALERT:`, `NODE:`). Currently somewhat consistent but informal.
+
+3. **LLM playtest harness**: A script that feeds `status` output + log to an LLM and reads back console commands. Would validate both game balance and the completeness of the text interface.
+
+4. **Richer `status` subcommands**: e.g. `status ice`, `status hand`, `status node <id>` for targeted queries without full dump noise.
+
+**Recommendation**: Don't formalize the event structure until building an actual LLM agent — requirements will clarify at that point. The current ad-hoc approach with consistent discipline (every visual event logged) is good enough for now. The `status` command is the main investment needed.
+
+### Unified Game Event Bus (Visual + Log Forcing Function)
+
+Currently, imperative game events (ICE movement, exploit resolution, alert escalation) produce two independent side effects: a log entry (via `addLogEntry` in state/ice modules) and a visual effect (via Cytoscape animations in `graph.js`). These are not explicitly linked — it's possible to add one without the other.
+
+**Proposed architecture**: a `emitGameEvent(type, payload)` function that drives both simultaneously. Each event type registers a log formatter and an optional visual handler:
+
+```js
+emitGameEvent("ice:move", { fromId, toId });
+// → formats: "// ICE: Gateway → Fileserver-1" into log
+// → triggers: flashIcePath(fromId, toId) in graph
+```
+
+The key property: it is architecturally impossible to produce a visual event without simultaneously defining its log representation. This is the "forcing function" for LLM legibility.
+
+**What needs unification** (imperative events with side effects):
+- ICE movement, detection, dwell
+- Exploit success/failure/disclosure
+- Alert escalation, propagation
+- Node access level changes
+- Reboot start/complete, EJECT
+
+**What doesn't need it** (idempotent state renders):
+- `syncGraph` — reads state, updates Cytoscape classes; already correct by construction
+
+**Tradeoffs**:
+- Adds an indirection layer; currently the code is direct and readable
+- Requires deciding where in the flow events are emitted (during mutation, or after?)
+- Some events (exploit resolution) already have rich payload context available at mutation time — easy to unify. Others (graph flashes) are currently triggered from graph.js which doesn't know game semantics — would need restructuring.
+
+**Recommendation**: Good candidate for a dedicated session once the game has more event types and the cost of the current approach is felt more clearly. The `status` command + "every event logged" discipline is the right interim step.

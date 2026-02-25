@@ -2,8 +2,9 @@
 // Handles input, history, tab completion, and command dispatch.
 
 import { addLogEntry, getState } from "./state.js";
+import { getVisibleTimers } from "./timers.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "cheat"];
 
 let history = [];
 let historyIndex = -1;
@@ -69,6 +70,7 @@ function handleCommand(verb, args) {
     case "loot":         return cmdLoot(args);
     case "reconfigure":  return cmdReconfigure(args);
     case "jackout":      return cmdJackout();
+    case "status":       return cmdStatus();
     case "cheat":        return cmdCheat(args);
     default:
       addLogEntry(`Unknown command: ${verb}`, "error");
@@ -235,6 +237,85 @@ function cmdReboot(args) {
     return;
   }
   dispatch("starnet:action:reboot", { nodeId: node.id });
+}
+
+function cmdStatus() {
+  const s = getState();
+  const timers = getVisibleTimers();
+  const lines = [];
+
+  // Player
+  const worn = s.player.hand.filter((c) => c.decayState === "worn").length;
+  const disclosed = s.player.hand.filter((c) => c.decayState === "disclosed").length;
+  const handDesc = `hand: ${s.player.hand.length} exploits`
+    + (worn      ? `, ${worn} worn`      : "")
+    + (disclosed ? `, ${disclosed} disclosed` : "");
+  lines.push(`## STATUS`);
+  lines.push(`### PLAYER`);
+  lines.push(`- cash: ¥${s.player.cash.toLocaleString()}`);
+  lines.push(`- ${handDesc}`);
+
+  // Alert / timers
+  lines.push(`### ALERT`);
+  const traceStr = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";
+  lines.push(`- global: ${s.globalAlert.toUpperCase()}  trace: ${traceStr}`);
+  if (timers.length > 0) {
+    timers.forEach((t) => lines.push(`- ⚠ ${t.label}: ${t.remaining}s`));
+  }
+
+  // ICE
+  lines.push(`### ICE`);
+  if (s.ice?.active) {
+    const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
+    const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
+    lines.push(`- status: ACTIVE  grade: ${s.ice.grade}`);
+    lines.push(`- attention: ${pos}  resident: ${resident}`);
+  } else {
+    lines.push(`- status: ${s.ice ? "INACTIVE" : "NONE"}`);
+  }
+
+  // Selected node
+  lines.push(`### SELECTED`);
+  if (s.selectedNodeId) {
+    const sel = s.nodes[s.selectedNodeId];
+    lines.push(`- ${s.selectedNodeId}  [${sel.type}]  access: ${sel.accessLevel}  alert: ${sel.alertState}`);
+  } else {
+    lines.push(`- none`);
+  }
+
+  // Network
+  lines.push(`### NETWORK`);
+  const accessible = Object.values(s.nodes).filter((n) => n.visibility === "accessible");
+  const revealedCount = Object.values(s.nodes).filter((n) => n.visibility === "revealed").length;
+
+  accessible.forEach((node) => {
+    const selected = node.id === s.selectedNodeId ? "  [SELECTED]" : "";
+    const probed   = node.probed ? "  probed" : "";
+    lines.push(`- ${node.id}  [${node.type}]  ${node.accessLevel}  alert:${node.alertState}${probed}${selected}`);
+    if (node.probed && node.vulnerabilities.length > 0) {
+      const vulns = node.vulnerabilities
+        .filter((v) => !v.hidden)
+        .map((v) => `${v.id}${v.patched ? "(patched)" : ""}`)
+        .join(", ");
+      if (vulns) lines.push(`  vulns: ${vulns}`);
+    }
+  });
+
+  if (revealedCount > 0) lines.push(`- ${revealedCount} node(s) revealed (inaccessible)`);
+
+  // Hand
+  lines.push(`### HAND`);
+  if (s.player.hand.length === 0) {
+    lines.push(`- (empty)`);
+  } else {
+    s.player.hand.forEach((card, i) => {
+      const decay   = card.decayState !== "fresh" ? `  [${card.decayState.toUpperCase()}]` : "";
+      const targets = card.targetVulnTypes.join(", ");
+      lines.push(`- [${i + 1}] ${card.name}  ${card.rarity}  uses:${card.usesRemaining}  targets:${targets}${decay}`);
+    });
+  }
+
+  lines.forEach((line) => addLogEntry(line, "meta"));
 }
 
 function cmdJackout() {

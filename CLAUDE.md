@@ -101,6 +101,12 @@ Note: this project uses `docs/dev-sessions/` (not `.claude/dev-sessions/`) so se
 
 Current session: `docs/dev-sessions/2026-02-24-1615-lan-dungeon-prototype-2/`
 
+## Design Principles
+
+- **Every visual game event must have a corresponding console log entry.** If the player can see something happen on the graph or HUD, there must be a matching textual record in the log. This is both an accessibility and a game-feel requirement — the log is the player's "decker readout" and should be a complete record of what the system is doing.
+
+- **The console must be LLM-legible.** The log + command interface should be sufficient for an LLM to fully observe and play the game without access to the visual graph. This means: complete state inspectable via `status`, all game events logged as text, all actions issuable as console commands. This serves both automated playtesting and future AI-driven gameplay features.
+
 ## Design Aesthetic
 
 - Dark background (`#0a0a0f`), glowing neon vector phosphene look

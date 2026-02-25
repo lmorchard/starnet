@@ -1,5 +1,5 @@
 import { NETWORK } from "../data/network.js";
-import { initGraph, updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph } from "./graph.js";
+import { initGraph, updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry, ejectIce, rebootNode, completeReboot } from "./state.js";
 import { getVisibleTimers } from "./timers.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
@@ -10,7 +10,9 @@ let sidebarMode = "node";
 
 function init() {
   initState(NETWORK);
-  const cy = initGraph(NETWORK, onNodeClick);
+  const cy = initGraph(NETWORK, onNodeClick, () => {
+    document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
+  });
   addIceNode();
   initConsole();
   startIce();
@@ -226,6 +228,9 @@ function syncGraph(state) {
       duration: 500,
     });
   }
+
+  // Selection indicator (game-managed class, not Cytoscape native :selected)
+  syncSelection(state.selectedNodeId);
 
   // ICE overlay
   if (state.ice) {
@@ -451,6 +456,8 @@ function renderEndScreen(state) {
       import("../data/network.js").then(({ NETWORK }) => {
         sidebarMode = "node";
         initState(NETWORK);
+        const cy = getCy();
+        if (cy) cy.fit(cy.nodes(".accessible, .revealed"), 80);
         addIceNode();
         startIce();
       });
@@ -476,7 +483,6 @@ function renderActions(node, state) {
     if (!node.probed) {
       btns.push(actionBtn("probe", "PROBE", "Reveal vulnerabilities. Raises local alert."));
     }
-    btns.push(actionBtn("exploit", "EXPLOIT", "Launch an exploit against this node."));
   }
 
   if (node.accessLevel === "compromised") {
@@ -563,7 +569,7 @@ function syncHandPane(state) {
   const el = document.getElementById("sidebar-hand");
   if (!el) return;
 
-  const isSelecting = sidebarMode === "exploit-select" && state.selectedNodeId;
+  const isSelecting = !!state.selectedNodeId;
   const targetNode = isSelecting ? state.nodes[state.selectedNodeId] : null;
 
   // Sort by match relevance whenever a node is selected, even outside exploit-select

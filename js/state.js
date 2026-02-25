@@ -345,9 +345,15 @@ export function launchExploit(nodeId, exploitId) {
       node.alertState = ALERT_ORDER[idx + 1];
     }
 
-    // Disclose exploit if detected
+    // Disclose exploit if detected — partial burn (extra use) or full disclose
     if (result.disclosed) {
-      exploit.decayState = "disclosed";
+      const partialBurn = exploit.usesRemaining > 1 && Math.random() < 0.6;
+      if (partialBurn) {
+        exploit.usesRemaining--;
+        result.partialBurn = true;
+      } else {
+        exploit.decayState = "disclosed";
+      }
     }
 
     // Track disturbance for ICE pathfinding
@@ -361,6 +367,9 @@ export function launchExploit(nodeId, exploitId) {
     }
 
     addLog(result.flavor, "failure");
+    if (result.partialBurn) {
+      addLog(`${exploit.name}: signature partially leaked — ${exploit.usesRemaining} use${exploit.usesRemaining !== 1 ? "s" : ""} remaining.`, "error");
+    }
   }
 
   // Log success chance for transparency
