@@ -197,7 +197,12 @@ const MONITOR_TYPES   = new Set(["security-monitor"]);
 
 export function probeNode(nodeId) {
   const node = state.nodes[nodeId];
-  if (!node || node.probed) return;
+  if (!node) return;
+  if (node.probed) {
+    addLog(`${node.label}: Already probed.`, "info");
+    emit();
+    return;
+  }
 
   node.probed = true;
 
@@ -271,6 +276,12 @@ export function launchExploit(nodeId, exploitId) {
   const exploit = state.player.hand.find((c) => c.id === exploitId);
   if (!node || !exploit || exploit.decayState === "disclosed") return;
 
+  if (exploit.usesRemaining === 0) {
+    addLog(`${exploit.name}: No uses remaining.`, "error");
+    emit();
+    return null;
+  }
+
   const result = resolveExploit(exploit, node);
 
   // Consume a use
@@ -327,7 +338,7 @@ export function launchExploit(nodeId, exploitId) {
 
   // Log success chance for transparency
   addLog(
-    `Roll: ${result.roll} vs ${result.successChance}% chance${result.matchingVulns.length > 0 ? " (vuln match)" : ""}`,
+    `${node.label} — Roll: ${result.roll} vs ${result.successChance}%${result.matchingVulns.length > 0 ? " (vuln match)" : ""}`,
     "meta"
   );
 

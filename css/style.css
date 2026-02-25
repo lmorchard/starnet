@@ -461,14 +461,20 @@ html, body {
 
 .ec-header {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.25rem;
+}
+
+.ec-index {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  flex-shrink: 0;
 }
 
 .ec-name { color: var(--green); }
 
 .ec-rarity {
+  margin-left: auto;
   font-size: 0.65rem;
   letter-spacing: 0.1em;
 }

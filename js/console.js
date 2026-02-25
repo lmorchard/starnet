@@ -96,10 +96,41 @@ function resolveNode(token) {
   return null;
 }
 
+// Returns the currently selected node, or logs an error if none is selected.
+function resolveImplicitNode() {
+  const s = getState();
+  const nodeId = s.selectedNodeId;
+  if (!nodeId || !s.nodes[nodeId]) {
+    addLogEntry("No node selected. Use: select <node>", "error");
+    return null;
+  }
+  return s.nodes[nodeId];
+}
+
+// Mirrors the sort order used by the hand pane when a node is selected.
+function handSortKey(card, node) {
+  if (card.decayState === "disclosed") return 3;
+  if (!node?.probed) return 1;
+  const knownVulnIds = node.vulnerabilities
+    .filter((v) => !v.patched && !v.hidden)
+    .map((v) => v.id);
+  return card.targetVulnTypes.some((t) => knownVulnIds.includes(t)) ? 0 : 2;
+}
+
 function resolveCard(token) {
   const s = getState();
   if (!token) return null;
   const lower = token.toLowerCase();
+
+  // Numeric index (1-based) — matches the displayed sort order
+  const num = parseInt(token, 10);
+  if (!isNaN(num) && num >= 1 && num <= s.player.hand.length) {
+    const selectedNode = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+    const hand = selectedNode
+      ? [...s.player.hand].sort((a, b) => handSortKey(a, selectedNode) - handSortKey(b, selectedNode))
+      : s.player.hand;
+    return hand[num - 1] || null;
+  }
 
   // Exact id match
   const byId = s.player.hand.find((c) => c.id === token);
@@ -135,40 +166,46 @@ function cmdSelect(args) {
 }
 
 function cmdProbe(args) {
-  if (args.length < 1) { addLogEntry("Usage: probe <node>", "error"); return; }
-  const node = resolveNode(args[0]);
+  const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
   dispatch("starnet:action:probe", { nodeId: node.id });
 }
 
 function cmdExploit(args) {
-  if (args.length < 2) { addLogEntry("Usage: exploit <node> <card>", "error"); return; }
-  const node = resolveNode(args[0]);
-  if (!node) return;
-  // Card token may be multiple words — rejoin everything after the node token
-  const cardToken = args.slice(1).join(" ");
-  const card = resolveCard(cardToken);
-  if (!card) return;
-  dispatch("starnet:action:launch-exploit", { nodeId: node.id, exploitId: card.id });
+  const s = getState();
+  if (args.length >= 2) {
+    // Explicit form: exploit <node> <card>
+    const node = resolveNode(args[0]);
+    if (!node) return;
+    const card = resolveCard(args.slice(1).join(" "));
+    if (!card) return;
+    dispatch("starnet:action:launch-exploit", { nodeId: node.id, exploitId: card.id });
+  } else if (args.length === 1 && s.selectedNodeId) {
+    // Implicit form: exploit <card>  (uses selected node)
+    const node = resolveImplicitNode();
+    if (!node) return;
+    const card = resolveCard(args[0]);
+    if (!card) return;
+    dispatch("starnet:action:launch-exploit", { nodeId: node.id, exploitId: card.id });
+  } else {
+    addLogEntry("Usage: exploit <node> <card>  (or select a node first: exploit <card>)", "error");
+  }
 }
 
 function cmdRead(args) {
-  if (args.length < 1) { addLogEntry("Usage: read <node>", "error"); return; }
-  const node = resolveNode(args[0]);
+  const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
   dispatch("starnet:action:read", { nodeId: node.id });
 }
 
 function cmdLoot(args) {
-  if (args.length < 1) { addLogEntry("Usage: loot <node>", "error"); return; }
-  const node = resolveNode(args[0]);
+  const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
   dispatch("starnet:action:loot", { nodeId: node.id });
 }
 
 function cmdReconfigure(args) {
-  if (args.length < 1) { addLogEntry("Usage: reconfigure <node>", "error"); return; }
-  const node = resolveNode(args[0]);
+  const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
   dispatch("starnet:action:reconfigure", { nodeId: node.id });
 }
@@ -206,9 +243,20 @@ function handleTabComplete(input) {
   const verb = tokens[0].toLowerCase();
 
   if (tokens.length === 2) {
-    // Complete node (for all node-taking commands except cheat)
-    if (["probe", "exploit", "read", "loot", "reconfigure"].includes(verb)) {
-      const partial = tokens[1].toLowerCase();
+    const partial = tokens[1].toLowerCase();
+
+    if (verb === "exploit" && s.selectedNodeId) {
+      // Node already selected — complete card name
+      const candidates = s.player.hand.filter(
+        (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(partial)
+      );
+      if (candidates.length === 1) {
+        input.value = `${tokens[0]} ${candidates[0].name} `;
+      } else if (candidates.length > 1) {
+        addLogEntry(candidates.map((c) => c.name).join("  "), "meta");
+      }
+    } else if (["probe", "exploit", "read", "loot", "reconfigure"].includes(verb)) {
+      // Complete node
       const candidates = Object.values(s.nodes)
         .filter((n) => n.visibility !== "hidden")
         .filter((n) => n.id.startsWith(partial) || n.label.toLowerCase().startsWith(partial));
@@ -223,7 +271,7 @@ function handleTabComplete(input) {
   }
 
   if (tokens.length === 3 && verb === "exploit") {
-    // Complete card name
+    // Complete card name (explicit form: exploit <node> <card>)
     const partial = tokens.slice(2).join(" ").toLowerCase();
     const candidates = s.player.hand.filter(
       (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(partial)

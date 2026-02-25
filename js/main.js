@@ -188,20 +188,10 @@ function syncGraph(state) {
   if (newlyVisible.length > 0) {
     newlyVisible.forEach((n) => flashNode(n.id(), "reveal"));
 
-    // Nudge viewport only if any newly visible node is outside current extent
-    const extent = cy.extent();
-    const anyOutOfView = newlyVisible.some((n) => {
-      const pos = n.position();
-      return pos.x < extent.x1 || pos.x > extent.x2 ||
-             pos.y < extent.y1 || pos.y > extent.y2;
+    cy.animate({
+      fit: { eles: cy.nodes(".accessible, .revealed"), padding: 80 },
+      duration: 500,
     });
-
-    if (anyOutOfView) {
-      cy.animate({
-        fit: { eles: cy.nodes(".accessible, .revealed"), padding: 60 },
-        duration: 500,
-      });
-    }
   }
 }
 
@@ -253,6 +243,8 @@ function syncHud(state) {
 
   // End screen
   if (state.phase === "ended") {
+    document.getElementById("sidebar-node").innerHTML = "";
+    document.getElementById("sidebar-hand").innerHTML = "";
     renderEndScreen(state);
     return;
   }
@@ -515,7 +507,7 @@ function syncHandPane(state) {
     <div class="nd-hand ${isSelecting ? "selectable" : ""}">
       ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
-        : sortedHand.map((c) => renderExploitCard(c, targetNode)).join("")}
+        : sortedHand.map((c, i) => renderExploitCard(c, targetNode, i + 1)).join("")}
     </div>`;
 
   if (isSelecting) {
@@ -532,7 +524,7 @@ function syncHandPane(state) {
   }
 }
 
-function renderExploitCard(card, targetNode = null) {
+function renderExploitCard(card, targetNode = null, index = null) {
   const rarityClass = `rarity-${card.rarity}`;
   const disclosed = card.decayState === "disclosed";
   const worn = card.decayState === "worn";
@@ -554,6 +546,7 @@ function renderExploitCard(card, targetNode = null) {
   return `<div class="exploit-card ${rarityClass} ${disclosed ? "disclosed" : ""} ${matchClass} ${isSelectable ? "selectable-card" : ""}"
               data-exploit-id="${card.id}">
     <div class="ec-header">
+      ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
       <span class="ec-name">${card.name}</span>
       <span class="ec-rarity">[${card.rarity.toUpperCase()}]</span>
     </div>
