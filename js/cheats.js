@@ -3,7 +3,8 @@
 // gated, disabled, or penalized as a unit in future builds.
 // Any use of a cheat command sets state.isCheating = true for the run.
 
-import { getState, addLogEntry, setCheating, forceGlobalAlert, revealNeighbors, accessNeighbors } from "./state.js";
+import { getState, setCheating, forceGlobalAlert, revealNeighbors, accessNeighbors } from "./state.js";
+import { addLogEntry } from "./log-renderer.js";
 import { generateExploit } from "./exploits.js";
 
 const VALID_RARITIES = ["common", "uncommon", "rare"];

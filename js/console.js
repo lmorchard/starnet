@@ -1,7 +1,8 @@
 // Console — keyboard command input for the log pane
 // Handles input, history, tab completion, and command dispatch.
 
-import { addLogEntry, getState } from "./state.js";
+import { getState } from "./state.js";
+import { addLogEntry } from "./log-renderer.js";
 import { getVisibleTimers } from "./timers.js";
 
 const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "cheat"];

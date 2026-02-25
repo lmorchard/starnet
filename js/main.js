@@ -1,17 +1,19 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
-import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry, ejectIce, rebootNode, completeReboot } from "./state.js";
+import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
+import { addLogEntry } from "./log-renderer.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
+import { initLogRenderer } from "./log-renderer.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 // Kept here (not in visual-renderer) because it's set by action event handlers.
 let sidebarMode = "node";
 
 function init() {
-  initLogPane();
+  initLogRenderer();
   initState(NETWORK);
   const cy = initGraph(NETWORK, onNodeClick, () => {
     document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
@@ -160,30 +162,6 @@ function onNodeClick(nodeId) {
       new CustomEvent("starnet:action:select", { detail: { nodeId } })
     );
   }
-}
-
-// ── Log pane ──────────────────────────────────────────────
-// Temporary: log buffer lives here until log-renderer.js takes over in Step 4.
-
-const MAX_LOG = 8;
-const logBuffer = [];
-
-function initLogPane() {
-  on(E.LOG_ENTRY, ({ text, type }) => {
-    logBuffer.push({ text, type });
-    if (logBuffer.length > MAX_LOG) logBuffer.splice(0, logBuffer.length - MAX_LOG);
-    renderLogPane();
-  });
-}
-
-function renderLogPane() {
-  const el = document.getElementById("log-entries");
-  if (!el) return;
-  el.innerHTML = logBuffer.map((entry) => {
-    const prefix = (entry.type === "command" || entry.type === "error") ? "" : "&gt; ";
-    return `<div class="log-entry log-${entry.type}">${prefix}${entry.text}</div>`;
-  }).join("");
-  el.scrollTop = el.scrollHeight;
 }
 
 document.addEventListener("DOMContentLoaded", init);
