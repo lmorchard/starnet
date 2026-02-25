@@ -1,6 +1,6 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle, getCy, flashNode } from "./graph.js";
-import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
+import { initState, getState, selectNode, deselectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
 import { getVisibleTimers } from "./timers.js";
 import { initConsole } from "./console.js";
 
@@ -32,6 +32,11 @@ function init() {
       addLogEntry("Action cancelled.", "info");
     }
     selectNode(evt.detail.nodeId);
+  });
+
+  document.addEventListener("starnet:action:deselect", () => {
+    deselectNode();
+    sidebarMode = "node";
   });
 
   document.addEventListener("starnet:action:probe", (evt) => {
@@ -162,9 +167,13 @@ function onNodeClick(nodeId) {
   const s = getState();
   const node = s.nodes[nodeId];
   if (!node || node.visibility === "hidden") return;
-  document.dispatchEvent(
-    new CustomEvent("starnet:action:select", { detail: { nodeId } })
-  );
+  if (s.selectedNodeId === nodeId) {
+    document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
+  } else {
+    document.dispatchEvent(
+      new CustomEvent("starnet:action:select", { detail: { nodeId } })
+    );
+  }
 }
 
 // ── Graph sync ────────────────────────────────────────────
@@ -301,6 +310,7 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-header">
         <span class="nd-type">[${node.type.toUpperCase()}]</span>
         <span class="nd-label">${node.label}</span>
+        <button class="deselect-btn" data-action="deselect">[ DESELECT ]</button>
       </div>
       <div class="nd-row">
         <span class="nd-key">GRADE</span>
@@ -340,6 +350,11 @@ function renderSidebarNode(sidebarNode, node, state) {
 
   // Wire action buttons after DOM insertion
   wireActionButtons(node);
+
+  // Wire deselect button
+  sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
+    document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
+  });
 }
 
 function renderEndScreen(state) {

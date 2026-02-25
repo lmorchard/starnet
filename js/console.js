@@ -3,7 +3,7 @@
 
 import { addLogEntry, getState } from "./state.js";
 
-const VERBS = ["select", "probe", "exploit", "escalate", "read", "loot", "reconfigure", "jackout", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "read", "loot", "reconfigure", "jackout", "cheat"];
 
 let history = [];
 let historyIndex = -1;
@@ -59,6 +59,7 @@ function submitCommand(raw) {
 function handleCommand(verb, args) {
   switch (verb) {
     case "select":       return cmdSelect(args);
+    case "deselect":     return cmdDeselect();
     case "probe":        return cmdProbe(args);
     case "exploit":
     case "escalate":     return cmdExploit(args);
@@ -164,6 +165,10 @@ function cmdSelect(args) {
   const node = resolveNode(args[0]);
   if (!node) return;
   dispatch("starnet:action:select", { nodeId: node.id });
+}
+
+function cmdDeselect() {
+  dispatch("starnet:action:deselect");
 }
 
 function cmdProbe(args) {

@@ -448,6 +448,11 @@ export function selectNode(nodeId) {
   emit();
 }
 
+export function deselectNode() {
+  state.selectedNodeId = null;
+  emit();
+}
+
 // ── Event dispatch ───────────────────────────────────────
 
 function emit() {
