@@ -1,6 +1,7 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle } from "./graph.js";
-import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun } from "./state.js";
+import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
+import { initConsole } from "./console.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 let sidebarMode = "node";
@@ -8,23 +9,28 @@ let sidebarMode = "node";
 function init() {
   initState(NETWORK);
   const cy = initGraph(NETWORK, onNodeClick);
+  initConsole();
 
   document.addEventListener("starnet:statechange", (evt) => {
     syncGraph(evt.detail);
     syncHud(evt.detail);
   });
 
-  // Wire HUD buttons
+  // Wire HUD jack-out button → dispatches action event
   document.getElementById("jack-out-btn").addEventListener("click", () => {
-    document.dispatchEvent(new CustomEvent("starnet:action:jackout"));
+    document.dispatchEvent(new CustomEvent("starnet:action:jackout", { detail: {} }));
   });
 
-  // Action event listeners (dispatched from sidebar buttons)
+  // Action event listeners — handle both click-dispatched and console-dispatched events.
+  // Click-sourced events (no fromConsole flag) echo their equivalent command to the log.
+
   document.addEventListener("starnet:action:probe", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
     probeNode(evt.detail.nodeId);
     sidebarMode = "node";
   });
-  document.addEventListener("starnet:action:exploit", () => {
+
+  document.addEventListener("starnet:action:exploit", (evt) => {
     sidebarMode = "exploit-select";
     const s = getState();
     if (s.selectedNodeId) {
@@ -39,6 +45,7 @@ function init() {
       renderSidebarNode(document.getElementById("sidebar"), s.nodes[s.selectedNodeId], s);
     }
   });
+
   document.addEventListener("starnet:action:cancel", () => {
     sidebarMode = "node";
     const s = getState();
@@ -49,26 +56,31 @@ function init() {
 
   document.addEventListener("starnet:action:launch-exploit", (evt) => {
     const { nodeId, exploitId } = evt.detail;
+    if (!evt.detail.fromConsole) addLogEntry(`> exploit ${nodeId} ${exploitId}`, "command");
     launchExploit(nodeId, exploitId);
     sidebarMode = "node";
   });
 
   document.addEventListener("starnet:action:reconfigure", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> reconfigure ${evt.detail.nodeId}`, "command");
     reconfigureNode(evt.detail.nodeId);
     sidebarMode = "node";
   });
 
   document.addEventListener("starnet:action:read", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> read ${evt.detail.nodeId}`, "command");
     readNode(evt.detail.nodeId);
     sidebarMode = "node";
   });
 
   document.addEventListener("starnet:action:loot", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> loot ${evt.detail.nodeId}`, "command");
     lootNode(evt.detail.nodeId);
     sidebarMode = "node";
   });
 
-  document.getElementById("jack-out-btn").addEventListener("click", () => {
+  document.addEventListener("starnet:action:jackout", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> jackout`, "command");
     endRun("success");
   });
 
@@ -82,9 +94,10 @@ function init() {
 function syncLogPane(log) {
   const el = document.getElementById("log-entries");
   if (!el) return;
-  el.innerHTML = (log || []).map((entry) =>
-    `<div class="log-entry log-${entry.type}">&gt; ${entry.text}</div>`
-  ).join("");
+  el.innerHTML = (log || []).map((entry) => {
+    const prefix = (entry.type === "command" || entry.type === "error") ? "" : "&gt; ";
+    return `<div class="log-entry log-${entry.type}">${prefix}${entry.text}</div>`;
+  }).join("");
 }
 
 function onNodeClick(nodeId) {

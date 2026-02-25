@@ -78,22 +78,22 @@ html, body {
 }
 
 #log-pane {
-  flex: 0 0 13%;
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem;
+  flex-direction: column;
   background: var(--bg-panel);
   border-top: 1px solid var(--border);
   overflow: hidden;
+}
+
+#log-header {
+  padding: 0.3rem 1rem 0.1rem;
 }
 
 .log-pane-label {
   font-size: 0.7rem;
   color: var(--text-dim);
   letter-spacing: 0.15em;
-  padding-top: 0.1rem;
   white-space: nowrap;
 }
 
@@ -103,6 +103,39 @@ html, body {
   flex-direction: column;
   gap: 0.2rem;
   overflow: hidden;
+  padding: 0 1rem 0.3rem;
+  min-height: 5.5rem;
+}
+
+#console-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.console-prompt {
+  color: var(--cyan);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--cyan);
+}
+
+#console-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  caret-color: var(--cyan);
+}
+
+#console-input::placeholder {
+  color: var(--cyan-dim);
 }
 
 #graph-container::after {
@@ -453,10 +486,12 @@ html, body {
   font-size: 0.7rem;
 }
 
-.log-entry        { color: var(--text-dim); }
+.log-entry           { color: var(--text-dim); }
 .log-entry.log-success { color: var(--green); }
 .log-entry.log-failure { color: var(--red); }
 .log-entry.log-meta    { color: #335533; font-size: 0.65rem; }
+.log-entry.log-command { color: var(--cyan); }
+.log-entry.log-error   { color: var(--red); font-size: 0.78rem; }
 
 /* ── Macguffins ─────────────────────────────────────────── */
 

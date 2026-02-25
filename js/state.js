@@ -339,11 +339,18 @@ export function reconfigureNode(nodeId) {
 
 // ── Message log ──────────────────────────────────────────
 
-const MAX_LOG = 6;
+const MAX_LOG = 8;
 
+// Private: used internally by state mutations (callers must emit() themselves)
 function addLog(text, type = "info") {
   state.log.unshift({ text, type });
   if (state.log.length > MAX_LOG) state.log.length = MAX_LOG;
+}
+
+// Public: for external callers (console, cheats) — adds log entry and emits
+export function addLogEntry(text, type = "info") {
+  addLog(text, type);
+  emit();
 }
 
 // ── Selection ────────────────────────────────────────────
