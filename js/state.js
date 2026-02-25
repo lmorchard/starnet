@@ -10,6 +10,16 @@ let state = null;
 export function initState(networkData) {
   const nodes = {};
   networkData.nodes.forEach((n) => {
+    const vulns = generateVulnerabilities(n.grade);
+    // Append any hand-crafted staged vulnerabilities defined in the network data
+    if (n.stagedVulnerabilities) {
+      n.stagedVulnerabilities.forEach((sv) => vulns.push({
+        ...sv,
+        patched: false,
+        patchTurn: null,
+        hidden: true,
+      }));
+    }
     nodes[n.id] = {
       id: n.id,
       type: n.type,
@@ -19,7 +29,7 @@ export function initState(networkData) {
       accessLevel: "locked",      // 'locked' | 'compromised' | 'owned'
       alertState: "green",        // 'green' | 'yellow' | 'red'
       probed: false,
-      vulnerabilities: generateVulnerabilities(n.grade),
+      vulnerabilities: vulns,
       macguffins: [],             // populated by assignMacguffins
       read: false,
       looted: false,
@@ -257,6 +267,15 @@ export function launchExploit(nodeId, exploitId) {
       revealNeighbors(nodeId);
     }
     addLog(result.flavor, "success");
+
+    // Reveal any staged vulnerabilities unlocked by the exploit's target types
+    const usedTypes = exploit.targetVulnTypes;
+    node.vulnerabilities.forEach((v) => {
+      if (v.hidden && v.unlockedBy && usedTypes.includes(v.unlockedBy)) {
+        v.hidden = false;
+        addLog(`${node.label}: deeper attack surface revealed.`, "success");
+      }
+    });
   } else {
     // Raise node alert
     const idx = ALERT_ORDER.indexOf(node.alertState);

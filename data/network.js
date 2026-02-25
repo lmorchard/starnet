@@ -66,6 +66,16 @@ export const NETWORK = {
       grade: "B",
       x: 200,
       y: 460,
+      // Staged: exploit path-traversal first to reveal the deeper kernel escalation path
+      stagedVulnerabilities: [
+        {
+          id: "kernel-exploit",
+          name: "Kernel Privilege Escalation",
+          description: "Use-after-free in kernel scheduler enables local privilege elevation to ring 0.",
+          rarity: "uncommon",
+          unlockedBy: "path-traversal",
+        },
+      ],
     },
     {
       id: "cryptovault",
@@ -74,6 +84,16 @@ export const NETWORK = {
       grade: "S",
       x: 400,
       y: 500,
+      // Staged: exploit the timing side-channel first to expose the hardware backdoor
+      stagedVulnerabilities: [
+        {
+          id: "hardware-backdoor",
+          name: "Hardware Backdoor",
+          description: "Undocumented maintenance interface hardwired into silicon; bypasses all software auth.",
+          rarity: "rare",
+          unlockedBy: "side-channel",
+        },
+      ],
     },
     {
       id: "security-monitor",

@@ -193,10 +193,11 @@ function renderSidebarNode(sidebar, node, state) {
     node.alertState === "yellow" ? "var(--yellow)" :
                                    "var(--red)";
 
+  const visibleVulns = node.vulnerabilities.filter((v) => !v.hidden);
   const vulnSection = node.probed
     ? `<div class="nd-section-label">VULNERABILITIES</div>
        <div class="nd-vulns">
-         ${node.vulnerabilities.map((v) =>
+         ${visibleVulns.map((v) =>
            `<div class="nd-vuln ${v.patched ? "patched" : ""}">
               <span class="vuln-name">${v.name}</span>
               <span class="vuln-rarity rarity-${v.rarity}">[${v.rarity.toUpperCase()}]</span>

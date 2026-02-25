@@ -36,7 +36,7 @@ export const PATCH_LAG = {
  * Returns a result object describing what happened.
  */
 export function resolveExploit(exploit, node) {
-  const knownVulns = node.vulnerabilities.filter((v) => !v.patched);
+  const knownVulns = node.vulnerabilities.filter((v) => !v.patched && !v.hidden);
   const matchingVulns = knownVulns.filter((v) =>
     exploit.targetVulnTypes.includes(v.id)
   );
