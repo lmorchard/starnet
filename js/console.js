@@ -11,8 +11,8 @@ import { addLogEntry, getRecentLog } from "./log-renderer.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "log", "help", "cheat"];
-const STATUS_NOUNS = ["ice", "hand", "node", "alert", "mission"];
+const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "actions", "log", "help", "cheat"];
+const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
 
 let history = [];
 let historyIndex = -1;
@@ -83,6 +83,7 @@ function handleCommand(verb, args) {
     case "loot":         return cmdLoot(args);
     case "reconfigure":  return cmdReconfigure(args);
     case "jackout":      return cmdJackout();
+    case "actions":      return cmdActions();
     case "status":       return cmdStatus(args);
     case "log":          return cmdLog(args);
     case "help":         return cmdHelp();
@@ -245,10 +246,81 @@ function cmdReboot(args) {
   dispatch("starnet:action:reboot", { nodeId: node.id });
 }
 
+function cmdActions() {
+  const s = getState();
+  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  const lines = ["AVAILABLE ACTIONS", "─────────────────"];
+
+  // jackout always available
+  lines.push("  jackout                  — disconnect and end run");
+
+  // select: list accessible non-rebooting nodes
+  const accessible = Object.values(s.nodes)
+    .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
+  if (accessible.length > 0) {
+    lines.push(`  select <nodeId>          — accessible: ${accessible.map((n) => n.id).join(", ")}`);
+  }
+
+  if (sel) {
+    lines.push("  deselect                 — clear selection");
+
+    if (!sel.probed && !sel.rebooting) {
+      lines.push(`  probe                    — scan ${sel.id} for vulnerabilities`);
+    }
+
+    if (sel.visibility === "accessible" && !sel.rebooting) {
+      // exploit: list all cards sorted by match
+      const sorted = [...s.player.hand].sort(
+        (a, b) => exploitSortKey(a, sel) - exploitSortKey(b, sel)
+      );
+      if (sorted.length > 0) {
+        lines.push(`  exploit <n>              — attack ${sel.id} (${sel.accessLevel}):`);
+        sorted.forEach((card, i) => {
+          const knownVulnIds = sel.probed
+            ? sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id)
+            : [];
+          const matches = card.targetVulnTypes.some((t) => knownVulnIds.includes(t));
+          const worn = card.usesRemaining <= 0 ? "  [WORN]" : "";
+          const disclosed = card.decayState === "disclosed" ? "  [DISCLOSED]" : "";
+          const matchStr = sel.probed ? (matches ? "  ✓ match" : "  no match") : "";
+          lines.push(`    ${i + 1}. ${card.name} [${card.rarity}]  targets: ${card.targetVulnTypes.join(", ")}${matchStr}${worn}${disclosed}`);
+        });
+      }
+    }
+
+    if ((sel.accessLevel === "compromised" || sel.accessLevel === "owned") && !sel.read) {
+      lines.push(`  read                     — scan ${sel.id} contents`);
+    }
+
+    if (sel.accessLevel === "owned" && sel.read && sel.macguffins.some((m) => !m.collected)) {
+      lines.push(`  loot                     — collect items from ${sel.id}`);
+    }
+
+    if (sel.type === "ids" && !sel.eventForwardingDisabled && sel.accessLevel !== "locked") {
+      lines.push(`  reconfigure              — disable event forwarding on ${sel.id}`);
+    }
+
+    if (s.ice?.active && s.ice.attentionNodeId === s.selectedNodeId) {
+      lines.push(`  eject                    — push ICE to adjacent node`);
+    }
+
+    if (sel.accessLevel === "owned" && !sel.rebooting) {
+      lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
+    }
+
+    if (sel.probed) {
+      lines.push(`  cheat give matching      — add matching exploits [balance rescue — sets cheat flag]`);
+    }
+  }
+
+  lines.forEach((line) => addLogEntry(line, "meta"));
+}
+
 function cmdStatus(args) {
   const noun = args[0]?.toLowerCase();
   if (!noun) return cmdStatusFull();
   switch (noun) {
+    case "summary": return cmdStatusSummary();
     case "ice":     return cmdStatusIce();
     case "hand":    return cmdStatusHand();
     case "node":    return cmdStatusNode(args.slice(1));
@@ -257,6 +329,59 @@ function cmdStatus(args) {
     default:
       addLogEntry(`Unknown status noun: ${noun}. Try: ice hand node alert mission`, "error");
   }
+}
+
+function cmdStatusSummary() {
+  const s = getState();
+  const timers = getVisibleTimers();
+  const lines = ["SUMMARY", "───────"];
+
+  // Alert + trace
+  const traceStr = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "—";
+  lines.push(`  Alert: ${s.globalAlert.toUpperCase()}  |  Cash: ¥${s.player.cash.toLocaleString()}  |  Trace: ${traceStr}`);
+
+  // ICE + detection timer
+  let iceStr = s.ice ? (s.ice.active ? `ACTIVE @ ${s.nodes[s.ice.residentNodeId]?.label ?? s.ice.residentNodeId} → ${s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId}` : "INACTIVE") : "NONE";
+  const detectTimer = timers.find((t) => t.label === "ICE DETECTION");
+  const detectStr = detectTimer ? `${detectTimer.remaining}s remaining` : "—";
+  lines.push(`  ICE: ${iceStr}  |  Detection: ${detectStr}`);
+
+  // Selected node
+  if (s.selectedNodeId) {
+    const sel = s.nodes[s.selectedNodeId];
+    lines.push(`  Selected: ${s.selectedNodeId} [${sel.type}] ${sel.accessLevel}`);
+  } else {
+    lines.push(`  Selected: none`);
+  }
+
+  // Hand
+  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  const matchCount = sel
+    ? s.player.hand.filter((c) => exploitSortKey(c, sel) === 0).length
+    : 0;
+  const handStr = sel
+    ? `${s.player.hand.length} cards  (${matchCount} match selected node)`
+    : `${s.player.hand.length} cards`;
+  lines.push(`  Hand: ${handStr}`);
+
+  // Network
+  const nodes = Object.values(s.nodes);
+  const accessibleCount = nodes.filter((n) => n.visibility === "accessible").length;
+  const ownedCount = nodes.filter((n) => n.accessLevel === "owned").length;
+  const lootableCount = nodes.filter(
+    (n) => n.accessLevel === "owned" && n.read && n.macguffins.some((m) => !m.collected)
+  ).length;
+  lines.push(`  Network: ${accessibleCount} accessible  |  ${ownedCount} owned  |  ${lootableCount} lootable`);
+
+  // Mission
+  if (s.mission) {
+    const collectedStr = s.mission.complete ? "COLLECTED" : "not yet collected";
+    lines.push(`  Mission: retrieve ${s.mission.targetName}  — ${collectedStr}`);
+  } else {
+    lines.push(`  Mission: none`);
+  }
+
+  lines.forEach((line) => addLogEntry(line, "meta"));
 }
 
 function cmdStatusFull() {
@@ -471,7 +596,8 @@ function cmdHelp() {
     "  eject                     Push ICE attention to adjacent node.",
     "  reboot [node]             Send ICE home. Node offline briefly.",
     "  jackout                   Disconnect and end run.",
-    "  status [noun]             Game state. Nouns: ice hand node alert mission",
+    "  actions                   List all currently valid actions with context.",
+    "  status [noun]             Game state. Nouns: summary ice hand node alert mission",
     "  log [n]                   Replay last n log entries (default: 20).",
     "  help                      Show this listing.",
     "  // CHEAT — playtesting only. Cheaters never win.",
