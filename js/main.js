@@ -77,6 +77,16 @@ function init() {
   );
 }
 
+// ── Log pane ──────────────────────────────────────────────
+
+function syncLogPane(log) {
+  const el = document.getElementById("log-entries");
+  if (!el) return;
+  el.innerHTML = (log || []).map((entry) =>
+    `<div class="log-entry log-${entry.type}">&gt; ${entry.text}</div>`
+  ).join("");
+}
+
 function onNodeClick(nodeId) {
   const s = getState();
   const node = s.nodes[nodeId];
@@ -130,6 +140,7 @@ function syncHud(state) {
   }
 
   document.getElementById("jack-out-btn").disabled = state.phase !== "playing";
+  syncLogPane(state.log);
 
   // End screen
   if (state.phase === "ended") {
@@ -225,7 +236,6 @@ function renderSidebarNode(sidebar, node, state) {
       <div class="nd-hand">
         ${state.player.hand.map(renderExploitCard).join("")}
       </div>
-      ${renderLog(state.log)}
     </div>`;
 
   // Wire action buttons after DOM insertion
@@ -287,17 +297,6 @@ function renderEndScreen(state) {
   });
 }
 
-function renderLog(log) {
-  if (!log || log.length === 0) return "";
-  return `
-    <div class="nd-divider">──────────────────</div>
-    <div class="nd-section-label">LOG</div>
-    <div class="nd-log">
-      ${log.map((entry) =>
-        `<div class="log-entry log-${entry.type}">&gt; ${entry.text}</div>`
-      ).join("")}
-    </div>`;
-}
 
 function renderActions(node) {
   const btns = [];

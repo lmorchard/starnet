@@ -27,10 +27,16 @@
       <button id="jack-out-btn" disabled>[ JACK OUT ]</button>
     </header>
 
-    <!-- Main area: graph + sidebar -->
+    <!-- Main area: graph column + sidebar -->
     <main id="main">
-      <div id="graph-container">
-        <div id="cy"></div>
+      <div id="graph-column">
+        <div id="graph-container">
+          <div id="cy"></div>
+        </div>
+        <div id="log-pane">
+          <span class="log-pane-label">LOG</span>
+          <div id="log-entries"></div>
+        </div>
       </div>
 
       <aside id="sidebar">
