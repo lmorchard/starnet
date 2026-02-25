@@ -507,7 +507,7 @@ function syncHandPane(state) {
     <div class="nd-hand ${isSelecting ? "selectable" : ""}">
       ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
-        : sortedHand.map((c, i) => renderExploitCard(c, targetNode, i + 1)).join("")}
+        : sortedHand.map((c, i) => renderExploitCard(c, selectedNode, i + 1, isSelecting)).join("")}
     </div>`;
 
   if (isSelecting) {
@@ -524,24 +524,24 @@ function syncHandPane(state) {
   }
 }
 
-function renderExploitCard(card, targetNode = null, index = null) {
+function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false) {
   const rarityClass = `rarity-${card.rarity}`;
   const disclosed = card.decayState === "disclosed";
   const worn = card.decayState === "worn";
   const qualityPips = Math.round(card.quality * 5);
   const pips = "█".repeat(qualityPips) + "░".repeat(5 - qualityPips);
 
-  // Highlight if card matches a known vulnerability on the target node
+  // Show match highlight whenever a probed node is selected
   let matchClass = "";
-  if (targetNode?.probed) {
-    const knownVulnIds = targetNode.vulnerabilities
+  if (selectedNode?.probed) {
+    const knownVulnIds = selectedNode.vulnerabilities
       .filter((v) => !v.patched && !v.hidden)
       .map((v) => v.id);
     const hasMatch = card.targetVulnTypes.some((t) => knownVulnIds.includes(t));
     matchClass = hasMatch ? "match" : "no-match";
   }
 
-  const isSelectable = targetNode !== null && !disclosed;
+  const isSelectable = isSelecting && !disclosed;
 
   return `<div class="exploit-card ${rarityClass} ${disclosed ? "disclosed" : ""} ${matchClass} ${isSelectable ? "selectable-card" : ""}"
               data-exploit-id="${card.id}">
