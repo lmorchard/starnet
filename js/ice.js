@@ -66,9 +66,11 @@ export function handleIceTick() {
     // Random walk
     nextNode = neighbors[Math.floor(Math.random() * neighbors.length)];
   } else if (grade === "C" || grade === "B") {
-    // Move toward last disturbed node, fall back to random
+    // Move toward last disturbed node, fall back to random.
+    // Skip pathfinding if ICE already detected at that node — prevents oscillation.
     const target = s.lastDisturbedNodeId;
-    if (target && target !== attentionNodeId) {
+    const alreadyDetectedTarget = s.ice.detectedAtNode === target;
+    if (target && target !== attentionNodeId && !alreadyDetectedTarget) {
       nextNode = nextHopToward(attentionNodeId, target, s.adjacency)
         ?? neighbors[Math.floor(Math.random() * neighbors.length)];
     } else {

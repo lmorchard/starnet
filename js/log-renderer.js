@@ -49,7 +49,9 @@ export function initLogRenderer() {
   });
 
   // ── Node events ──────────────────────────────────────────
-  on(E.NODE_REVEALED,     (/** @type {NodeRevealedPayload} */     { label }) => add(`[NODE] Signal detected.`, "info"));
+  on(E.NODE_REVEALED,     (/** @type {NodeRevealedPayload} */     { label, unlocked }) => {
+    if (!unlocked) add(`[NODE] Signal detected.`, "info");
+  });
   on(E.NODE_PROBED,       (/** @type {NodeProbedPayload} */       { label }) => add(`[NODE] ${label}: vulnerabilities scanned.`, "info"));
   on(E.NODE_ACCESSED,     (/** @type {NodeAccessedPayload} */     { label, prev, next }) => add(`[NODE] ${label}: access ${prev} → ${next}.`, "success"));
   on(E.NODE_ALERT_RAISED, (/** @type {NodeAlertRaisedPayload} */  { label, prev, next }) => add(`[NODE] ${label}: alert ${prev} → ${next}.`, "error"));
@@ -99,7 +101,7 @@ export function initLogRenderer() {
   on(E.ICE_MOVED, (/** @type {IceMovedPayload} */ { fromLabel, toLabel, toVisible }) => {
     // Only log when ICE enters visible territory — "ICE leaving" is noise
     if (toVisible) {
-      add(`[ICE] Moving: ${fromLabel} → ${toLabel}`, "error");
+      add(`[ICE] Moving: ${fromLabel} → ${toLabel}`, "info");
     }
   });
   on(E.ICE_DETECT_PENDING, (/** @type {IceDetectPendingPayload} */ { label, dwellMs }) =>

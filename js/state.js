@@ -156,7 +156,7 @@ export function accessNeighbors(nodeId) {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "revealed") {
       neighbor.visibility = "accessible";
-      emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label });
+      emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label, unlocked: true });
       revealNeighbors(neighborId); // expose the next ring
     }
   });
