@@ -1,4 +1,8 @@
+// @ts-check
 // ── CHEAT COMMANDS — development/playtesting only ────────
+
+/** @typedef {import('./types.js').GameState} GameState */
+/** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 // These commands are intentionally separate from game logic so they can be
 // gated, disabled, or penalized as a unit in future builds.
 // Any use of a cheat command sets state.isCheating = true for the run.

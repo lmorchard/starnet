@@ -1,3 +1,4 @@
+// @ts-check
 // Centralized timer system for timed game events.
 // All timers dispatch DOM custom events on fire: starnet:timer:{type}
 // Timers with visibility metadata are exposed via getVisibleTimers() for UI rendering.

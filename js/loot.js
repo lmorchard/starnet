@@ -1,4 +1,8 @@
+// @ts-check
 // Macguffin definitions and assignment
+
+/** @typedef {import('./types.js').Macguffin} Macguffin */
+/** @typedef {import('./types.js').NodeState} NodeState */
 
 const MACGUFFIN_TYPES = [
   {

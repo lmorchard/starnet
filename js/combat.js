@@ -1,4 +1,10 @@
+// @ts-check
 // Exploit vs vulnerability combat resolution
+
+/** @typedef {import('./types.js').ExploitCard} ExploitCard */
+/** @typedef {import('./types.js').NodeState} NodeState */
+/** @typedef {import('./types.js').ExploitResult} ExploitResult */
+/** @typedef {import('./types.js').Grade} Grade */
 
 // Success chance modifier by node security grade
 const GRADE_MODIFIER = {

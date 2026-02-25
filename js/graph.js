@@ -1,3 +1,4 @@
+// @ts-nocheck — Cytoscape.js has no bundled types; skipping type checking for this file.
 // Graph rendering and Cytoscape.js management
 
 // Node type → shape mapping

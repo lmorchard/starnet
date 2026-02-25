@@ -1,7 +1,9 @@
+// @ts-check
 // Event bus — pub/sub system and catalog of all game event types.
 // No game logic, no imports from other game modules.
 
-const handlers = new Map(); // type → Set<Function>
+/** @type {Map<string, Set<Function>>} */
+const handlers = new Map();
 
 export function emitEvent(type, payload = {}) {
   const set = handlers.get(type);

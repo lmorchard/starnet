@@ -1,7 +1,17 @@
+// @ts-check
 // Central game state — all mutations go through these functions.
 // After each mutation, emitEvent(E.STATE_CHANGED, state) is called via emit().
 // Game events (node, exploit, alert, ICE, mission) are emitted as typed events;
 // no log formatting lives here.
+
+/** @typedef {import('./types.js').GameState} GameState */
+/** @typedef {import('./types.js').NodeState} NodeState */
+/** @typedef {import('./types.js').IceState} IceState */
+/** @typedef {import('./types.js').ExploitCard} ExploitCard */
+/** @typedef {import('./types.js').ExploitResult} ExploitResult */
+/** @typedef {import('./types.js').AccessLevel} AccessLevel */
+/** @typedef {import('./types.js').NodeAlertLevel} NodeAlertLevel */
+/** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
 import { resolveExploit } from "./combat.js";
@@ -9,20 +19,22 @@ import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
 import { clearAll as clearAllTimers, scheduleEvent } from "./timers.js";
 import { emitEvent, E } from "./events.js";
 
+/** @type {GameState|null} */
 let state = null;
 
 export function initState(networkData) {
+  /** @type {Object.<string, NodeState>} */
   const nodes = {};
   networkData.nodes.forEach((n) => {
     const vulns = generateVulnerabilities(n.grade);
     // Append any hand-crafted staged vulnerabilities defined in the network data
     if (n.stagedVulnerabilities) {
-      n.stagedVulnerabilities.forEach((sv) => vulns.push({
+      n.stagedVulnerabilities.forEach((sv) => vulns.push(/** @type {import('./types.js').Vulnerability} */ ({
         ...sv,
         patched: false,
         patchTurn: null,
         hidden: true,
-      }));
+      })));
     }
     nodes[n.id] = {
       id: n.id,
@@ -43,6 +55,7 @@ export function initState(networkData) {
   });
 
   // Build adjacency list for quick neighbor lookup
+  /** @type {Object.<string, string[]>} */
   const adjacency = {};
   networkData.nodes.forEach((n) => { adjacency[n.id] = []; });
   networkData.edges.forEach((e) => {
@@ -65,6 +78,7 @@ export function initState(networkData) {
     isCheating: false,     // set true on first cheat command use
     ice: null,             // populated below if network defines ICE
     lastDisturbedNodeId: null,
+    mission: null,         // populated below after macguffin assignment
   };
 
   // Assign macguffins to loot nodes
@@ -106,8 +120,10 @@ export function initState(networkData) {
   return state;
 }
 
+/** @returns {GameState} */
 export function getState() {
-  return state;
+  // state is always initialised before getState() is called
+  return /** @type {GameState} */ (state);
 }
 
 // ── Node access ──────────────────────────────────────────
@@ -172,6 +188,7 @@ export function setAccessLevel(nodeId, level) {
 
 // ── Alert system ─────────────────────────────────────────
 
+/** @type {NodeAlertLevel[]} */
 const ALERT_ORDER = ["green", "yellow", "red"];
 
 export function raiseNodeAlert(nodeId) {
@@ -186,6 +203,7 @@ export function raiseNodeAlert(nodeId) {
   emit();
 }
 
+/** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
 
 export function raiseGlobalAlert() {
@@ -307,6 +325,7 @@ function recomputeGlobalAlert() {
     n.alertState !== "green" && !n.eventForwardingDisabled
   ).length;
 
+  /** @type {GlobalAlertLevel} */
   let newLevel = "green";
   if (yellowDetectors >= 1)  newLevel = "yellow";
   if (redDetectors >= 1)     newLevel = "red";
@@ -640,6 +659,7 @@ export function deselectNode() {
 // ── Event dispatch ───────────────────────────────────────
 
 function emit() {
-  window._starnetState = state; // dev convenience
+  // @ts-ignore — dev convenience; not part of the typed window interface
+  window._starnetState = state;
   emitEvent(E.STATE_CHANGED, state);
 }

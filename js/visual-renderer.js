@@ -1,5 +1,14 @@
+// @ts-check
 // Visual renderer — subscribes to game events and drives all DOM updates.
 // Handles both idempotent re-renders (on state:changed) and one-shot effects.
+
+/** @typedef {import('./types.js').GameState} GameState */
+/** @typedef {import('./types.js').NodeState} NodeState */
+/** @typedef {import('./types.js').ExploitCard} ExploitCard */
+/** @typedef {import('./types.js').ExploitSuccessPayload} ExploitSuccessPayload */
+/** @typedef {import('./types.js').ExploitFailurePayload} ExploitFailurePayload */
+/** @typedef {import('./types.js').NodeRevealedPayload} NodeRevealedPayload */
+/** @typedef {import('./types.js').NodeAccessedPayload} NodeAccessedPayload */
 
 import { on, E } from "./events.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
@@ -20,16 +29,16 @@ export function setSidebarMode(mode) {
 }
 
 export function initVisualRenderer() {
-  on(E.STATE_CHANGED, (state) => {
+  on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
     syncGraph(state);
     syncHud(state);
   });
 
   // One-shot flash effects keyed to typed game events
-  on(E.EXPLOIT_SUCCESS, ({ nodeId }) => flashNode(nodeId, "success"));
-  on(E.EXPLOIT_FAILURE, ({ nodeId }) => flashNode(nodeId, "failure"));
-  on(E.NODE_ACCESSED,   ({ nodeId }) => flashNode(nodeId, "success"));
-  on(E.NODE_REVEALED,   ({ nodeId }) => {
+  on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { nodeId }) => flashNode(nodeId, "success"));
+  on(E.EXPLOIT_FAILURE, (/** @type {ExploitFailurePayload} */ { nodeId }) => flashNode(nodeId, "failure"));
+  on(E.NODE_ACCESSED,   (/** @type {NodeAccessedPayload} */   { nodeId }) => flashNode(nodeId, "success"));
+  on(E.NODE_REVEALED,   (/** @type {NodeRevealedPayload} */   { nodeId }) => {
     flashNode(nodeId, "reveal");
     // Debounce fit — batch simultaneous reveals into one viewport adjustment
     clearTimeout(revealFitTimer);
@@ -101,7 +110,7 @@ function syncHud(state) {
     existingCountdown.remove();
   }
 
-  document.getElementById("jack-out-btn").disabled = state.phase !== "playing";
+  /** @type {HTMLButtonElement} */ (document.getElementById("jack-out-btn")).disabled = state.phase !== "playing";
 
   // Cheat mode indicator
   const existingCheatLabel = document.getElementById("cheat-label");
@@ -320,7 +329,7 @@ function actionBtn(action, label, desc, stub = false) {
 function wireActionButtons(node) {
   document.querySelectorAll(".action-btn:not(.stub)").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const action = btn.dataset.action;
+      const action = /** @type {HTMLElement} */ (btn).dataset.action;
       document.dispatchEvent(
         new CustomEvent(`starnet:action:${action}`, { detail: { nodeId: node.id } })
       );
@@ -351,7 +360,7 @@ function syncHandPane(state) {
   if (isSelecting) {
     el.querySelectorAll(".exploit-card.selectable-card").forEach((cardEl) => {
       cardEl.addEventListener("click", () => {
-        const exploitId = cardEl.dataset.exploitId;
+        const exploitId = /** @type {HTMLElement} */ (cardEl).dataset.exploitId;
         document.dispatchEvent(
           new CustomEvent("starnet:action:launch-exploit", {
             detail: { nodeId: state.selectedNodeId, exploitId },

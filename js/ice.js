@@ -1,5 +1,10 @@
+// @ts-check
 // ICE AI — movement tick logic, detection, and dwell timer handling.
 // Imported by main.js; uses timer system for all timed events.
+
+/** @typedef {import('./types.js').GameState} GameState */
+/** @typedef {import('./types.js').IceState} IceState */
+/** @typedef {import('./types.js').NodeState} NodeState */
 
 import { getState, moveIceAttention, propagateAlertEvent, recordIceDetection } from "./state.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType } from "./timers.js";

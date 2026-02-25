@@ -1,5 +1,10 @@
+// @ts-check
 // Console — keyboard command input for the log pane
 // Handles input, history, tab completion, and command dispatch.
+
+/** @typedef {import('./types.js').GameState} GameState */
+/** @typedef {import('./types.js').NodeState} NodeState */
+/** @typedef {import('./types.js').ExploitCard} ExploitCard */
 
 import { getState } from "./state.js";
 import { addLogEntry, getRecentLog } from "./log-renderer.js";
@@ -13,7 +18,7 @@ let history = [];
 let historyIndex = -1;
 
 export function initConsole() {
-  const input = document.getElementById("console-input");
+  const input = /** @type {HTMLInputElement|null} */ (document.getElementById("console-input"));
   if (!input) return;
 
   input.addEventListener("keydown", (evt) => {
