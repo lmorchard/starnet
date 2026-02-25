@@ -3,7 +3,7 @@
 
 import { addLogEntry, getState } from "./state.js";
 
-const VERBS = ["select", "probe", "exploit", "read", "loot", "reconfigure", "jackout", "cheat"];
+const VERBS = ["select", "probe", "exploit", "escalate", "read", "loot", "reconfigure", "jackout", "cheat"];
 
 let history = [];
 let historyIndex = -1;
@@ -60,7 +60,8 @@ function handleCommand(verb, args) {
   switch (verb) {
     case "select":       return cmdSelect(args);
     case "probe":        return cmdProbe(args);
-    case "exploit":      return cmdExploit(args);
+    case "exploit":
+    case "escalate":     return cmdExploit(args);
     case "read":         return cmdRead(args);
     case "loot":         return cmdLoot(args);
     case "reconfigure":  return cmdReconfigure(args);
