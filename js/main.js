@@ -1,6 +1,7 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, updateNodeStyle, getCy, flashNode } from "./graph.js";
 import { initState, getState, selectNode, probeNode, launchExploit, reconfigureNode, readNode, lootNode, endRun, addLogEntry } from "./state.js";
+import { getVisibleTimers } from "./timers.js";
 import { initConsole } from "./console.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'

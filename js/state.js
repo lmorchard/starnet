@@ -4,6 +4,7 @@
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
 import { resolveExploit } from "./combat.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
+import { clearAll as clearAllTimers } from "./timers.js";
 
 let state = null;
 
@@ -183,6 +184,7 @@ function startTraceCountdown() {
 }
 
 export function endRun(outcome) {
+  clearAllTimers();
   state.phase = "ended";
   state.runOutcome = outcome;
   if (outcome === "caught") state.player.cash = 0;
