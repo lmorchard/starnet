@@ -18,6 +18,22 @@ export function initVisualRenderer() {
     syncGraph(state);
     syncHud(state);
   });
+
+  // One-shot flash effects keyed to typed game events
+  on(E.EXPLOIT_SUCCESS, ({ nodeId }) => flashNode(nodeId, "success"));
+  on(E.EXPLOIT_FAILURE, ({ nodeId }) => flashNode(nodeId, "failure"));
+  on(E.NODE_ACCESSED,   ({ nodeId }) => flashNode(nodeId, "success"));
+  on(E.NODE_REVEALED,   ({ nodeId }) => {
+    flashNode(nodeId, "reveal");
+    // Fit viewport to show newly visible nodes
+    const cy = getCy();
+    if (cy) {
+      cy.animate({
+        fit: { eles: cy.nodes(".accessible, .revealed"), padding: 80 },
+        duration: 500,
+      });
+    }
+  });
 }
 
 // ── Graph sync ────────────────────────────────────────────
@@ -29,10 +45,8 @@ function syncGraph(state) {
 
   if (!cy) return;
 
-  // Selection indicator (game-managed class, not Cytoscape native :selected)
   syncSelection(state.selectedNodeId);
 
-  // ICE overlay
   if (state.ice) {
     syncIceGraph(state.ice, state.nodes);
     const iceNode = cy.getElementById("ice-0");
