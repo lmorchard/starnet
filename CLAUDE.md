@@ -97,7 +97,9 @@ State shape (top level):
 
 Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `plan.md`, `notes.md`.
 
-Current session: `docs/dev-sessions/2026-02-24-1503-lan-dungeon-prototype/`
+Note: this project uses `docs/dev-sessions/` (not `.claude/dev-sessions/`) so session artifacts are tracked in git alongside the source.
+
+Current session: `docs/dev-sessions/2026-02-24-1615-lan-dungeon-prototype-2/`
 
 ## Design Aesthetic
 
