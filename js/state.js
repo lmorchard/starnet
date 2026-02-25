@@ -60,6 +60,8 @@ export function initState(networkData) {
     runOutcome: null,       // 'success' | 'caught'
     log: [],               // recent action messages [{text, type}]
     isCheating: false,     // set true on first cheat command use
+    ice: null,             // populated below if network defines ICE
+    lastDisturbedNodeId: null,
   };
 
   // Assign macguffins to loot nodes
@@ -77,6 +79,20 @@ export function initState(networkData) {
 
   // Make start node accessible and reveal its neighbors
   accessNode(networkData.startNode);
+
+  // Spawn ICE if defined in network data
+  if (networkData.ice) {
+    const nodeIds = Object.keys(nodes);
+    const residentNodeId = networkData.ice.startNode
+      ?? nodeIds[Math.floor(Math.random() * nodeIds.length)];
+    state.ice = {
+      grade: networkData.ice.grade,
+      residentNodeId,
+      attentionNodeId: residentNodeId,
+      active: true,
+      dwellTimerId: null,
+    };
+  }
 
   emit();
   return state;
@@ -207,6 +223,7 @@ export function probeNode(nodeId) {
   }
 
   node.probed = true;
+  state.lastDisturbedNodeId = nodeId;
 
   // Raise local alert (green → yellow)
   const idx = ALERT_ORDER.indexOf(node.alertState);
@@ -305,6 +322,10 @@ export function launchExploit(nodeId, exploitId) {
       node.accessLevel = "owned";
       revealNeighbors(nodeId);
       result.levelChanged = true;
+      // Owning the ICE resident node disables ICE
+      if (state.ice?.active && state.ice.residentNodeId === nodeId) {
+        disableIce();
+      }
     }
     addLog(result.flavor, "success");
 
@@ -327,6 +348,9 @@ export function launchExploit(nodeId, exploitId) {
     if (result.disclosed) {
       exploit.decayState = "disclosed";
     }
+
+    // Track disturbance for ICE pathfinding
+    state.lastDisturbedNodeId = nodeId;
 
     // Propagate alert if detection node, then recompute global
     if (DETECTION_TYPES.has(node.type)) {
@@ -438,6 +462,37 @@ export function forceGlobalAlert(level) {
   if (level === "trace" && state.traceSecondsRemaining === null) {
     startTraceCountdown();
   }
+  emit();
+}
+
+// ── ICE mutations ─────────────────────────────────────────
+
+export function moveIceAttention(nodeId) {
+  if (!state.ice || !state.ice.active) return;
+  state.ice.attentionNodeId = nodeId;
+  emit();
+}
+
+export function ejectIce() {
+  if (!state.ice || !state.ice.active) return;
+  const neighbors = state.adjacency[state.ice.attentionNodeId] || [];
+  if (neighbors.length === 0) return;
+  const target = neighbors[Math.floor(Math.random() * neighbors.length)];
+  state.ice.attentionNodeId = target;
+  addLog("ICE ejected to adjacent node.", "success");
+  emit();
+}
+
+export function rebootIce() {
+  if (!state.ice || !state.ice.active) return;
+  state.ice.attentionNodeId = state.ice.residentNodeId;
+  emit();
+}
+
+export function disableIce() {
+  if (!state.ice) return;
+  state.ice.active = false;
+  addLog("// ICE PROCESS TERMINATED — threat neutralized.", "success");
   emit();
 }
 
