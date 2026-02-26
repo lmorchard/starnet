@@ -10,7 +10,7 @@
 /** @typedef {import('./types.js').NodeRevealedPayload} NodeRevealedPayload */
 /** @typedef {import('./types.js').NodeAccessedPayload} NodeAccessedPayload */
 
-import { on, E } from "./events.js";
+import { on, emitEvent, E } from "./events.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
@@ -251,7 +251,7 @@ function renderSidebarNode(sidebarNode, node, state) {
   wireActionButtons(node);
 
   sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
-    document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
+    emitEvent("starnet:action:deselect", {});
   });
 }
 
@@ -271,7 +271,7 @@ function renderExploitSelect(sidebarNode, node) {
     </div>`;
 
   sidebarNode.querySelector("[data-action='cancel']")?.addEventListener("click", () => {
-    document.dispatchEvent(new CustomEvent("starnet:action:cancel"));
+    emitEvent("starnet:action:cancel", {});
   });
 }
 
@@ -329,9 +329,7 @@ function wireActionButtons(node) {
   document.querySelectorAll(".action-btn:not(.stub)").forEach((btn) => {
     btn.addEventListener("click", () => {
       const action = /** @type {HTMLElement} */ (btn).dataset.action;
-      document.dispatchEvent(
-        new CustomEvent(`starnet:action:${action}`, { detail: { nodeId: node.id } })
-      );
+      emitEvent(`starnet:action:${action}`, { nodeId: node.id });
     });
   });
 }
@@ -360,11 +358,7 @@ function syncHandPane(state) {
     el.querySelectorAll(".exploit-card.selectable-card").forEach((cardEl) => {
       cardEl.addEventListener("click", () => {
         const exploitId = /** @type {HTMLElement} */ (cardEl).dataset.exploitId;
-        document.dispatchEvent(
-          new CustomEvent("starnet:action:launch-exploit", {
-            detail: { nodeId: state.selectedNodeId, exploitId },
-          })
-        );
+        emitEvent("starnet:action:launch-exploit", { nodeId: state.selectedNodeId, exploitId });
       });
     });
   }
@@ -477,6 +471,6 @@ function renderEndScreen(state) {
   // Dispatch action event — main.js handles the actual re-init
   document.getElementById("run-again-btn").addEventListener("click", () => {
     overlay.remove();
-    document.dispatchEvent(new CustomEvent("starnet:action:run-again", { detail: {} }));
+    emitEvent("starnet:action:run-again", {});
   });
 }

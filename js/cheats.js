@@ -9,7 +9,7 @@
 
 import { getState, setCheating, revealNeighbors, accessNeighbors, emit } from "./state.js";
 import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
-import { addLogEntry } from "./log-renderer.js";
+import { addLogEntry } from "./log.js";
 import { generateExploit, generateExploitForVuln } from "./exploits.js";
 
 const VALID_RARITIES = ["common", "uncommon", "rare"];

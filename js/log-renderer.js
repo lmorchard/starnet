@@ -31,16 +31,14 @@
 /** @typedef {import('./types.js').RunEndedPayload} RunEndedPayload */
 
 import { on, emitEvent, E } from "./events.js";
+import { initLog, addLogEntry as _addLogEntry, getRecentLog } from "./log.js";
 
-const MAX_LOG = 200;  // full buffer (pane shows a smaller visible slice)
 const PANE_SIZE = 8;  // visible entries in the log pane
-/** @type {LogEntryPayload[]} */
-const logBuffer = [];
 
 export function initLogRenderer() {
+  initLog();  // start buffer listener first so it runs before renderLogPane
+
   on(E.LOG_ENTRY, (/** @type {LogEntryPayload} */ { text, type }) => {
-    logBuffer.push({ text, type });
-    if (logBuffer.length > MAX_LOG) logBuffer.splice(0, logBuffer.length - MAX_LOG);
     // Mirror to browser console for LLM playtesting
     if (type === "error") console.warn(text);
     else if (type === "success") console.info(text);
@@ -119,20 +117,13 @@ function add(text, type = "info") {
   emitEvent(E.LOG_ENTRY, { text, type });
 }
 
-// Public convenience wrapper — same as add(), for console.js and cheats.js.
-export function addLogEntry(text, type = "info") {
-  emitEvent(E.LOG_ENTRY, { text, type });
-}
-
-// Returns last n entries from the buffer (for the 'log' console command).
-export function getRecentLog(n = 20) {
-  return logBuffer.slice(-n);
-}
+// Re-exported from log.js for any callers that import from log-renderer.
+export { _addLogEntry as addLogEntry, getRecentLog };
 
 function renderLogPane() {
   const el = document.getElementById("log-entries");
   if (!el) return;
-  const visible = logBuffer.slice(-PANE_SIZE);
+  const visible = getRecentLog(PANE_SIZE);
   el.innerHTML = visible.map((entry) => {
     const prefix = (entry.type === "command" || entry.type === "error") ? "" : "&gt; ";
     return `<div class="log-entry log-${entry.type}">${prefix}${entry.text}</div>`;

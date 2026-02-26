@@ -7,7 +7,8 @@
 /** @typedef {import('./types.js').ExploitCard} ExploitCard */
 
 import { getState } from "./state.js";
-import { addLogEntry, getRecentLog } from "./log-renderer.js";
+import { addLogEntry, getRecentLog } from "./log.js";
+import { emitEvent } from "./events.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
@@ -165,9 +166,7 @@ function resolveCard(token) {
 }
 
 function dispatch(eventName, detail = {}) {
-  document.dispatchEvent(
-    new CustomEvent(eventName, { detail: { ...detail, fromConsole: true } })
-  );
+  emitEvent(eventName, { ...detail, fromConsole: true });
 }
 
 // ── Command implementations ───────────────────────────────
@@ -336,6 +335,7 @@ function cmdStatus(args) {
   const noun = args[0]?.toLowerCase();
   if (!noun) return cmdStatusFull();
   switch (noun) {
+    case "full":    return cmdStatusFull();
     case "summary": return cmdStatusSummary();
     case "ice":     return cmdStatusIce();
     case "hand":    return cmdStatusHand();
@@ -343,7 +343,7 @@ function cmdStatus(args) {
     case "alert":   return cmdStatusAlert();
     case "mission": return cmdStatusMission();
     default:
-      addLogEntry(`Unknown status noun: ${noun}. Try: ice hand node alert mission`, "error");
+      addLogEntry(`Unknown status noun: ${noun}. Try: full summary ice hand node alert mission`, "error");
   }
 }
 

@@ -3,7 +3,7 @@ import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
 import { launchExploit } from "./combat.js";
-import { addLogEntry } from "./log-renderer.js";
+import { addLogEntry } from "./log.js";
 import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
@@ -19,7 +19,7 @@ let sidebarMode = "node";
 function init() {
   initLogRenderer();
   const cy = initGraph(NETWORK, onNodeClick, () => {
-    document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
+    emitEvent("starnet:action:deselect", {});
   });
   addIceNode();
   initConsole();
@@ -34,24 +34,24 @@ function init() {
 
   // Wire HUD jack-out button
   document.getElementById("jack-out-btn").addEventListener("click", () => {
-    document.dispatchEvent(new CustomEvent("starnet:action:jackout", { detail: {} }));
+    emitEvent("starnet:action:jackout", {});
   });
 
   // ── Action event listeners ────────────────────────────────
   // Click-sourced events (no fromConsole flag) echo their equivalent command to the log.
 
-  document.addEventListener("starnet:action:select", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> select ${evt.detail.nodeId}`, "command");
+  on("starnet:action:select", ({ nodeId, fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> select ${nodeId}`, "command");
     if (sidebarMode !== "node") {
       setSidebarMode("node");
       sidebarMode = "node";
       addLogEntry("Action cancelled.", "info");
     }
     cancelIceDwell();
-    selectNode(evt.detail.nodeId);
+    selectNode(nodeId);
   });
 
-  document.addEventListener("starnet:action:deselect", () => {
+  on("starnet:action:deselect", () => {
     cancelIceDwell();
     deselectNode();
     setSidebarMode("node");
@@ -62,37 +62,36 @@ function init() {
   on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK, () => handleTraceTick());
 
-  document.addEventListener("starnet:action:probe", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
-    probeNode(evt.detail.nodeId);
+  on("starnet:action:probe", ({ nodeId, fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> probe ${nodeId}`, "command");
+    probeNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
-  document.addEventListener("starnet:action:exploit", () => {
+  on("starnet:action:exploit", () => {
     setSidebarMode("exploit-select");
     sidebarMode = "exploit-select";
     emitEvent(E.STATE_CHANGED, getState());
   });
 
-  document.addEventListener("starnet:action:escalate", () => {
+  on("starnet:action:escalate", () => {
     setSidebarMode("exploit-select");
     sidebarMode = "exploit-select";
     emitEvent(E.STATE_CHANGED, getState());
   });
 
-  document.addEventListener("starnet:action:cancel", () => {
+  on("starnet:action:cancel", () => {
     setSidebarMode("node");
     sidebarMode = "node";
     emitEvent(E.STATE_CHANGED, getState());
   });
 
-  document.addEventListener("starnet:action:launch-exploit", (evt) => {
-    const { nodeId, exploitId } = evt.detail;
-    if (!evt.detail.fromConsole) addLogEntry(`> exploit ${nodeId} ${exploitId}`, "command");
+  on("starnet:action:launch-exploit", ({ nodeId, exploitId, fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> exploit ${nodeId} ${exploitId}`, "command");
 
     // Click UI (exploit-select mode): stay in exploit-select on failure.
-    const clickMode = sidebarMode === "exploit-select" && !evt.detail.fromConsole;
+    const clickMode = sidebarMode === "exploit-select" && !fromConsole;
     if (!clickMode) {
       setSidebarMode("node");
       sidebarMode = "node";
@@ -107,52 +106,52 @@ function init() {
     }
   });
 
-  document.addEventListener("starnet:action:reconfigure", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> reconfigure ${evt.detail.nodeId}`, "command");
-    reconfigureNode(evt.detail.nodeId);
+  on("starnet:action:reconfigure", ({ nodeId, fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> reconfigure ${nodeId}`, "command");
+    reconfigureNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
-  document.addEventListener("starnet:action:read", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> read ${evt.detail.nodeId}`, "command");
-    readNode(evt.detail.nodeId);
+  on("starnet:action:read", ({ nodeId, fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> read ${nodeId}`, "command");
+    readNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
-  document.addEventListener("starnet:action:loot", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> loot ${evt.detail.nodeId}`, "command");
-    lootNode(evt.detail.nodeId);
+  on("starnet:action:loot", ({ nodeId, fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> loot ${nodeId}`, "command");
+    lootNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
-  document.addEventListener("starnet:action:cancel-trace", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> cancel-trace`, "command");
+  on("starnet:action:cancel-trace", ({ fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> cancel-trace`, "command");
     cancelTraceCountdown();
   });
 
-  document.addEventListener("starnet:action:jackout", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> jackout`, "command");
+  on("starnet:action:jackout", ({ fromConsole } = {}) => {
+    if (!fromConsole) addLogEntry(`> jackout`, "command");
     endRun("success");
   });
 
-  document.addEventListener("starnet:action:eject", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> eject`, "command");
+  on("starnet:action:eject", ({ fromConsole } = {}) => {
+    if (!fromConsole) addLogEntry(`> eject`, "command");
     ejectIce();
   });
 
-  document.addEventListener("starnet:action:reboot", (evt) => {
-    if (!evt.detail.fromConsole) addLogEntry(`> reboot ${evt.detail.nodeId}`, "command");
-    rebootNode(evt.detail.nodeId);
+  on("starnet:action:reboot", ({ nodeId, fromConsole }) => {
+    if (!fromConsole) addLogEntry(`> reboot ${nodeId}`, "command");
+    rebootNode(nodeId);
   });
 
   on(TIMER.REBOOT_COMPLETE, (payload) => {
     completeReboot(payload.nodeId);
   });
 
-  document.addEventListener("starnet:action:run-again", () => {
+  on("starnet:action:run-again", () => {
     setSidebarMode("node");
     sidebarMode = "node";
     initState(NETWORK);
@@ -179,11 +178,9 @@ function onNodeClick(nodeId) {
   const node = s.nodes[nodeId];
   if (!node || node.visibility === "hidden") return;
   if (s.selectedNodeId === nodeId) {
-    document.dispatchEvent(new CustomEvent("starnet:action:deselect", { detail: {} }));
+    emitEvent("starnet:action:deselect", {});
   } else {
-    document.dispatchEvent(
-      new CustomEvent("starnet:action:select", { detail: { nodeId } })
-    );
+    emitEvent("starnet:action:select", { nodeId });
   }
 }
 
