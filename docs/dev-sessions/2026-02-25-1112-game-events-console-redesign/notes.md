@@ -46,9 +46,11 @@ For a future flavor/polish pass: consider giving cards more legible IDs derived 
 
 ## Retrospective
 
-### Recap
+This session ran in two distinct phases across multiple context windows.
 
-The core goal of this session was an 8-step architectural migration: introduce a typed pub/sub event system (`events.js`), decouple all log rendering from state mutations, extract rendering to `visual-renderer.js` and `log-renderer.js`, and add LLM-legible console commands (`help`, `status <noun>`, `log [n]`). All 8 steps were completed. The game is now event-driven — `state.js` and `ice.js` emit typed events; log-renderer and visual-renderer subscribe independently. The console can observe full game state without the visual graph.
+### Phase 1: Event Bus Architecture Migration
+
+The core goal of this phase was an 8-step architectural migration: introduce a typed pub/sub event system (`events.js`), decouple all log rendering from state mutations, extract rendering to `visual-renderer.js` and `log-renderer.js`, and add LLM-legible console commands (`help`, `status <noun>`, `log [n]`). All 8 steps were completed. The game is now event-driven — `state.js` and `ice.js` emit typed events; log-renderer and visual-renderer subscribe independently. The console can observe full game state without the visual graph.
 
 Commits:
 - `e98a547` — Fix: edge fog-of-war, initial zoom, single-node viewport
@@ -56,52 +58,88 @@ Commits:
 
 (The primary migration commits precede this conversation; these are the playtesting follow-up fixes.)
 
+### Phase 2: DRY Playtest Harness + Bug Cascade
+
+The second phase addressed technical debt that had accumulated in the playtest harness and then fixed a cascade of bugs exposed by the refactor.
+
+**Refactor: DRY Playtest Harness**
+
+The playtest harness (`scripts/playtest.js`) had grown to ~650 lines by duplicating most of `js/console.js`'s command dispatch logic. The root problem was that `console.js`'s `dispatch()` used `document.dispatchEvent(new CustomEvent(...))` — DOM-bound, unusable in Node.js.
+
+Changes:
+1. **Created `js/log.js`** — pure log buffer with no DOM dependency. `LOG_ENTRY` events via the events bus serve as the shared interface.
+2. **Updated `js/console.js`** — `dispatch()` changed from DOM to `emitEvent()` from the events bus, enabling Node.js reuse.
+3. **Updated `js/main.js`** — all 15 `document.addEventListener("starnet:action:xxx")` migrated to `on()` from events bus.
+4. **Updated `js/visual-renderer.js`** — all 5 `document.dispatchEvent(new CustomEvent(...))` migrated to `emitEvent()`.
+5. **Slimmed `scripts/playtest.js`** from ~650 → ~185 lines — now imports `runCommand` from `console.js`, adds 11 headless action handlers.
+
+**Refactor: cancelIceDwell moved to ice.js**
+
+`cancelIceDwell()` logic lived in `main.js` and `playtest.js` but belonged in `ice.js`. Moved two module-level `on()` calls into `ice.js`, with a guard to avoid cancelling the timer when re-selecting the same node.
+
+**Bug: ICE detection timer not appearing in sidebar**
+
+Root cause: `moveIceAttention()` fires `STATE_CHANGED` before `checkIceDetection()` schedules the dwell timer, so the sidebar rendered with no timer entry. Fixed by adding `emit()` after scheduling the timer.
+
+**Bug: ICE detection timer countdown not updating**
+
+Root cause: `STATE_CHANGED` only fires on game events, not on every tick. Fixed by emitting `STATE_CHANGED` every 100ms when visible timers are active.
+
+**Bug: ICE position animation re-triggered every tick**
+
+The 400ms position animate call was being invoked on every tick once `STATE_CHANGED` fired at 10Hz. Fixed by guarding `iceNode.animate()` with the existing `moved` flag.
+
+**Bug: Exploit cards flickering / unclickable during ICE detection countdown**
+
+Full sidebar and hand pane re-renders every 100ms (via `STATE_CHANGED`) destroyed and recreated click listeners faster than a click could complete. Fixed by introducing `E.TIMERS_UPDATED` — tick loop emits this instead of `STATE_CHANGED`. The `TIMERS_UPDATED` handler does only targeted in-place DOM updates (ICE timer slot, trace countdown text).
+
+**Fix: Console status commands revealed ICE location prematurely**
+
+`status full`, `status summary`, `status ice`, and `status node` all unconditionally printed ICE's position, including when ICE was on unexplored nodes. The graph renderer already gated ICE visibility on `compromised`/`owned` nodes. Extracted `isIceVisible(ice, nodes)` into `state.js` as the single source of truth; both `graph.js` and `console.js` now use it.
+
+Commits (Phase 2):
+- `9255f73` — Refactor: DRY playtest harness via shared log.js + events bus action dispatch
+- `3357f8b` — Refactor: cancelIceDwell called internally by ice.js on selection events
+- `9383536` — Fix: re-selecting same node must not reset ICE dwell timer
+- `00fb2b6` — Fix: ICE detection timer not appearing in sidebar
+- `1b130d6` — Fix: ICE detection timer countdown not updating in sidebar
+- `80845e0` — Fix: ICE position animation re-triggered on every tick during countdown
+- `7e5a02d` — Fix: exploit cards flickering/unclickable during ICE detection countdown
+- `621db83` — Fix: console status commands revealed ICE location before player could see it
+
+---
+
 ### Divergences
 
-The session ran significantly over its original scope. After the 8-step plan was completed, playtesting uncovered a cluster of bugs and UX rough edges that pulled the session away from its stated focus:
-
-- **Edge topology leak** — edges between two `???` nodes were visible, leaking adjacency information before access. Fixed in `graph.js:updateEdgeVisibility()` with an `srcAccessible || tgtAccessible` guard.
-- **Initial zoom race condition** — `fitGraph()` in `main.js` set zoom to 1.5 for single-node state, but the `NODE_REVEALED` debounced handler (50ms later) overrode it. Fixed by adding a `visible.length <= 1` guard in visual-renderer's debounce.
-- **Cytoscape `shadow-*` properties** — `shadow-blur`, `shadow-opacity`, `shadow-offset-x/y` are invalid in Cytoscape's stylesheet and in `cy.animate()` — silently ignored at runtime but generating console warnings. Removed from `buildStylesheet()`.
-- **Wheel sensitivity warning** — Cytoscape warns about non-default `wheelSensitivity`. Suppressed with a targeted `console.warn` wrapper labeled `// HACK:`. First attempt used wrong string (`"wheelSensitivity"` vs actual `"wheel sensitivity"`).
-- **Exploit card sort** — cards were sorted by vuln match but not `usesRemaining`. Updated both `visual-renderer.js` and `console.js` sort logic; then extracted the shared sort key to `exploits.js:exploitSortKey()`.
-- **Log pane height** — increased `min-height` from `5.5rem` to `9rem` as a quick UX improvement.
-
-None of these were in scope for the session spec. They were legitimate bugs and polish items, but should have been filed and deferred.
+Phase 1 ran significantly over its original scope — playtesting uncovered a cluster of bugs and UX rough edges. Phase 2 was unplanned entirely; it grew from the observation that the harness was duplicating too much code.
 
 ### Technical Insights
 
-- **Cytoscape shadow properties**: `shadow-blur`, `shadow-opacity`, `shadow-offset-x/y`, `shadow-color` are NOT valid in Cytoscape's stylesheet. Visual alert effects must use border/background/opacity animations instead.
-- **Single-node fit**: `cy.fit()` on a single node zooms in excessively (fills the viewport with one node). Must special-case: `cy.zoom(1.5); cy.center(node)`.
-- **Debounce ordering**: when multiple systems fire in the same tick/microtask, ordering matters. The `NODE_REVEALED` debounce was 50ms — long enough to override an earlier direct zoom set. Guard idempotent operations against no-op conditions (`length <= 1`).
-- **console.warn matching**: string-match suppression is fragile. The Cytoscape warning message uses `"wheel sensitivity"` (with space), not `"wheelSensitivity"` (camelCase). Always verify the exact message before writing a suppression.
-- **Shared sort key**: when two modules (visual-renderer.js, console.js) carry identical sort logic, it's a sign the logic belongs to the data layer. `exploitSortKey()` in `exploits.js` is the natural home.
-- **Exploit card field names**: `usesRemaining` (not `uses`), `decayState` (`"fresh"/"worn"/"disclosed"`), `targetVulnTypes` (not `vulnerabilityTypes`). Worth adding JSDoc types before the next session.
+- **DOM decoupling is foundational.** The entire harness duplication problem stemmed from `console.js` using `document.dispatchEvent`. Migrating to the internal events bus unlocked reuse everywhere. Design rule: never use the DOM event bus for internal game events.
+- **"Emit before schedule" ordering bug class.** Whenever you call `emit()` and then schedule a timer in the same function, the sidebar will render before the timer exists. Pattern: schedule first, then emit.
+- **Render-on-tick has side effects.** Increasing render frequency exposed the animation re-trigger bug and the click-listener destruction bug. Any stateful visual effect that runs on every `STATE_CHANGED` needs a "has the underlying data changed?" guard.
+- **Separate timer renders from game-state renders.** The `TIMERS_UPDATED` event pattern (lightweight in-place DOM update, no full re-render) is the right model for any display that needs to update at tick frequency.
+- **Visibility rules must be shared.** When graph rendering and console output apply different visibility rules, information leaks result. The `isIceVisible()` helper in `state.js` is the canonical pattern: one function, imported by both.
+- **Cytoscape shadow properties** (`shadow-blur`, `shadow-opacity`, etc.) are NOT valid in Cytoscape's stylesheet. Visual alert effects must use border/background/opacity animations instead.
+- **Single-node fit**: `cy.fit()` on a single node zooms in excessively. Must special-case: `cy.zoom(1.5); cy.center(node)`.
+- **`fromConsole` flag plumbing.** `dispatch()` in `console.js` injects `fromConsole: true`. Action handlers use this to suppress echoing the command to the log (console already showed it). Easy to forget when adding new handlers.
 
 ### Efficiency
 
-The 8-step migration itself ran cleanly — each step was well-scoped and left the game functional. The plan's structure (one step per commit, no orphaned intermediate states) worked well.
-
-The inefficiency was the playtesting tail. Once playtesting started, each visual observation generated a small bug or polish request, and the session expanded without a clear decision to do so. About 40% of the session time was spent on things not in the spec.
-
-Playtesting is valuable — these bugs were real and worth fixing. But mixing playtesting into a feature implementation session means the spec's stated goals get diluted and the session is harder to summarize cleanly.
-
-### Process Improvements
-
-- **Timebox playtesting** within a feature session. Either reserve 20-30 minutes explicitly at the end, or schedule a separate "polish" session after the feature is complete.
-- **File bugs, don't fix them mid-session.** When playtesting reveals bugs outside the session spec, write them to a backlog (a `BUGS.md` or a note) rather than addressing them inline. End the session at the spec boundary. Start a dedicated bug-fix session separately.
-- **Consider a cleanup/refactor session next** before adding more game systems. `main.js` and `state.js` are large; JSDoc types (`@ts-check`) would catch field-name drift (e.g. `usesRemaining` vs `uses`) at editor time.
+Phase 1's 8-step migration ran cleanly — each step was well-scoped and left the game functional. Phase 2's refactor core was clean; the bug cascade that followed was slower, requiring multiple browser test-observe-fix cycles. The ICE timer bugs required understanding timing across three layers (state mutation, event emission, timer scheduling).
 
 ### Cost
 
-Not tracked — UI cost meter was not consulted.
+Not tracked.
 
 ### Conversation turns
 
-Approximately 30–35 total exchanges across both contexts (prior context + this context). The prior context handled the 8-step migration; this context was playtesting, polish, and retro.
+Approximately 45–50 total exchanges across all context windows for this session.
 
-### Other Highlights
+### Process Improvements
 
-- The `// HACK:` comment convention for the wheel sensitivity suppression is a good pattern to keep — makes it obvious this is a deliberate workaround and not an accident.
-- The "log verbosity as a game mechanic" design idea (see above) emerged from playtesting and is one of the most interesting design threads to revisit. It reframes information asymmetry as something the player earns rather than configures.
-- The event system architecture is now robust enough that adding new game events (ICE path tracing, per-node telemetry) will be clean: emit the event in state/ice, add a formatter in log-renderer, add a visual effect in visual-renderer. No new plumbing needed.
+- **Scaffold the session directory at start.** Even for "quick refactor" sessions, a 2-line spec gives the retro context.
+- **Document the "schedule before emit" ordering rule** — this bit us once and will bite again.
+- **After increasing render frequency, always audit visual effects** for "fires on every render" bugs.
+- **Timebox playtesting** within a feature session, or schedule a separate polish session.
+- **File bugs, don't fix them mid-session.** When playtesting reveals bugs outside the session spec, note them and defer.
