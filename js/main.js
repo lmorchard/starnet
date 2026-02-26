@@ -1,13 +1,13 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
-import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
+import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
 import { launchExploit } from "./combat.js";
 import { addLogEntry } from "./log.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
-import { tick, TICK_MS, TIMER } from "./timers.js";
+import { tick, TICK_MS, TIMER, getVisibleTimers } from "./timers.js";
 import { handleTraceTick, cancelTraceCountdown } from "./alert.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
@@ -27,7 +27,10 @@ function init() {
   initState(NETWORK);
   fitGraph(cy);
   startIce();
-  setInterval(() => tick(1), TICK_MS);
+  setInterval(() => {
+    tick(1);
+    if (getVisibleTimers().length > 0) emit();
+  }, TICK_MS);
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate
   window.starnet = { cmd: runCommand, state: getState };
