@@ -201,7 +201,8 @@ Every node has its own alert level: **GREEN → YELLOW → RED**. This escalates
 - You probe the node (green → yellow)
 - An exploit attempt fails on the node (yellow → red)
 
-Node alerts only escalate, never de-escalate during a run.
+A **successful exploit resets the node's alert to green** — you found a clean way in and
+contained the noise. Failed attempts leave their mark; successes erase it.
 
 ### Global Alert
 
@@ -285,8 +286,20 @@ then pull back.
 ### Detection
 
 If ICE **dwells on your currently selected node** long enough, a detection countdown begins.
-The sidebar shows the timer: `⚠ ICE DETECTION: Xs`. When it hits zero, ICE locks your signal,
-the global alert escalates, and the trace countdown may begin.
+The sidebar shows the timer: `⚠ ICE DETECTION: Xs`. When it hits zero, ICE locks your signal
+and the global alert escalates by one level.
+
+Each detection event steps the alert up: **GREEN → YELLOW → RED → TRACE**. The number of
+detections before the trace countdown begins depends on ICE grade:
+
+| Grade | Detections to trace | What it means                                        |
+|-------|---------------------|------------------------------------------------------|
+| S, A  | 1                   | Instant trace — no second chances                    |
+| B, C  | 2                   | First detection raises alert; second starts the clock|
+| D, F  | 3                   | Slow to commit — three strikes before trace          |
+
+Each visit by ICE to your selected node is a fresh detection opportunity. If ICE leaves
+your node and returns, the dwell timer resets and another detection cycle begins.
 
 **Counters:**
 

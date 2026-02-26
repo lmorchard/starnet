@@ -183,6 +183,7 @@ export function launchExploit(nodeId, exploitId) {
 
     if (node.accessLevel === "locked") {
       node.accessLevel = "compromised";
+      node.alertState = "green";
       node.visibility = "accessible";
       revealNeighbors(nodeId);
       accessNeighbors(nodeId);

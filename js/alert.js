@@ -167,9 +167,27 @@ export function recordIceDetection(nodeId) {
   if (!s.ice?.active) return;
   s.ice.detectedAtNode = nodeId;
   s.ice.detectionCount++;
-  if (s.traceSecondsRemaining !== null) return;
+
+  // Each detection escalates global alert one step (capped at red).
+  // The threshold check below handles the jump to trace.
+  const curIdx = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
+  const redIdx = GLOBAL_ALERT_ORDER.indexOf("red");
+  if (curIdx < redIdx) {
+    const prev = s.globalAlert;
+    s.globalAlert = GLOBAL_ALERT_ORDER[curIdx + 1];
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: s.globalAlert });
+  }
+
+  if (s.traceSecondsRemaining !== null) { emit(); return; }
   const threshold = DETECTION_TRACE_THRESHOLD[s.ice.grade] ?? 2;
   if (s.ice.detectionCount >= threshold) {
-    startTraceCountdown();
+    if (s.globalAlert !== "trace") {
+      const prev = s.globalAlert;
+      s.globalAlert = "trace";
+      emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: "trace" });
+    }
+    startTraceCountdown(); // calls emit() internally
+  } else {
+    emit();
   }
 }

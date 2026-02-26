@@ -13,13 +13,13 @@ import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
-import { initState, getState } from "../js/state.js";
-import { startIce } from "../js/ice.js";
+import { initState, getState, ejectIce } from "../js/state.js";
+import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
 import { emitEvent, on, off, E } from "../js/events.js";
-import { clearAll } from "../js/timers.js";
+import { clearAll, tick, scheduleEvent, TIMER } from "../js/timers.js";
 import { initNodeLifecycle } from "../js/node-lifecycle.js";
 import { getActions, hasBehavior } from "../js/node-types.js";
-import { startTraceCountdown } from "../js/alert.js";
+import { startTraceCountdown, recordIceDetection } from "../js/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
 
@@ -240,6 +240,126 @@ describe("Action availability: cancel-trace on security-monitor", () => {
     const node = { ...s.nodes["security-monitor"], accessLevel: "locked" };
     const actionIds = getActions(node, s).map((a) => a.id);
     assert.ok(!actionIds.includes("cancel-trace"));
+  });
+});
+
+// ── ICE detection reset ───────────────────────────────────────────────────────
+
+describe("ICE detection: detectedAtNode resets when player moves", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("moving to a different node resets detectedAtNode to null", () => {
+    const s = getState();
+    s.selectedNodeId = "gateway";
+    s.ice.detectedAtNode = "gateway"; // simulate: detection already happened here
+
+    emitEvent("starnet:action:select", { nodeId: "router-a" });
+
+    assert.equal(s.ice.detectedAtNode, null,
+      "detectedAtNode should clear so ICE can detect at gateway again after player returns");
+  });
+
+  it("re-selecting the SAME node does NOT reset detectedAtNode", () => {
+    const s = getState();
+    s.selectedNodeId = "gateway";
+    s.ice.detectedAtNode = "gateway";
+
+    emitEvent("starnet:action:select", { nodeId: "gateway" });
+
+    assert.equal(s.ice.detectedAtNode, "gateway",
+      "detectedAtNode must not reset when player clicks the already-selected node");
+  });
+});
+
+// ── ICE detection: eject cancels dwell ───────────────────────────────────────
+
+describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("ejecting ICE prevents detection from firing", () => {
+    // Wire up the ICE_DETECT timer → handleIceDetect (normally done in main.js)
+    on(TIMER.ICE_DETECT, handleIceDetect);
+
+    const s = getState();
+    s.selectedNodeId = "gateway";
+    s.ice.attentionNodeId = "gateway";
+    s.nodes["gateway"].accessLevel = "owned";
+
+    // Simulate a detection dwell that is already running
+    scheduleEvent(TIMER.ICE_DETECT, 500, { nodeId: "gateway" });
+
+    // Eject, then advance past the dwell window
+    const fired = withEvents(E.ICE_DETECTED, () => {
+      ejectIce();
+      tick(10); // 1000ms — well past the 500ms dwell
+    });
+
+    off(TIMER.ICE_DETECT, handleIceDetect);
+    assert.equal(fired.length, 0, "ICE_DETECTED must not fire after ejecting ICE");
+  });
+});
+
+// ── ICE detection: reset on ICE departure ─────────────────────────────────────
+
+describe("ICE detection: detectedAtNode resets when ICE leaves player's node", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("detectedAtNode resets when ICE moves away from player's node", () => {
+    const s = getState();
+    // Position ICE at the player's node
+    s.selectedNodeId = "gateway";
+    s.ice.attentionNodeId = "gateway";
+    s.ice.detectedAtNode = "gateway";
+
+    // handleIceTick moves ICE to a neighbor of gateway (not gateway itself)
+    handleIceTick();
+
+    assert.equal(s.ice.detectedAtNode, null,
+      "detectedAtNode should clear when ICE leaves, so it can re-detect on next visit");
+  });
+});
+
+// ── ICE detection: alert escalation ──────────────────────────────────────────
+
+describe("ICE detection: alert escalation", () => {
+  // Network has grade C ICE; DETECTION_TRACE_THRESHOLD for C is 2.
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+  });
+
+  it("first detection escalates global alert from green to yellow", () => {
+    const s = getState();
+    assert.equal(s.globalAlert, "green");
+    recordIceDetection("gateway");
+    assert.equal(s.globalAlert, "yellow");
+  });
+
+  it("second detection (threshold met) escalates to trace", () => {
+    const s = getState();
+    recordIceDetection("gateway");
+    recordIceDetection("gateway");
+    assert.equal(s.globalAlert, "trace");
+  });
+
+  it("second detection (threshold met) starts trace countdown", () => {
+    const s = getState();
+    recordIceDetection("gateway");
+    recordIceDetection("gateway");
+    assert.notEqual(s.traceSecondsRemaining, null,
+      "trace countdown must start when detection threshold is met");
   });
 });
 

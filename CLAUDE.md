@@ -199,6 +199,15 @@ in gameplay or a bug in the manual — both are worth fixing.
 
 ---
 
+## Testing Practices
+
+- **Bugs found through playtesting must be reproduced with a failing test before being fixed.**
+  Write the test first, confirm it fails due to the bug, apply the fix, then confirm the test passes.
+  Integration tests live in `tests/integration.test.js`. Keep new test suites focused: describe the
+  scenario, set up state directly, emit the triggering event, assert the outcome.
+
+---
+
 ## Design Principles
 
 - **Every visual game event must have a corresponding console log entry.** If the player can see something happen on the graph or HUD, there must be a matching textual record in the log. This is both an accessibility and a game-feel requirement — the log is the player's "decker readout" and should be a complete record of what the system is doing.
