@@ -10,7 +10,7 @@ const NODE_SHAPES = {
   "firewall":         "pentagon",
   "workstation":      "ellipse",
   "ids":              "hexagon",
-  "security-monitor": "hexagon",
+  "security-monitor": "octagon",
   "fileserver":       "rectangle",
   "cryptovault":      "diamond",
 };
