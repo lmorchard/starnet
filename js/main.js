@@ -29,7 +29,7 @@ function init() {
   startIce();
   setInterval(() => {
     tick(1);
-    if (getVisibleTimers().length > 0) emit();
+    if (getVisibleTimers().length > 0) emitEvent(E.TIMERS_UPDATED, getState());
   }, TICK_MS);
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate

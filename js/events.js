@@ -23,6 +23,7 @@ export function off(type, handler) {
 // All event type string constants.
 export const E = Object.freeze({
   STATE_CHANGED:        "state:changed",
+  TIMERS_UPDATED:       "timers:updated",
   LOG_ENTRY:            "log:entry",
 
   RUN_STARTED:          "run:started",

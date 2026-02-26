@@ -34,6 +34,15 @@ export function initVisualRenderer() {
     syncHud(state);
   });
 
+  // Timer-only tick: update just the countdowns in-place — no full re-render.
+  on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
+    syncIceTimers();
+    const countdown = document.getElementById("trace-countdown");
+    if (countdown && state.traceSecondsRemaining !== null) {
+      countdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
+    }
+  });
+
   // One-shot flash effects keyed to typed game events
   on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { nodeId }) => flashNode(nodeId, "success"));
   on(E.EXPLOIT_FAILURE, (/** @type {ExploitFailurePayload} */ { nodeId }) => flashNode(nodeId, "failure"));
@@ -241,13 +250,14 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-divider">──────────────────</div>
       <div class="nd-dim nd-indent">No valuables detected.</div>` : ""}
       <div class="nd-divider">──────────────────</div>
-      ${renderIceTimers()}
+      <div class="ice-timers-slot"></div>
       <div class="nd-section-label">ACTIONS</div>
       <div class="nd-actions">
         ${renderActions(node, state)}
       </div>
     </div>`;
 
+  syncIceTimers(sidebarNode);
   wireActionButtons(node);
 
   sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
@@ -402,6 +412,15 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
 }
 
 // ── ICE timers ────────────────────────────────────────────
+
+// Updates the .ice-timers-slot in the sidebar in-place (no full re-render).
+// Called both after sidebar innerHTML is set and on TIMERS_UPDATED ticks.
+function syncIceTimers(container = null) {
+  const slot = (container ?? document.getElementById("sidebar-node"))
+    ?.querySelector(".ice-timers-slot");
+  if (!slot) return;
+  slot.innerHTML = renderIceTimers();
+}
 
 function renderIceTimers() {
   const timers = getVisibleTimers();
