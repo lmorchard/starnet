@@ -4,7 +4,7 @@ import { initGraph, getCy, addIceNode } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
 import { launchExploit } from "./combat.js";
 import { addLogEntry } from "./log.js";
-import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
+import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { tick, TICK_MS, TIMER } from "./timers.js";
@@ -47,12 +47,10 @@ function init() {
       sidebarMode = "node";
       addLogEntry("Action cancelled.", "info");
     }
-    cancelIceDwell();
     selectNode(nodeId);
   });
 
   on("starnet:action:deselect", () => {
-    cancelIceDwell();
     deselectNode();
     setSidebarMode("node");
     sidebarMode = "node";

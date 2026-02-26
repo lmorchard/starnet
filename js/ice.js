@@ -29,6 +29,10 @@ export function stopIce() {
   cancelAllByType(TIMER.ICE_DETECT);
 }
 
+// Cancel pending dwell detection when the player changes selection.
+on("starnet:action:select",  cancelIceDwell);
+on("starnet:action:deselect", cancelIceDwell);
+
 // Owning the ICE resident node shuts ICE down.
 on(E.NODE_ACCESSED, ({ nodeId, next }) => {
   const s = getState();

@@ -20,7 +20,7 @@ import {
   serializeState, deserializeState,
 } from "../js/state.js";
 import { launchExploit } from "../js/combat.js";
-import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "../js/ice.js";
+import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
 import { on, E } from "../js/events.js";
 import { tick, TIMER } from "../js/timers.js";
 import { handleTraceTick, cancelTraceCountdown } from "../js/alert.js";
@@ -68,8 +68,8 @@ on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
 // ── Headless action handlers ───────────────────────────────
 // console.js dispatches action events via emitEvent(); these handlers execute them.
 
-on("starnet:action:select",         ({ nodeId }) => { cancelIceDwell(); selectNode(nodeId); });
-on("starnet:action:deselect",       ()           => { cancelIceDwell(); deselectNode(); });
+on("starnet:action:select",         ({ nodeId }) => selectNode(nodeId));
+on("starnet:action:deselect",       ()           => deselectNode());
 on("starnet:action:probe",          ({ nodeId }) => probeNode(nodeId));
 on("starnet:action:launch-exploit", ({ nodeId, exploitId }) => launchExploit(nodeId, exploitId));
 on("starnet:action:read",           ({ nodeId }) => readNode(nodeId));
