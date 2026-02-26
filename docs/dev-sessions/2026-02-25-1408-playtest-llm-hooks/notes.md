@@ -216,3 +216,49 @@ Post-Run-3 bugs found and fixed before closing the session:
 1. TRACE window / network depth balance — 60s is too tight for the 3-node mission path at current card economy
 2. Starting hand coverage vs network vuln diversity — `cheat give matching` triggered twice in a single run
 3. "Signal detected." still fires 8x on gateway compromise — batching or a quiet reveal mode would help LLM readability
+
+---
+
+## Continuation Session — Fixes, Refactoring, and Meandering
+
+This session continued from where the previous left off, with no formal plan — driven by bug reports and architectural observations as they surfaced.
+
+### What Was Done
+
+**Bug fixes:**
+- `cheat trace end` verified: `cancelTraceCountdown()` now resets `globalAlert` to `"red"` and clears the HUD correctly
+- `cheat give matching` card restore: spent/disclosed cards now have uses reset instead of adding duplicates to hand
+- Node `alertState` resets to `"green"` on OWNED (both `launchExploit` and `cheatOwn`)
+- ICE reboot scope: `rebootNode` was forcing ICE home on any node reboot; now only fires if ICE's `attentionNodeId` matches the rebooted node
+- ICE dwell timer / adjacent detection: `checkIceDetection` was not cancelling the pending timer when ICE moved away from the player's node; fix: `cancelAllByType("ice-detect")` in the early-return path
+- ICE dwell timer cancelled on player node select: timer persisted visually between player move and ICE's next tick; `cancelIceDwell()` now called in the `starnet:action:select` handler
+- `activateCheat()` always emits: `setCheating()` only called `emit()` on first use; subsequent cheats (e.g. `give matching`) didn't re-render the hand. Fixed by calling `emit()` unconditionally in `activateCheat()`
+
+**Refactoring:**
+- ICE disable on own → event-driven: removed inline check from `launchExploit`; added `on(E.NODE_ACCESSED, ...)` listener in `ice.js`
+- Extracted full alert subsystem to `alert.js`: propagation, global alert recompute, trace countdown, ICE detection recording. Uses event listeners (`NODE_ALERT_RAISED`, `NODE_RECONFIGURED`) to avoid circular imports with `state.js`
+- Moved `applyCardDecay` to `combat.js`
+- Moved `launchExploit` to `combat.js`: after discussion landed on "state.js deps aren't a concern for this game's scale"; initial instinct was a separate `exploit-action.js` but that was over-engineering
+- `state.js` exports `ALERT_ORDER` and `emit` for downstream consumers
+- `console.error` → `console.warn` for game threat events in `log-renderer.js`
+
+### What Worked
+- Incremental bug-finding via conversation: each fix surfaced the next issue naturally
+- Event-driven architecture is paying off — ICE disable, alert propagation, card decay all refactored cleanly into their own modules without circular imports
+- `combat.js` is now a coherent "exploit combat" module: resolution + decay + launch action
+
+### What Didn't Work / Observations
+- The session was explicitly "meandering" — no spec, no plan, just working through things as they came up. This is fine for maintenance/cleanup but means work isn't prioritized; a few lower-value refactors happened before higher-value balance work
+- The `exploit-action.js` detour: created the file, then immediately questioned it, then deleted it and put the code in `combat.js`. The right call, but the architecture debate added a turn. Worth settling the "where does orchestration live?" question earlier
+- `state.js` is still large but now only contains: init, node access, probe, read/loot, reconfigure, reboot, ICE mutations, selection, cheats. Cleaner but could go further if a reason arises
+- The `activateCheat()` emit bug was a good example of a subtle render gap — state mutation with no guaranteed re-render. Worth auditing other places where mutations happen outside the normal `emit()` flow
+
+### Conversation Turns
+~25 turns in this continuation (on top of ~30 in the prior session)
+
+### Remaining Backlog (Updated)
+1. TRACE window / network depth balance — 60s is too tight for the 3-node mission path at current card economy
+2. Starting hand coverage vs network vuln diversity
+3. "Signal detected." still fires 8x on gateway compromise
+4. `state.js` still has probe, read/loot, reboot mixed in — could extract further if complexity warrants
+5. Card names vs target vuln types still disconnected (flavor vs legibility tradeoff unresolved)
