@@ -2,135 +2,190 @@
 
 _Session: 2026-02-25-1605-node-playtesting_
 
----
-
-## Step 1 — Decouple `timers.js` from DOM
-
-**Context:** `timers.js` currently dispatches timer fires via
-`document.dispatchEvent(new CustomEvent("starnet:timer:*", ...))`. This is the
-only place in the timer system that touches the DOM. Swapping to `emitEvent()`
-removes the last DOM dependency from a core logic module.
-
-**Changes:**
-- Add `import { emitEvent } from "./events.js"` to `timers.js`
-- In `scheduleEvent`: replace `document.dispatchEvent(new CustomEvent(...))` with
-  `emitEvent(\`starnet:timer:${type}\`, { ...payload, timerId: id })`
-- Same replacement in `scheduleRepeating`
-
-**Result:** `timers.js` is Node-compatible. No callers change yet — `main.js`
-still listens via `document.addEventListener`, which will break. Fixed in Step 2.
+_Steps 1–4 (DOM decoupling, package.json, initial playtest script) already complete._
 
 ---
 
-## Step 2 — Update `main.js` timer listeners
+## Step 5 — Redesign `timers.js`: virtual tick clock
 
-**Context:** `main.js` listens to three `starnet:timer:*` events via
-`document.addEventListener`. After Step 1, these won't fire anymore since timers
-now dispatch via the pub/sub bus. Move these three listeners to `on()`.
+**Context:** Replace OS `setTimeout`/`setInterval` with a virtual tick counter.
+All timer entries become plain data — fully serializable, no OS handles.
 
-**Changes in `main.js`:**
-- Add `on` to the import from `./events.js`
-- Replace:
+**TICK_MS = 100** (100ms per tick in the browser).
+
+**Changes to `timers.js`:**
+- Remove `import { emitEvent }` (already added); keep it
+- Replace `setTimeout`/`setInterval` handles with tick-based entries
+- `scheduleEvent(type, delayMs, payload, visibility)`:
+  - converts `delayMs` to `durationTicks = Math.max(1, Math.round(delayMs / TICK_MS))`
+  - stores `{ id, type, payload, fireAt: currentTick + durationTicks, intervalTicks: null, visible, label, startedAt: currentTick, durationTicks }`
+- `scheduleRepeating(type, intervalMs, payload)`:
+  - `intervalTicks = Math.max(1, Math.round(intervalMs / TICK_MS))`
+  - stores `{ ..., fireAt: currentTick + intervalTicks, intervalTicks, ... }`
+- `cancelEvent(id)` / `cancelAllByType(type)` / `clearAll()`: just delete from Map (no clearTimeout/clearInterval)
+- Add `export function tick(n = 1)`:
   ```js
-  document.addEventListener("starnet:timer:ice-move", () => handleIceTick());
-  document.addEventListener("starnet:timer:ice-detect", (evt) => handleIceDetect(evt.detail));
-  document.addEventListener("starnet:timer:reboot-complete", (evt) => completeReboot(evt.detail.nodeId));
+  currentTick += n;
+  for each timer entry:
+    if currentTick >= entry.fireAt:
+      emitEvent(`starnet:timer:${entry.type}`, { ...entry.payload, timerId: entry.id })
+      if repeating: entry.fireAt += entry.intervalTicks
+      else: timers.delete(entry.id)
   ```
-  With:
-  ```js
-  on("starnet:timer:ice-move", () => handleIceTick());
-  on("starnet:timer:ice-detect", (payload) => handleIceDetect(payload));
-  on("starnet:timer:reboot-complete", (payload) => completeReboot(payload.nodeId));
-  ```
+- `getVisibleTimers()`: compute `remaining` from `(entry.fireAt - currentTick) * TICK_MS / 1000`
+- Add `export function serializeTimers()` → `{ currentTick, entries: [...timers.values()] }`
+- Add `export function deserializeTimers({ currentTick, entries })` → restores Map
 
-**Result:** Browser game fully functional again. `main.js` uses `on()` for game
-logic events and `document.addEventListener` only for UI action events
-(`starnet:action:*`), which is the correct split.
+**Result:** `timers.js` is pure data. No OS handles anywhere. Browser not yet
+wired — handled in Step 6.
 
 ---
 
-## Step 3 — Guard `window` in `state.js`
+## Step 6 — Wire master tick loop in `main.js`
 
-**Context:** `state.js::emit()` sets `window._starnetState = state` as a dev
-convenience for browser console inspection. This throws in Node.js where `window`
-is undefined.
+**Context:** Browser needs to drive the virtual clock. One `setInterval` at
+`TICK_MS` calls `tick(1)`. Also wire the new `trace-tick` timer event (Step 7).
 
-**Change:**
-```js
-// Before:
-window._starnetState = state;
+**Changes to `main.js`:**
+- Import `tick` from `./timers.js`
+- After `initState` / `startIce`: `setInterval(() => tick(1), TICK_MS)` — store
+  handle so it can be cleared on `endRun` if needed (or just let it run; game
+  phase check in handlers guards against post-game ticks)
+- Add `on("starnet:timer:trace-tick", handleTraceTick)` listener (function defined
+  here or imported from alert.js — see Step 7)
 
-// After:
-if (typeof window !== "undefined") window._starnetState = state;
+**Import `TICK_MS` from `timers.js`** so the interval uses the canonical value.
+
+**Result:** Browser game runs on virtual clock. All existing behavior preserved
+(ICE moves, detection timers, reboots). Verify with browser smoke test.
+
+---
+
+## Step 7 — Fold trace countdown into tick system in `alert.js`
+
+**Context:** `alert.js` runs its own `setInterval` for the 60s trace countdown,
+outside the timer system. Replace with a `scheduleRepeating("trace-tick", 1000)`
+so it's serializable and driven by the same tick clock.
+
+**Changes to `alert.js`:**
+- Remove `_traceIntervalId` and all `setInterval`/`clearInterval` references
+- `startTraceCountdown()`:
+  - Remove the `setInterval` block
+  - Add `scheduleRepeating("trace-tick", 1000)` — store returned id in
+    `state.traceTimerId` (new field on GameState)
+- `cancelTraceCountdown()`:
+  - Replace `clearInterval(_traceIntervalId)` with `cancelEvent(state.traceTimerId)`
+  - Clear `state.traceTimerId = null`
+- Export `handleTraceTick()`:
+  ```js
+  export function handleTraceTick() {
+    const s = getState();
+    if (!s || s.phase !== "playing") return;
+    s.traceSecondsRemaining -= 1;
+    if (s.traceSecondsRemaining <= 0) {
+      endRun("caught");
+    } else {
+      emit();
+    }
+  }
+  ```
+
+**Wire in `main.js`:** `on("starnet:timer:trace-tick", handleTraceTick)`
+
+**Wire in playtest harness:** same `on("starnet:timer:trace-tick", handleTraceTick)`
+
+**Result:** Trace countdown is tick-driven and serializable. `alert.js` has zero
+`setInterval`/`clearInterval` calls.
+
+---
+
+## Step 8 — State serialization in `state.js`
+
+**Context:** With timers pure data, the full game state is serializable. Expose
+`serializeState()` and `deserializeState()` for the playtest harness.
+
+**Changes to `state.js`:**
+- Import `serializeTimers`, `deserializeTimers` from `./timers.js`
+- Add `export function serializeState()`:
+  ```js
+  return { ...state, _timers: serializeTimers() };
+  ```
+- Add `export function deserializeState(snapshot)`:
+  ```js
+  const { _timers, ...gameState } = snapshot;
+  state = gameState;
+  deserializeTimers(_timers);
+  ```
+
+**Result:** Full round-trip: `JSON.stringify(serializeState())` → file →
+`deserializeState(JSON.parse(file))` restores exact game state including
+pending ICE move timers, detection timers, and trace countdown.
+
+---
+
+## Step 9 — Redesign `scripts/playtest.js`
+
+**Context:** Replace the scripted AI player loop with a single-command REPL
+interface. State persists in `scripts/playtest-state.json` between calls.
+
+**Interface:**
+```bash
+node scripts/playtest.js reset                        # init fresh game, save to default state file
+node scripts/playtest.js "probe gateway"              # run command against default state file
+node scripts/playtest.js --state foo.json reset       # init fresh game, save to foo.json
+node scripts/playtest.js --state foo.json "tick 25"   # run against named state file
 ```
 
-**Result:** `state.js` is Node-compatible. No behavior change in the browser.
+State file defaults to `scripts/playtest-state.json`. The `--state <file>` flag
+allows: starting from a known saved state, running multiple parallel scenarios,
+preserving a "checkpoint" before a risky sequence of actions.
+
+**Implementation:**
+- Parse `process.argv[2]` as the command string
+- On `reset` (or missing state file): call `initState(NETWORK)`, `startIce()`, save
+- Otherwise: `deserializeState(JSON.parse(fs.readFileSync(STATE_FILE)))`
+- Handle `tick N` directly: call `tick(parseInt(N))`
+- For all other commands: use `runCommand(cmd)` from `console.js`... but
+  `console.js` has DOM dependencies (it reads from `document.getElementById`).
+  Instead, replicate the minimal command dispatch: import and call game functions
+  directly, matching what `console.js` does for probe/exploit/select/status/actions
+- Collect all `E.LOG_ENTRY` events + typed game events during execution
+- Print them, then save state, then exit
+
+**Note on `console.js`:** Check whether `console.js`'s `runCommand()` has DOM
+dependencies. If it's clean, import it directly. If not, inline the dispatch.
+
+**Result:** Claude can drive a full playtest session via Bash tool calls, one
+command at a time, with full event visibility between each step.
 
 ---
 
-## Step 4 — Add `package.json`
-
-**Context:** Node.js requires `"type": "module"` to treat `.js` files as ES
-modules (matching the `import`/`export` syntax already used throughout).
-
-**Create `package.json` at project root:**
-```json
-{
-  "name": "starnet-game",
-  "type": "module",
-  "private": true
-}
-```
-
-`private: true` prevents accidental npm publish. No dependencies needed — the
-game logic has none.
-
-**Result:** `node scripts/playtest.js` will parse ES module syntax correctly.
-
 ---
 
-## Step 5 — Write `scripts/playtest.js`
+## Step 10 — Document headless playtesting in CLAUDE.md
 
-**Context:** With core logic modules now Node-compatible, write the playtest
-harness. It should run a complete game loop — select, probe, exploit, loot —
-until `RUN_ENDED` fires, logging a structured play-by-play.
+**Context:** The playtest harness is only useful if future Claude instances know
+it exists and how to use it. Add a section to `CLAUDE.md` covering the workflow.
 
-**Player strategy (greedy):**
-1. Get all accessible nodes not yet owned
-2. Select one, probe it
-3. Find best matching exploit card (highest quality among cards targeting a known vuln)
-4. Exploit until owned or no cards available
-5. Read and loot if owned
-6. Repeat from 1; jack out if stuck with no progress
+**Add to `CLAUDE.md`** (new section, e.g. after Architecture):
 
-**Wire-up:**
-- Import game modules: `state.js`, `combat.js`, `ice.js`, `events.js`, `data/network.js`
-- Import `alert.js` (registers its listeners at module load)
-- `on("starnet:timer:ice-move", () => handleIceTick())`
-- `on("starnet:timer:ice-detect", (p) => handleIceDetect(p))`
-- `on("starnet:timer:reboot-complete", (p) => completeReboot(p.nodeId))`
-- Subscribe to `E.LOG_ENTRY` to print game events
-- Subscribe to `E.RUN_ENDED` to print summary and exit
+- What the harness is and when to use it (balance testing, bug reproduction,
+  regression checking — without a browser)
+- The `--state <file>` flag and how to use named state files for scenarios
+- The `tick N` command and what it advances
+- The `reset` command
+- Example workflow: reset → select → probe → exploit → tick → status
+- Note that seeded RNG is not yet implemented — runs are probabilistic
 
-**Result:** `node scripts/playtest.js` runs a full game, prints a readable
-transcript, and exits with the run outcome.
-
----
-
-## Step 6 — Verify browser unchanged
-
-**Context:** Sanity check that all browser functionality still works after the
-three code changes (timers, main, state). Quick smoke test in the browser.
-
-**Test:**
-- Reload `http://localhost:3000`
-- Run: `probe gateway`, `exploit gateway 1`, verify ICE moves and detection timers appear
-- Confirm 0 console errors
+**Result:** Any future Claude session working on this codebase will know to reach
+for `node scripts/playtest.js` before spinning up Playwright.
 
 ---
 
 ## Commit sequence
 
-1. After Steps 1–3: `"Decouple timers + state from DOM for Node.js compat"`
-2. After Step 4: `"Add package.json — type: module"`
-3. After Step 5: `"Add scripts/playtest.js — Node.js game simulation harness"`
+1. After Steps 5–6: `"Refactor: virtual tick clock — timers.js driven by tick()"`
+2. After Step 7: `"Refactor: fold trace countdown into tick system"`
+3. After Step 8: `"Add: serializeState/deserializeState for full state snapshots"`
+4. After Step 9: `"Redesign: playtest.js as single-command REPL harness"`
+5. After Step 10: `"Docs: document headless playtest harness in CLAUDE.md"`
