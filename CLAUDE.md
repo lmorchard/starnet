@@ -175,6 +175,10 @@ adding, changing, or removing gameplay mechanics. Specifically:
 
 The manual describes the game as it currently exists, not future plans.
 
+When playtesting, **consult MANUAL.md as the source of truth for intended behavior.**
+If the game behaves differently from what the manual describes, that is either a bug
+in gameplay or a bug in the manual — both are worth fixing.
+
 ---
 
 ## Design Principles
