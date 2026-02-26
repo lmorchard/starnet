@@ -196,14 +196,14 @@ function buildStylesheet() {
     {
       selector: "node.accessible.compromised",
       style: {
-        "background-color": "#0a2035",
+        "background-color": "#1a3850",
       },
     },
     // Access level — owned (green fill = territory)
     {
       selector: "node.accessible.owned",
       style: {
-        "background-color": "#0a2510",
+        "background-color": "#1a3820",
         "border-width": 1,
       },
     },
