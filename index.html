@@ -32,6 +32,15 @@
       <div id="graph-column">
         <div id="graph-container">
           <div id="cy"></div>
+          <svg id="selection-reticle"
+               style="position:absolute; display:none; pointer-events:none; overflow:visible; z-index:6;">
+            <circle id="reticle-ring" cx="30" cy="30" r="28"
+                    fill="none"
+                    stroke="#cc00cc"
+                    stroke-width="1.5"
+                    stroke-dasharray="6 3"
+                    stroke-opacity="0.75"/>
+          </svg>
         </div>
         <div id="log-pane">
           <div id="log-header">

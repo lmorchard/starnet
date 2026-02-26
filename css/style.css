@@ -706,3 +706,13 @@ html, body {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.3; }
 }
+
+/* Selection reticle — animated SVG ring overlay */
+#reticle-ring {
+  animation: reticle-dash 5s linear infinite;
+}
+
+@keyframes reticle-dash {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -200; }
+}
