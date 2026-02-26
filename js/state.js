@@ -26,7 +26,7 @@ export function initState(networkData) {
   /** @type {Object.<string, NodeState>} */
   const nodes = {};
   networkData.nodes.forEach((n) => {
-    const vulns = generateVulnerabilities(n.grade);
+    const vulns = generateVulnerabilities(n.grade, n.type);
     // Append any hand-crafted staged vulnerabilities defined in the network data
     if (n.stagedVulnerabilities) {
       n.stagedVulnerabilities.forEach((sv) => vulns.push(/** @type {import('./types.js').Vulnerability} */ ({
