@@ -78,6 +78,41 @@ harness (`scripts/playtest.js`) being built this session.
 - **`state.js` and `main.js` are large** — candidates for splitting once the architecture stabilizes; JSDoc types now in place make this lower risk
 - **Web Components** — noted as a potential architecture for the sidebar if it grows complex; not urgent
 
+### Node Type Action Registry
+
+Currently "what actions are available on this node?" is implemented as scattered
+`if (node.type === ...) / if (node.accessLevel === ...)` checks in two separate
+places: `visual-renderer.js` (sidebar buttons) and `console.js` (actions output).
+They can and do drift — the `cancel-trace` button being missing from the sidebar
+while present in console output is a direct example.
+
+**Proposed:** a centralized action registry where each node type declares its
+available actions as a function of game state. Something like:
+
+```js
+// js/node-actions.js
+export const NODE_ACTIONS = {
+  "security-monitor": [
+    {
+      id: "cancel-trace",
+      label: "CANCEL TRACE",
+      available: (node, state) =>
+        node.accessLevel === "owned" && state.traceSecondsRemaining !== null,
+      desc: (node, state) => `Abort trace countdown (${state.traceSecondsRemaining}s remaining).`,
+    },
+    ...
+  ],
+  ...
+};
+```
+
+Both the sidebar renderer and the console `actions` command would derive their
+output from this single source. Adding a new action to a node type would require
+touching exactly one place.
+
+Pairs well with the defender ICE / node interaction work — if node behaviors
+become more complex, having a per-type action model is the right foundation.
+
 ### Exploit Card IDs
 - **Legible card IDs** — currently `exploit-1`, `exploit-2`, etc.; consider IDs derived from vuln type + suffix (e.g. `ssh-1`, `privesc-3`) for more diegetic log/console references
 

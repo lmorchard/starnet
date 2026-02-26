@@ -114,6 +114,7 @@ export function startTraceCountdown() {
   s.traceSecondsRemaining = 60;
   emitEvent(E.ALERT_TRACE_STARTED, { seconds: 60 });
   s.traceTimerId = scheduleRepeating(TIMER.TRACE_TICK, 1000);
+  emit();
 }
 
 export function handleTraceTick() {
