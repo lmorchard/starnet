@@ -86,6 +86,22 @@ All game state lives in `js/state.js` as a plain object. Rules:
 - **Global alert** recomputes from monitor/detector states; only escalates, never de-escalates
 - Subverting an IDS (`eventForwardingDisabled: true`) severs the chain
 
+## Branching and Pull Requests
+
+**Never commit feature or bugfix work directly to `main`.** Whenever starting a new arc
+of development or bugfixing — even a small one — create a branch first:
+
+```bash
+git checkout -b short-descriptive-slug
+```
+
+Work on the branch, then open a PR to merge it into `main`. Even if we end up merging
+it ourselves at the end of a session, the PR gives us a clean record of what changed and
+why. Derive the branch name from the session slug where possible.
+
+The only commits that may land directly on `main` are pure documentation changes (like
+this one) that don't touch game logic.
+
 ## Dev Sessions
 
 Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `plan.md`, `notes.md`.
