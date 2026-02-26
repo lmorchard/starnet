@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
 import { initState, getState, ejectIce } from "../js/state.js";
-import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
+import { startIce, handleIceTick, handleIceDetect, teleportIce } from "../js/ice.js";
 import { emitEvent, on, off, E } from "../js/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/timers.js";
 import { initNodeLifecycle } from "../js/node-lifecycle.js";
@@ -360,6 +360,42 @@ describe("ICE detection: alert escalation", () => {
     recordIceDetection("gateway");
     assert.notEqual(s.traceSecondsRemaining, null,
       "trace countdown must start when detection threshold is met");
+  });
+});
+
+// ── teleportIce self-teleport ─────────────────────────────────────────────────
+
+describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("does not emit ICE_MOVED when teleporting to the current node", () => {
+    const s = getState();
+    const currentNode = s.ice.attentionNodeId;
+
+    const fired = withEvents(E.ICE_MOVED, () => {
+      teleportIce(currentNode);
+    });
+
+    assert.equal(fired.length, 0, "ICE_MOVED must not fire when teleporting to current node");
+  });
+
+  it("still triggers detection check when teleporting to the current node", () => {
+    const s = getState();
+    const currentNode = s.ice.attentionNodeId;
+    s.selectedNodeId = currentNode;
+    s.nodes[currentNode].accessLevel = "owned";
+    s.ice.detectedAtNode = null;
+
+    const fired = withEvents(E.ICE_DETECT_PENDING, () => {
+      teleportIce(currentNode);
+    });
+
+    // Grade C ICE has a dwell time (not instant), so ICE_DETECT_PENDING fires
+    assert.equal(fired.length, 1, "detection check should still run on self-teleport");
   });
 });
 

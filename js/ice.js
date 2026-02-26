@@ -192,11 +192,13 @@ export function teleportIce(nodeId) {
   cancelAllByType(TIMER.ICE_MOVE);
   scheduleRepeating(TIMER.ICE_MOVE, interval);
   const fromId = s.ice.attentionNodeId;
-  moveIceAttention(nodeId);
-  const fromVisible = isPlayerVisible(s.nodes[fromId]);
-  const toVisible   = isPlayerVisible(s.nodes[nodeId]);
-  const fromLabel = fromVisible ? (s.nodes[fromId]?.label ?? fromId) : "???";
-  const toLabel   = toVisible   ? (s.nodes[nodeId]?.label  ?? nodeId) : "???";
-  emitEvent(E.ICE_MOVED, { fromId, toId: nodeId, fromLabel, toLabel, fromVisible, toVisible });
+  if (fromId !== nodeId) {
+    moveIceAttention(nodeId);
+    const fromVisible = isPlayerVisible(s.nodes[fromId]);
+    const toVisible   = isPlayerVisible(s.nodes[nodeId]);
+    const fromLabel = fromVisible ? (s.nodes[fromId]?.label ?? fromId) : "???";
+    const toLabel   = toVisible   ? (s.nodes[nodeId]?.label  ?? nodeId) : "???";
+    emitEvent(E.ICE_MOVED, { fromId, toId: nodeId, fromLabel, toLabel, fromVisible, toVisible });
+  }
   checkIceDetection(nodeId);
 }

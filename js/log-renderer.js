@@ -47,8 +47,19 @@ export function initLogRenderer() {
   });
 
   // ── Node events ──────────────────────────────────────────
-  on(E.NODE_REVEALED,     (/** @type {NodeRevealedPayload} */     { label, unlocked }) => {
-    if (!unlocked) add(`[NODE] Signal detected.`, "info");
+  // Batch multiple simultaneous NODE_REVEALED events (e.g. hub node with several hidden
+  // neighbors) into a single log entry via a microtask, rather than N identical lines.
+  let pendingSignals = 0;
+  on(E.NODE_REVEALED,     (/** @type {NodeRevealedPayload} */     { unlocked }) => {
+    if (unlocked) return;
+    if (pendingSignals === 0) {
+      Promise.resolve().then(() => {
+        const n = pendingSignals;
+        pendingSignals = 0;
+        add(`[NODE] ${n} new signal${n !== 1 ? "s" : ""} detected on network.`, "info");
+      });
+    }
+    pendingSignals++;
   });
   on(E.NODE_PROBED,       (/** @type {NodeProbedPayload} */       { label }) => add(`[NODE] ${label}: vulnerabilities scanned.`, "info"));
   on(E.NODE_ACCESSED,     (/** @type {NodeAccessedPayload} */     { label, prev, next }) => add(`[NODE] ${label}: access ${prev} → ${next}.`, "success"));
