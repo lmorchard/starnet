@@ -1,177 +1,533 @@
-// Node.js playtest harness — runs a simulated game session and prints a transcript.
-// Usage: node scripts/playtest.js
+// @ts-check
+// Starnet headless playtest harness — single-command REPL interface.
+//
+// State persists between invocations in a JSON file. Each call loads state,
+// runs one command, prints all events/output, saves state, and exits.
+//
+// Usage:
+//   node scripts/playtest.js reset
+//   node scripts/playtest.js "probe gateway"
+//   node scripts/playtest.js "exploit ids-1 2"
+//   node scripts/playtest.js "tick 10"
+//   node scripts/playtest.js --state scenario.json reset
+//   node scripts/playtest.js --state scenario.json "status"
 
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
-import { initState, getState, selectNode, probeNode, readNode, lootNode, endRun, completeReboot } from "../js/state.js";
+import {
+  initState, getState, selectNode, deselectNode, probeNode, readNode, lootNode,
+  endRun, ejectIce, rebootNode, completeReboot, reconfigureNode,
+  serializeState, deserializeState,
+} from "../js/state.js";
 import { launchExploit } from "../js/combat.js";
-import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
+import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "../js/ice.js";
 import { on, E } from "../js/events.js";
-import "../js/alert.js"; // registers alert event listeners at module load
+import { tick } from "../js/timers.js";
+import { handleTraceTick } from "../js/alert.js";
 
-// ── Timer wiring ──────────────────────────────────────────
+// alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
+// (importing handleTraceTick above already loaded the module — no separate import needed)
+
+// ── Arg parsing ────────────────────────────────────────────
+
+let stateFile = "scripts/playtest-state.json";
+let cmdStr = null;
+
+{
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--state" && argv[i + 1]) {
+      stateFile = argv[++i];
+    } else if (cmdStr === null) {
+      cmdStr = argv[i];
+    }
+  }
+}
+
+if (!cmdStr) {
+  console.error("Usage: node scripts/playtest.js [--state <file>] <command>");
+  console.error("Commands: reset  tick <n>  select <node>  deselect");
+  console.error("          probe [node]  exploit <node> <card>  read [node]");
+  console.error("          loot [node]  reconfigure [node]  jackout");
+  console.error("          eject  reboot [node]");
+  console.error("          status [summary|full|ice|hand|node|alert|mission]");
+  console.error("          actions");
+  process.exit(1);
+}
+
+// ── Timer wiring ───────────────────────────────────────────
+
 on("starnet:timer:ice-move",        ()        => handleIceTick());
 on("starnet:timer:ice-detect",      (payload) => handleIceDetect(payload));
+on("starnet:timer:trace-tick",      ()        => handleTraceTick());
 on("starnet:timer:reboot-complete", (payload) => completeReboot(payload.nodeId));
 
-// ── Transcript log ────────────────────────────────────────
-let turnCount = 0;
+// ── Event → output ─────────────────────────────────────────
 
-function log(msg) { console.log(msg); }
+const lines = [];
+function out(msg) { lines.push(String(msg)); }
 
-// Listen to typed game events directly (no log-renderer.js needed in Node.js)
-on(E.NODE_PROBED,        ({ label }) => log(`  [NODE] ${label}: vulnerabilities scanned.`));
-on(E.NODE_ALERT_RAISED,  ({ label, prev, next }) => log(`  [NODE] ${label}: alert ${prev} → ${next}.`));
-on(E.NODE_ACCESSED,      ({ label, prev, next }) => log(`  [NODE] ${label}: ${prev} → ${next.toUpperCase()}.`));
-on(E.NODE_READ,          ({ label, macguffinCount }) => log(`  [NODE] ${label}: ${macguffinCount} item(s) found.`));
-on(E.NODE_LOOTED,        ({ label, items, total }) => log(`  [NODE] ${label}: looted ${items} item(s) — ¥${total.toLocaleString()}.`));
-on(E.EXPLOIT_SUCCESS,    ({ label, exploitName, roll, successChance }) =>
-  log(`  [EXPLOIT] ${label} — ${exploitName}: SUCCESS (roll ${roll} vs ${successChance}%)`));
-on(E.EXPLOIT_FAILURE,    ({ label, exploitName, roll, successChance }) =>
-  log(`  [EXPLOIT] ${label} — ${exploitName}: FAIL (roll ${roll} vs ${successChance}%)`));
-on(E.EXPLOIT_DISCLOSED,  ({ exploitName }) => log(`  [EXPLOIT] ${exploitName}: burned.`));
+on(E.LOG_ENTRY,            ({ text })                  => out(text));
+on(E.NODE_PROBED,          ({ label })                 => out(`[NODE] ${label}: vulnerabilities scanned.`));
+on(E.NODE_ALERT_RAISED,    ({ label, prev, next })     => out(`[NODE] ${label}: alert ${prev} → ${next}.`));
+on(E.NODE_ACCESSED,        ({ label, prev, next })     => out(`[NODE] ${label}: ${prev} → ${next.toUpperCase()}.`));
+on(E.NODE_REVEALED,        ({ label, unlocked })       => { if (unlocked) out(`[NODE] ${label}: node accessible.`); });
+on(E.NODE_READ,            ({ label, macguffinCount }) => out(`[NODE] ${label}: ${macguffinCount} item(s) found.`));
+on(E.NODE_LOOTED,          ({ label, items, total })   => out(`[NODE] ${label}: looted ${items} item(s) — ¥${total.toLocaleString()}.`));
+on(E.NODE_REBOOTING,       ({ label })                 => out(`[NODE] ${label}: rebooting.`));
+on(E.NODE_REBOOTED,        ({ label })                 => out(`[NODE] ${label}: online.`));
+on(E.EXPLOIT_SUCCESS,      ({ label, exploitName, roll, successChance }) =>
+  out(`[EXPLOIT] ${label} — ${exploitName}: SUCCESS (roll ${roll} vs ${successChance}%)`));
+on(E.EXPLOIT_FAILURE,      ({ label, exploitName, roll, successChance }) =>
+  out(`[EXPLOIT] ${label} — ${exploitName}: FAIL (roll ${roll} vs ${successChance}%)`));
+on(E.EXPLOIT_DISCLOSED,    ({ exploitName })           => out(`[EXPLOIT] ${exploitName}: disclosed.`));
 on(E.EXPLOIT_PARTIAL_BURN, ({ exploitName, usesRemaining }) =>
-  log(`  [EXPLOIT] ${exploitName}: partial burn (${usesRemaining} uses left).`));
-on(E.ALERT_GLOBAL_RAISED, ({ prev, next }) => log(`  [ALERT] Global: ${prev} → ${next.toUpperCase()}`));
-on(E.ALERT_TRACE_STARTED, ({ seconds }) => log(`  [ALERT] ⚠ TRACE INITIATED — ${seconds}s`));
-on(E.ICE_MOVED,          ({ fromLabel, toLabel, fromVisible, toVisible }) => {
-  if (fromVisible || toVisible) log(`  [ICE] Moving: ${fromLabel} → ${toLabel}`);
+  out(`[EXPLOIT] ${exploitName}: partial burn (${usesRemaining} uses left).`));
+on(E.ALERT_GLOBAL_RAISED,  ({ prev, next })            => out(`[ALERT] Global: ${prev} → ${next.toUpperCase()}`));
+on(E.ALERT_TRACE_STARTED,  ({ seconds })               => out(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s`));
+on(E.ALERT_PROPAGATED,     ({ fromLabel, toLabel })    => out(`[ALERT] ${fromLabel} → ${toLabel}: alert propagated.`));
+on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
+  if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
 });
-on(E.ICE_DETECTED,       ({ label }) => log(`  [ICE] ⚠ Detected at ${label} — alert raised.`));
-on(E.ICE_DISABLED,       () => log(`  [ICE] ICE disabled.`));
-on(E.MISSION_COMPLETE,   ({ targetName }) => log(`  [MISSION] ★ Complete: ${targetName}`));
+on(E.ICE_DETECTED,         ({ label })                 => out(`[ICE] ⚠ Detected at ${label}.`));
+on(E.ICE_EJECTED,          ({ fromId, toId })          => out(`[ICE] Ejected: ${fromId} → ${toId}.`));
+on(E.ICE_REBOOTED,         ({ residentLabel })         => out(`[ICE] Rebooted to ${residentLabel}.`));
+on(E.ICE_DISABLED,         ()                          => out(`[ICE] Disabled.`));
+on(E.MISSION_STARTED,      ({ targetName })            => out(`[MISSION] Target: ${targetName}`));
+on(E.MISSION_COMPLETE,     ({ targetName })            => out(`[MISSION] ★ Complete: ${targetName}`));
+on(E.RUN_ENDED,            ({ outcome })               => out(`[RUN] ${outcome.toUpperCase()}`));
 
-// ── Run end handler ───────────────────────────────────────
-let runDone = false;
-on(E.RUN_ENDED, ({ outcome }) => {
-  runDone = true;
+// ── Node / card resolution ─────────────────────────────────
+
+function resolveNode(token) {
   const s = getState();
-  const owned = Object.values(s.nodes).filter(n => n.accessLevel === "owned").length;
-  const total = Object.values(s.nodes).length;
-  log(`\n══ RUN ENDED: ${outcome.toUpperCase()} ══`);
-  log(`  Turns:      ${turnCount}`);
-  log(`  Nodes owned: ${owned}/${total}`);
-  log(`  Cash:       ¥${s.player.cash.toLocaleString()}`);
-  log(`  Mission:    ${s.mission?.complete ? "COMPLETE ★" : "FAILED"}`);
-  log(`  Alert:      ${s.globalAlert.toUpperCase()}`);
-  log(`  Cheating:   ${s.isCheating}`);
-});
-
-// ── Player logic ──────────────────────────────────────────
-
-// Best usable card for a node: prefer matching vulns, then highest quality.
-function bestCard(node) {
-  const s = getState();
-  const usable = s.player.hand.filter(
-    c => c.decayState !== "disclosed" && c.usesRemaining > 0
+  if (!token) return null;
+  const lower = token.toLowerCase();
+  const byId = s.nodes[token];
+  if (byId && byId.visibility !== "hidden") return byId;
+  const matches = Object.values(s.nodes).filter(
+    (n) => n.visibility !== "hidden" && n.label.toLowerCase().startsWith(lower)
   );
-  if (usable.length === 0) return null;
-  const knownVulnIds = node.vulnerabilities
-    .filter(v => !v.patched && !v.hidden)
-    .map(v => v.id);
-  const matching = usable.filter(c =>
-    c.targetVulnTypes.some(t => knownVulnIds.includes(t))
-  );
-  const pool = matching.length > 0 ? matching : usable;
-  return pool.reduce((best, c) => c.quality > best.quality ? c : best);
+  if (matches.length === 1) return matches[0];
+  if (matches.length > 1) { out(`[ERR] Ambiguous node: ${matches.map((n) => n.id).join(", ")}`); return null; }
+  out(`[ERR] Unknown node: ${token}`);
+  return null;
 }
 
-function accessibleNodes() {
+function resolveImplicitNode() {
   const s = getState();
-  return Object.values(s.nodes).filter(n => n.visibility === "accessible");
-}
-
-function playerTurn() {
-  if (runDone) return;
-  const s = getState();
-  if (s.phase !== "playing") return;
-
-  const accessible = accessibleNodes();
-
-  // Priority 1: finish compromised nodes (exploit to owned)
-  const compromised = accessible.filter(n => n.accessLevel === "compromised");
-  // Priority 2: probe unprobed locked nodes
-  const unprobed    = accessible.filter(n => n.accessLevel === "locked" && !n.probed);
-  // Priority 3: exploit probed locked nodes
-  const probed      = accessible.filter(n => n.accessLevel === "locked" && n.probed);
-
-  let node = null;
-  let action = null;
-
-  if (compromised.length > 0) {
-    node = compromised[0];
-    action = "exploit";
-  } else if (unprobed.length > 0) {
-    node = unprobed[0];
-    action = "probe";
-  } else if (probed.length > 0) {
-    node = probed[0];
-    action = "exploit";
-  } else {
-    log("\n[PLAYER] No actionable targets. Jacking out.");
-    endRun("success");
-    return;
+  if (!s.selectedNodeId || !s.nodes[s.selectedNodeId]) {
+    out("[ERR] No node selected. Use: select <node>");
+    return null;
   }
+  return s.nodes[s.selectedNodeId];
+}
 
-  turnCount++;
-  log(`\n── Turn ${turnCount}: ${node.label} [${node.grade}] ${node.accessLevel} ──`);
+function resolveCard(token) {
+  const s = getState();
+  if (!token) return null;
+  const lower = token.toLowerCase();
+  const num = parseInt(token, 10);
+  if (!isNaN(num) && num >= 1 && num <= s.player.hand.length) return s.player.hand[num - 1] ?? null;
+  const byId = s.player.hand.find((c) => c.id === token);
+  if (byId) return byId;
+  const matches = s.player.hand.filter(
+    (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(lower)
+  );
+  if (matches.length === 1) return matches[0];
+  if (matches.length > 1) { out(`[ERR] Ambiguous card: ${matches.map((c) => c.name).join(", ")}`); return null; }
+  out(`[ERR] Unknown card: ${token}`);
+  return null;
+}
+
+// ── Command implementations ────────────────────────────────
+
+function cmdSelect(args) {
+  if (!args[0]) { out("[ERR] Usage: select <node>"); return; }
+  const node = resolveNode(args[0]);
+  if (!node) return;
+  cancelIceDwell();
   selectNode(node.id);
+}
 
-  if (action === "probe") {
-    log(`[PLAYER] probe ${node.label}`);
-    probeNode(node.id);
+function cmdProbe(args) {
+  const node = args[0] ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  probeNode(node.id);
+}
+
+function cmdExploit(args) {
+  const s = getState();
+  let node, card;
+  if (args.length >= 2) {
+    node = resolveNode(args[0]);
+    if (!node) return;
+    card = resolveCard(args.slice(1).join(" "));
+  } else if (args.length === 1 && s.selectedNodeId) {
+    node = resolveImplicitNode();
+    if (!node) return;
+    card = resolveCard(args[0]);
+  } else {
+    out("[ERR] Usage: exploit <node> <card>  (or select a node first: exploit <card>)");
     return;
   }
-
-  const card = bestCard(node);
-  if (!card) {
-    log(`[PLAYER] No usable cards for ${node.label}. Skipping node.`);
-    // Mark as un-targetable this run by treating it as if probed+stuck;
-    // skip by not selecting it again (handled by priority: locked+probed with no cards)
-    // Move on — force probe remaining unprobed nodes instead
-    const nextUnprobed = accessible.find(n => n.accessLevel === "locked" && !n.probed);
-    if (nextUnprobed) {
-      log(`[PLAYER] probe ${nextUnprobed.label}`);
-      selectNode(nextUnprobed.id);
-      probeNode(nextUnprobed.id);
-    } else {
-      log("[PLAYER] Stuck — no cards and no unprobed nodes. Jacking out.");
-      endRun("success");
-    }
-    return;
-  }
-
-  log(`[PLAYER] exploit ${node.label} with "${card.name}" (${card.rarity}, ${card.usesRemaining} uses)`);
+  if (!card) return;
   launchExploit(node.id, card.id);
+}
 
-  // If now owned, read and loot immediately
-  const fresh = getState().nodes[node.id];
-  if (fresh.accessLevel === "owned") {
-    readNode(node.id);
-    if (fresh.macguffins.some(m => !m.collected)) {
-      lootNode(node.id);
+function cmdRead(args) {
+  const node = args[0] ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  readNode(node.id);
+}
+
+function cmdLoot(args) {
+  const node = args[0] ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  lootNode(node.id);
+}
+
+function cmdReconfigure(args) {
+  const node = args[0] ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  reconfigureNode(node.id);
+}
+
+function cmdReboot(args) {
+  const node = args[0] ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  if (node.accessLevel !== "owned") { out(`[ERR] ${node.label}: must be owned to reboot.`); return; }
+  rebootNode(node.id);
+}
+
+function cmdEject() {
+  const s = getState();
+  if (!s.ice?.active || s.ice.attentionNodeId !== s.selectedNodeId) {
+    out("[ERR] No ICE at selected node.");
+    return;
+  }
+  ejectIce();
+}
+
+function cmdTick(args) {
+  const n = Math.max(1, parseInt(args[0] ?? "1", 10) || 1);
+  tick(n);
+  out(`[SYS] Advanced ${n} tick(s).`);
+}
+
+// ── Status commands ────────────────────────────────────────
+
+function cmdStatus(args) {
+  const noun = (args[0] ?? "summary").toLowerCase();
+  switch (noun) {
+    case "summary": return printStatusSummary();
+    case "full":    return printStatusFull();
+    case "ice":     return printStatusIce();
+    case "hand":    return printStatusHand();
+    case "alert":   return printStatusAlert();
+    case "mission": return printStatusMission();
+    case "node":    return printStatusNode(args.slice(1));
+    default:
+      out(`[ERR] Unknown status noun: ${noun}. Try: summary full ice hand node alert mission`);
+  }
+}
+
+function printStatusSummary() {
+  const s = getState();
+  const trace = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";
+  out(`## STATUS`);
+  out(`  Alert: ${s.globalAlert.toUpperCase()}  Trace: ${trace}  Cash: ¥${s.player.cash.toLocaleString()}`);
+  if (s.ice?.active) {
+    const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
+    const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
+    out(`  ICE: ACTIVE [${s.ice.grade}] at ${pos} (resident: ${resident})`);
+  } else {
+    out(`  ICE: ${s.ice ? "INACTIVE" : "NONE"}`);
+  }
+  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  out(sel
+    ? `  Selected: ${s.selectedNodeId}  [${sel.type}]  ${sel.accessLevel}  alert:${sel.alertState}`
+    : `  Selected: none`
+  );
+  const nodes = Object.values(s.nodes);
+  const accessible = nodes.filter((n) => n.visibility === "accessible").length;
+  const owned      = nodes.filter((n) => n.accessLevel === "owned").length;
+  const revealed   = nodes.filter((n) => n.visibility === "revealed").length;
+  out(`  Network: ${accessible} accessible (${owned} owned)  ${revealed} revealed`);
+  out(`  Hand: ${s.player.hand.length} cards`);
+  if (s.mission) {
+    out(`  Mission: ${s.mission.targetName}  — ${s.mission.complete ? "COMPLETE ★" : "not collected"}`);
+  }
+}
+
+function printStatusFull() {
+  const s = getState();
+  out(`## STATUS (full)`);
+
+  out(`### ALERT`);
+  const trace = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";
+  out(`- global: ${s.globalAlert.toUpperCase()}  trace: ${trace}`);
+
+  out(`### ICE`);
+  if (s.ice?.active) {
+    const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
+    const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
+    out(`- ACTIVE  grade:${s.ice.grade}  at:${pos}  resident:${resident}  detections:${s.ice.detectionCount}`);
+  } else {
+    out(`- ${s.ice ? "INACTIVE" : "NONE"}`);
+  }
+
+  out(`### SELECTED`);
+  if (s.selectedNodeId) {
+    const sel = s.nodes[s.selectedNodeId];
+    out(`- ${s.selectedNodeId}  [${sel.type}]  ${sel.accessLevel}  alert:${sel.alertState}`);
+  } else {
+    out(`- none`);
+  }
+
+  out(`### NETWORK`);
+  const accessible = Object.values(s.nodes).filter((n) => n.visibility === "accessible");
+  const revealedCount = Object.values(s.nodes).filter((n) => n.visibility === "revealed").length;
+  accessible.forEach((node) => {
+    const selMark   = node.id === s.selectedNodeId ? " [SELECTED]" : "";
+    const probed    = node.probed ? " probed" : "";
+    const rebooting = node.rebooting ? " REBOOTING" : "";
+    out(`- ${node.id}  [${node.type}]  ${node.accessLevel}  alert:${node.alertState}${probed}${rebooting}${selMark}`);
+    if (node.probed && node.vulnerabilities.length > 0) {
+      const vulns = node.vulnerabilities
+        .filter((v) => !v.hidden)
+        .map((v) => `${v.id}${v.patched ? "(patched)" : ""}`)
+        .join(", ");
+      if (vulns) out(`  vulns: ${vulns}`);
+    }
+  });
+  if (revealedCount > 0) out(`- ${revealedCount} revealed (inaccessible)`);
+
+  out(`### HAND`);
+  if (s.player.hand.length === 0) {
+    out(`- (empty)`);
+  } else {
+    const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+    s.player.hand.forEach((card, i) => {
+      const decay   = card.decayState !== "fresh" ? `  [${card.decayState.toUpperCase()}]` : "";
+      const targets = card.targetVulnTypes.join(", ");
+      let matchStr = "";
+      if (sel?.probed) {
+        const known = sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id);
+        matchStr = card.targetVulnTypes.some((t) => known.includes(t)) ? "  ✓" : "";
+      }
+      out(`- [${i + 1}] ${card.name}  ${card.rarity}  uses:${card.usesRemaining}  targets:${targets}${matchStr}${decay}`);
+    });
+  }
+
+  out(`### MISSION`);
+  if (s.mission) {
+    out(`- target: ${s.mission.targetName}  complete: ${s.mission.complete ? "YES ★" : "no"}`);
+  } else {
+    out(`- none`);
+  }
+
+  out(`### PLAYER`);
+  out(`- cash: ¥${s.player.cash.toLocaleString()}${s.isCheating ? "  cheating:YES" : ""}`);
+}
+
+function printStatusIce() {
+  const s = getState();
+  out(`## STATUS: ICE`);
+  if (s.ice?.active) {
+    const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
+    const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
+    out(`- ACTIVE  grade:${s.ice.grade}`);
+    out(`- attention: ${pos}  resident: ${resident}`);
+    out(`- detections: ${s.ice.detectionCount}`);
+  } else {
+    out(`- ${s.ice ? "INACTIVE" : "NONE"}`);
+  }
+}
+
+function printStatusHand() {
+  const s = getState();
+  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  out(`## STATUS: HAND`);
+  if (s.player.hand.length === 0) {
+    out("- (empty)");
+  } else {
+    s.player.hand.forEach((card, i) => {
+      const decay   = card.decayState !== "fresh" ? `  [${card.decayState.toUpperCase()}]` : "";
+      const targets = card.targetVulnTypes.join(", ");
+      let matchStr = "";
+      if (sel?.probed) {
+        const known = sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id);
+        matchStr = card.targetVulnTypes.some((t) => known.includes(t)) ? "  ✓" : "";
+      }
+      out(`- [${i + 1}] ${card.name}  ${card.rarity}  uses:${card.usesRemaining}  targets:${targets}${matchStr}${decay}`);
+    });
+  }
+}
+
+function printStatusAlert() {
+  const s = getState();
+  out(`## STATUS: ALERT`);
+  const trace = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";
+  out(`- global: ${s.globalAlert.toUpperCase()}  trace: ${trace}`);
+  const secNodes = Object.values(s.nodes).filter(
+    (n) => n.visibility !== "hidden" && (n.type === "ids" || n.type === "security-monitor")
+  );
+  secNodes.forEach((n) => {
+    const fwd = n.type === "ids" ? (n.eventForwardingDisabled ? " [fwd:OFF]" : " [fwd:ON]") : "";
+    out(`- ${n.id}  [${n.type}]  alert:${n.alertState}${fwd}`);
+  });
+}
+
+function printStatusMission() {
+  const s = getState();
+  out(`## STATUS: MISSION`);
+  if (!s.mission) { out("- none"); return; }
+  out(`- target: ${s.mission.targetName}`);
+  out(`- complete: ${s.mission.complete ? "YES ★" : "no"}`);
+  for (const node of Object.values(s.nodes)) {
+    const m = node.macguffins?.find((m) => m.id === s.mission.targetMacguffinId);
+    if (m) {
+      out(`- value: ¥${m.cashValue.toLocaleString()}`);
+      out(`- location: ${node.label} (${node.id})`);
+      out(`- collected: ${m.collected ? "YES" : "no"}`);
+      break;
     }
   }
 }
 
-// ── Main loop ─────────────────────────────────────────────
-
-log("══ STARNET PLAYTEST ══");
-log(`Network: ${NETWORK.nodes.length} nodes\n`);
-
-initState(NETWORK);
-startIce();
-
-const MAX_TURNS = 60;
-const TURN_INTERVAL_MS = 300;
-
-const ticker = setInterval(() => {
-  if (runDone || turnCount >= MAX_TURNS) {
-    clearInterval(ticker);
-    if (!runDone) {
-      log(`\n[PLAYTEST] Turn limit (${MAX_TURNS}) reached. Forcing jackout.`);
-      endRun("success");
-    }
-    return;
+function printStatusNode(args) {
+  const s = getState();
+  const node = args[0] ? resolveNode(args[0]) : resolveImplicitNode();
+  if (!node) return;
+  out(`## STATUS: NODE ${node.id}`);
+  out(`- label: ${node.label}  type: ${node.type}  grade: ${node.grade ?? "N/A"}`);
+  out(`- access: ${node.accessLevel}  alert: ${node.alertState}`);
+  out(`- visibility: ${node.visibility}  probed: ${node.probed}  read: ${node.read}  looted: ${node.looted}`);
+  if (node.rebooting) out(`- REBOOTING`);
+  if (node.type === "ids") out(`- event forwarding: ${node.eventForwardingDisabled ? "disabled" : "enabled"}`);
+  if (node.probed && node.vulnerabilities.length > 0) {
+    const vulns = node.vulnerabilities
+      .filter((v) => !v.hidden)
+      .map((v) => `${v.id}${v.patched ? "(patched)" : ""}`)
+      .join(", ");
+    if (vulns) out(`- vulns: ${vulns}`);
   }
-  playerTurn();
-}, TURN_INTERVAL_MS);
+  if (node.read && node.macguffins.length > 0) {
+    node.macguffins.forEach((m) => {
+      const mission = s.mission?.targetMacguffinId === m.id ? " [MISSION]" : "";
+      out(`- item: ${m.name}  ¥${m.cashValue.toLocaleString()}${mission}  collected:${m.collected}`);
+    });
+  }
+  if (s.ice?.active && s.ice.attentionNodeId === node.id) {
+    out(`- ⚠ ICE present (grade: ${s.ice.grade})`);
+  }
+}
+
+function cmdActions() {
+  const s = getState();
+  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  out(`## AVAILABLE ACTIONS`);
+  out(`  jackout`);
+
+  const accessible = Object.values(s.nodes)
+    .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
+  const revealed = Object.values(s.nodes)
+    .filter((n) => n.visibility === "revealed" && n.id !== s.selectedNodeId);
+  if (accessible.length > 0) out(`  select <nodeId>  — accessible: ${accessible.map((n) => n.id).join(", ")}`);
+  if (revealed.length > 0)   out(`  select <nodeId>  — traverse: ${revealed.map((n) => n.id).join(", ")}`);
+
+  if (sel) {
+    out(`  deselect`);
+    if (!sel.probed && !sel.rebooting) out(`  probe  — scan ${sel.id} for vulnerabilities`);
+    if (sel.visibility === "accessible" && !sel.rebooting) {
+      s.player.hand.forEach((card, i) => {
+        const known = sel.probed
+          ? sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id)
+          : [];
+        const match = card.targetVulnTypes.some((t) => known.includes(t));
+        const worn  = card.usesRemaining <= 0 ? " [WORN]" : "";
+        const disc  = card.decayState === "disclosed" ? " [DISCLOSED]" : "";
+        const matchStr = sel.probed ? (match ? " ✓" : "") : "";
+        out(`  exploit ${i + 1}  — ${card.name} [${card.rarity}] targets:${card.targetVulnTypes.join(",")}${matchStr}${worn}${disc}`);
+      });
+    }
+    if ((sel.accessLevel === "compromised" || sel.accessLevel === "owned") && !sel.read) {
+      out(`  read`);
+    }
+    if (sel.accessLevel === "owned" && sel.read && sel.macguffins.some((m) => !m.collected)) {
+      out(`  loot`);
+    }
+    if (sel.type === "ids" && !sel.eventForwardingDisabled && sel.accessLevel !== "locked") {
+      out(`  reconfigure`);
+    }
+    if (s.ice?.active && s.ice.attentionNodeId === s.selectedNodeId) {
+      out(`  eject`);
+    }
+    if (sel.accessLevel === "owned" && !sel.rebooting) {
+      out(`  reboot`);
+    }
+  }
+}
+
+// ── Main dispatch ──────────────────────────────────────────
+
+function runCmd(raw) {
+  const tokens = raw.trim().split(/\s+/);
+  const verb = tokens[0].toLowerCase();
+  const args = tokens.slice(1);
+  switch (verb) {
+    case "reset":
+      initState(NETWORK);
+      startIce();
+      out(`[SYS] Initialized. Network: ${NETWORK.nodes.length} nodes.`);
+      break;
+    case "tick":        cmdTick(args); break;
+    case "select":      cmdSelect(args); break;
+    case "deselect":    deselectNode(); break;
+    case "probe":       cmdProbe(args); break;
+    case "exploit":
+    case "escalate":    cmdExploit(args); break;
+    case "read":        cmdRead(args); break;
+    case "loot":        cmdLoot(args); break;
+    case "reconfigure": cmdReconfigure(args); break;
+    case "jackout":     endRun("success"); break;
+    case "eject":       cmdEject(); break;
+    case "reboot":      cmdReboot(args); break;
+    case "status":      cmdStatus(args); break;
+    case "actions":     cmdActions(); break;
+    default:
+      out(`[ERR] Unknown command: ${verb}`);
+  }
+}
+
+// ── Load state ─────────────────────────────────────────────
+
+const isReset = cmdStr.trim().toLowerCase() === "reset";
+if (!isReset) {
+  if (existsSync(stateFile)) {
+    try {
+      deserializeState(JSON.parse(readFileSync(stateFile, "utf8")));
+    } catch (e) {
+      out(`[SYS] Failed to load ${stateFile}: ${e.message}. Initializing fresh.`);
+      initState(NETWORK);
+      startIce();
+    }
+  } else {
+    out(`[SYS] No state file at ${stateFile}. Initializing fresh.`);
+    initState(NETWORK);
+    startIce();
+  }
+}
+
+// ── Run and save ───────────────────────────────────────────
+
+runCmd(cmdStr);
+
+try {
+  writeFileSync(stateFile, JSON.stringify(serializeState(), null, 2));
+} catch (e) {
+  out(`[SYS] Failed to save state: ${e.message}`);
+}
+
+lines.forEach((line) => console.log(line));
