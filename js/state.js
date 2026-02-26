@@ -428,6 +428,22 @@ export function emit() {
   emitEvent(E.STATE_CHANGED, state);
 }
 
+// ── Visibility helpers ────────────────────────────────────
+
+/**
+ * Returns true if ICE is active and on a node the player controls.
+ * Used by both graph rendering and console status commands so they apply
+ * identical rules — ICE location is only visible on compromised/owned nodes.
+ * @param {IceState|null|undefined} ice
+ * @param {Object<string, NodeState>} nodes
+ * @returns {boolean}
+ */
+export function isIceVisible(ice, nodes) {
+  if (!ice?.active) return false;
+  const atAccess = nodes[ice.attentionNodeId]?.accessLevel;
+  return atAccess === "compromised" || atAccess === "owned";
+}
+
 // ── Serialization ─────────────────────────────────────────
 
 export function serializeState() {

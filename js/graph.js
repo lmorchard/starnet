@@ -1,6 +1,8 @@
 // @ts-nocheck — Cytoscape.js has no bundled types; skipping type checking for this file.
 // Graph rendering and Cytoscape.js management
 
+import { isIceVisible } from "./state.js";
+
 // Node type → shape mapping
 const NODE_SHAPES = {
   "gateway":          "diamond",
@@ -451,9 +453,7 @@ export function syncIceGraph(iceState, nodeStates) {
   prevIceNodeId = iceState.attentionNodeId;
 
   const atNodeState = nodeStates[iceState.attentionNodeId];
-  const isVisible =
-    atNodeState?.accessLevel === "compromised" ||
-    atNodeState?.accessLevel === "owned";
+  const isVisible = isIceVisible(iceState, nodeStates);
 
   if (isVisible) {
     const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
