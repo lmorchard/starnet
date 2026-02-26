@@ -90,7 +90,7 @@
  *   macguffins: Macguffin[],
  *   read: boolean,
  *   looted: boolean,
- *   eventForwardingDisabled: boolean,
+ *   eventForwardingDisabled?: boolean,
  *   rebooting: boolean,
  * }} NodeState
  */
@@ -121,6 +121,80 @@
  *   targetName: string,
  *   complete: boolean,
  * }} MissionState
+ */
+
+// ── Node type registry shapes ─────────────────────────────
+
+/**
+ * A grade-keyed numeric table (e.g. { S: 0.05, A: 0.15, ... }).
+ * @typedef {Partial<Record<Grade, number>>} GradeNumberMap
+ */
+
+/**
+ * Per-type combat modifier overrides. Any omitted key falls back to the
+ * global default table in combat.js.
+ * @typedef {{
+ *   gradeModifier?:    GradeNumberMap,
+ *   disclosureChance?: GradeNumberMap,
+ *   patchLag?:         GradeNumberMap,
+ * }} CombatConfig
+ */
+
+/**
+ * Per-type vulnerability generation overrides. Any omitted key falls back to
+ * the global VULN_CONFIG table in exploits.js.
+ * @typedef {{
+ *   count?:    Partial<Record<Grade, number[]>>,
+ *   rarities?: Partial<Record<Grade, Rarity[]>>,
+ * }} VulnConfig
+ */
+
+/**
+ * An action available on a node — rendered as a sidebar button and console action.
+ * @typedef {{
+ *   id:        string,
+ *   label:     string,
+ *   available: (node: NodeState, state: GameState) => boolean,
+ *   desc:      (node: NodeState, state: GameState) => string,
+ * }} ActionDef
+ */
+
+/**
+ * A composable behavior atom. Hooks receive a ctx object with game functions
+ * injected by the dispatcher (dependency injection — atoms have no game imports).
+ * @typedef {{
+ *   id:              string,
+ *   stateFields?:    Object,
+ *   onInit?:         (node: NodeState, state: GameState, ctx: Object) => void,
+ *   onOwned?:        (node: NodeState, state: GameState, ctx: Object) => void,
+ *   onAlertRaised?:  (node: NodeState, state: GameState, ctx: Object) => void,
+ *   onReconfigured?: (node: NodeState, state: GameState, ctx: Object) => void,
+ * }} BehaviorAtom
+ */
+
+/**
+ * Per-grade override for a node type. extraBehaviors/extraActions append to the
+ * base list; behaviors/actions replace it entirely for that grade.
+ * @typedef {{
+ *   behaviors?:      string[],
+ *   extraBehaviors?: string[],
+ *   actions?:        ActionDef[],
+ *   extraActions?:   ActionDef[],
+ *   combatConfig?:   CombatConfig,
+ *   vulnConfig?:     VulnConfig,
+ * }} GradeOverride
+ */
+
+/**
+ * A node type definition in the registry.
+ * @typedef {{
+ *   behaviors:      string[],
+ *   actions:        ActionDef[],
+ *   lootConfig?:    { count: number[] },
+ *   combatConfig?:  CombatConfig,
+ *   vulnConfig?:    VulnConfig,
+ *   gradeOverrides?: Partial<Record<Grade, GradeOverride>>,
+ * }} NodeTypeDef
  */
 
 // ── Top-level state ───────────────────────────────────────
