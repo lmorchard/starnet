@@ -110,6 +110,13 @@ Both the sidebar renderer and the console `actions` command would derive their
 output from this single source. Adding a new action to a node type would require
 touching exactly one place.
 
+**Extend to node lifecycle events:** Beyond actions, node types could declare
+`onOwned`, `onCompromised`, etc. callbacks — e.g. `security-monitor.onOwned`
+kills ICE and clears the trace. Currently this logic is scattered: ICE disable
+lives in `ice.js` listening on `NODE_ACCESSED`, trace cancel is a separate manual
+action. A per-type lifecycle model would centralize all "what happens when you
+own node X" logic in one place.
+
 Pairs well with the defender ICE / node interaction work — if node behaviors
 become more complex, having a per-type action model is the right foundation.
 

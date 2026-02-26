@@ -135,7 +135,7 @@ export function cancelTraceCountdown() {
     s.traceTimerId = null;
   }
   s.traceSecondsRemaining = null;
-  s.globalAlert = "red";
+  s.globalAlert = "green";
   emitEvent(E.ALERT_TRACE_CANCELLED, {});
   emit();
 }

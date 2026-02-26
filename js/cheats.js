@@ -10,6 +10,7 @@
 import { getState, setCheating, revealNeighbors, accessNeighbors, emit } from "./state.js";
 import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
 import { addLogEntry } from "./log.js";
+import { emitEvent, E } from "./events.js";
 import { generateExploit, generateExploitForVuln } from "./exploits.js";
 
 const VALID_RARITIES = ["common", "uncommon", "rare"];
@@ -143,9 +144,11 @@ function cheatOwn(args) {
     return false;
   }
 
+  const prev = node.accessLevel;
   node.accessLevel = "owned";
   node.alertState = "green";
   node.visibility = "accessible";
+  emitEvent(E.NODE_ACCESSED, { nodeId: node.id, label: node.label, prev, next: "owned" });
   revealNeighbors(node.id);
   accessNeighbors(node.id);
   activateCheat();
