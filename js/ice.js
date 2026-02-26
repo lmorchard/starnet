@@ -34,14 +34,6 @@ export function stopIce() {
 on("starnet:action:select",  ({ nodeId }) => { if (getState().selectedNodeId !== nodeId) cancelIceDwell(); });
 on("starnet:action:deselect", cancelIceDwell);
 
-// Owning the ICE resident node shuts ICE down.
-on(E.NODE_ACCESSED, ({ nodeId, next }) => {
-  const s = getState();
-  if (next === "owned" && s.ice?.active && s.ice.residentNodeId === nodeId) {
-    stopIce();
-    disableIce();
-  }
-});
 
 function isPlayerVisible(nodeState) {
   return nodeState?.accessLevel === "compromised" || nodeState?.accessLevel === "owned";
