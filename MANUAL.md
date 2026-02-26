@@ -265,6 +265,23 @@ enters a node you **control** (compromised or owned) — it's invisible in the d
 of unowned nodes. When it moves onto a node you control, a red diamond appears on the graph
 and the log reports its arrival.
 
+### Passive vs Active Mode
+
+When your deck connects to a LAN, it begins in **passive mode** — monitoring network
+traffic and signals without announcing itself. In this state you are effectively a
+ghost: observing, not present. ICE cannot detect you.
+
+**Selecting a node** shifts you into **active mode**. Your deck is now actively coupled
+to that node — maintaining a live connection, probing its service stack. This is when
+you become visible. ICE on that node can sense your presence and the detection clock
+can start. The reticle around a selected node represents this active coupling.
+
+**Deselecting** returns you to passive mode. Your signal drops to background noise.
+Unless a trace is already running, you become undetectable again.
+
+The implication: **staying selected on a node costs you exposure.** Do your work,
+then pull back.
+
 ### Detection
 
 If ICE **dwells on your currently selected node** long enough, a detection countdown begins.
@@ -273,7 +290,7 @@ the global alert escalates, and the trace countdown may begin.
 
 **Counters:**
 
-- **Deselect** the node or select a different one — cancels the dwell timer
+- **Deselect** the node or select a different one — drops back to passive, cancels the dwell timer
 - **Eject** (owned nodes) — boots ICE to a random adjacent node: `> eject`
 - **Reboot** (owned nodes) — forces ICE back to its resident node and takes your node
   offline briefly: `> reboot`

@@ -196,14 +196,14 @@ function buildStylesheet() {
     {
       selector: "node.accessible.compromised",
       style: {
-        "background-color": "#1a3850",
+        "background-color": "#1a4d70",
       },
     },
     // Access level — owned (green fill = territory)
     {
       selector: "node.accessible.owned",
       style: {
-        "background-color": "#1a3820",
+        "background-color": "#1a5530",
         "border-width": 1,
       },
     },
@@ -501,7 +501,14 @@ export function syncIceGraph(iceState, nodeStates) {
     if (attentionCyNode && attentionCyNode.length > 0) {
       iceNode.style("display", "element");
       if (moved) {
-        iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
+        const fromAccess = fromId ? nodeStates[fromId]?.accessLevel : null;
+        const fromWasVisible = fromAccess === "compromised" || fromAccess === "owned";
+        if (fromWasVisible) {
+          iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
+        } else {
+          // Arriving from invisible territory — snap to avoid animating from a stale position
+          iceNode.stop().position(attentionCyNode.position());
+        }
       }
     }
   } else {

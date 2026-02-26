@@ -261,6 +261,50 @@ html, body {
   animation: pulse 0.3s ease-in-out infinite;
 }
 
+/* LAN connection status indicator */
+#hud-connection {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#hud .hud-conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+#hud .hud-conn-dot.active {
+  background: var(--magenta);
+  box-shadow: 0 0 6px var(--magenta);
+}
+
+#hud .hud-conn-dot.detecting {
+  background: var(--yellow);
+  box-shadow: 0 0 8px var(--yellow);
+  animation: pulse 0.6s ease-in-out infinite;
+}
+
+#hud #conn-status {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+#hud #conn-status.active {
+  color: var(--magenta);
+}
+
+#hud #conn-status.detecting {
+  color: var(--yellow);
+  animation: pulse-text 0.6s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
 #jack-out-btn {
   background: transparent;
   border: 1px solid var(--red);
@@ -708,11 +752,13 @@ html, body {
 }
 
 /* Selection reticle — animated SVG ring overlay */
-#reticle-ring {
-  animation: reticle-dash 5s linear infinite;
+#reticle-group {
+  animation: reticle-spin 12s linear infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
 }
 
-@keyframes reticle-dash {
-  from { stroke-dashoffset: 0; }
-  to   { stroke-dashoffset: -200; }
+@keyframes reticle-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }

@@ -121,6 +121,26 @@ function syncHud(state) {
 
   /** @type {HTMLButtonElement} */ (document.getElementById("jack-out-btn")).disabled = state.phase !== "playing";
 
+  // Connection status indicator
+  const connDot = document.getElementById("conn-dot");
+  const connStatus = document.getElementById("conn-status");
+  if (connDot && connStatus) {
+    const detecting = getVisibleTimers().some((t) => t.label === "ICE DETECTION");
+    if (detecting) {
+      connDot.className = "hud-conn-dot detecting";
+      connStatus.className = "detecting";
+      connStatus.textContent = `ACTIVE: ${state.selectedNodeId}`;
+    } else if (state.selectedNodeId) {
+      connDot.className = "hud-conn-dot active";
+      connStatus.className = "active";
+      connStatus.textContent = `ACTIVE: ${state.selectedNodeId}`;
+    } else {
+      connDot.className = "hud-conn-dot";
+      connStatus.className = "";
+      connStatus.textContent = "PASSIVE SCAN";
+    }
+  }
+
   // Cheat mode indicator
   const existingCheatLabel = document.getElementById("cheat-label");
   if (state.isCheating && !existingCheatLabel) {
