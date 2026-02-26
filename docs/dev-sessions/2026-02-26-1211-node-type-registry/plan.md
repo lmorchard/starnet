@@ -297,7 +297,62 @@ Run `make check`. Verify sidebar and console show identical available actions in
 
 ---
 
-## Step 8 — Combat & vuln config (`combat.js` + `exploits.js`)
+## Step 8 — Integration tests (`tests/integration.test.js`)
+
+**Builds on:** Steps 5–7 (lifecycle, alerts, and actions all wired).
+**State after:** repeatable integration scenarios in `make test`; test infrastructure in place.
+
+### 8a — Test infrastructure
+
+Add `clearHandlers()` export to `js/events.js` (resets the internal `handlers` Map to empty).
+This is the only way to isolate tests — Node module cache persists, so handler re-registration
+between tests must be explicit.
+
+```js
+// events.js
+export function clearHandlers() {
+  handlers.clear();
+}
+```
+
+### 8b — Test file
+
+Create `tests/integration.test.js`. Each `describe` block follows the pattern:
+
+1. `clearHandlers()` — wipe all listeners
+2. Re-import and re-wire lifecycle modules (call `initNodeLifecycle()`, etc.)
+3. `initState(NETWORK)` — fresh game state
+4. Drive actions via state mutation functions
+5. Assert on `getState()` snapshots and captured events
+
+**Scenarios to cover:**
+
+- **Node init**: after `initState`, fileserver has ≥ 1 macguffin, gateway has none,
+  `ids` node has `eventForwardingDisabled === false`
+
+- **Lifecycle — iceResident**: after `cheat own security-monitor` (emit `NODE_ACCESSED`
+  with `next: "owned"`), `getState().ice.active === false`
+
+- **Lifecycle — monitor**: same setup; verify `ALERT_TRACE_CANCELLED` event fired
+  (or trace countdown not started)
+
+- **Alert flow**: probe IDS → simulate exploit failure (emit `NODE_ALERT_RAISED`) →
+  verify `ALERT_PROPAGATED` fires, `ALERT_GLOBAL_RAISED` fires, global alert escalates
+
+- **Action availability**:
+  - `getActions` on compromised IDS (forwarding enabled) → includes `reconfigure`
+  - `getActions` on reconfigured IDS (`eventForwardingDisabled: true`) → no `reconfigure`
+  - `getActions` on owned `security-monitor` with `traceSecondsRemaining: 60` → includes `cancel-trace`
+  - `getActions` on owned `security-monitor` with `traceSecondsRemaining: null` → no `cancel-trace`
+
+- **Grade override**: `getActions` on compromised Grade-S `ids` with failing exploit →
+  direct-trace behavior present (verify atom fires `startTraceCountdown`)
+
+Run `make test` — all existing unit tests + new integration tests must pass.
+
+---
+
+## Step 9 — Combat & vuln config (`combat.js` + `exploits.js`)
 
 **Builds on:** Step 2 registry (cryptovault combatConfig defined there).
 **State after:** per-type combat/vuln overrides active; registry is single source of truth.
@@ -336,7 +391,7 @@ difference.
 
 ---
 
-## Step 9 — Playtest script `actions` command
+## Step 10 — Playtest script `actions` command
 
 **Builds on:** Step 7 (`getActions` wired and verified).
 **State after:** no third copy of action gates; harness uses registry.
@@ -358,9 +413,9 @@ node scripts/playtest.js "actions"   # should list cancel-trace
 
 ---
 
-## Step 10 — Final validation & commit
+## Step 11 — Final validation & commit
 
-**Builds on:** all prior steps.
+**Builds on:** Steps 1–10.
 **State after:** all acceptance criteria met; branch ready for review.
 
 1. `make check` — must be clean
