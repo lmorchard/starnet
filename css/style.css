@@ -752,6 +752,10 @@ html, body {
 }
 
 /* Selection reticle — animated SVG ring overlay */
+#selection-reticle {
+  transition: opacity 0.2s ease;
+}
+
 #reticle-group {
   animation: reticle-spin 12s linear infinite;
   transform-box: fill-box;

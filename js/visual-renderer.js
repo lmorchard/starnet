@@ -388,7 +388,8 @@ function syncHandPane(state) {
     el.querySelectorAll(".exploit-card.selectable-card").forEach((cardEl) => {
       cardEl.addEventListener("click", () => {
         const exploitId = /** @type {HTMLElement} */ (cardEl).dataset.exploitId;
-        emitEvent("starnet:action:launch-exploit", { nodeId: state.selectedNodeId, exploitId });
+        const cardIndex = /** @type {HTMLElement} */ (cardEl).dataset.cardIndex;
+        emitEvent("starnet:action:launch-exploit", { nodeId: state.selectedNodeId, exploitId, cardIndex });
       });
     });
   }
@@ -413,7 +414,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
   const isSelectable = isSelecting && !disclosed;
 
   return `<div class="exploit-card ${rarityClass} ${disclosed ? "disclosed" : ""} ${matchClass} ${isSelectable ? "selectable-card" : ""}"
-              data-exploit-id="${card.id}">
+              data-exploit-id="${card.id}" data-card-index="${index}">
     <div class="ec-header">
       ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
       <span class="ec-name">${card.name}</span>

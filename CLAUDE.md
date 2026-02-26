@@ -203,6 +203,8 @@ in gameplay or a bug in the manual — both are worth fixing.
 
 - **The console must be LLM-legible.** The log + command interface should be sufficient for an LLM to fully observe and play the game without access to the visual graph. This means: complete state inspectable via `status`, all game events logged as text, all actions issuable as console commands. This serves both automated playtesting and future AI-driven gameplay features.
 
+- **GUI and console are symmetric input channels.** Clicking a button and typing its equivalent command must produce identical outcomes — same log entry, same history entry, same state change. The visual UI is an alternative way to issue commands, not a separate system. A player should be able to switch freely between mouse and keyboard mid-run without any difference in behavior or feedback.
+
 ## Design Aesthetic
 
 - Dark background (`#0a0a0f`), glowing neon vector phosphene look

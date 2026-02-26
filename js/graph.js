@@ -30,6 +30,7 @@ let prevIceNodeId = null;        // tracks ICE's last position for movement flas
 let currentSelectedNodeId = null; // tracks selected node for reticle positioning
 const pulsingNodes = new Set();       // nodeIds running red-alert pulse
 const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
+const rebootingNodes = new Set();     // nodeIds running reboot opacity pulse
 
 function startRedPulse(node) {
   const id = node.id();
@@ -82,6 +83,34 @@ function runYellowPulse(node) {
       node.animate(
         { style: { "border-color": "#553300", "border-width": 2 } },
         { duration: 1200, complete: () => runYellowPulse(node) }
+      );
+    }}
+  );
+}
+
+function startRebootPulse(node) {
+  const id = node.id();
+  if (rebootingNodes.has(id)) return;
+  rebootingNodes.add(id);
+  runRebootPulse(node);
+}
+
+function stopRebootPulse(node) {
+  rebootingNodes.delete(node.id());
+  node.stop();
+  node.removeStyle("opacity");
+}
+
+function runRebootPulse(node) {
+  const id = node.id();
+  if (!rebootingNodes.has(id)) return;
+  node.animate(
+    { style: { opacity: 0.2 } },
+    { duration: 1000, complete: () => {
+      if (!rebootingNodes.has(id)) return;
+      node.animate(
+        { style: { opacity: 0.55 } },
+        { duration: 1200, complete: () => runRebootPulse(node) }
       );
     }}
   );
@@ -279,13 +308,12 @@ function buildStylesheet() {
         "border-width": 3,
       },
     },
-    // Rebooting node — dimmed and dashed
+    // Rebooting node — dashed border; opacity animated by JS reboot pulse
     {
       selector: "node.rebooting",
       style: {
         "border-color": "#888800",
         "border-style": "dashed",
-        opacity: 0.5,
       },
     },
     // Edges hidden
@@ -340,8 +368,10 @@ export function updateNodeStyle(nodeId, nodeState) {
   // Rebooting state
   if (nodeState.rebooting) {
     node.addClass("rebooting");
+    startRebootPulse(node);
   } else {
     node.removeClass("rebooting");
+    stopRebootPulse(node);
   }
 
   // Visibility class
@@ -422,13 +452,13 @@ function syncReticle() {
   if (!svg) return;
 
   if (!currentSelectedNodeId || !cy) {
-    svg.style.display = "none";
+    svg.style.opacity = "0";
     return;
   }
 
   const node = cy.getElementById(currentSelectedNodeId);
   if (!node || node.length === 0) {
-    svg.style.display = "none";
+    svg.style.opacity = "0";
     return;
   }
 
@@ -460,7 +490,7 @@ function syncReticle() {
   svg.style.height = `${size}px`;
   svg.style.left   = `${pos.x - r}px`;
   svg.style.top    = `${pos.y - r}px`;
-  svg.style.display = "block";
+  svg.style.opacity = "1";
 }
 
 export function addIceNode() {
