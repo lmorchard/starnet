@@ -20,10 +20,12 @@ import {
   serializeState, deserializeState,
 } from "../js/state.js";
 import { launchExploit } from "../js/combat.js";
-import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "../js/ice.js";
+import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "../js/ice.js";
 import { on, E } from "../js/events.js";
 import { tick } from "../js/timers.js";
-import { handleTraceTick } from "../js/alert.js";
+import { handleTraceTick, forceGlobalAlert, cancelTraceCountdown } from "../js/alert.js";
+import { generateExploit, generateExploitForVuln } from "../js/exploits.js";
+import { revealNeighbors, accessNeighbors, setCheating } from "../js/state.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
@@ -61,6 +63,7 @@ on("starnet:timer:ice-move",        ()        => handleIceTick());
 on("starnet:timer:ice-detect",      (payload) => handleIceDetect(payload));
 on("starnet:timer:trace-tick",      ()        => handleTraceTick());
 on("starnet:timer:reboot-complete", (payload) => completeReboot(payload.nodeId));
+on(E.STATE_CHANGED,                 (s)       => { if (s.phase === "ended") stopIce(); });
 
 // ── Event → output ─────────────────────────────────────────
 
@@ -236,6 +239,9 @@ function printStatusSummary() {
   const s = getState();
   const trace = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";
   out(`## STATUS`);
+  if (s.phase === "ended") {
+    out(`  !! RUN ENDED: ${(s.runOutcome ?? "unknown").toUpperCase()} !!`);
+  }
   out(`  Alert: ${s.globalAlert.toUpperCase()}  Trace: ${trace}  Cash: ¥${s.player.cash.toLocaleString()}`);
   if (s.ice?.active) {
     const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
@@ -424,6 +430,103 @@ function printStatusNode(args) {
   }
 }
 
+function cmdCheat(args) {
+  const sub = args[0]?.toLowerCase();
+  const s = getState();
+
+  if (sub === "own") {
+    const token = args[1];
+    if (!token) { out("[ERR] Usage: cheat own <node>"); return; }
+    const node = s.nodes[token] ?? Object.values(s.nodes).find((n) => n.label.toLowerCase().startsWith(token.toLowerCase()));
+    if (!node) { out(`[ERR] Unknown node: ${token}`); return; }
+    node.accessLevel = "owned";
+    node.alertState  = "green";
+    node.visibility  = "accessible";
+    revealNeighbors(node.id);
+    accessNeighbors(node.id);
+    setCheating();
+    out(`[CHEAT] ${node.label} set to OWNED.`);
+    return;
+  }
+
+  if (sub === "give") {
+    const what = args[1]?.toLowerCase();
+    if (what === "matching") {
+      const token = args[2];
+      const node = token
+        ? (s.nodes[token] ?? Object.values(s.nodes).find((n) => n.label.toLowerCase().startsWith(token.toLowerCase())))
+        : (s.selectedNodeId ? s.nodes[s.selectedNodeId] : null);
+      if (!node) { out("[ERR] No node. Use: cheat give matching <node>"); return; }
+      if (!node.probed) { out(`[ERR] ${node.label}: probe first.`); return; }
+      const targets = node.vulnerabilities.filter((v) => !v.patched && !v.hidden);
+      if (targets.length === 0) { out(`[ERR] ${node.label}: no unpatched vulns.`); return; }
+      const USES = { common: 3, uncommon: 5, rare: 8 };
+      targets.forEach((v) => {
+        const spent = s.player.hand.find((c) => c.targetVulnTypes.includes(v.id) && (c.usesRemaining <= 0 || c.decayState === "disclosed"));
+        if (spent) {
+          spent.usesRemaining = USES[spent.rarity] ?? 3;
+          spent.decayState = "fresh";
+          out(`[CHEAT] Restored "${spent.name}" (${v.id}).`);
+        } else {
+          const card = generateExploitForVuln(v.id);
+          s.player.hand.push(card);
+          out(`[CHEAT] Added "${card.name}" [${card.rarity}] targeting ${v.id}.`);
+        }
+      });
+      setCheating();
+      return;
+    }
+    if (what === "card") {
+      const rarity = ["common", "uncommon", "rare"].includes(args[2]) ? args[2] : null;
+      const card = generateExploit(rarity);
+      s.player.hand.push(card);
+      setCheating();
+      out(`[CHEAT] Added "${card.name}" [${card.rarity}] to hand.`);
+      return;
+    }
+    if (what === "cash") {
+      const amount = parseInt(args[2], 10);
+      if (isNaN(amount) || amount <= 0) { out("[ERR] Usage: cheat give cash <amount>"); return; }
+      s.player.cash += amount;
+      setCheating();
+      out(`[CHEAT] Added ¥${amount.toLocaleString()} to wallet.`);
+      return;
+    }
+    out("[ERR] Usage: cheat give matching|card|cash ...");
+    return;
+  }
+
+  if (sub === "set" && args[1]?.toLowerCase() === "alert") {
+    const level = args[2]?.toLowerCase();
+    if (!["green","yellow","red","trace"].includes(level)) { out("[ERR] Usage: cheat set alert <green|yellow|red|trace>"); return; }
+    forceGlobalAlert(level);
+    setCheating();
+    out(`[CHEAT] Alert forced to ${level.toUpperCase()}.`);
+    return;
+  }
+
+  if (sub === "trace") {
+    const action = args[1]?.toLowerCase();
+    if (action === "end") {
+      if (s.traceSecondsRemaining === null) { out("[ERR] No trace active."); return; }
+      cancelTraceCountdown();
+      setCheating();
+      out("[CHEAT] Trace cancelled.");
+      return;
+    }
+    if (action === "start") {
+      forceGlobalAlert("trace");
+      setCheating();
+      out("[CHEAT] Trace initiated.");
+      return;
+    }
+    out("[ERR] Usage: cheat trace start|end");
+    return;
+  }
+
+  out("[ERR] Cheats: own <node>  give matching|card|cash  set alert <level>  trace start|end");
+}
+
 function cmdActions() {
   const s = getState();
   const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
@@ -496,6 +599,7 @@ function runCmd(raw) {
     case "reboot":      cmdReboot(args); break;
     case "status":      cmdStatus(args); break;
     case "actions":     cmdActions(); break;
+    case "cheat":       cmdCheat(args); break;
     default:
       out(`[ERR] Unknown command: ${verb}`);
   }

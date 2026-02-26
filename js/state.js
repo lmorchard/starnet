@@ -13,7 +13,7 @@
 /** @typedef {import('./types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
+import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "./exploits.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
 import { clearAll as clearAllTimers, scheduleEvent, serializeTimers, deserializeTimers } from "./timers.js";
 import { emitEvent, E } from "./events.js";
@@ -250,6 +250,11 @@ export function probeNode(nodeId) {
 export function readNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return;
+  if (node.read) {
+    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Already scanned.`, type: "info" });
+    emit();
+    return;
+  }
   node.read = true;
   emitEvent(E.NODE_READ, { nodeId, label: node.label, macguffinCount: node.macguffins.length });
   emit();
@@ -261,7 +266,8 @@ export function lootNode(nodeId) {
 
   const uncollected = node.macguffins.filter((m) => !m.collected);
   if (uncollected.length === 0) {
-    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Already looted.`, type: "info" });
+    node.looted = true;
+    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Nothing to loot.`, type: "info" });
     emit();
     return;
   }
@@ -424,11 +430,12 @@ export function emit() {
 // ── Serialization ─────────────────────────────────────────
 
 export function serializeState() {
-  return { ...state, _timers: serializeTimers() };
+  return { ...state, _timers: serializeTimers(), _exploitIdCounter };
 }
 
 export function deserializeState(snapshot) {
-  const { _timers, ...gameState } = snapshot;
+  const { _timers, _exploitIdCounter: exploitId, ...gameState } = snapshot;
   state = gameState;
   deserializeTimers(_timers);
+  if (exploitId != null) setExploitIdCounter(exploitId);
 }

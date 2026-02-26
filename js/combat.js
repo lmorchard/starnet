@@ -80,7 +80,9 @@ export function resolveExploit(exploit, node) {
  */
 export function applyCardDecay(exploit, result) {
   exploit.usesRemaining = Math.max(0, exploit.usesRemaining - 1);
-  if (exploit.usesRemaining === 0 && exploit.decayState === "fresh") {
+  if (exploit.usesRemaining === 0) {
+    exploit.decayState = "disclosed";
+  } else if (exploit.usesRemaining === 1 && exploit.decayState === "fresh") {
     exploit.decayState = "worn";
   }
 
