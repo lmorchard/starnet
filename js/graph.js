@@ -435,11 +435,26 @@ function syncReticle() {
   const pos = node.renderedPosition();
   const r = (node.renderedWidth() / 2) + 12; // node radius + gap
   const size = r * 2;
+  const ringR = r - 2;
+  const tickLen = Math.max(6, ringR * 0.22); // ~22% of ring radius, min 6px
 
   const ring = document.getElementById("reticle-ring");
   ring.setAttribute("cx", r);
   ring.setAttribute("cy", r);
-  ring.setAttribute("r", r - 2);
+  ring.setAttribute("r", ringR);
+
+  // Four inward-pointing tick marks at cardinal positions
+  const ticks = {
+    n: [r, r - ringR,       r, r - ringR + tickLen],
+    s: [r, r + ringR,       r, r + ringR - tickLen],
+    e: [r + ringR, r,       r + ringR - tickLen, r],
+    w: [r - ringR, r,       r - ringR + tickLen, r],
+  };
+  for (const [dir, [x1, y1, x2, y2]] of Object.entries(ticks)) {
+    const el = document.getElementById(`reticle-tick-${dir}`);
+    el.setAttribute("x1", x1); el.setAttribute("y1", y1);
+    el.setAttribute("x2", x2); el.setAttribute("y2", y2);
+  }
 
   svg.style.width  = `${size}px`;
   svg.style.height = `${size}px`;
