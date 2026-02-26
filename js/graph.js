@@ -41,6 +41,7 @@ function startRedPulse(node) {
 function stopRedPulse(node) {
   pulsingNodes.delete(node.id());
   node.stop();
+  node.removeStyle("border-color border-width");
 }
 
 function runRedPulse(node) {
@@ -68,6 +69,7 @@ function startYellowPulse(node) {
 function stopYellowPulse(node) {
   yellowPulsingNodes.delete(node.id());
   node.stop();
+  node.removeStyle("border-color border-width");
 }
 
 function runYellowPulse(node) {
@@ -190,18 +192,18 @@ function buildStylesheet() {
         "text-outline-width": 2,
       },
     },
-    // Access level — compromised (dim cyan fill = foothold)
+    // Access level — compromised (cyan fill = foothold)
     {
       selector: "node.accessible.compromised",
       style: {
-        "background-color": "#061525",
+        "background-color": "#0a2035",
       },
     },
-    // Access level — owned (dim green fill = territory)
+    // Access level — owned (green fill = territory)
     {
       selector: "node.accessible.owned",
       style: {
-        "background-color": "#051a08",
+        "background-color": "#0a2510",
         "border-width": 1,
       },
     },
