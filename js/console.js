@@ -18,6 +18,12 @@ const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
 let history = [];
 let historyIndex = -1;
 
+export function pushHistory(cmd) {
+  if (!cmd) return;
+  history.unshift(cmd);
+  if (history.length > 50) history.length = 50;
+}
+
 export function initConsole() {
   const input = /** @type {HTMLInputElement|null} */ (document.getElementById("console-input"));
   if (!input) return;

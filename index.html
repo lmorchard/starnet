@@ -15,6 +15,11 @@
     <header id="hud">
       <span class="hud-title">★ STARNET</span>
 
+      <div id="hud-connection">
+        <span class="hud-conn-dot" id="conn-dot"></span>
+        <span class="hud-value" id="conn-status">PASSIVE SCAN</span>
+      </div>
+
       <div class="hud-alert">
         <div class="alert-dot" id="alert-dot"></div>
         <span class="hud-label">ALERT:</span>
@@ -32,6 +37,21 @@
       <div id="graph-column">
         <div id="graph-container">
           <div id="cy"></div>
+          <svg id="selection-reticle"
+               style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;">
+            <g id="reticle-group">
+              <circle id="reticle-ring" cx="30" cy="30" r="28"
+                      fill="none"
+                      stroke="#cc00cc"
+                      stroke-width="1.5"
+                      stroke-dasharray="6 3"
+                      stroke-opacity="0.75"/>
+              <line id="reticle-tick-n" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+              <line id="reticle-tick-s" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+              <line id="reticle-tick-e" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+              <line id="reticle-tick-w" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            </g>
+          </svg>
         </div>
         <div id="log-pane">
           <div id="log-header">

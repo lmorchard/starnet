@@ -108,7 +108,7 @@ Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `pl
 
 Note: this project uses `docs/dev-sessions/` (not `.claude/dev-sessions/`) so session artifacts are tracked in git alongside the source.
 
-Most recent session: `docs/dev-sessions/2026-02-25-1605-node-playtesting/`
+Most recent session: `docs/dev-sessions/2026-02-26-0956-node-visual-indicators/`
 
 ## Headless Playtest Harness
 
@@ -202,6 +202,8 @@ in gameplay or a bug in the manual — both are worth fixing.
 - **Every visual game event must have a corresponding console log entry.** If the player can see something happen on the graph or HUD, there must be a matching textual record in the log. This is both an accessibility and a game-feel requirement — the log is the player's "decker readout" and should be a complete record of what the system is doing.
 
 - **The console must be LLM-legible.** The log + command interface should be sufficient for an LLM to fully observe and play the game without access to the visual graph. This means: complete state inspectable via `status`, all game events logged as text, all actions issuable as console commands. This serves both automated playtesting and future AI-driven gameplay features.
+
+- **GUI and console are symmetric input channels.** Clicking a button and typing its equivalent command must produce identical outcomes — same log entry, same history entry, same state change. The visual UI is an alternative way to issue commands, not a separate system. A player should be able to switch freely between mouse and keyboard mid-run without any difference in behavior or feedback.
 
 ## Design Aesthetic
 

@@ -5,7 +5,7 @@ import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNo
 import { launchExploit } from "./combat.js";
 import { addLogEntry } from "./log.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
-import { initConsole, runCommand } from "./console.js";
+import { initConsole, runCommand, pushHistory } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { tick, TICK_MS, TIMER, getVisibleTimers } from "./timers.js";
 import { handleTraceTick, cancelTraceCountdown } from "./alert.js";
@@ -15,6 +15,12 @@ import { initLogRenderer } from "./log-renderer.js";
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 // Kept here (not in visual-renderer) because it's set by action event handlers.
 let sidebarMode = "node";
+
+// Log a UI-sourced command to both the log pane and the console history.
+function logCommand(cmd) {
+  addLogEntry(`> ${cmd}`, "command");
+  pushHistory(cmd);
+}
 
 function init() {
   initLogRenderer();
@@ -44,7 +50,7 @@ function init() {
   // Click-sourced events (no fromConsole flag) echo their equivalent command to the log.
 
   on("starnet:action:select", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> select ${nodeId}`, "command");
+    if (!fromConsole) logCommand(`select ${nodeId}`);
     if (sidebarMode !== "node") {
       setSidebarMode("node");
       sidebarMode = "node";
@@ -53,7 +59,8 @@ function init() {
     selectNode(nodeId);
   });
 
-  on("starnet:action:deselect", () => {
+  on("starnet:action:deselect", ({ fromConsole } = {}) => {
+    if (!fromConsole) logCommand("deselect");
     deselectNode();
     setSidebarMode("node");
     sidebarMode = "node";
@@ -64,7 +71,7 @@ function init() {
   on(TIMER.TRACE_TICK, () => handleTraceTick());
 
   on("starnet:action:probe", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> probe ${nodeId}`, "command");
+    if (!fromConsole) logCommand(`probe ${nodeId}`);
     probeNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
@@ -88,8 +95,8 @@ function init() {
     emitEvent(E.STATE_CHANGED, getState());
   });
 
-  on("starnet:action:launch-exploit", ({ nodeId, exploitId, fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> exploit ${nodeId} ${exploitId}`, "command");
+  on("starnet:action:launch-exploit", ({ nodeId, exploitId, cardIndex, fromConsole }) => {
+    if (!fromConsole) logCommand(`exploit ${cardIndex ?? exploitId}`);
 
     // Click UI (exploit-select mode): stay in exploit-select on failure.
     const clickMode = sidebarMode === "exploit-select" && !fromConsole;
@@ -108,43 +115,43 @@ function init() {
   });
 
   on("starnet:action:reconfigure", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> reconfigure ${nodeId}`, "command");
+    if (!fromConsole) logCommand(`reconfigure ${nodeId}`);
     reconfigureNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
   on("starnet:action:read", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> read ${nodeId}`, "command");
+    if (!fromConsole) logCommand(`read ${nodeId}`);
     readNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
   on("starnet:action:loot", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> loot ${nodeId}`, "command");
+    if (!fromConsole) logCommand(`loot ${nodeId}`);
     lootNode(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
   on("starnet:action:cancel-trace", ({ fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> cancel-trace`, "command");
+    if (!fromConsole) logCommand(`cancel-trace`);
     cancelTraceCountdown();
   });
 
   on("starnet:action:jackout", ({ fromConsole } = {}) => {
-    if (!fromConsole) addLogEntry(`> jackout`, "command");
+    if (!fromConsole) logCommand(`jackout`);
     endRun("success");
   });
 
   on("starnet:action:eject", ({ fromConsole } = {}) => {
-    if (!fromConsole) addLogEntry(`> eject`, "command");
+    if (!fromConsole) logCommand(`eject`);
     ejectIce();
   });
 
   on("starnet:action:reboot", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) addLogEntry(`> reboot ${nodeId}`, "command");
+    if (!fromConsole) logCommand(`reboot ${nodeId}`);
     rebootNode(nodeId);
   });
 

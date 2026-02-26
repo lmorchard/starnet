@@ -10,7 +10,7 @@ const NODE_SHAPES = {
   "firewall":         "pentagon",
   "workstation":      "ellipse",
   "ids":              "hexagon",
-  "security-monitor": "hexagon",
+  "security-monitor": "octagon",
   "fileserver":       "rectangle",
   "cryptovault":      "diamond",
 };
@@ -26,9 +26,11 @@ const GRADE_COLORS = {
 };
 
 let cy = null;
-let prevIceNodeId = null; // tracks ICE's last position for movement flash
+let prevIceNodeId = null;        // tracks ICE's last position for movement flash
+let currentSelectedNodeId = null; // tracks selected node for reticle positioning
 const pulsingNodes = new Set();       // nodeIds running red-alert pulse
 const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
+const rebootingNodes = new Set();     // nodeIds running reboot opacity pulse
 
 function startRedPulse(node) {
   const id = node.id();
@@ -40,18 +42,18 @@ function startRedPulse(node) {
 function stopRedPulse(node) {
   pulsingNodes.delete(node.id());
   node.stop();
+  node.removeStyle("border-color border-width");
 }
 
 function runRedPulse(node) {
   const id = node.id();
   if (!pulsingNodes.has(id)) return;
-  // shadow-blur/shadow-opacity are invalid for animate(); use border instead
   node.animate(
-    { style: { "border-color": "#ff6060", "border-width": 4 } },
+    { style: { "border-color": "#ff4040", "border-width": 3 } },
     { duration: 400, complete: () => {
       if (!pulsingNodes.has(id)) return;
       node.animate(
-        { style: { "border-color": "#ff2020", "border-width": 2 } },
+        { style: { "border-color": "#cc1100", "border-width": 2 } },
         { duration: 700, complete: () => runRedPulse(node) }
       );
     }}
@@ -68,19 +70,47 @@ function startYellowPulse(node) {
 function stopYellowPulse(node) {
   yellowPulsingNodes.delete(node.id());
   node.stop();
+  node.removeStyle("border-color border-width");
 }
 
 function runYellowPulse(node) {
   const id = node.id();
   if (!yellowPulsingNodes.has(id)) return;
-  // Slow amber background pulse — keeps border free for access-level color
   node.animate(
-    { style: { "background-color": "#2a1f00" } },
+    { style: { "border-color": "#cc8800", "border-width": 2 } },
     { duration: 900, complete: () => {
       if (!yellowPulsingNodes.has(id)) return;
       node.animate(
-        { style: { "background-color": "#0f0c00" } },
+        { style: { "border-color": "#553300", "border-width": 2 } },
         { duration: 1200, complete: () => runYellowPulse(node) }
+      );
+    }}
+  );
+}
+
+function startRebootPulse(node) {
+  const id = node.id();
+  if (rebootingNodes.has(id)) return;
+  rebootingNodes.add(id);
+  runRebootPulse(node);
+}
+
+function stopRebootPulse(node) {
+  rebootingNodes.delete(node.id());
+  node.stop();
+  node.removeStyle("opacity");
+}
+
+function runRebootPulse(node) {
+  const id = node.id();
+  if (!rebootingNodes.has(id)) return;
+  node.animate(
+    { style: { opacity: 0.2 } },
+    { duration: 1000, complete: () => {
+      if (!rebootingNodes.has(id)) return;
+      node.animate(
+        { style: { opacity: 0.55 } },
+        { duration: 1200, complete: () => runRebootPulse(node) }
       );
     }}
   );
@@ -113,6 +143,8 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   cy.on("tap", (evt) => {
     if (evt.target === cy && onBackgroundTap) onBackgroundTap();
   });
+
+  cy.on("pan zoom", syncReticle);
 
   return cy;
 }
@@ -168,16 +200,16 @@ function buildStylesheet() {
         "text-margin-y": 5,
       },
     },
-    // Accessible nodes — base (dim teal border = locked, no glow)
+    // Accessible nodes — base (locked = dark/absent fill, quiet border)
     {
       selector: "node.accessible",
       style: {
         display: "element",
         width: 46,
         height: 46,
-        "background-color": "#070710",
-        "border-width": 2,
-        "border-color": "#004444",
+        "background-color": "#080810",
+        "border-width": 1,
+        "border-color": "#1a3333",
         label: "data(id)",
         color: "#00ff41",
         "font-family": "Courier New, monospace",
@@ -189,43 +221,35 @@ function buildStylesheet() {
         "text-outline-width": 2,
       },
     },
-    // Access level — compromised (cyan border = partial access)
+    // Access level — compromised (cyan fill = foothold)
     {
       selector: "node.accessible.compromised",
       style: {
-        "background-color": "#04041a",
-        "border-color": "#00ffff",
+        "background-color": "#1a4d70",
       },
     },
-    // Access level — owned (green border = full control)
+    // Access level — owned (green fill = territory)
     {
       selector: "node.accessible.owned",
       style: {
-        "background-color": "#031208",
-        "border-color": "#00ff41",
-        "border-width": 3,
+        "background-color": "#1a5530",
+        "border-width": 1,
       },
     },
-    // Alert state: yellow — amber background tint (pulse driven by JS animation; border unchanged = access level)
+    // Alert state: yellow — amber border (pulse driven by JS animation)
     {
       selector: "node.accessible.alert-yellow",
       style: {
-        "background-color": "#1a1400",
+        "border-color": "#996600",
+        "border-width": 2,
       },
     },
-    // Alert state: red — red background tint (pulse driven by JS animation)
+    // Alert state: red — red border (pulse driven by JS animation)
     {
       selector: "node.accessible.alert-red",
       style: {
-        "background-color": "#1a0000",
-      },
-    },
-    // Selected node — magenta ring (managed by game state, not Cytoscape native selection)
-    {
-      selector: "node.game-selected",
-      style: {
-        "border-color": "#ff00ff",
-        "border-width": 3,
+        "border-color": "#cc1100",
+        "border-width": 2,
       },
     },
     // ICE entity node
@@ -284,13 +308,12 @@ function buildStylesheet() {
         "border-width": 3,
       },
     },
-    // Rebooting node — dimmed and dashed
+    // Rebooting node — dashed border; opacity animated by JS reboot pulse
     {
       selector: "node.rebooting",
       style: {
         "border-color": "#888800",
         "border-style": "dashed",
-        opacity: 0.5,
       },
     },
     // Edges hidden
@@ -345,8 +368,10 @@ export function updateNodeStyle(nodeId, nodeState) {
   // Rebooting state
   if (nodeState.rebooting) {
     node.addClass("rebooting");
+    startRebootPulse(node);
   } else {
     node.removeClass("rebooting");
+    stopRebootPulse(node);
   }
 
   // Visibility class
@@ -418,8 +443,54 @@ export function getCy() {
 
 export function syncSelection(nodeId) {
   if (!cy) return;
-  cy.nodes().removeClass("game-selected");
-  if (nodeId) cy.getElementById(nodeId).addClass("game-selected");
+  currentSelectedNodeId = nodeId || null;
+  syncReticle();
+}
+
+function syncReticle() {
+  const svg = document.getElementById("selection-reticle");
+  if (!svg) return;
+
+  if (!currentSelectedNodeId || !cy) {
+    svg.style.opacity = "0";
+    return;
+  }
+
+  const node = cy.getElementById(currentSelectedNodeId);
+  if (!node || node.length === 0) {
+    svg.style.opacity = "0";
+    return;
+  }
+
+  const pos = node.renderedPosition();
+  const r = (node.renderedWidth() / 2) + 12; // node radius + gap
+  const size = r * 2;
+  const ringR = r - 2;
+  const tickLen = Math.max(6, ringR * 0.22); // ~22% of ring radius, min 6px
+
+  const ring = document.getElementById("reticle-ring");
+  ring.setAttribute("cx", r);
+  ring.setAttribute("cy", r);
+  ring.setAttribute("r", ringR);
+
+  // Four inward-pointing tick marks at cardinal positions
+  const ticks = {
+    n: [r, r - ringR,       r, r - ringR + tickLen],
+    s: [r, r + ringR,       r, r + ringR - tickLen],
+    e: [r + ringR, r,       r + ringR - tickLen, r],
+    w: [r - ringR, r,       r - ringR + tickLen, r],
+  };
+  for (const [dir, [x1, y1, x2, y2]] of Object.entries(ticks)) {
+    const el = document.getElementById(`reticle-tick-${dir}`);
+    el.setAttribute("x1", x1); el.setAttribute("y1", y1);
+    el.setAttribute("x2", x2); el.setAttribute("y2", y2);
+  }
+
+  svg.style.width  = `${size}px`;
+  svg.style.height = `${size}px`;
+  svg.style.left   = `${pos.x - r}px`;
+  svg.style.top    = `${pos.y - r}px`;
+  svg.style.opacity = "1";
 }
 
 export function addIceNode() {
@@ -460,7 +531,14 @@ export function syncIceGraph(iceState, nodeStates) {
     if (attentionCyNode && attentionCyNode.length > 0) {
       iceNode.style("display", "element");
       if (moved) {
-        iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
+        const fromAccess = fromId ? nodeStates[fromId]?.accessLevel : null;
+        const fromWasVisible = fromAccess === "compromised" || fromAccess === "owned";
+        if (fromWasVisible) {
+          iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
+        } else {
+          // Arriving from invisible territory — snap to avoid animating from a stale position
+          iceNode.stop().position(attentionCyNode.position());
+        }
       }
     }
   } else {
@@ -606,31 +684,31 @@ export function flashNode(nodeId, type) {
 
   if (type === "success") {
     node.animate(
-      { style: { "border-color": "#ffffff", "border-width": 5 } },
+      { style: { "background-color": "#0d3a3a" } },
       { duration: 150, complete: () => {
         node.animate(
-          { style: { "border-color": "#00ffff", "border-width": 2 } },
-          { duration: 350, complete: () => node.removeStyle("border-color border-width") }
+          { style: { "background-color": "#041820" } },
+          { duration: 350, complete: () => node.removeStyle("background-color") }
         );
       }}
     );
   } else if (type === "failure") {
     node.animate(
-      { style: { "border-color": "#ff4040", "border-width": 5 } },
+      { style: { "background-color": "#2a0505" } },
       { duration: 150, complete: () => {
         node.animate(
-          { style: { "border-color": "#ff2020", "border-width": 3 } },
-          { duration: 350, complete: () => node.removeStyle("border-color border-width") }
+          { style: { "background-color": "#150202" } },
+          { duration: 350, complete: () => node.removeStyle("background-color") }
         );
       }}
     );
   } else if (type === "reveal") {
     node.animate(
-      { style: { "border-color": "#00ffff", "border-width": 3, "background-color": "#0d2020" } },
+      { style: { "background-color": "#061525" } },
       { duration: 250, complete: () => {
         node.animate(
-          { style: { "border-color": "#223333", "border-width": 1, "background-color": "#0d0d14" } },
-          { duration: 500, complete: () => node.removeStyle("border-color border-width background-color") }
+          { style: { "background-color": "#080810" } },
+          { duration: 500, complete: () => node.removeStyle("background-color") }
         );
       }}
     );
