@@ -11,7 +11,7 @@ import { addLogEntry, getRecentLog } from "./log-renderer.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "jackout", "status", "actions", "log", "help", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
 
 let history = [];
@@ -82,6 +82,7 @@ function handleCommand(verb, args) {
     case "read":         return cmdRead(args);
     case "loot":         return cmdLoot(args);
     case "reconfigure":  return cmdReconfigure(args);
+    case "cancel-trace": return cmdCancelTrace();
     case "jackout":      return cmdJackout();
     case "actions":      return cmdActions();
     case "status":       return cmdStatus(args);
@@ -273,7 +274,7 @@ function cmdActions() {
       lines.push(`  probe                    — scan ${sel.id} for vulnerabilities`);
     }
 
-    if (sel.visibility === "accessible" && !sel.rebooting) {
+    if (sel.visibility === "accessible" && !sel.rebooting && sel.accessLevel !== "owned") {
       // exploit: list all cards sorted by match
       const sorted = [...s.player.hand].sort(
         (a, b) => exploitSortKey(a, sel) - exploitSortKey(b, sel)
@@ -311,6 +312,10 @@ function cmdActions() {
 
     if (sel.accessLevel === "owned" && !sel.rebooting) {
       lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
+    }
+
+    if (sel.type === "security-monitor" && sel.accessLevel === "owned" && s.traceSecondsRemaining !== null) {
+      lines.push(`  cancel-trace             — abort trace countdown (${s.traceSecondsRemaining}s remaining)`);
     }
 
     if (sel.probed) {
@@ -604,6 +609,7 @@ function cmdHelp() {
     "  read [node]               Scan node contents.",
     "  loot [node]               Collect macguffins from owned node.",
     "  reconfigure [node]        Disable IDS event forwarding.",
+    "  cancel-trace              Abort trace countdown (requires owned security-monitor selected).",
     "  eject                     Push ICE attention to adjacent node.",
     "  reboot [node]             Send ICE home. Node offline briefly.",
     "  jackout                   Disconnect and end run.",
@@ -621,6 +627,22 @@ function cmdHelp() {
     "  cheat trace end             Cancel active trace countdown.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
+}
+
+function cmdCancelTrace() {
+  const s = getState();
+  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  if (!sel) { addLogEntry("No node selected.", "error"); return; }
+  if (sel.type !== "security-monitor") {
+    addLogEntry(`${sel.label}: not a security monitor.`, "error"); return;
+  }
+  if (sel.accessLevel !== "owned") {
+    addLogEntry(`${sel.label}: must be owned to cancel trace.`, "error"); return;
+  }
+  if (s.traceSecondsRemaining === null) {
+    addLogEntry("No active trace.", "error"); return;
+  }
+  dispatch("starnet:action:cancel-trace", { nodeId: sel.id });
 }
 
 function cmdJackout() {

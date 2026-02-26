@@ -8,7 +8,7 @@ import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { tick, TICK_MS, TIMER } from "./timers.js";
-import { handleTraceTick } from "./alert.js";
+import { handleTraceTick, cancelTraceCountdown } from "./alert.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 
@@ -126,6 +126,11 @@ function init() {
     lootNode(evt.detail.nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
+  });
+
+  document.addEventListener("starnet:action:cancel-trace", (evt) => {
+    if (!evt.detail.fromConsole) addLogEntry(`> cancel-trace`, "command");
+    cancelTraceCountdown();
   });
 
   document.addEventListener("starnet:action:jackout", (evt) => {

@@ -158,6 +158,12 @@ export function launchExploit(nodeId, exploitId) {
   const exploit = s.player.hand.find((c) => c.id === exploitId);
   if (!node || !exploit || exploit.decayState === "disclosed") return null;
 
+  if (node.accessLevel === "owned") {
+    emitEvent(E.LOG_ENTRY, { text: `${node.label}: already owned — nothing left to exploit.`, type: "info" });
+    emit();
+    return null;
+  }
+
   if (exploit.usesRemaining === 0) {
     emitEvent(E.LOG_ENTRY, { text: `${exploit.name}: No uses remaining.`, type: "error" });
     emit();

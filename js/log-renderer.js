@@ -84,8 +84,10 @@ export function initLogRenderer() {
   // ── Alert events ─────────────────────────────────────────
   on(E.ALERT_GLOBAL_RAISED, (/** @type {AlertGlobalRaisedPayload} */ { prev, next }) =>
     add(`[ALERT] Global alert: ${prev.toUpperCase()} → ${next.toUpperCase()}`, "error"));
-  on(E.ALERT_TRACE_STARTED, (/** @type {AlertTraceStartedPayload} */ { seconds }) =>
+  on(E.ALERT_TRACE_STARTED,   (/** @type {AlertTraceStartedPayload} */ { seconds }) =>
     add(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s to disconnect.`, "error"));
+  on(E.ALERT_TRACE_CANCELLED, () =>
+    add(`[ALERT] Trace cancelled. Alert level: RED.`, "info"));
   on(E.ALERT_PROPAGATED,    (/** @type {AlertPropagatedPayload} */   { fromLabel, toLabel }) =>
     add(`[ALERT] Event forwarded: ${fromLabel} → ${toLabel}`, "meta"));
 

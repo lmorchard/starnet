@@ -86,7 +86,8 @@ on(E.EXPLOIT_DISCLOSED,    ({ exploitName })           => out(`[EXPLOIT] ${explo
 on(E.EXPLOIT_PARTIAL_BURN, ({ exploitName, usesRemaining }) =>
   out(`[EXPLOIT] ${exploitName}: partial burn (${usesRemaining} uses left).`));
 on(E.ALERT_GLOBAL_RAISED,  ({ prev, next })            => out(`[ALERT] Global: ${prev} → ${next.toUpperCase()}`));
-on(E.ALERT_TRACE_STARTED,  ({ seconds })               => out(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s`));
+on(E.ALERT_TRACE_STARTED,   ({ seconds })               => out(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s`));
+on(E.ALERT_TRACE_CANCELLED, ()                          => out(`[ALERT] Trace cancelled. Alert: RED`));
 on(E.ALERT_PROPAGATED,     ({ fromLabel, toLabel })    => out(`[ALERT] ${fromLabel} → ${toLabel}: alert propagated.`));
 on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
   if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
@@ -200,6 +201,16 @@ function cmdReboot(args) {
   if (!node) return;
   if (node.accessLevel !== "owned") { out(`[ERR] ${node.label}: must be owned to reboot.`); return; }
   rebootNode(node.id);
+}
+
+function cmdCancelTrace() {
+  const s = getState();
+  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  if (!sel) { out("[ERR] No node selected."); return; }
+  if (sel.type !== "security-monitor") { out(`[ERR] ${sel.label}: not a security monitor.`); return; }
+  if (sel.accessLevel !== "owned") { out(`[ERR] ${sel.label}: must be owned to cancel trace.`); return; }
+  if (s.traceSecondsRemaining === null) { out("[ERR] No active trace."); return; }
+  cancelTraceCountdown();
 }
 
 function cmdEject() {
@@ -542,7 +553,7 @@ function cmdActions() {
   if (sel) {
     out(`  deselect`);
     if (!sel.probed && !sel.rebooting) out(`  probe  — scan ${sel.id} for vulnerabilities`);
-    if (sel.visibility === "accessible" && !sel.rebooting) {
+    if (sel.visibility === "accessible" && !sel.rebooting && sel.accessLevel !== "owned") {
       s.player.hand.forEach((card, i) => {
         const known = sel.probed
           ? sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id)
@@ -569,6 +580,9 @@ function cmdActions() {
     if (sel.accessLevel === "owned" && !sel.rebooting) {
       out(`  reboot`);
     }
+    if (sel.type === "security-monitor" && sel.accessLevel === "owned" && s.traceSecondsRemaining !== null) {
+      out(`  cancel-trace  — abort trace countdown (${s.traceSecondsRemaining}s remaining)`);
+    }
   }
 }
 
@@ -592,8 +606,9 @@ function runCmd(raw) {
     case "escalate":    cmdExploit(args); break;
     case "read":        cmdRead(args); break;
     case "loot":        cmdLoot(args); break;
-    case "reconfigure": cmdReconfigure(args); break;
-    case "jackout":     endRun("success"); break;
+    case "reconfigure":  cmdReconfigure(args); break;
+    case "cancel-trace": cmdCancelTrace(); break;
+    case "jackout":      endRun("success"); break;
     case "eject":       cmdEject(); break;
     case "reboot":      cmdReboot(args); break;
     case "status":      cmdStatus(args); break;
