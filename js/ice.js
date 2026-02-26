@@ -6,7 +6,7 @@
 /** @typedef {import('./types.js').IceState} IceState */
 /** @typedef {import('./types.js').NodeState} NodeState */
 
-import { getState, moveIceAttention, disableIce } from "./state.js";
+import { getState, moveIceAttention, disableIce, emit } from "./state.js";
 import { propagateAlertEvent, recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
@@ -145,6 +145,7 @@ function checkIceDetection(nodeId) {
     const timerId = scheduleEvent(TIMER.ICE_DETECT, dwellMs, { nodeId }, { label: "ICE DETECTION" });
     s.ice.dwellTimerId = timerId;
     emitEvent(E.ICE_DETECT_PENDING, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId, dwellMs });
+    emit(); // re-render sidebar so the detection countdown becomes visible
   }
 }
 
