@@ -108,7 +108,7 @@ Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `pl
 
 Note: this project uses `docs/dev-sessions/` (not `.claude/dev-sessions/`) so session artifacts are tracked in git alongside the source.
 
-Most recent session: `docs/dev-sessions/2026-02-25-1605-node-playtesting/`
+Most recent session: `docs/dev-sessions/2026-02-26-0956-node-visual-indicators/`
 
 ## Headless Playtest Harness
 
