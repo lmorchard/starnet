@@ -162,6 +162,21 @@ node scripts/playtest.js "status ice"
 
 ---
 
+## Player Manual
+
+`MANUAL.md` is the player-facing documentation for the game. **Keep it up to date** when
+adding, changing, or removing gameplay mechanics. Specifically:
+
+- New node types → add to the node types table
+- New actions → add to the node actions reference and console commands
+- Changes to exploit card mechanics (decay, rarity, targeting) → update the Exploit Cards section
+- Changes to alert system, ICE behavior, or trace mechanics → update those sections
+- New game loop steps (missions, scoring, etc.) → update The Core Loop and related sections
+
+The manual describes the game as it currently exists, not future plans.
+
+---
+
 ## Design Principles
 
 - **Every visual game event must have a corresponding console log entry.** If the player can see something happen on the graph or HUD, there must be a matching textual record in the log. This is both an accessibility and a game-feel requirement — the log is the player's "decker readout" and should be a complete record of what the system is doing.
