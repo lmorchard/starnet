@@ -22,7 +22,7 @@ import {
 import { launchExploit } from "../js/combat.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "../js/ice.js";
 import { on, E } from "../js/events.js";
-import { tick } from "../js/timers.js";
+import { tick, TIMER } from "../js/timers.js";
 import { handleTraceTick, forceGlobalAlert, cancelTraceCountdown } from "../js/alert.js";
 import { generateExploit, generateExploitForVuln } from "../js/exploits.js";
 import { revealNeighbors, accessNeighbors, setCheating } from "../js/state.js";
@@ -59,10 +59,10 @@ if (!cmdStr) {
 
 // ── Timer wiring ───────────────────────────────────────────
 
-on("starnet:timer:ice-move",        ()        => handleIceTick());
-on("starnet:timer:ice-detect",      (payload) => handleIceDetect(payload));
-on("starnet:timer:trace-tick",      ()        => handleTraceTick());
-on("starnet:timer:reboot-complete", (payload) => completeReboot(payload.nodeId));
+on(TIMER.ICE_MOVE,        ()        => handleIceTick());
+on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
+on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
+on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
 on(E.STATE_CHANGED,                 (s)       => { if (s.phase === "ended") stopIce(); });
 
 // ── Event → output ─────────────────────────────────────────

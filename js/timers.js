@@ -7,6 +7,14 @@ import { emitEvent } from "./events.js";
 
 export const TICK_MS = 100; // ms per tick; browser master interval uses this
 
+// Named timer event constants — use these in scheduleEvent/scheduleRepeating/cancelAllByType/on()
+export const TIMER = {
+  ICE_MOVE:        "starnet:timer:ice-move",
+  ICE_DETECT:      "starnet:timer:ice-detect",
+  TRACE_TICK:      "starnet:timer:trace-tick",
+  REBOOT_COMPLETE: "starnet:timer:reboot-complete",
+};
+
 let currentTick = 0;
 let nextId = 1;
 
@@ -51,7 +59,7 @@ export function tick(n = 1) {
   currentTick += n;
   for (const [id, entry] of timers) {
     if (currentTick >= entry.fireAt) {
-      emitEvent(`starnet:timer:${entry.type}`, { ...entry.payload, timerId: id });
+      emitEvent(entry.type, { ...entry.payload, timerId: id });
       if (entry.intervalTicks !== null) {
         entry.fireAt += entry.intervalTicks;
       } else {

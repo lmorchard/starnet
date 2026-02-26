@@ -8,7 +8,7 @@
 
 import { getState, moveIceAttention, disableIce } from "./state.js";
 import { propagateAlertEvent, recordIceDetection } from "./alert.js";
-import { scheduleEvent, scheduleRepeating, cancelAllByType } from "./timers.js";
+import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
 
 // Grade → movement interval (ms)
@@ -21,12 +21,12 @@ export function startIce() {
   const s = getState();
   if (!s.ice || !s.ice.active) return;
   const interval = MOVE_INTERVALS[s.ice.grade] ?? 6000;
-  scheduleRepeating("ice-move", interval);
+  scheduleRepeating(TIMER.ICE_MOVE, interval);
 }
 
 export function stopIce() {
-  cancelAllByType("ice-move");
-  cancelAllByType("ice-detect");
+  cancelAllByType(TIMER.ICE_MOVE);
+  cancelAllByType(TIMER.ICE_DETECT);
 }
 
 // Owning the ICE resident node shuts ICE down.
@@ -124,20 +124,20 @@ function checkIceDetection(nodeId) {
   if (!s.ice || !s.ice.active) return;
   if (s.selectedNodeId !== nodeId) {
     // ICE moved away from player's node — cancel any pending dwell timer
-    cancelAllByType("ice-detect");
+    cancelAllByType(TIMER.ICE_DETECT);
     return;
   }
   if (s.ice.detectedAtNode === nodeId) return; // already detected here; player must move first
 
   const dwellMs = DWELL_TIMES[s.ice.grade];
-  cancelAllByType("ice-detect");
+  cancelAllByType(TIMER.ICE_DETECT);
 
   if (dwellMs === null) {
     // Instant detection — no escape possible
     triggerDetection(nodeId);
   } else {
     // Schedule timer first so it's in the Map before the event triggers a re-render
-    const timerId = scheduleEvent("ice-detect", dwellMs, { nodeId }, { label: "ICE DETECTION" });
+    const timerId = scheduleEvent(TIMER.ICE_DETECT, dwellMs, { nodeId }, { label: "ICE DETECTION" });
     s.ice.dwellTimerId = timerId;
     emitEvent(E.ICE_DETECT_PENDING, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId, dwellMs });
   }
@@ -160,5 +160,5 @@ function triggerDetection(nodeId) {
 }
 
 export function cancelIceDwell() {
-  cancelAllByType("ice-detect");
+  cancelAllByType(TIMER.ICE_DETECT);
 }

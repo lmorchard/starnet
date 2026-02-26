@@ -15,7 +15,7 @@
 
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "./exploits.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
-import { clearAll as clearAllTimers, scheduleEvent, serializeTimers, deserializeTimers } from "./timers.js";
+import { clearAll as clearAllTimers, scheduleEvent, serializeTimers, deserializeTimers, TIMER } from "./timers.js";
 import { emitEvent, E } from "./events.js";
 
 /** @type {GameState|null} */
@@ -368,7 +368,7 @@ export function rebootNode(nodeId) {
   node.rebooting = true;
 
   const durationMs = 1000 + Math.random() * 2000; // 1–3s
-  scheduleEvent("reboot-complete", durationMs, { nodeId }, { label: `REBOOT: ${node.label}` });
+  scheduleEvent(TIMER.REBOOT_COMPLETE, durationMs, { nodeId }, { label: `REBOOT: ${node.label}` });
 
   emitEvent(E.NODE_REBOOTING, { nodeId, label: node.label, durationMs });
 

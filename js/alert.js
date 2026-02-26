@@ -7,7 +7,7 @@
 
 import { getState, endRun, emit, ALERT_ORDER } from "./state.js";
 import { emitEvent, on, E } from "./events.js";
-import { scheduleRepeating, cancelEvent } from "./timers.js";
+import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
@@ -113,7 +113,7 @@ export function startTraceCountdown() {
   const s = getState();
   s.traceSecondsRemaining = 60;
   emitEvent(E.ALERT_TRACE_STARTED, { seconds: 60 });
-  s.traceTimerId = scheduleRepeating("trace-tick", 1000);
+  s.traceTimerId = scheduleRepeating(TIMER.TRACE_TICK, 1000);
 }
 
 export function handleTraceTick() {

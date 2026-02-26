@@ -7,7 +7,7 @@ import { addLogEntry } from "./log-renderer.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
-import { tick, TICK_MS } from "./timers.js";
+import { tick, TICK_MS, TIMER } from "./timers.js";
 import { handleTraceTick } from "./alert.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
@@ -62,9 +62,9 @@ function init() {
     sidebarMode = "node";
   });
 
-  on("starnet:timer:ice-move", () => handleIceTick());
-  on("starnet:timer:ice-detect", (payload) => handleIceDetect(payload));
-  on("starnet:timer:trace-tick", () => handleTraceTick());
+  on(TIMER.ICE_MOVE,   () => handleIceTick());
+  on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
+  on(TIMER.TRACE_TICK, () => handleTraceTick());
 
   document.addEventListener("starnet:action:probe", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
@@ -147,7 +147,7 @@ function init() {
     rebootNode(evt.detail.nodeId);
   });
 
-  on("starnet:timer:reboot-complete", (payload) => {
+  on(TIMER.REBOOT_COMPLETE, (payload) => {
     completeReboot(payload.nodeId);
   });
 
