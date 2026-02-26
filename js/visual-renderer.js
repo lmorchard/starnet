@@ -11,6 +11,7 @@
 /** @typedef {import('./types.js').NodeAccessedPayload} NodeAccessedPayload */
 
 import { on, emitEvent, E } from "./events.js";
+import { getActions } from "./node-types.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
@@ -321,9 +322,6 @@ function renderActions(node, state) {
     if (!node.read) {
       btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections."));
     }
-    if (node.type === "ids" && !node.eventForwardingDisabled) {
-      btns.push(actionBtn("reconfigure", "RECONFIGURE", "Disable event forwarding to security monitor."));
-    }
   }
 
   if (node.accessLevel === "owned") {
@@ -341,13 +339,10 @@ function renderActions(node, state) {
     if (hasLoot) {
       btns.push(actionBtn("loot", "LOOT", "Collect macguffins for cash."));
     }
-    if (node.type === "ids" && !node.eventForwardingDisabled) {
-      btns.push(actionBtn("reconfigure", "RECONFIGURE", "Disable event forwarding to security monitor."));
-    }
-    if (node.type === "security-monitor" && state?.traceSecondsRemaining !== null) {
-      btns.push(actionBtn("cancel-trace", "CANCEL TRACE", `Abort trace countdown (${state.traceSecondsRemaining}s remaining).`));
-    }
   }
+
+  // Type-specific actions from the registry
+  getActions(node, state).forEach((a) => btns.push(actionBtn(a.id, a.label, a.desc(node, state))));
 
   return btns.join("") || `<span class="nd-dim">No actions available.</span>`;
 }

@@ -11,6 +11,7 @@ import { addLogEntry, getRecentLog } from "./log.js";
 import { emitEvent } from "./events.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
+import { getActions } from "./node-types.js";
 
 const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
@@ -307,10 +308,6 @@ function cmdActions() {
       lines.push(`  loot                     — collect items from ${sel.id}`);
     }
 
-    if (sel.type === "ids" && !sel.eventForwardingDisabled && sel.accessLevel !== "locked") {
-      lines.push(`  reconfigure              — disable event forwarding on ${sel.id}`);
-    }
-
     if (s.ice?.active && s.ice.attentionNodeId === s.selectedNodeId) {
       lines.push(`  eject                    — push ICE to adjacent node`);
     }
@@ -319,9 +316,9 @@ function cmdActions() {
       lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
     }
 
-    if (sel.type === "security-monitor" && sel.accessLevel === "owned" && s.traceSecondsRemaining !== null) {
-      lines.push(`  cancel-trace             — abort trace countdown (${s.traceSecondsRemaining}s remaining)`);
-    }
+    getActions(sel, s).forEach((a) => {
+      lines.push(`  ${a.id.padEnd(24)} — ${a.desc(sel, s)}`);
+    });
 
     if (sel.probed) {
       lines.push(`  cheat give matching      — add matching exploits [balance rescue — sets cheat flag]`);
@@ -652,15 +649,8 @@ function cmdCancelTrace() {
   const s = getState();
   const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
   if (!sel) { addLogEntry("No node selected.", "error"); return; }
-  if (sel.type !== "security-monitor") {
-    addLogEntry(`${sel.label}: not a security monitor.`, "error"); return;
-  }
-  if (sel.accessLevel !== "owned") {
-    addLogEntry(`${sel.label}: must be owned to cancel trace.`, "error"); return;
-  }
-  if (s.traceSecondsRemaining === null) {
-    addLogEntry("No active trace.", "error"); return;
-  }
+  const available = getActions(sel, s).find((a) => a.id === "cancel-trace");
+  if (!available) { addLogEntry(`${sel.label}: cancel-trace not available.`, "error"); return; }
   dispatch("starnet:action:cancel-trace", { nodeId: sel.id });
 }
 
