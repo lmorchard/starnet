@@ -59,7 +59,8 @@ function init() {
     selectNode(nodeId);
   });
 
-  on("starnet:action:deselect", () => {
+  on("starnet:action:deselect", ({ fromConsole } = {}) => {
+    if (!fromConsole) logCommand("deselect");
     deselectNode();
     setSidebarMode("node");
     sidebarMode = "node";
