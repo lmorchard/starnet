@@ -7,6 +7,8 @@ import { addLogEntry } from "./log-renderer.js";
 import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
+import { tick, TICK_MS } from "./timers.js";
+import { handleTraceTick } from "./alert.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 
@@ -25,6 +27,7 @@ function init() {
   initState(NETWORK);
   fitGraph(cy);
   startIce();
+  setInterval(() => tick(1), TICK_MS);
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate
   window.starnet = { cmd: runCommand, state: getState };
@@ -61,6 +64,7 @@ function init() {
 
   on("starnet:timer:ice-move", () => handleIceTick());
   on("starnet:timer:ice-detect", (payload) => handleIceDetect(payload));
+  on("starnet:timer:trace-tick", () => handleTraceTick());
 
   document.addEventListener("starnet:action:probe", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
