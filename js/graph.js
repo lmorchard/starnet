@@ -459,7 +459,9 @@ export function syncIceGraph(iceState, nodeStates) {
     const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
     if (attentionCyNode && attentionCyNode.length > 0) {
       iceNode.style("display", "element");
-      iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
+      if (moved) {
+        iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
+      }
     }
   } else {
     iceNode.style("display", "none");
