@@ -344,6 +344,9 @@ function renderActions(node, state) {
     if (node.type === "ids" && !node.eventForwardingDisabled) {
       btns.push(actionBtn("reconfigure", "RECONFIGURE", "Disable event forwarding to security monitor."));
     }
+    if (node.type === "security-monitor" && state?.traceSecondsRemaining !== null) {
+      btns.push(actionBtn("cancel-trace", "CANCEL TRACE", `Abort trace countdown (${state.traceSecondsRemaining}s remaining).`));
+    }
   }
 
   return btns.join("") || `<span class="nd-dim">No actions available.</span>`;
