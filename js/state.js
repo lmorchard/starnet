@@ -15,7 +15,7 @@
 
 import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
-import { clearAll as clearAllTimers, scheduleEvent } from "./timers.js";
+import { clearAll as clearAllTimers, scheduleEvent, serializeTimers, deserializeTimers } from "./timers.js";
 import { emitEvent, E } from "./events.js";
 
 /** @type {GameState|null} */
@@ -71,6 +71,7 @@ export function initState(networkData) {
     },
     globalAlert: "green",   // 'green' | 'yellow' | 'red' | 'trace'
     traceSecondsRemaining: null,
+    traceTimerId: null,
     selectedNodeId: null,
     phase: "playing",       // 'playing' | 'ended'
     runOutcome: null,       // 'success' | 'caught'
@@ -418,4 +419,16 @@ export function emit() {
   // @ts-ignore — dev convenience; not part of the typed window interface
   if (typeof window !== "undefined") window._starnetState = state;
   emitEvent(E.STATE_CHANGED, state);
+}
+
+// ── Serialization ─────────────────────────────────────────
+
+export function serializeState() {
+  return { ...state, _timers: serializeTimers() };
+}
+
+export function deserializeState(snapshot) {
+  const { _timers, ...gameState } = snapshot;
+  state = gameState;
+  deserializeTimers(_timers);
 }
