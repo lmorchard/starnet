@@ -27,9 +27,11 @@ import { handleTraceTick, cancelTraceCountdown } from "../js/alert.js";
 import { initLog } from "../js/log.js";
 import { runCommand } from "../js/console.js";
 import { handleCheatCommand } from "../js/cheats.js";
+import { initNodeLifecycle } from "../js/node-lifecycle.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
+initNodeLifecycle();
 
 // ── Arg parsing ────────────────────────────────────────────
 

@@ -18,7 +18,9 @@ See `docs/SPEC.md` for the full game design document.
 
 ```
 make serve   — start local dev server at http://localhost:3000
-make check   — run tsc type checker (JSDoc annotations, no emit)
+make lint    — run tsc type checker (JSDoc annotations, no emit)
+make test    — run unit + integration tests
+make check   — lint + test (run both)
 ```
 
 Run `make check` after any changes to state shapes, event payloads, or data types in `js/types.js`.
@@ -194,6 +196,15 @@ The manual describes the game as it currently exists, not future plans.
 When playtesting, **consult MANUAL.md as the source of truth for intended behavior.**
 If the game behaves differently from what the manual describes, that is either a bug
 in gameplay or a bug in the manual — both are worth fixing.
+
+---
+
+## Testing Practices
+
+- **Bugs found through playtesting must be reproduced with a failing test before being fixed.**
+  Write the test first, confirm it fails due to the bug, apply the fix, then confirm the test passes.
+  Integration tests live in `tests/integration.test.js`. Keep new test suites focused: describe the
+  scenario, set up state directly, emit the triggering event, assert the outcome.
 
 ---
 

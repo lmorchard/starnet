@@ -14,9 +14,10 @@
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "./exploits.js";
-import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
+import { generateMacguffin, flagMissionMacguffin } from "./loot.js";
 import { clearAll as clearAllTimers, scheduleEvent, serializeTimers, deserializeTimers, TIMER } from "./timers.js";
 import { emitEvent, E } from "./events.js";
+import { getStateFields, getBehaviors, resolveNode } from "./node-types.js";
 
 /** @type {GameState|null} */
 let state = null;
@@ -25,7 +26,7 @@ export function initState(networkData) {
   /** @type {Object.<string, NodeState>} */
   const nodes = {};
   networkData.nodes.forEach((n) => {
-    const vulns = generateVulnerabilities(n.grade);
+    const vulns = generateVulnerabilities(n.grade, n.type);
     // Append any hand-crafted staged vulnerabilities defined in the network data
     if (n.stagedVulnerabilities) {
       n.stagedVulnerabilities.forEach((sv) => vulns.push(/** @type {import('./types.js').Vulnerability} */ ({
@@ -45,11 +46,11 @@ export function initState(networkData) {
       alertState: "green",        // 'green' | 'yellow' | 'red'
       probed: false,
       vulnerabilities: vulns,
-      macguffins: [],             // populated by assignMacguffins
+      macguffins: [],             // populated by lootable behavior onInit
       read: false,
       looted: false,
-      eventForwardingDisabled: false,
       rebooting: false,           // true while node is temporarily offline after REBOOT
+      ...getStateFields(n),       // behavior-atom stateFields (e.g. eventForwardingDisabled for detection nodes)
     };
   });
 
@@ -81,8 +82,12 @@ export function initState(networkData) {
     mission: null,         // populated below after macguffin assignment
   };
 
-  // Assign macguffins to loot nodes
-  assignMacguffins(Object.values(nodes));
+  // Dispatch onInit to behavior atoms — lootable assigns macguffins here
+  Object.values(nodes).forEach((node) => {
+    const typeDef = resolveNode(node);
+    const ctx = { typeDef, generateMacguffin };
+    getBehaviors(node).forEach((atom) => atom.onInit?.(node, state, ctx));
+  });
 
   // Flag one macguffin as the mission target (10x value)
   const missionTarget = flagMissionMacguffin(Object.values(nodes));

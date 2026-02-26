@@ -20,6 +20,10 @@ export function off(type, handler) {
   handlers.get(type)?.delete(handler);
 }
 
+export function clearHandlers() {
+  handlers.clear();
+}
+
 // All event type string constants.
 export const E = Object.freeze({
   STATE_CHANGED:        "state:changed",

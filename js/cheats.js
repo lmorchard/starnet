@@ -9,6 +9,7 @@
 
 import { getState, setCheating, revealNeighbors, accessNeighbors, emit } from "./state.js";
 import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
+import { teleportIce } from "./ice.js";
 import { addLogEntry } from "./log.js";
 import { emitEvent, E } from "./events.js";
 import { generateExploit, generateExploitForVuln } from "./exploits.js";
@@ -28,6 +29,8 @@ export function handleCheatCommand(args) {
     return cheatOwn(args.slice(1));
   } else if (sub === "trace") {
     return cheatTrace(args.slice(1));
+  } else if (sub === "summon-ice") {
+    return cheatSummonIce(args.slice(1));
   } else if (sub === "help") {
     return cheatHelp();
   } else {
@@ -156,6 +159,30 @@ function cheatOwn(args) {
   return true;
 }
 
+// CHEAT: summon-ice [nodeId]
+function cheatSummonIce(args) {
+  const s = getState();
+  if (!s.ice) {
+    addLogEntry("[CHEAT] No ICE active.", "error");
+    return false;
+  }
+  const token = args[0] ?? s.selectedNodeId;
+  if (!token) {
+    addLogEntry("Usage: cheat summon-ice [nodeId]  (defaults to selected node)", "error");
+    return false;
+  }
+  const lower = token.toLowerCase();
+  const node = s.nodes[token] || Object.values(s.nodes).find((n) => n.label.toLowerCase().startsWith(lower));
+  if (!node) {
+    addLogEntry(`Unknown node: ${token}`, "error");
+    return false;
+  }
+  activateCheat();
+  teleportIce(node.id);
+  addLogEntry(`[CHEAT] ICE summoned to ${node.label}.`, "success");
+  return true;
+}
+
 // CHEAT: trace start | trace end
 function cheatTrace(args) {
   const action = args[0]?.toLowerCase();
@@ -199,6 +226,7 @@ function cheatHelp() {
     "  cheat own <node>            Set node to owned + reveal neighbors.",
     "  cheat trace start           Start the 60s trace countdown immediately.",
     "  cheat trace end             Cancel active trace countdown.",
+    "  cheat summon-ice [node]     Teleport ICE to node (default: selected). Resets dwell.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
   return true;

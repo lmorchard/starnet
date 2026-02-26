@@ -8,6 +8,7 @@
 
 import { getState, ALERT_ORDER, revealNeighbors, accessNeighbors, emit } from "./state.js";
 import { emitEvent, E } from "./events.js";
+import { resolveNode } from "./node-types.js";
 
 // Success chance modifier by node security grade
 const GRADE_MODIFIER = {
@@ -50,7 +51,10 @@ export function resolveExploit(exploit, node) {
     exploit.targetVulnTypes.includes(v.id)
   );
 
-  const gradeModifier = GRADE_MODIFIER[node.grade] ?? 0.3;
+  const resolved = resolveNode(node);
+  const gradeModifier    = (resolved.combatConfig?.gradeModifier    ?? GRADE_MODIFIER)[node.grade]    ?? 0.3;
+  const disclosureChance = (resolved.combatConfig?.disclosureChance ?? DISCLOSURE_CHANCE)[node.grade] ?? 0.3;
+
   const matchBonus = matchingVulns.length > 0 ? 0.4 : 0;
   const successChance = Math.min(0.95, exploit.quality * gradeModifier + matchBonus);
 
@@ -60,7 +64,7 @@ export function resolveExploit(exploit, node) {
   let disclosed = false;
   if (!success) {
     const disclosureRoll = Math.random();
-    disclosed = disclosureRoll <= (DISCLOSURE_CHANCE[node.grade] ?? 0.3);
+    disclosed = disclosureRoll <= disclosureChance;
   }
 
   return {
@@ -179,6 +183,7 @@ export function launchExploit(nodeId, exploitId) {
 
     if (node.accessLevel === "locked") {
       node.accessLevel = "compromised";
+      node.alertState = "green";
       node.visibility = "accessible";
       revealNeighbors(nodeId);
       accessNeighbors(nodeId);

@@ -11,6 +11,7 @@ import { tick, TICK_MS, TIMER, getVisibleTimers } from "./timers.js";
 import { handleTraceTick, cancelTraceCountdown } from "./alert.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
+import { initNodeLifecycle } from "./node-lifecycle.js";
 
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 // Kept here (not in visual-renderer) because it's set by action event handlers.

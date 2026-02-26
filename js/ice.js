@@ -11,8 +11,17 @@ import { propagateAlertEvent, recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
 
-// Grade → movement interval (ms)
-const MOVE_INTERVALS = { S: 2500, A: 3000, B: 4500, C: 5000, D: 7000, F: 8000 };
+// Called whenever ICE vacates a node for any reason: normal movement, eject, or reboot.
+// Cancels any pending detection dwell and releases the detection lock so ICE can
+// re-detect on its next visit.
+function handleIceDeparture() {
+  cancelAllByType(TIMER.ICE_DETECT);
+  const s = getState();
+  if (s.ice) s.ice.detectedAtNode = null;
+}
+
+// Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry
+const MOVE_INTERVALS = { S: 2500, A: 3000, B: 6000, C: 7000, D: 12000, F: 14000 };
 
 // Grade → dwell time before detection (ms); null = instant detection
 const DWELL_TIMES = { S: null, A: null, B: 3500, C: 4500, D: 9000, F: 10000 };
@@ -31,17 +40,19 @@ export function stopIce() {
 
 // Cancel pending dwell detection when the player actually changes selection.
 // Re-selecting the same node must not reset the timer — check before mutating.
-on("starnet:action:select",  ({ nodeId }) => { if (getState().selectedNodeId !== nodeId) cancelIceDwell(); });
-on("starnet:action:deselect", cancelIceDwell);
-
-// Owning the ICE resident node shuts ICE down.
-on(E.NODE_ACCESSED, ({ nodeId, next }) => {
+on("starnet:action:select", ({ nodeId }) => {
   const s = getState();
-  if (next === "owned" && s.ice?.active && s.ice.residentNodeId === nodeId) {
-    stopIce();
-    disableIce();
+  if (s.selectedNodeId !== nodeId) {
+    cancelIceDwell();
+    if (s.ice) s.ice.detectedAtNode = null;
   }
 });
+on("starnet:action:deselect", cancelIceDwell);
+
+// Eject and reboot forcibly move ICE off its current node — treat as a departure.
+on(E.ICE_EJECTED,  handleIceDeparture);
+on(E.ICE_REBOOTED, handleIceDeparture);
+
 
 function isPlayerVisible(nodeState) {
   return nodeState?.accessLevel === "compromised" || nodeState?.accessLevel === "owned";
@@ -128,8 +139,8 @@ function checkIceDetection(nodeId) {
   const s = getState();
   if (!s.ice || !s.ice.active) return;
   if (s.selectedNodeId !== nodeId) {
-    // ICE moved away from player's node — cancel any pending dwell timer
-    cancelAllByType(TIMER.ICE_DETECT);
+    // ICE moved away from player's node — use shared departure handler.
+    handleIceDeparture();
     return;
   }
   if (s.ice.detectedAtNode === nodeId) return; // already detected here; player must move first
@@ -167,4 +178,27 @@ function triggerDetection(nodeId) {
 
 export function cancelIceDwell() {
   cancelAllByType(TIMER.ICE_DETECT);
+}
+
+// Teleport ICE directly to a node (cheat / playtesting use only).
+// Resets detectedAtNode so the detection dwell fires immediately on arrival.
+export function teleportIce(nodeId) {
+  const s = getState();
+  if (!s.ice || !s.ice.active) return;
+  if (!s.nodes[nodeId]) return;
+  s.ice.detectedAtNode = null;
+  // Reschedule ICE_MOVE from now so it doesn't fire mid-dwell and cancel detection.
+  const interval = MOVE_INTERVALS[s.ice.grade] ?? 6000;
+  cancelAllByType(TIMER.ICE_MOVE);
+  scheduleRepeating(TIMER.ICE_MOVE, interval);
+  const fromId = s.ice.attentionNodeId;
+  if (fromId !== nodeId) {
+    moveIceAttention(nodeId);
+    const fromVisible = isPlayerVisible(s.nodes[fromId]);
+    const toVisible   = isPlayerVisible(s.nodes[nodeId]);
+    const fromLabel = fromVisible ? (s.nodes[fromId]?.label ?? fromId) : "???";
+    const toLabel   = toVisible   ? (s.nodes[nodeId]?.label  ?? nodeId) : "???";
+    emitEvent(E.ICE_MOVED, { fromId, toId: nodeId, fromLabel, toLabel, fromVisible, toVisible });
+  }
+  checkIceDetection(nodeId);
 }
