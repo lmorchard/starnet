@@ -59,8 +59,8 @@ function init() {
     sidebarMode = "node";
   });
 
-  document.addEventListener("starnet:timer:ice-move", () => handleIceTick());
-  document.addEventListener("starnet:timer:ice-detect", (evt) => handleIceDetect(evt.detail));
+  on("starnet:timer:ice-move", () => handleIceTick());
+  on("starnet:timer:ice-detect", (payload) => handleIceDetect(payload));
 
   document.addEventListener("starnet:action:probe", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
@@ -143,8 +143,8 @@ function init() {
     rebootNode(evt.detail.nodeId);
   });
 
-  document.addEventListener("starnet:timer:reboot-complete", (evt) => {
-    completeReboot(evt.detail.nodeId);
+  on("starnet:timer:reboot-complete", (payload) => {
+    completeReboot(payload.nodeId);
   });
 
   document.addEventListener("starnet:action:run-again", () => {

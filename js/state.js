@@ -416,6 +416,6 @@ export function deselectNode() {
 
 export function emit() {
   // @ts-ignore — dev convenience; not part of the typed window interface
-  window._starnetState = state;
+  if (typeof window !== "undefined") window._starnetState = state;
   emitEvent(E.STATE_CHANGED, state);
 }

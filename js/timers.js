@@ -1,7 +1,9 @@
 // @ts-check
 // Centralized timer system for timed game events.
-// All timers dispatch DOM custom events on fire: starnet:timer:{type}
+// All timers fire via emitEvent("starnet:timer:{type}") — no DOM dependency.
 // Timers with visibility metadata are exposed via getVisibleTimers() for UI rendering.
+
+import { emitEvent } from "./events.js";
 
 const timers = new Map(); // timerId → { handle, type, payload, visible, label, startedAt, durationMs, repeating }
 let nextId = 1;
@@ -12,7 +14,7 @@ export function scheduleEvent(type, delayMs, payload = {}, visibility = null) {
   const startedAt = Date.now();
   const handle = setTimeout(() => {
     timers.delete(id);
-    document.dispatchEvent(new CustomEvent(`starnet:timer:${type}`, { detail: { ...payload, timerId: id } }));
+    emitEvent(`starnet:timer:${type}`, { ...payload, timerId: id });
   }, delayMs);
   timers.set(id, {
     handle,
@@ -30,7 +32,7 @@ export function scheduleEvent(type, delayMs, payload = {}, visibility = null) {
 export function scheduleRepeating(type, intervalMs, payload = {}) {
   const id = nextId++;
   const handle = setInterval(() => {
-    document.dispatchEvent(new CustomEvent(`starnet:timer:${type}`, { detail: { ...payload, timerId: id } }));
+    emitEvent(`starnet:timer:${type}`, { ...payload, timerId: id });
   }, intervalMs);
   timers.set(id, {
     handle,
