@@ -88,13 +88,6 @@ export function generateMacguffin() {
   };
 }
 
-// Which node types can hold macguffins, and how many
-const LOOT_CONFIG = {
-  fileserver:   { count: [1, 2] },
-  cryptovault:  { count: [1, 3] },
-  workstation:  { count: [0, 1] },
-};
-
 // Pick one macguffin at random from all loot nodes, mark it as the mission target,
 // and multiply its cash value by 10. Returns { id, name } for state to record.
 export function flagMissionMacguffin(nodes) {
@@ -106,14 +99,3 @@ export function flagMissionMacguffin(nodes) {
   return { id: target.id, name: target.name };
 }
 
-export function assignMacguffins(nodes) {
-  nodes.forEach((node) => {
-    const config = LOOT_CONFIG[node.type];
-    if (!config) return;
-    const [min, max] = config.count;
-    const count = min + Math.floor(Math.random() * (max - min + 1));
-    for (let i = 0; i < count; i++) {
-      node.macguffins.push(generateMacguffin());
-    }
-  });
-}
