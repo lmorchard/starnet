@@ -7,6 +7,7 @@
 
 import { getState, endRun, emit, ALERT_ORDER } from "./state.js";
 import { emitEvent, on, E } from "./events.js";
+import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
@@ -16,8 +17,6 @@ export const MONITOR_TYPES   = new Set(["security-monitor"]);
 
 // Detection thresholds: cumulative detections before trace starts, by ICE grade
 const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
-
-let _traceIntervalId = null;
 
 // ── Event-driven hooks ────────────────────────────────────
 
@@ -75,8 +74,8 @@ function recomputeGlobalAlert() {
 
   /** @type {GlobalAlertLevel} */
   let newLevel = "green";
-  if (yellowDetectors >= 1)              newLevel = "yellow";
-  if (redDetectors >= 1)                 newLevel = "red";
+  if (yellowDetectors >= 1)                  newLevel = "yellow";
+  if (redDetectors >= 1)                     newLevel = "red";
   if (redDetectors >= 2 || redMonitors >= 1) newLevel = "trace";
 
   // Only escalate, never de-escalate
@@ -114,30 +113,26 @@ export function startTraceCountdown() {
   const s = getState();
   s.traceSecondsRemaining = 60;
   emitEvent(E.ALERT_TRACE_STARTED, { seconds: 60 });
-  _traceIntervalId = setInterval(() => {
-    const st = getState();
-    if (!st || st.phase !== "playing") {
-      clearInterval(_traceIntervalId);
-      _traceIntervalId = null;
-      return;
-    }
-    st.traceSecondsRemaining -= 1;
-    if (st.traceSecondsRemaining <= 0) {
-      clearInterval(_traceIntervalId);
-      _traceIntervalId = null;
-      endRun("caught");
-    } else {
-      emit();
-    }
-  }, 1000);
+  s.traceTimerId = scheduleRepeating(TIMER.TRACE_TICK, 1000);
+}
+
+export function handleTraceTick() {
+  const s = getState();
+  if (!s || s.phase !== "playing") return;
+  s.traceSecondsRemaining -= 1;
+  if (s.traceSecondsRemaining <= 0) {
+    endRun("caught");
+  } else {
+    emit();
+  }
 }
 
 export function cancelTraceCountdown() {
-  if (_traceIntervalId !== null) {
-    clearInterval(_traceIntervalId);
-    _traceIntervalId = null;
-  }
   const s = getState();
+  if (s.traceTimerId !== null) {
+    cancelEvent(s.traceTimerId);
+    s.traceTimerId = null;
+  }
   s.traceSecondsRemaining = null;
   s.globalAlert = "red";
   emit();

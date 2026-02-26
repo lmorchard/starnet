@@ -13,9 +13,9 @@
 /** @typedef {import('./types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { generateStartingHand, generateVulnerabilities } from "./exploits.js";
+import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "./exploits.js";
 import { assignMacguffins, flagMissionMacguffin } from "./loot.js";
-import { clearAll as clearAllTimers, scheduleEvent } from "./timers.js";
+import { clearAll as clearAllTimers, scheduleEvent, serializeTimers, deserializeTimers, TIMER } from "./timers.js";
 import { emitEvent, E } from "./events.js";
 
 /** @type {GameState|null} */
@@ -71,6 +71,7 @@ export function initState(networkData) {
     },
     globalAlert: "green",   // 'green' | 'yellow' | 'red' | 'trace'
     traceSecondsRemaining: null,
+    traceTimerId: null,
     selectedNodeId: null,
     phase: "playing",       // 'playing' | 'ended'
     runOutcome: null,       // 'success' | 'caught'
@@ -209,6 +210,7 @@ export function endRun(outcome) {
   state.phase = "ended";
   state.runOutcome = outcome;
   if (outcome === "caught") state.player.cash = 0;
+  if (state.ice?.active) state.ice.active = false; // timers already cleared above
   emitEvent(E.RUN_ENDED, { outcome });
   emit();
 }
@@ -249,6 +251,11 @@ export function probeNode(nodeId) {
 export function readNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return;
+  if (node.read) {
+    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Already scanned.`, type: "info" });
+    emit();
+    return;
+  }
   node.read = true;
   emitEvent(E.NODE_READ, { nodeId, label: node.label, macguffinCount: node.macguffins.length });
   emit();
@@ -260,7 +267,8 @@ export function lootNode(nodeId) {
 
   const uncollected = node.macguffins.filter((m) => !m.collected);
   if (uncollected.length === 0) {
-    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Already looted.`, type: "info" });
+    node.looted = true;
+    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Nothing to loot.`, type: "info" });
     emit();
     return;
   }
@@ -361,7 +369,7 @@ export function rebootNode(nodeId) {
   node.rebooting = true;
 
   const durationMs = 1000 + Math.random() * 2000; // 1–3s
-  scheduleEvent("reboot-complete", durationMs, { nodeId }, { label: `REBOOT: ${node.label}` });
+  scheduleEvent(TIMER.REBOOT_COMPLETE, durationMs, { nodeId }, { label: `REBOOT: ${node.label}` });
 
   emitEvent(E.NODE_REBOOTING, { nodeId, label: node.label, durationMs });
 
@@ -416,6 +424,19 @@ export function deselectNode() {
 
 export function emit() {
   // @ts-ignore — dev convenience; not part of the typed window interface
-  window._starnetState = state;
+  if (typeof window !== "undefined") window._starnetState = state;
   emitEvent(E.STATE_CHANGED, state);
+}
+
+// ── Serialization ─────────────────────────────────────────
+
+export function serializeState() {
+  return { ...state, _timers: serializeTimers(), _exploitIdCounter };
+}
+
+export function deserializeState(snapshot) {
+  const { _timers, _exploitIdCounter: exploitId, ...gameState } = snapshot;
+  state = gameState;
+  deserializeTimers(_timers);
+  if (exploitId != null) setExploitIdCounter(exploitId);
 }

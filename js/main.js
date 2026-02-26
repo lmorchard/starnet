@@ -4,9 +4,11 @@ import { initGraph, getCy, addIceNode } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
 import { launchExploit } from "./combat.js";
 import { addLogEntry } from "./log-renderer.js";
-import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
+import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
+import { tick, TICK_MS, TIMER } from "./timers.js";
+import { handleTraceTick } from "./alert.js";
 import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 
@@ -25,13 +27,10 @@ function init() {
   initState(NETWORK);
   fitGraph(cy);
   startIce();
+  setInterval(() => tick(1), TICK_MS);
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate
   window.starnet = { cmd: runCommand, state: getState };
-
-  on(E.STATE_CHANGED, (s) => {
-    if (s.phase === "ended") stopIce();
-  });
 
   // Wire HUD jack-out button
   document.getElementById("jack-out-btn").addEventListener("click", () => {
@@ -59,8 +58,9 @@ function init() {
     sidebarMode = "node";
   });
 
-  document.addEventListener("starnet:timer:ice-move", () => handleIceTick());
-  document.addEventListener("starnet:timer:ice-detect", (evt) => handleIceDetect(evt.detail));
+  on(TIMER.ICE_MOVE,   () => handleIceTick());
+  on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
+  on(TIMER.TRACE_TICK, () => handleTraceTick());
 
   document.addEventListener("starnet:action:probe", (evt) => {
     if (!evt.detail.fromConsole) addLogEntry(`> probe ${evt.detail.nodeId}`, "command");
@@ -143,8 +143,8 @@ function init() {
     rebootNode(evt.detail.nodeId);
   });
 
-  document.addEventListener("starnet:timer:reboot-complete", (evt) => {
-    completeReboot(evt.detail.nodeId);
+  on(TIMER.REBOOT_COMPLETE, (payload) => {
+    completeReboot(payload.nodeId);
   });
 
   document.addEventListener("starnet:action:run-again", () => {

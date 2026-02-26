@@ -134,6 +134,7 @@
  *   player: PlayerState,
  *   globalAlert: GlobalAlertLevel,
  *   traceSecondsRemaining: number|null,
+ *   traceTimerId: number|null,
  *   selectedNodeId: string|null,
  *   phase: GamePhase,
  *   runOutcome: RunOutcome|null,
@@ -148,7 +149,7 @@
 
 /** @typedef {{ text: string, type: string }} LogEntryPayload */
 
-/** @typedef {{ nodeId: string, label: string }} NodeRevealedPayload */
+/** @typedef {{ nodeId: string, label: string, unlocked?: boolean }} NodeRevealedPayload */
 /** @typedef {{ nodeId: string, label: string }} NodeProbedPayload */
 /** @typedef {{ nodeId: string, label: string, prev: AccessLevel, next: AccessLevel }} NodeAccessedPayload */
 /** @typedef {{ nodeId: string, label: string, prev: NodeAlertLevel, next: NodeAlertLevel }} NodeAlertRaisedPayload */

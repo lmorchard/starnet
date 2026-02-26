@@ -92,7 +92,75 @@ Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `pl
 
 Note: this project uses `docs/dev-sessions/` (not `.claude/dev-sessions/`) so session artifacts are tracked in git alongside the source.
 
-Most recent session: `docs/dev-sessions/2026-02-25-1317-jsdoc-types/`
+Most recent session: `docs/dev-sessions/2026-02-25-1605-node-playtesting/`
+
+## Headless Playtest Harness
+
+`scripts/playtest.js` is a single-command REPL for balance testing, bug reproduction, and regression checks — no browser required.
+
+**Before spinning up Playwright or a browser, try the harness first.** It's faster and produces a clean transcript.
+
+### Usage
+
+```bash
+node scripts/playtest.js reset                         # fresh game, saves to scripts/playtest-state.json
+node scripts/playtest.js "status"                      # print current state summary
+node scripts/playtest.js "status full"                 # full state dump (network, hand, ICE, mission)
+node scripts/playtest.js "select gateway"              # select a node
+node scripts/playtest.js "probe"                       # probe selected node
+node scripts/playtest.js "exploit 2"                   # exploit with card #2 (selected node)
+node scripts/playtest.js "exploit ids-1 AuthBrute"    # explicit node + card
+node scripts/playtest.js "tick 100"                    # advance 100 virtual ticks (10 real-seconds)
+node scripts/playtest.js "actions"                     # list all valid actions with context
+node scripts/playtest.js "jackout"                     # end run
+
+# Named state files — start from a checkpoint, run parallel scenarios
+node scripts/playtest.js --state /tmp/scenario.json reset
+node scripts/playtest.js --state /tmp/scenario.json "probe gateway"
+```
+
+### How it works
+
+- State persists in a JSON file between invocations (default: `scripts/playtest-state.json`)
+- Each invocation: load state → run one command → print all events → save state → exit
+- `tick N` advances the virtual clock by N ticks (1 tick = 100ms real-time); ICE moves, trace countdown ticks, reboots complete
+- State is fully serializable: nodes, adjacency, ICE position, timers, player hand — everything
+- Different LAN graphs produce different serialized states; the state file is self-contained (no network file reference needed)
+
+### Status subcommands
+
+```
+status            — alias for "status summary"
+status summary    — alert, ICE, selection, network counts, hand, mission
+status full       — complete dump of all state
+status ice        — ICE grade, position, detection count
+status hand       — exploit cards with match indicator for selected node
+status alert      — global alert level, trace countdown, security node list
+status mission    — mission target, value, location, collected?
+status node <id>  — single node detail
+```
+
+### Typical workflow
+
+```bash
+node scripts/playtest.js reset
+node scripts/playtest.js "status full"
+node scripts/playtest.js "select gateway"
+node scripts/playtest.js "probe"
+node scripts/playtest.js "actions"          # see what cards match
+node scripts/playtest.js "exploit 4"        # use card #4
+node scripts/playtest.js "status summary"
+node scripts/playtest.js "tick 50"          # let ICE move
+node scripts/playtest.js "status ice"
+```
+
+### Notes
+
+- **Seeded RNG not yet implemented** — `Math.random()` is used in combat, exploits, and ICE; runs are probabilistic and not fully reproducible from a saved state. Seeded RNG is a future backlog item.
+- `console.js` is DOM-coupled and not used by the harness; command dispatch is inline in `playtest.js`
+- Cheat commands are not yet supported in the harness
+
+---
 
 ## Design Principles
 
