@@ -8,12 +8,10 @@
 import { getState, endRun, emit, ALERT_ORDER } from "./state.js";
 import { emitEvent, on, E } from "./events.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
+import { hasBehavior, getBehaviors } from "./node-types.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
-
-export const DETECTION_TYPES = new Set(["ids"]);
-export const MONITOR_TYPES   = new Set(["security-monitor"]);
 
 // Detection thresholds: cumulative detections before trace starts, by ICE grade
 const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
@@ -26,16 +24,21 @@ on(E.NODE_ALERT_RAISED, ({ nodeId }) => {
   const s = getState();
   const node = s.nodes[nodeId];
   if (!node) return;
-  if (DETECTION_TYPES.has(node.type)) {
-    propagateAlertEvent(nodeId);
-  } else {
-    recomputeGlobalAlert();
-  }
+  const ctx = { propagateAlertEvent, startTraceCountdown, recomputeGlobalAlert };
+  const handled = getBehaviors(node).some((atom) => {
+    if (atom.onAlertRaised) { atom.onAlertRaised(node, s, ctx); return true; }
+    return false;
+  });
+  if (!handled) recomputeGlobalAlert();
 });
 
-// Reconfiguring an IDS severs the propagation chain — recompute global alert.
-on(E.NODE_RECONFIGURED, () => {
-  recomputeGlobalAlert();
+// Reconfiguring a node — dispatch onReconfigured atom, then recompute.
+on(E.NODE_RECONFIGURED, ({ nodeId }) => {
+  const s = getState();
+  const node = s.nodes[nodeId];
+  if (!node) return;
+  const ctx = { recomputeGlobalAlert };
+  getBehaviors(node).forEach((atom) => atom.onReconfigured?.(node, s, ctx));
 });
 
 // ── Propagation ───────────────────────────────────────────
@@ -47,7 +50,7 @@ export function propagateAlertEvent(fromNodeId) {
 
   (s.adjacency[fromNodeId] || []).forEach((neighborId) => {
     const neighbor = s.nodes[neighborId];
-    if (neighbor && MONITOR_TYPES.has(neighbor.type)) {
+    if (neighbor && hasBehavior(neighbor, "monitor")) {
       const idx = ALERT_ORDER.indexOf(neighbor.alertState);
       if (idx < ALERT_ORDER.length - 1) {
         neighbor.alertState = ALERT_ORDER[idx + 1];
@@ -65,8 +68,10 @@ export function propagateAlertEvent(fromNodeId) {
 
 function recomputeGlobalAlert() {
   const s = getState();
-  const monitors  = Object.values(s.nodes).filter((n) => MONITOR_TYPES.has(n.type));
-  const detectors = Object.values(s.nodes).filter((n) => DETECTION_TYPES.has(n.type));
+  const monitors  = Object.values(s.nodes).filter((n) => hasBehavior(n, "monitor"));
+  const detectors = Object.values(s.nodes).filter(
+    (n) => hasBehavior(n, "detection") || hasBehavior(n, "direct-trace")
+  );
 
   const redMonitors    = monitors.filter((n) => n.alertState === "red").length;
   const redDetectors   = detectors.filter((n) => n.alertState === "red"   && !n.eventForwardingDisabled).length;
