@@ -18,7 +18,9 @@ See `docs/SPEC.md` for the full game design document.
 
 ```
 make serve   — start local dev server at http://localhost:3000
-make check   — run tsc type checker (JSDoc annotations, no emit)
+make lint    — run tsc type checker (JSDoc annotations, no emit)
+make test    — run unit + integration tests
+make check   — lint + test (run both)
 ```
 
 Run `make check` after any changes to state shapes, event payloads, or data types in `js/types.js`.
