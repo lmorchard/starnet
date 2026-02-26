@@ -4,7 +4,7 @@ import { initGraph, getCy, addIceNode } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot } from "./state.js";
 import { launchExploit } from "./combat.js";
 import { addLogEntry } from "./log-renderer.js";
-import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
+import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { tick, TICK_MS, TIMER } from "./timers.js";
@@ -31,10 +31,6 @@ function init() {
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate
   window.starnet = { cmd: runCommand, state: getState };
-
-  on(E.STATE_CHANGED, (s) => {
-    if (s.phase === "ended") stopIce();
-  });
 
   // Wire HUD jack-out button
   document.getElementById("jack-out-btn").addEventListener("click", () => {

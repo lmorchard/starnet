@@ -210,6 +210,7 @@ export function endRun(outcome) {
   state.phase = "ended";
   state.runOutcome = outcome;
   if (outcome === "caught") state.player.cash = 0;
+  if (state.ice?.active) state.ice.active = false; // timers already cleared above
   emitEvent(E.RUN_ENDED, { outcome });
   emit();
 }

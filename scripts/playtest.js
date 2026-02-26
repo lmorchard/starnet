@@ -20,7 +20,7 @@ import {
   serializeState, deserializeState,
 } from "../js/state.js";
 import { launchExploit } from "../js/combat.js";
-import { startIce, stopIce, handleIceTick, handleIceDetect, cancelIceDwell } from "../js/ice.js";
+import { startIce, handleIceTick, handleIceDetect, cancelIceDwell } from "../js/ice.js";
 import { on, E } from "../js/events.js";
 import { tick, TIMER } from "../js/timers.js";
 import { handleTraceTick, forceGlobalAlert, cancelTraceCountdown } from "../js/alert.js";
@@ -63,7 +63,6 @@ on(TIMER.ICE_MOVE,        ()        => handleIceTick());
 on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
 on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
-on(E.STATE_CHANGED,                 (s)       => { if (s.phase === "ended") stopIce(); });
 
 // ── Event → output ─────────────────────────────────────────
 
