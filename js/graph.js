@@ -203,11 +203,6 @@ function buildStylesheet() {
       selector: "node.hidden",
       style: { display: "none" },
     },
-    // Pointer cursor on all visible nodes
-    {
-      selector: "node.revealed, node.accessible",
-      style: { cursor: "pointer" },
-    },
     // Revealed but not accessible
     {
       selector: "node.revealed",

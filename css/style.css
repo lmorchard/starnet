@@ -161,6 +161,10 @@ html, body {
   height: 100%;
 }
 
+#cy canvas {
+  cursor: pointer;
+}
+
 #sidebar {
   flex: 0 0 400px;
   display: flex;
