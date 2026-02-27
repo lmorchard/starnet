@@ -1,21 +1,19 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
-import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
-import { launchExploit } from "./combat.js";
+import { initState, getState, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
+import { startExploit, cancelExploit, handleExploitExecTimer } from "./exploit-exec.js";
+import { startProbe, cancelProbe, handleProbeScanTimer } from "./probe-exec.js";
+import { navigateTo, navigateAway } from "./navigation.js";
 import { addLogEntry } from "./log.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand, pushHistory } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { tick, TICK_MS, TIMER, getVisibleTimers } from "./timers.js";
 import { handleTraceTick, cancelTraceCountdown } from "./alert.js";
-import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
+import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "./node-lifecycle.js";
-
-// Current UI mode for the sidebar: 'node' | 'exploit-select'
-// Kept here (not in visual-renderer) because it's set by action event handlers.
-let sidebarMode = "node";
 
 // Log a UI-sourced command to both the log pane and the console history.
 function logCommand(cmd) {
@@ -52,88 +50,53 @@ function init() {
 
   on("starnet:action:select", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`select ${nodeId}`);
-    if (sidebarMode !== "node") {
-      setSidebarMode("node");
-      sidebarMode = "node";
-      addLogEntry("Action cancelled.", "info");
-    }
-    selectNode(nodeId);
+    navigateTo(nodeId);
   });
 
   on("starnet:action:deselect", ({ fromConsole } = {}) => {
     if (!fromConsole) logCommand("deselect");
-    deselectNode();
-    setSidebarMode("node");
-    sidebarMode = "node";
+    navigateAway();
   });
 
-  on(TIMER.ICE_MOVE,   () => handleIceTick());
-  on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
-  on(TIMER.TRACE_TICK, () => handleTraceTick());
+  on(TIMER.ICE_MOVE,    () => handleIceTick());
+  on(TIMER.ICE_DETECT,  (payload) => handleIceDetect(payload));
+  on(TIMER.TRACE_TICK,  () => handleTraceTick());
+  on(TIMER.EXPLOIT_EXEC, (payload) => handleExploitExecTimer(payload));
+  on(TIMER.PROBE_SCAN,   (payload) => handleProbeScanTimer(payload));
 
   on("starnet:action:probe", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`probe ${nodeId}`);
-    probeNode(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
+    startProbe(nodeId);
   });
 
-  on("starnet:action:exploit", () => {
-    setSidebarMode("exploit-select");
-    sidebarMode = "exploit-select";
-    emitEvent(E.STATE_CHANGED, getState());
-  });
-
-  on("starnet:action:escalate", () => {
-    setSidebarMode("exploit-select");
-    sidebarMode = "exploit-select";
-    emitEvent(E.STATE_CHANGED, getState());
-  });
-
-  on("starnet:action:cancel", () => {
-    setSidebarMode("node");
-    sidebarMode = "node";
-    emitEvent(E.STATE_CHANGED, getState());
+  on("starnet:action:cancel-probe", ({ fromConsole } = {}) => {
+    if (!fromConsole) logCommand("cancel-probe");
+    cancelProbe();
   });
 
   on("starnet:action:launch-exploit", ({ nodeId, exploitId, cardIndex, fromConsole }) => {
     if (!fromConsole) logCommand(`exploit ${cardIndex ?? exploitId}`);
+    startExploit(nodeId, exploitId);
+  });
 
-    // Click UI (exploit-select mode): stay in exploit-select on failure.
-    const clickMode = sidebarMode === "exploit-select" && !fromConsole;
-    if (!clickMode) {
-      setSidebarMode("node");
-      sidebarMode = "node";
-    }
-
-    const result = launchExploit(nodeId, exploitId);
-
-    if (clickMode && result?.success) {
-      setSidebarMode("node");
-      sidebarMode = "node";
-      emitEvent(E.STATE_CHANGED, getState());
-    }
+  on("starnet:action:cancel-exploit", ({ fromConsole } = {}) => {
+    if (!fromConsole) logCommand("cancel-exploit");
+    cancelExploit();
   });
 
   on("starnet:action:reconfigure", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`reconfigure ${nodeId}`);
     reconfigureNode(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
   });
 
   on("starnet:action:read", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`read ${nodeId}`);
     readNode(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
   });
 
   on("starnet:action:loot", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`loot ${nodeId}`);
     lootNode(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
   });
 
   on("starnet:action:cancel-trace", ({ fromConsole }) => {
@@ -161,8 +124,6 @@ function init() {
   });
 
   on("starnet:action:run-again", () => {
-    setSidebarMode("node");
-    sidebarMode = "node";
     initState(NETWORK);
     const cy = getCy();
     if (cy) fitGraph(cy);

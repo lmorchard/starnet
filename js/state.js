@@ -79,6 +79,8 @@ export function initState(networkData) {
     isCheating: false,     // set true on first cheat command use
     ice: null,             // populated below if network defines ICE
     lastDisturbedNodeId: null,
+    executingExploit: null,
+    activeProbe: null,
     mission: null,         // populated below after macguffin assignment
   };
 
@@ -399,8 +401,6 @@ export function selectNode(nodeId) {
     return;
   }
   state.selectedNodeId = nodeId;
-  // Moving to a new node resets the per-node detection flag so ICE can detect again if it follows
-  if (state.ice) state.ice.detectedAtNode = null;
 
   // Traversal: selecting a revealed ("???") node adjacent to any accessible node makes it
   // accessible. This is how the player explores deeper into the network.

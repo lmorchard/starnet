@@ -43,6 +43,11 @@ export const E = Object.freeze({
   NODE_REBOOTING:       "node:rebooting",
   NODE_REBOOTED:        "node:rebooted",
 
+  PROBE_SCAN_STARTED:   "probe:scan-started",
+  PROBE_SCAN_CANCELLED: "probe:scan-cancelled",
+
+  EXPLOIT_STARTED:      "exploit:started",
+  EXPLOIT_INTERRUPTED:  "exploit:interrupted",
   EXPLOIT_SUCCESS:      "exploit:success",
   EXPLOIT_FAILURE:      "exploit:failure",
   EXPLOIT_DISCLOSED:    "exploit:disclosed",
@@ -53,6 +58,8 @@ export const E = Object.freeze({
   ALERT_TRACE_STARTED:   "alert:trace-started",
   ALERT_TRACE_CANCELLED: "alert:trace-cancelled",
   ALERT_PROPAGATED:      "alert:propagated",
+
+  PLAYER_NAVIGATED:     "player:navigated",
 
   ICE_MOVED:            "ice:moved",
   ICE_DETECT_PENDING:   "ice:detect-pending",

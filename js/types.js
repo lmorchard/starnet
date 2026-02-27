@@ -116,6 +116,23 @@
  */
 
 /**
+ * Tracks an in-progress exploit execution. Null when no exploit is running.
+ * @typedef {{
+ *   nodeId: string,
+ *   exploitId: string,
+ *   timerId: number,
+ * }} ExecutingExploit
+ */
+
+/**
+ * Tracks an in-progress probe scan. Null when no probe is running.
+ * @typedef {{
+ *   nodeId: string,
+ *   timerId: number,
+ * }} ActiveProbe
+ */
+
+/**
  * @typedef {{
  *   targetMacguffinId: string,
  *   targetName: string,
@@ -216,6 +233,8 @@
  *   ice: IceState|null,
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
+ *   executingExploit: ExecutingExploit|null,
+ *   activeProbe: ActiveProbe|null,
  * }} GameState
  */
 
@@ -238,6 +257,11 @@
 /** @typedef {{ exploitName: string }} ExploitDisclosedPayload */
 /** @typedef {{ exploitName: string, usesRemaining: number }} ExploitPartialBurnPayload */
 /** @typedef {{ nodeId: string, label: string }} ExploitSurfacePayload */
+/** @typedef {{ nodeId: string, label: string, exploitName: string, durationMs: number }} ExploitStartedPayload */
+/** @typedef {{ nodeId: string, exploitName: string }} ExploitInterruptedPayload */
+
+/** @typedef {{ nodeId: string, label: string, durationMs: number }} ProbeScanStartedPayload */
+/** @typedef {{ nodeId: string, label: string }} ProbeScanCancelledPayload */
 
 /** @typedef {{ prev: GlobalAlertLevel, next: GlobalAlertLevel }} AlertGlobalRaisedPayload */
 /** @typedef {{ seconds: number }} AlertTraceStartedPayload */

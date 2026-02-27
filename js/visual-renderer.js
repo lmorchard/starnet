@@ -16,18 +16,15 @@ import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelect
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
-// Sidebar UI mode — kept here since it affects render output.
-// Updated by main.js via setSidebarMode() when action events change mode.
-let sidebarMode = "node";
-
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
 // queue overlapping cy.animate() calls that fight each other.
 let revealFitTimer = null;
 
-export function setSidebarMode(mode) {
-  sidebarMode = mode;
-}
+// Exploit execution timing — tracked here (not in state) for sub-tick precision.
+// Set when EXPLOIT_STARTED fires; cleared on resolution or cancellation.
+let execStartTime = null;
+let execTotalMs = null;
 
 export function initVisualRenderer() {
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
@@ -35,13 +32,21 @@ export function initVisualRenderer() {
     syncHud(state);
   });
 
-  // Timer-only tick: update just the countdowns in-place — no full re-render.
+  // Track exploit execution start time for sub-tick progress animation precision.
+  on(E.EXPLOIT_STARTED, ({ durationMs }) => { execStartTime = Date.now(); execTotalMs = durationMs; });
+  on(E.EXPLOIT_INTERRUPTED, () => { execStartTime = null; execTotalMs = null; });
+  on(E.EXPLOIT_SUCCESS,     () => { execStartTime = null; execTotalMs = null; });
+  on(E.EXPLOIT_FAILURE,     () => { execStartTime = null; execTotalMs = null; });
+
+  // Timer-only tick: update countdowns in-place. Also refresh the hand if an
+  // exploit is executing so the progress fill and percentage stay current.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
     syncIceTimers();
     const countdown = document.getElementById("trace-countdown");
     if (countdown && state.traceSecondsRemaining !== null) {
       countdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
     }
+    if (state.executingExploit) syncHandPane(state);
   });
 
   // One-shot flash effects keyed to typed game events
@@ -211,11 +216,6 @@ function renderSidebarNode(sidebarNode, node, state) {
     return;
   }
 
-  if (sidebarMode === "exploit-select") {
-    renderExploitSelect(sidebarNode, node);
-    return;
-  }
-
   const alertColor =
     node.alertState === "green"  ? "var(--green)" :
     node.alertState === "yellow" ? "var(--yellow)" :
@@ -286,39 +286,27 @@ function renderSidebarNode(sidebarNode, node, state) {
   });
 }
 
-function renderExploitSelect(sidebarNode, node) {
-  sidebarNode.innerHTML = `
-    <div class="node-detail">
-      <div class="nd-header">
-        <span class="nd-type">[SELECT EXPLOIT]</span>
-        <span class="nd-label">${node.label}</span>
-      </div>
-      <div class="nd-dim nd-indent">
-        Choose an exploit from your hand below.
-        ${node.probed ? "Matching cards are highlighted." : "Probe the node first for better odds."}
-      </div>
-      <div class="nd-divider">──────────────────</div>
-      <button class="action-btn" data-action="cancel">[ CANCEL ]</button>
-    </div>`;
-
-  sidebarNode.querySelector("[data-action='cancel']")?.addEventListener("click", () => {
-    emitEvent("starnet:action:cancel", {});
-  });
-}
-
 // ── Actions ───────────────────────────────────────────────
 
 function renderActions(node, state) {
   const btns = [];
 
+  // While an exploit is executing at this node, only allow cancellation.
+  if (state.executingExploit?.nodeId === node.id) {
+    const execCard = state.player.hand.find((c) => c.id === state.executingExploit.exploitId);
+    btns.push(actionBtn("cancel-exploit", "CANCEL EXPLOIT", `Abort ${execCard?.name ?? "exploit"} execution.`));
+    return btns.join("");
+  }
+
   if (node.accessLevel === "locked") {
-    if (!node.probed) {
+    if (state.activeProbe?.nodeId === node.id) {
+      btns.push(actionBtn("cancel-probe", "CANCEL PROBE", "Abort vulnerability scan."));
+    } else if (!node.probed && !node.rebooting) {
       btns.push(actionBtn("probe", "PROBE", "Reveal vulnerabilities. Raises local alert."));
     }
   }
 
   if (node.accessLevel === "compromised") {
-    btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit."));
     if (!node.read) {
       btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections."));
     }
@@ -368,18 +356,28 @@ function syncHandPane(state) {
   const el = document.getElementById("sidebar-hand");
   if (!el) return;
 
-  const isSelecting = !!state.selectedNodeId;
+  const executing = state.executingExploit;
+  const isSelecting = !!state.selectedNodeId && !executing;
   const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
   const sortedHand = selectedNode
     ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : state.player.hand;
 
+  const handClass = ["nd-hand", isSelecting ? "selectable" : "", executing ? "exploit-hand-executing" : ""]
+    .filter(Boolean).join(" ");
+
   el.innerHTML = `
     <div class="nd-section-label">EXPLOIT HAND</div>
-    <div class="nd-hand ${isSelecting ? "selectable" : ""}">
+    <div class="${handClass}">
       ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
-        : sortedHand.map((c, i) => renderExploitCard(c, selectedNode, i + 1, isSelecting)).join("")}
+        : sortedHand.map((c, i) => {
+            const isExec = executing?.exploitId === c.id;
+            const elapsedMs = (isExec && execStartTime !== null && execTotalMs !== null)
+              ? Math.min(Date.now() - execStartTime, execTotalMs)
+              : 0;
+            return renderExploitCard(c, selectedNode, i + 1, isSelecting, isExec, elapsedMs, execTotalMs ?? 0);
+          }).join("")}
     </div>`;
 
   if (isSelecting) {
@@ -393,7 +391,7 @@ function syncHandPane(state) {
   }
 }
 
-function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false) {
+function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false, isExecuting = false, execElapsedMs = 0, execTotalMs = 0) {
   const rarityClass = `rarity-${card.rarity}`;
   const disclosed = card.decayState === "disclosed";
   const worn = card.decayState === "worn";
@@ -401,7 +399,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
   const pips = "█".repeat(qualityPips) + "░".repeat(5 - qualityPips);
 
   let matchClass = "";
-  if (selectedNode?.probed) {
+  if (selectedNode?.probed && !isExecuting) {
     const knownVulnIds = selectedNode.vulnerabilities
       .filter((v) => !v.patched && !v.hidden)
       .map((v) => v.id);
@@ -410,9 +408,22 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
   }
 
   const isSelectable = isSelecting && !disclosed;
+  const classes = [
+    "exploit-card", rarityClass,
+    disclosed ? "disclosed" : "",
+    matchClass,
+    isSelectable ? "selectable-card" : "",
+    isExecuting ? "executing" : "",
+  ].filter(Boolean).join(" ");
 
-  return `<div class="exploit-card ${rarityClass} ${disclosed ? "disclosed" : ""} ${matchClass} ${isSelectable ? "selectable-card" : ""}"
-              data-exploit-id="${card.id}" data-card-index="${index}">
+  const execPct = (isExecuting && execTotalMs > 0)
+    ? Math.min(100, Math.round((execElapsedMs / execTotalMs) * 100))
+    : 0;
+  const execStyle = (isExecuting && execTotalMs > 0)
+    ? ` style="--exec-total: ${execTotalMs}ms; --exec-elapsed: -${Math.round(execElapsedMs)}ms"`
+    : "";
+
+  return `<div class="${classes}"${execStyle} data-exploit-id="${card.id}" data-card-index="${index}">
     <div class="ec-header">
       ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
       <span class="ec-name">${card.name}</span>
@@ -427,6 +438,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
       <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
     </div>
     <div class="ec-vulns">${card.targetVulnTypes.join(" · ")}</div>
+    ${isExecuting ? `<div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>` : ""}
   </div>`;
 }
 
@@ -444,8 +456,10 @@ function syncIceTimers(container = null) {
 function renderIceTimers() {
   const timers = getVisibleTimers();
   const rows = timers.map((t) => {
-    const isDetect = t.label === "ICE DETECTION";
-    const cls = isDetect ? "ice-timer-detect" : "ice-timer-reboot";
+    const cls = t.label === "ICE DETECTION" ? "ice-timer-detect"
+              : t.label === "EXECUTING"      ? "ice-timer-executing"
+              : t.label === "SCANNING"       ? "ice-timer-scanning"
+              : "ice-timer-reboot";
     return `<div class="ice-timer ${cls}">⚠ ${t.label}: ${t.remaining}s</div>`;
   }).join("");
   return rows ? `<div class="ice-timers">${rows}</div>` : "";
