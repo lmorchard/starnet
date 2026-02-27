@@ -37,6 +37,11 @@
       <div id="graph-column">
         <div id="graph-container">
           <div id="cy"></div>
+          <svg id="probe-sweep"
+               style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
+            <path id="probe-sweep-fill" fill="rgba(0,255,255,0.18)" />
+            <circle id="probe-sweep-ring" fill="none" stroke="#00ffff" stroke-width="1" stroke-opacity="0.45" />
+          </svg>
           <svg id="selection-reticle"
                style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;">
             <g id="reticle-group">

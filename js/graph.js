@@ -28,6 +28,8 @@ const GRADE_COLORS = {
 let cy = null;
 let prevIceNodeId = null;        // tracks ICE's last position for movement flash
 let currentSelectedNodeId = null; // tracks selected node for reticle positioning
+let currentProbeSweepNodeId = null;  // tracks node being probed for sweep overlay
+let currentProbeSweepProgress = 0;   // 0..1
 const pulsingNodes = new Set();       // nodeIds running red-alert pulse
 const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
 const rebootingNodes = new Set();     // nodeIds running reboot opacity pulse
@@ -148,6 +150,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   });
 
   cy.on("pan zoom", syncReticle);
+  cy.on("pan zoom", _renderProbeSweep);
 
   const graphContainer = document.getElementById("graph-container");
   const syncGrid = () => {
@@ -730,6 +733,59 @@ function drawIceTrace(fromId, toId, nodeStates) {
 
   // Mark the resident node distinctly
   cy.getElementById(toId).addClass("ice-resident");
+}
+
+export function syncProbeSweep(nodeId, progress) {
+  currentProbeSweepNodeId = nodeId;
+  currentProbeSweepProgress = Math.max(0, Math.min(1, progress));
+  _renderProbeSweep();
+}
+
+export function clearProbeSweep() {
+  currentProbeSweepNodeId = null;
+  currentProbeSweepProgress = 0;
+  const svg = document.getElementById("probe-sweep");
+  if (svg) svg.style.opacity = "0";
+}
+
+function _renderProbeSweep() {
+  const svg = document.getElementById("probe-sweep");
+  if (!svg || !cy || !currentProbeSweepNodeId) return;
+
+  const node = cy.getElementById(currentProbeSweepNodeId);
+  if (!node || node.length === 0) { clearProbeSweep(); return; }
+
+  const pos = node.renderedPosition();
+  const r = node.renderedWidth() / 2;
+  const size = r * 2;
+
+  svg.style.width  = `${size}px`;
+  svg.style.height = `${size}px`;
+  svg.style.left   = `${pos.x - r}px`;
+  svg.style.top    = `${pos.y - r}px`;
+  svg.style.opacity = "1";
+
+  const fill = document.getElementById("probe-sweep-fill");
+  const ring = document.getElementById("probe-sweep-ring");
+  ring.setAttribute("cx", r);
+  ring.setAttribute("cy", r);
+  ring.setAttribute("r", r - 1);
+
+  const p = currentProbeSweepProgress;
+  if (p <= 0) {
+    fill.setAttribute("d", "");
+  } else if (p >= 1) {
+    // Full circle — two half-arcs to avoid degenerate arc case
+    fill.setAttribute("d",
+      `M ${r},${r} m 0,-${r} a ${r},${r} 0 1,1 0,${r * 2} a ${r},${r} 0 1,1 0,-${r * 2} Z`);
+  } else {
+    // Pie slice from 12 o'clock sweeping clockwise
+    const angle = p * 2 * Math.PI;
+    const endX = r + r * Math.sin(angle);
+    const endY = r - r * Math.cos(angle);
+    fill.setAttribute("d",
+      `M ${r},${r} L ${r},${0} A ${r},${r} 0 ${p > 0.5 ? 1 : 0},1 ${endX},${endY} Z`);
+  }
 }
 
 export function fitGraph(cy) {

@@ -13,7 +13,7 @@
 import { on, emitEvent, E } from "./events.js";
 import { getActions } from "./node-types.js";
 import { getNodeActions } from "./node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
@@ -27,6 +27,10 @@ let revealFitTimer = null;
 let execStartTime = null;
 let execTotalMs = null;
 
+// Probe scan timing — same pattern, drives the sweep overlay in the graph.
+let probeStartTime = null;
+let probeTotalMs = null;
+
 export function initVisualRenderer() {
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
     syncGraph(state);
@@ -39,6 +43,12 @@ export function initVisualRenderer() {
   on(E.EXPLOIT_SUCCESS,     () => { execStartTime = null; execTotalMs = null; });
   on(E.EXPLOIT_FAILURE,     () => { execStartTime = null; execTotalMs = null; });
 
+  // Track probe scan start time for the radial sweep overlay.
+  on(E.PROBE_SCAN_STARTED,   ({ durationMs }) => { probeStartTime = Date.now(); probeTotalMs = durationMs; });
+  on(E.PROBE_SCAN_CANCELLED, () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
+  on(E.NODE_PROBED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
+  on(E.RUN_STARTED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
+
   // Timer-only tick: update countdowns in-place. Also refresh the hand if an
   // exploit is executing so the progress fill and percentage stay current.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
@@ -48,6 +58,10 @@ export function initVisualRenderer() {
       countdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
     }
     if (state.executingExploit) syncHandPane(state);
+    if (state.activeProbe && probeStartTime !== null && probeTotalMs !== null) {
+      const elapsed = Math.min(Date.now() - probeStartTime, probeTotalMs);
+      syncProbeSweep(state.activeProbe.nodeId, elapsed / probeTotalMs);
+    }
   });
 
   // One-shot flash effects keyed to typed game events
