@@ -22,7 +22,8 @@ export const NODE_ACTIONS = Object.freeze([
       node.accessLevel === "locked" &&
       !node.probed &&
       !node.rebooting &&
-      state.activeProbe?.nodeId !== node.id,
+      state.activeProbe?.nodeId !== node.id &&
+      state.executingExploit?.nodeId !== node.id,
     desc: () => "Reveal vulnerabilities. Raises local alert.",
     execute: (node, _state, ctx) => ctx.startProbe(node.id),
   },
