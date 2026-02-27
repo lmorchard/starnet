@@ -30,6 +30,8 @@ let prevIceNodeId = null;        // tracks ICE's last position for movement flas
 let currentSelectedNodeId = null; // tracks selected node for reticle positioning
 let currentProbeSweepNodeId = null;  // tracks node being probed for sweep overlay
 let currentProbeSweepProgress = 0;   // 0..1
+let currentExploitBracketsNodeId = null;
+let currentExploitBracketsProgress = 0;
 const pulsingNodes = new Set();       // nodeIds running red-alert pulse
 const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
 const rebootingNodes = new Set();     // nodeIds running reboot opacity pulse
@@ -149,19 +151,19 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     if (evt.target === cy && onBackgroundTap) onBackgroundTap();
   });
 
-  cy.on("pan zoom", syncReticle);
-  cy.on("pan zoom", _renderProbeSweep);
-
   const graphContainer = document.getElementById("graph-container");
-  const syncGrid = () => {
+  const onPanZoom = () => {
+    syncReticle();
+    _renderProbeSweep();
+    _renderExploitBrackets();
     const pan = cy.pan();
     const zoom = cy.zoom();
     const size = 40 * zoom;
     graphContainer.style.backgroundSize = `${size}px ${size}px`;
     graphContainer.style.backgroundPosition = `${pan.x}px ${pan.y}px`;
   };
-  cy.on("pan zoom", syncGrid);
-  syncGrid();
+  cy.on("pan zoom", onPanZoom);
+  onPanZoom();
 
   return cy;
 }
@@ -786,6 +788,56 @@ function _renderProbeSweep() {
     fill.setAttribute("d",
       `M ${r},${r} L ${r},${0} A ${r},${r} 0 ${p > 0.5 ? 1 : 0},1 ${endX},${endY} Z`);
   }
+}
+
+function setLine(id, x1, y1, x2, y2) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute("x1", x1); el.setAttribute("y1", y1);
+  el.setAttribute("x2", x2); el.setAttribute("y2", y2);
+}
+
+export function syncExploitBrackets(nodeId, progress) {
+  currentExploitBracketsNodeId = nodeId;
+  currentExploitBracketsProgress = Math.max(0, Math.min(1, progress));
+  _renderExploitBrackets();
+}
+
+export function clearExploitBrackets() {
+  currentExploitBracketsNodeId = null;
+  currentExploitBracketsProgress = 0;
+  const svg = document.getElementById("exploit-brackets");
+  if (svg) svg.style.opacity = "0";
+}
+
+function _renderExploitBrackets() {
+  const svg = document.getElementById("exploit-brackets");
+  if (!svg || !cy || !currentExploitBracketsNodeId) return;
+  const node = cy.getElementById(currentExploitBracketsNodeId);
+  if (!node || node.length === 0) { clearExploitBrackets(); return; }
+
+  const pos = node.renderedPosition();
+  const r = node.renderedWidth() / 2;
+  svg.style.width  = `${r * 2}px`;
+  svg.style.height = `${r * 2}px`;
+  svg.style.left   = `${pos.x - r}px`;
+  svg.style.top    = `${pos.y - r}px`;
+  svg.style.opacity = "1";
+
+  const p = currentExploitBracketsProgress;
+  const ox = r, oy = r;  // center offset within the SVG viewport
+  // Brackets start at 1.8x radius from center, converge to 1.1x
+  const dist = r * 1.8 - r * 0.7 * p;   // lerp(1.8r, 1.1r, p)
+  const arm  = r * 0.4;                  // fixed arm length
+
+  setLine("bracket-tl-h", ox - dist,       oy - dist, ox - dist + arm, oy - dist);
+  setLine("bracket-tl-v", ox - dist,       oy - dist, ox - dist,       oy - dist + arm);
+  setLine("bracket-tr-h", ox + dist,       oy - dist, ox + dist - arm, oy - dist);
+  setLine("bracket-tr-v", ox + dist,       oy - dist, ox + dist,       oy - dist + arm);
+  setLine("bracket-br-h", ox + dist,       oy + dist, ox + dist - arm, oy + dist);
+  setLine("bracket-br-v", ox + dist,       oy + dist, ox + dist,       oy + dist - arm);
+  setLine("bracket-bl-h", ox - dist,       oy + dist, ox - dist + arm, oy + dist);
+  setLine("bracket-bl-v", ox - dist,       oy + dist, ox - dist,       oy + dist - arm);
 }
 
 export function fitGraph(cy) {

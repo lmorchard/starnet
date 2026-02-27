@@ -13,7 +13,7 @@
 import { on, emitEvent, E } from "./events.js";
 import { getActions } from "./node-types.js";
 import { getNodeActions } from "./node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncExploitBrackets, clearExploitBrackets } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
@@ -39,9 +39,10 @@ export function initVisualRenderer() {
 
   // Track exploit execution start time for sub-tick progress animation precision.
   on(E.EXPLOIT_STARTED, ({ durationMs }) => { execStartTime = Date.now(); execTotalMs = durationMs; });
-  on(E.EXPLOIT_INTERRUPTED, () => { execStartTime = null; execTotalMs = null; });
-  on(E.EXPLOIT_SUCCESS,     () => { execStartTime = null; execTotalMs = null; });
-  on(E.EXPLOIT_FAILURE,     () => { execStartTime = null; execTotalMs = null; });
+  on(E.EXPLOIT_INTERRUPTED, () => { execStartTime = null; execTotalMs = null; clearExploitBrackets(); });
+  on(E.EXPLOIT_SUCCESS,     () => { execStartTime = null; execTotalMs = null; clearExploitBrackets(); });
+  on(E.EXPLOIT_FAILURE,     () => { execStartTime = null; execTotalMs = null; clearExploitBrackets(); });
+  on(E.RUN_STARTED,         () => clearExploitBrackets());
 
   // Track probe scan start time for the radial sweep overlay.
   on(E.PROBE_SCAN_STARTED,   ({ durationMs }) => { probeStartTime = Date.now(); probeTotalMs = durationMs; });
@@ -61,6 +62,10 @@ export function initVisualRenderer() {
     if (state.activeProbe && probeStartTime !== null && probeTotalMs !== null) {
       const elapsed = Math.min(Date.now() - probeStartTime, probeTotalMs);
       syncProbeSweep(state.activeProbe.nodeId, elapsed / probeTotalMs);
+    }
+    if (state.executingExploit && execStartTime !== null && execTotalMs !== null) {
+      const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
+      syncExploitBrackets(state.executingExploit.nodeId, elapsed / execTotalMs);
     }
   });
 
