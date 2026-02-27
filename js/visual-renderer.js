@@ -625,12 +625,12 @@ export function openDarknetsStore(state, onBuy) {
           <span class="store-wallet">¥${currentCash.toLocaleString()}</span>
         </div>
         <div class="store-card-list">
-          ${catalog.map((item) => {
+          ${catalog.map((item, i) => {
             const canAfford = currentCash >= item.price;
             return `<div class="store-card-row">
               <span class="store-item-name">${item.name} <span class="store-item-rarity rarity-${item.rarity}">[${item.rarity}]</span> <span class="store-item-vuln">${item.vulnId}</span></span>
               <span class="store-item-price">¥${item.price}</span>
-              <button class="store-buy-btn" data-vuln-id="${item.vulnId}" data-price="${item.price}" ${canAfford ? "" : "disabled"}>[ BUY ]</button>
+              <button class="store-buy-btn" data-vuln-id="${item.vulnId}" data-price="${item.price}" data-index="${i + 1}" ${canAfford ? "" : "disabled"}>[ BUY ]</button>
             </div>`;
           }).join("")}
         </div>
@@ -643,13 +643,17 @@ export function openDarknetsStore(state, onBuy) {
 
     modal.querySelectorAll(".store-buy-btn:not([disabled])").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const vulnId = /** @type {HTMLElement} */ (btn).dataset.vulnId;
-        const price = Number(/** @type {HTMLElement} */ (btn).dataset.price);
+        const el = /** @type {HTMLElement} */ (btn);
+        const vulnId = el.dataset.vulnId;
+        const price = Number(el.dataset.price);
+        const index = el.dataset.index;
         const card = generateExploitForVuln(vulnId);
+        emitEvent(E.COMMAND_ISSUED, { cmd: `buy ${index}` });
         const success = onBuy(card, price);
         if (success) {
+          emitEvent(E.LOG_ENTRY, { text: `Purchased: ${card.name}  [${card.rarity}]  targets:${vulnId}  cost:¥${price}`, type: "success" });
           // STATE_CHANGED fires from buyExploit() → re-renders hand + wallet HUD.
-          // Re-render the modal in-place using the new cash from state (via onBuy's emission).
+          // Re-render the modal in-place with the updated cash.
           renderModal(currentCash - price);
         }
       });
