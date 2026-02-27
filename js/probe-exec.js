@@ -14,7 +14,7 @@ on(E.PLAYER_NAVIGATED, () => cancelProbe());
 
 // Duration table: grade → milliseconds.
 // Shorter than exploit timing — probing is a recon action, not an attack.
-const PROBE_DURATIONS = { S: 5000, A: 4000, B: 3000, C: 2000, D: 1000, F: 500 };
+const PROBE_DURATIONS = { S: 5000, A: 4000, B: 3000, C: 2000, D: 2000, F: 1000 };
 
 /**
  * Returns probe scan duration in ms for the given node grade.

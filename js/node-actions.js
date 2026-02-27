@@ -90,6 +90,7 @@ export const NODE_ACTIONS = Object.freeze([
     id: "eject",
     label: "EJECT",
     available: (node, state) =>
+      node.accessLevel === "owned" &&
       !!(state.ice?.active && state.ice.attentionNodeId === node.id),
     desc: () => "Boot ICE attention to a random adjacent node.",
     execute: (_node, _state, ctx) => ctx.ejectIce(),

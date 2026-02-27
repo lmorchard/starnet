@@ -223,6 +223,16 @@ describe("eject available", () => {
     const a = action("eject");
     assert.ok(!a.available(lockedNode({ accessLevel: "owned" }), baseState()));
   });
+  it("unavailable when node is locked (not owned)", () => {
+    const a = action("eject");
+    const node = lockedNode({ accessLevel: "locked" });
+    assert.ok(!a.available(node, baseState({ ice: { active: true, attentionNodeId: node.id } })));
+  });
+  it("unavailable when node is compromised (not owned)", () => {
+    const a = action("eject");
+    const node = lockedNode({ accessLevel: "compromised" });
+    assert.ok(!a.available(node, baseState({ ice: { active: true, attentionNodeId: node.id } })));
+  });
 });
 
 // ── reboot ────────────────────────────────────────────────
