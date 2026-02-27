@@ -8,10 +8,11 @@
 
 import { getState, isIceVisible } from "./state.js";
 import { addLogEntry, getRecentLog } from "./log.js";
-import { emitEvent } from "./events.js";
+import { emitEvent, on, E } from "./events.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 import { getActions } from "./node-types.js";
+import { getAvailableActions } from "./node-actions.js";
 
 const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
@@ -29,14 +30,14 @@ export function initConsole() {
   const input = /** @type {HTMLInputElement|null} */ (document.getElementById("console-input"));
   if (!input) return;
 
+  on(E.COMMAND_ISSUED, ({ cmd }) => pushHistory(cmd));
+
   input.addEventListener("keydown", (evt) => {
     if (evt.key === "Enter") {
       const raw = input.value.trim();
       input.value = "";
       historyIndex = -1;
       if (!raw) return;
-      history.unshift(raw);
-      if (history.length > 50) history.length = 50;
       submitCommand(raw);
 
     } else if (evt.key === "ArrowUp") {
@@ -71,7 +72,7 @@ export function runCommand(raw) {
 // ── Command dispatch ──────────────────────────────────────
 
 function submitCommand(raw) {
-  addLogEntry(`> ${raw}`, "command");
+  emitEvent(E.COMMAND_ISSUED, { cmd: raw });
   const tokens = raw.trim().split(/\s+/);
   const verb = tokens[0].toLowerCase();
   const args = tokens.slice(1);
@@ -173,8 +174,8 @@ function resolveCard(token) {
   return null;
 }
 
-function dispatch(eventName, detail = {}) {
-  emitEvent(eventName, { ...detail, fromConsole: true });
+function dispatch(actionId, detail = {}) {
+  emitEvent("starnet:action", { actionId, ...detail, fromConsole: true });
 }
 
 // ── Command implementations ───────────────────────────────
@@ -183,17 +184,17 @@ function cmdSelect(args) {
   if (args.length < 1) { addLogEntry("Usage: select <node>", "error"); return; }
   const node = resolveNode(args[0]);
   if (!node) return;
-  dispatch("starnet:action:select", { nodeId: node.id });
+  dispatch("select", { nodeId: node.id });
 }
 
 function cmdDeselect() {
-  dispatch("starnet:action:deselect");
+  dispatch("deselect");
 }
 
 function cmdProbe(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:probe", { nodeId: node.id });
+  dispatch("probe", { nodeId: node.id });
 }
 
 function cmdExploit(args) {
@@ -204,14 +205,14 @@ function cmdExploit(args) {
     if (!node) return;
     const card = resolveCard(args.slice(1).join(" "));
     if (!card) return;
-    dispatch("starnet:action:launch-exploit", { nodeId: node.id, exploitId: card.id });
+    dispatch("exploit", { nodeId: node.id, exploitId: card.id });
   } else if (args.length === 1 && s.selectedNodeId) {
     // Implicit form: exploit <card>  (uses selected node)
     const node = resolveImplicitNode();
     if (!node) return;
     const card = resolveCard(args[0]);
     if (!card) return;
-    dispatch("starnet:action:launch-exploit", { nodeId: node.id, exploitId: card.id });
+    dispatch("exploit", { nodeId: node.id, exploitId: card.id });
   } else {
     addLogEntry("Usage: exploit <node> <card>  (or select a node first: exploit <card>)", "error");
   }
@@ -220,19 +221,19 @@ function cmdExploit(args) {
 function cmdRead(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:read", { nodeId: node.id });
+  dispatch("read", { nodeId: node.id });
 }
 
 function cmdLoot(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:loot", { nodeId: node.id });
+  dispatch("loot", { nodeId: node.id });
 }
 
 function cmdReconfigure(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:reconfigure", { nodeId: node.id });
+  dispatch("reconfigure", { nodeId: node.id });
 }
 
 function cmdEject() {
@@ -241,7 +242,7 @@ function cmdEject() {
     addLogEntry("No ICE present at selected node.", "error");
     return;
   }
-  dispatch("starnet:action:eject", { nodeId: s.selectedNodeId });
+  dispatch("eject", { nodeId: s.selectedNodeId });
 }
 
 function cmdReboot(args) {
@@ -251,23 +252,25 @@ function cmdReboot(args) {
     addLogEntry(`${node.label}: must be owned to reboot.`, "error");
     return;
   }
-  dispatch("starnet:action:reboot", { nodeId: node.id });
+  dispatch("reboot", { nodeId: node.id });
 }
 
 function cmdActions() {
   const s = getState();
   const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+  const actions = getAvailableActions(sel, s);
+  const has = new Set(actions.map((a) => a.id));
   const lines = ["AVAILABLE ACTIONS", "─────────────────"];
 
-  // jackout always available
-  lines.push("  jackout                  — disconnect and end run");
+  if (has.has("jackout")) {
+    lines.push("  jackout                  — disconnect and end run");
+  }
 
-  // select: list accessible non-rebooting nodes + revealed nodes (traverse)
-  const accessible = Object.values(s.nodes)
-    .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
-  const revealed = Object.values(s.nodes)
-    .filter((n) => n.visibility === "revealed" && n.id !== s.selectedNodeId);
-  if (accessible.length > 0 || revealed.length > 0) {
+  if (has.has("select")) {
+    const accessible = Object.values(s.nodes)
+      .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
+    const revealed = Object.values(s.nodes)
+      .filter((n) => n.visibility === "revealed" && n.id !== s.selectedNodeId);
     const parts = [];
     if (accessible.length > 0) parts.push(`accessible: ${accessible.map((n) => n.id).join(", ")}`);
     if (revealed.length > 0) parts.push(`traverse: ${revealed.map((n) => n.id).join(", ")}`);
@@ -275,19 +278,18 @@ function cmdActions() {
   }
 
   if (sel) {
-    lines.push("  deselect                 — clear selection");
+    if (has.has("deselect")) lines.push("  deselect                 — clear selection");
 
-    if (s.activeProbe?.nodeId === sel.id) {
+    if (has.has("cancel-probe")) {
       lines.push(`  cancel-probe             — abort vulnerability scan`);
-    } else if (!sel.probed && !sel.rebooting) {
+    } else if (has.has("probe")) {
       lines.push(`  probe                    — scan ${sel.id} for vulnerabilities`);
     }
 
-    if (s.executingExploit?.nodeId === sel.id) {
-      const execCard = s.player.hand.find((c) => c.id === s.executingExploit.exploitId);
+    if (has.has("cancel-exploit")) {
+      const execCard = s.player.hand.find((c) => c.id === s.executingExploit?.exploitId);
       lines.push(`  cancel-exploit           — abort ${execCard?.name ?? "exploit"} execution`);
-    } else if (sel.visibility === "accessible" && !sel.rebooting && sel.accessLevel !== "owned") {
-      // exploit: list all cards sorted by match
+    } else if (has.has("exploit")) {
       const sorted = [...s.player.hand].sort(
         (a, b) => exploitSortKey(a, sel) - exploitSortKey(b, sel)
       );
@@ -306,22 +308,12 @@ function cmdActions() {
       }
     }
 
-    if ((sel.accessLevel === "compromised" || sel.accessLevel === "owned") && !sel.read) {
-      lines.push(`  read                     — scan ${sel.id} contents`);
-    }
+    if (has.has("read"))   lines.push(`  read                     — scan ${sel.id} contents`);
+    if (has.has("loot"))   lines.push(`  loot                     — collect items from ${sel.id}`);
+    if (has.has("eject"))  lines.push(`  eject                    — push ICE to adjacent node`);
+    if (has.has("reboot")) lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
 
-    if (sel.accessLevel === "owned" && sel.read && sel.macguffins.some((m) => !m.collected)) {
-      lines.push(`  loot                     — collect items from ${sel.id}`);
-    }
-
-    if (s.ice?.active && s.ice.attentionNodeId === s.selectedNodeId) {
-      lines.push(`  eject                    — push ICE to adjacent node`);
-    }
-
-    if (sel.accessLevel === "owned" && !sel.rebooting) {
-      lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
-    }
-
+    // Type-specific actions (reconfigure, cancel-trace, etc.)
     getActions(sel, s).forEach((a) => {
       lines.push(`  ${a.id.padEnd(24)} — ${a.desc(sel, s)}`);
     });
@@ -673,7 +665,7 @@ function cmdCancelProbe() {
     addLogEntry("No probe scan in progress.", "error");
     return;
   }
-  dispatch("starnet:action:cancel-probe");
+  dispatch("cancel-probe");
 }
 
 function cmdCancelExploit() {
@@ -682,7 +674,7 @@ function cmdCancelExploit() {
     addLogEntry("No exploit execution in progress.", "error");
     return;
   }
-  dispatch("starnet:action:cancel-exploit");
+  dispatch("cancel-exploit");
 }
 
 function cmdCancelTrace() {
@@ -691,11 +683,11 @@ function cmdCancelTrace() {
   if (!sel) { addLogEntry("No node selected.", "error"); return; }
   const available = getActions(sel, s).find((a) => a.id === "cancel-trace");
   if (!available) { addLogEntry(`${sel.label}: cancel-trace not available.`, "error"); return; }
-  dispatch("starnet:action:cancel-trace", { nodeId: sel.id });
+  dispatch("cancel-trace", { nodeId: sel.id });
 }
 
 function cmdJackout() {
-  dispatch("starnet:action:jackout");
+  dispatch("jackout");
 }
 
 function cmdCheat(args) {

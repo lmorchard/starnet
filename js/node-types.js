@@ -87,6 +87,7 @@ export const NODE_TYPES = {
           !node.eventForwardingDisabled &&
           (node.accessLevel === "compromised" || node.accessLevel === "owned"),
         desc: () => "Disable event forwarding to security monitor.",
+        execute: (node, _state, ctx) => ctx.reconfigureNode(node.id),
       },
     ],
     // Grade S/A: skip propagation, start trace directly on detection
@@ -106,6 +107,7 @@ export const NODE_TYPES = {
           node.accessLevel === "owned" && state.traceSecondsRemaining !== null,
         desc: (node, state) =>
           `Abort trace countdown (${state.traceSecondsRemaining}s remaining).`,
+        execute: (_node, _state, ctx) => ctx.cancelTrace(),
       },
     ],
   },

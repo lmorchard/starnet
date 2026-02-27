@@ -48,6 +48,8 @@ export function initLogRenderer() {
     renderLogPane();
   });
 
+  on(E.COMMAND_ISSUED, (/** @type {{ cmd: string }} */ { cmd }) => add(`> ${cmd}`, "command"));
+
   // ── Node events ──────────────────────────────────────────
   // Batch multiple simultaneous NODE_REVEALED events (e.g. hub node with several hidden
   // neighbors) into a single log entry via a microtask, rather than N identical lines.
