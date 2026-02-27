@@ -22,6 +22,7 @@ import { initNodeLifecycle } from "../js/node-lifecycle.js";
 import { getActions, hasBehavior } from "../js/node-types.js";
 import { getAvailableActions } from "../js/node-actions.js";
 import { generateExploit } from "../js/exploits.js";
+import { launchExploit } from "../js/combat.js";
 import { startTraceCountdown, recordIceDetection } from "../js/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
@@ -826,5 +827,46 @@ describe("buyExploit", () => {
     assert.equal(result, false);
     assert.equal(s.player.cash, 50);
     assert.equal(s.player.hand.length, handBefore);
+  });
+});
+
+// ── Exploit success: revealed state ───────────────────────────────────────────
+
+describe("Exploit success: neighbor visibility", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+  });
+
+  it("successfully exploiting a locked node leaves neighbors as revealed (???), not accessible", () => {
+    const s = getState();
+    const gateway = s.nodes["gateway"];
+
+    // Gateway neighbors should all be hidden before exploit
+    const neighbors = (s.adjacency["gateway"] || []).filter(
+      (nid) => s.nodes[nid]?.type !== "wan"
+    );
+    for (const nid of neighbors) {
+      assert.equal(s.nodes[nid].visibility, "hidden",
+        `Precondition: ${nid} should be hidden before exploit`);
+    }
+
+    // Force Math.random to 0 so launchExploit always succeeds
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+      launchExploit("gateway", s.player.hand[0].id);
+    } finally {
+      Math.random = origRandom;
+    }
+
+    assert.equal(gateway.accessLevel, "compromised",
+      "Gateway should be compromised after successful exploit");
+
+    // Neighbors should be "revealed" (showing as ???), NOT "accessible"
+    for (const nid of neighbors) {
+      assert.equal(s.nodes[nid].visibility, "revealed",
+        `${nid} should be revealed (???) after exploit, not immediately accessible`);
+    }
   });
 });

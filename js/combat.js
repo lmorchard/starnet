@@ -6,7 +6,7 @@
 /** @typedef {import('./types.js').ExploitResult} ExploitResult */
 /** @typedef {import('./types.js').Grade} Grade */
 
-import { getState, ALERT_ORDER, revealNeighbors, accessNeighbors, emit } from "./state.js";
+import { getState, ALERT_ORDER, revealNeighbors, emit } from "./state.js";
 import { emitEvent, E } from "./events.js";
 import { resolveNode } from "./node-types.js";
 
@@ -186,13 +186,11 @@ export function launchExploit(nodeId, exploitId) {
       node.alertState = "green";
       node.visibility = "accessible";
       revealNeighbors(nodeId);
-      accessNeighbors(nodeId);
       result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
       node.accessLevel = "owned";
       node.alertState = "green";
       revealNeighbors(nodeId);
-      accessNeighbors(nodeId);
       result.levelChanged = true;
     }
 
