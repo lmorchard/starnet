@@ -1,5 +1,8 @@
 {
   "name": "starnet-game-2026",
   "type": "module",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
