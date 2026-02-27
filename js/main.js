@@ -11,19 +11,9 @@ import { initConsole, runCommand, pushHistory } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
 import { tick, TICK_MS, TIMER, getVisibleTimers } from "./timers.js";
 import { handleTraceTick, cancelTraceCountdown } from "./alert.js";
-import { initVisualRenderer, setSidebarMode } from "./visual-renderer.js";
+import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "./node-lifecycle.js";
-
-// Current UI mode for the sidebar: 'node' | 'exploit-select'
-// Kept here (not in visual-renderer) because it's set by action event handlers.
-let sidebarMode = "node";
-
-// Sets sidebar mode in both the local copy and visual-renderer.
-function setMode(mode) {
-  setSidebarMode(mode);
-  sidebarMode = mode;
-}
 
 // Log a UI-sourced command to both the log pane and the console history.
 function logCommand(cmd) {
@@ -60,17 +50,12 @@ function init() {
 
   on("starnet:action:select", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`select ${nodeId}`);
-    if (sidebarMode !== "node") {
-      setMode("node");
-      addLogEntry("Action cancelled.", "info");
-    }
     navigateTo(nodeId);
   });
 
   on("starnet:action:deselect", ({ fromConsole } = {}) => {
     if (!fromConsole) logCommand("deselect");
     navigateAway();
-    setMode("node");
   });
 
   on(TIMER.ICE_MOVE,    () => handleIceTick());
@@ -82,7 +67,6 @@ function init() {
   on("starnet:action:probe", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`probe ${nodeId}`);
     startProbe(nodeId);
-    setMode("node");
   });
 
   on("starnet:action:cancel-probe", ({ fromConsole } = {}) => {
@@ -90,25 +74,8 @@ function init() {
     cancelProbe();
   });
 
-  on("starnet:action:exploit", () => {
-    setMode("exploit-select");
-    emitEvent(E.STATE_CHANGED, getState());
-  });
-
-  on("starnet:action:escalate", () => {
-    setMode("exploit-select");
-    emitEvent(E.STATE_CHANGED, getState());
-  });
-
-  on("starnet:action:cancel", () => {
-    setMode("node");
-    emitEvent(E.STATE_CHANGED, getState());
-  });
-
   on("starnet:action:launch-exploit", ({ nodeId, exploitId, cardIndex, fromConsole }) => {
     if (!fromConsole) logCommand(`exploit ${cardIndex ?? exploitId}`);
-    // Always return to node mode so the execution countdown is visible in the sidebar
-    setMode("node");
     startExploit(nodeId, exploitId);
   });
 
@@ -120,19 +87,16 @@ function init() {
   on("starnet:action:reconfigure", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`reconfigure ${nodeId}`);
     reconfigureNode(nodeId);
-    setMode("node");
   });
 
   on("starnet:action:read", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`read ${nodeId}`);
     readNode(nodeId);
-    setMode("node");
   });
 
   on("starnet:action:loot", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`loot ${nodeId}`);
     lootNode(nodeId);
-    setMode("node");
   });
 
   on("starnet:action:cancel-trace", ({ fromConsole }) => {
@@ -160,7 +124,6 @@ function init() {
   });
 
   on("starnet:action:run-again", () => {
-    setMode("node");
     initState(NETWORK);
     const cy = getCy();
     if (cy) fitGraph(cy);

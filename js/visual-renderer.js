@@ -16,10 +16,6 @@ import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelect
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
-// Sidebar UI mode — kept here since it affects render output.
-// Updated by main.js via setSidebarMode() when action events change mode.
-let sidebarMode = "node";
-
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
 // queue overlapping cy.animate() calls that fight each other.
@@ -29,10 +25,6 @@ let revealFitTimer = null;
 // Set when EXPLOIT_STARTED fires; cleared on resolution or cancellation.
 let execStartTime = null;
 let execTotalMs = null;
-
-export function setSidebarMode(mode) {
-  sidebarMode = mode;
-}
 
 export function initVisualRenderer() {
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
@@ -224,11 +216,6 @@ function renderSidebarNode(sidebarNode, node, state) {
     return;
   }
 
-  if (sidebarMode === "exploit-select") {
-    renderExploitSelect(sidebarNode, node);
-    return;
-  }
-
   const alertColor =
     node.alertState === "green"  ? "var(--green)" :
     node.alertState === "yellow" ? "var(--yellow)" :
@@ -299,26 +286,6 @@ function renderSidebarNode(sidebarNode, node, state) {
   });
 }
 
-function renderExploitSelect(sidebarNode, node) {
-  sidebarNode.innerHTML = `
-    <div class="node-detail">
-      <div class="nd-header">
-        <span class="nd-type">[SELECT EXPLOIT]</span>
-        <span class="nd-label">${node.label}</span>
-      </div>
-      <div class="nd-dim nd-indent">
-        Choose an exploit from your hand below.
-        ${node.probed ? "Matching cards are highlighted." : "Probe the node first for better odds."}
-      </div>
-      <div class="nd-divider">──────────────────</div>
-      <button class="action-btn" data-action="cancel">[ CANCEL ]</button>
-    </div>`;
-
-  sidebarNode.querySelector("[data-action='cancel']")?.addEventListener("click", () => {
-    emitEvent("starnet:action:cancel", {});
-  });
-}
-
 // ── Actions ───────────────────────────────────────────────
 
 function renderActions(node, state) {
@@ -340,7 +307,6 @@ function renderActions(node, state) {
   }
 
   if (node.accessLevel === "compromised") {
-    btns.push(actionBtn("escalate", "ESCALATE", "Attempt full ownership via another exploit."));
     if (!node.read) {
       btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections."));
     }

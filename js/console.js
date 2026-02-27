@@ -13,7 +13,7 @@ import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 import { getActions } from "./node-types.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
 
 let history = [];
@@ -83,8 +83,7 @@ function handleCommand(verb, args) {
     case "select":       return cmdSelect(args);
     case "deselect":     return cmdDeselect();
     case "probe":        return cmdProbe(args);
-    case "exploit":
-    case "escalate":     return cmdExploit(args);
+    case "exploit":      return cmdExploit(args);
     case "eject":        return cmdEject();
     case "reboot":       return cmdReboot(args);
     case "read":         return cmdRead(args);
@@ -643,7 +642,6 @@ function cmdHelp() {
     "  deselect                  Clear node selection",
     "  probe [node]              Reveal vulnerabilities. Raises local alert.",
     "  exploit [node] <card>     Launch exploit. Card by index, id, or name prefix.",
-    "  escalate [node] <card>    Alias for exploit.",
     "  read [node]               Scan node contents.",
     "  loot [node]               Collect macguffins from owned node.",
     "  reconfigure [node]        Disable IDS event forwarding.",

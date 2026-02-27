@@ -332,7 +332,6 @@ Actions depend on the selected node's type and access level:
 |----------------|------------------------------------------------|--------|
 | `probe`        | Node is locked and unprobed                   | Reveals vulnerabilities, raises local alert |
 | `exploit`      | Node is locked/compromised + probed            | Attempt to raise access level |
-| `escalate`     | Node is compromised                            | Attempt to escalate to owned (shortcut to exploit UI) |
 | `read`         | Node is compromised or owned, unread           | Reveals macguffins |
 | `loot`         | Node is owned + has uncollected macguffins     | Extracts macguffins for cash |
 | `reconfigure`  | IDS node is compromised or owned               | Severs event forwarding to security monitor |
@@ -352,7 +351,6 @@ select <node>          Select a node. Alias: s
 deselect               Deselect current node.
 probe [node]           Probe selected or specified node.
 exploit <#|name>       Use exploit card by number or name on selected node.
-escalate               Enter exploit-select mode on a compromised node.
 read [node]            Read contents of selected/specified node.
 loot [node]            Loot macguffins from owned node.
 reconfigure [node]     Disable IDS event forwarding.
