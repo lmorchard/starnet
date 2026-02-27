@@ -549,16 +549,23 @@ html, body {
   gap: 0.2rem;
   font-size: 0.72rem;
   background: var(--bg-panel2);
-  width: 130px;
+  width: 160px;
   flex-shrink: 0;
   height: 160px;
   position: relative;
   overflow: hidden;
 }
 
-.exploit-card.rarity-uncommon { border-color: var(--cyan-dim); }
-.exploit-card.rarity-rare     { border-color: #440044; }
-.exploit-card.disclosed       { opacity: 0.35; }
+/* Rarity expressed via border + subtle glow; no text label */
+.exploit-card.rarity-uncommon {
+  border-color: var(--cyan-dim);
+  box-shadow: inset 0 0 8px rgba(0, 200, 255, 0.06);
+}
+.exploit-card.rarity-rare {
+  border-color: #660055;
+  box-shadow: inset 0 0 8px rgba(255, 0, 200, 0.08);
+}
+.exploit-card.disclosed { opacity: 0.35; }
 
 .ec-header {
   display: flex;
@@ -572,17 +579,12 @@ html, body {
   flex-shrink: 0;
 }
 
-.ec-name { color: var(--green); }
-
-.ec-rarity {
-  margin-left: auto;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
+.ec-name {
+  color: var(--green);
+  /* allow wrapping — card is now tall enough for 2 lines */
+  overflow-wrap: break-word;
+  min-width: 0;
 }
-
-.rarity-common   .ec-rarity { color: var(--text-dim); }
-.rarity-uncommon .ec-rarity { color: var(--cyan); }
-.rarity-rare     .ec-rarity { color: var(--magenta); text-shadow: 0 0 6px var(--magenta); }
 
 .ec-row {
   display: flex;
@@ -595,9 +597,16 @@ html, body {
 .ec-val  { color: var(--green); }
 
 .ec-vulns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-top: 0.1rem;
+  overflow: hidden;
+}
+
+.ec-vuln {
   color: var(--text-dim);
   font-size: 0.65rem;
-  margin-top: 0.1rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

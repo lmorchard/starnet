@@ -427,7 +427,6 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
     <div class="ec-header">
       ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
       <span class="ec-name">${card.name}</span>
-      <span class="ec-rarity">[${card.rarity.toUpperCase()}]</span>
     </div>
     <div class="ec-row">
       <span class="ec-key">QUAL</span>
@@ -437,7 +436,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
       <span class="ec-key">USES</span>
       <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
     </div>
-    <div class="ec-vulns">${card.targetVulnTypes.join(" · ")}</div>
+    <div class="ec-vulns">${card.targetVulnTypes.map((t) => `<div class="ec-vuln">${t}</div>`).join("")}</div>
     <div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>
   </div>`;
 }
