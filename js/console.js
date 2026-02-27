@@ -13,7 +13,7 @@ import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 import { getActions } from "./node-types.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "escalate", "eject", "reboot", "read", "loot", "reconfigure", "cancel-exploit", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
 
 let history = [];
@@ -90,6 +90,7 @@ function handleCommand(verb, args) {
     case "read":         return cmdRead(args);
     case "loot":         return cmdLoot(args);
     case "reconfigure":  return cmdReconfigure(args);
+    case "cancel-exploit": return cmdCancelExploit();
     case "cancel-trace": return cmdCancelTrace();
     case "jackout":      return cmdJackout();
     case "actions":      return cmdActions();
@@ -280,7 +281,10 @@ function cmdActions() {
       lines.push(`  probe                    — scan ${sel.id} for vulnerabilities`);
     }
 
-    if (sel.visibility === "accessible" && !sel.rebooting && sel.accessLevel !== "owned") {
+    if (s.executingExploit?.nodeId === sel.id) {
+      const execCard = s.player.hand.find((c) => c.id === s.executingExploit.exploitId);
+      lines.push(`  cancel-exploit           — abort ${execCard?.name ?? "exploit"} execution`);
+    } else if (sel.visibility === "accessible" && !sel.rebooting && sel.accessLevel !== "owned") {
       // exploit: list all cards sorted by match
       const sorted = [...s.player.hand].sort(
         (a, b) => exploitSortKey(a, sel) - exploitSortKey(b, sel)
@@ -376,6 +380,14 @@ function cmdStatusSummary() {
     lines.push(`  Selected: ${s.selectedNodeId} [${sel.type}] ${sel.accessLevel}  |  Node alert: ${sel.alertState.toUpperCase()}`);
   } else {
     lines.push(`  Selected: none`);
+  }
+
+  // Executing exploit
+  if (s.executingExploit) {
+    const execCard = s.player.hand.find((c) => c.id === s.executingExploit.exploitId);
+    const execTimer = timers.find((t) => t.label === "EXECUTING");
+    const execStr = execTimer ? `${execTimer.remaining}s remaining` : "resolving...";
+    lines.push(`  Executing: ${execCard?.name ?? s.executingExploit.exploitId} @ ${s.executingExploit.nodeId}  |  ${execStr}`);
   }
 
   // Hand
@@ -625,6 +637,7 @@ function cmdHelp() {
     "  read [node]               Scan node contents.",
     "  loot [node]               Collect macguffins from owned node.",
     "  reconfigure [node]        Disable IDS event forwarding.",
+    "  cancel-exploit            Abort an in-progress exploit execution (no card decay).",
     "  cancel-trace              Abort trace countdown (requires owned security-monitor selected).",
     "  eject                     Push ICE attention to adjacent node.",
     "  reboot [node]             Send ICE home. Node offline briefly.",
@@ -643,6 +656,15 @@ function cmdHelp() {
     "  cheat trace end             Cancel active trace countdown.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
+}
+
+function cmdCancelExploit() {
+  const s = getState();
+  if (!s.executingExploit) {
+    addLogEntry("No exploit execution in progress.", "error");
+    return;
+  }
+  dispatch("starnet:action:cancel-exploit");
 }
 
 function cmdCancelTrace() {

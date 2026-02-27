@@ -28,6 +28,7 @@ From session-5 design discussion — reframe log verbosity as something the play
 - This reframes information asymmetry as diegetic and earned, not a UI toggle
 
 ### Exploit Mechanics (Depth)
+- **Exploit execution takes time** — instead of instant resolution, exploits take a duration that varies with quality (e.g. higher quality = longer to execute, representing a more complex payload). Player is exposed during execution — ICE detection, alert escalation, etc. can fire mid-exploit. Adds tension and a reason to consider exploit quality beyond raw success chance.
 - **Chaining exploits** — sequential exploitation requiring specific steps; privilege escalation as a multi-step sequence
 - **Countermeasures** — active defenses beyond ICE (firewalls that degrade card quality, honeypots, etc.)
 - **Visual feedback for staged vuln reveal** — log message on deeper attack surface unlock is subtle; a pulse/flash on the node would be more satisfying (currently only a log entry)
@@ -126,6 +127,9 @@ become more complex, having a per-type action model is the right foundation.
 ---
 
 ## UI / Visual Polish
+
+### Radial / Pie Menu for Node Actions
+- **Diegetic action menu** — replace sidebar action buttons with a radial/pie menu that blooms from the selected node on the graph. More spatially grounded — the action is visually attached to the node, not abstracted to a panel. Design questions: how many actions fit cleanly? How does it interact with the console (symmetric input rule)? Could be contextual: bloom on node click/select, dismiss on deselect or action taken.
 
 ### Effects (out of scope, recurring)
 - Screenshake on jack-out

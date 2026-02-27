@@ -311,6 +311,13 @@ function renderExploitSelect(sidebarNode, node) {
 function renderActions(node, state) {
   const btns = [];
 
+  // While an exploit is executing at this node, only allow cancellation.
+  if (state.executingExploit?.nodeId === node.id) {
+    const execCard = state.player.hand.find((c) => c.id === state.executingExploit.exploitId);
+    btns.push(actionBtn("cancel-exploit", "CANCEL EXPLOIT", `Abort ${execCard?.name ?? "exploit"} execution.`));
+    return btns.join("");
+  }
+
   if (node.accessLevel === "locked") {
     if (!node.probed) {
       btns.push(actionBtn("probe", "PROBE", "Reveal vulnerabilities. Raises local alert."));
@@ -368,18 +375,25 @@ function syncHandPane(state) {
   const el = document.getElementById("sidebar-hand");
   if (!el) return;
 
-  const isSelecting = !!state.selectedNodeId;
+  const executing = state.executingExploit;
+  const isSelecting = !!state.selectedNodeId && !executing;
   const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
   const sortedHand = selectedNode
     ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : state.player.hand;
 
+  const handClass = ["nd-hand", isSelecting ? "selectable" : "", executing ? "exploit-hand-executing" : ""]
+    .filter(Boolean).join(" ");
+
   el.innerHTML = `
     <div class="nd-section-label">EXPLOIT HAND</div>
-    <div class="nd-hand ${isSelecting ? "selectable" : ""}">
+    <div class="${handClass}">
       ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
-        : sortedHand.map((c, i) => renderExploitCard(c, selectedNode, i + 1, isSelecting)).join("")}
+        : sortedHand.map((c, i) => {
+            const isExec = executing?.exploitId === c.id;
+            return renderExploitCard(c, selectedNode, i + 1, isSelecting, isExec);
+          }).join("")}
     </div>`;
 
   if (isSelecting) {
@@ -393,7 +407,7 @@ function syncHandPane(state) {
   }
 }
 
-function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false) {
+function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false, isExecuting = false) {
   const rarityClass = `rarity-${card.rarity}`;
   const disclosed = card.decayState === "disclosed";
   const worn = card.decayState === "worn";
@@ -401,7 +415,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
   const pips = "█".repeat(qualityPips) + "░".repeat(5 - qualityPips);
 
   let matchClass = "";
-  if (selectedNode?.probed) {
+  if (selectedNode?.probed && !isExecuting) {
     const knownVulnIds = selectedNode.vulnerabilities
       .filter((v) => !v.patched && !v.hidden)
       .map((v) => v.id);
@@ -410,9 +424,15 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
   }
 
   const isSelectable = isSelecting && !disclosed;
+  const classes = [
+    "exploit-card", rarityClass,
+    disclosed ? "disclosed" : "",
+    matchClass,
+    isSelectable ? "selectable-card" : "",
+    isExecuting ? "executing" : "",
+  ].filter(Boolean).join(" ");
 
-  return `<div class="exploit-card ${rarityClass} ${disclosed ? "disclosed" : ""} ${matchClass} ${isSelectable ? "selectable-card" : ""}"
-              data-exploit-id="${card.id}" data-card-index="${index}">
+  return `<div class="${classes}" data-exploit-id="${card.id}" data-card-index="${index}">
     <div class="ec-header">
       ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
       <span class="ec-name">${card.name}</span>
@@ -427,6 +447,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
       <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
     </div>
     <div class="ec-vulns">${card.targetVulnTypes.join(" · ")}</div>
+    ${isExecuting ? `<div class="ec-executing-label">▶ EXECUTING</div>` : ""}
   </div>`;
 }
 
@@ -444,8 +465,9 @@ function syncIceTimers(container = null) {
 function renderIceTimers() {
   const timers = getVisibleTimers();
   const rows = timers.map((t) => {
-    const isDetect = t.label === "ICE DETECTION";
-    const cls = isDetect ? "ice-timer-detect" : "ice-timer-reboot";
+    const cls = t.label === "ICE DETECTION" ? "ice-timer-detect"
+              : t.label === "EXECUTING"      ? "ice-timer-executing"
+              : "ice-timer-reboot";
     return `<div class="ice-timer ${cls}">⚠ ${t.label}: ${t.remaining}s</div>`;
   }).join("");
   return rows ? `<div class="ice-timers">${rows}</div>` : "";

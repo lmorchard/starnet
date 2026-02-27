@@ -22,6 +22,7 @@ import { getActions, hasBehavior } from "../js/node-types.js";
 import { startTraceCountdown, recordIceDetection } from "../js/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
+import { startExploit, cancelExploit, handleExploitExecTimer, exploitDuration } from "../js/exploit-exec.js";
 
 // Register the node lifecycle dispatcher once for this test file.
 initNodeLifecycle();
@@ -416,5 +417,120 @@ describe("Grade overrides: ids direct-trace behavior", () => {
 
   it("Grade-C ids does NOT include direct-trace", () => {
     assert.ok(!hasBehavior({ type: "ids", grade: "C" }, "direct-trace"));
+  });
+});
+
+// ── Exploit execution timing ───────────────────────────────────────────────────
+
+describe("Exploit execution timing", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("startExploit sets executingExploit on state", () => {
+    const s = getState();
+    const card = s.player.hand[0];
+    s.selectedNodeId = "gateway";
+    const started = startExploit("gateway", card.id);
+    assert.ok(started, "startExploit should return true");
+    assert.notEqual(s.executingExploit, null, "executingExploit should be set");
+    assert.equal(s.executingExploit.nodeId, "gateway");
+    assert.equal(s.executingExploit.exploitId, card.id);
+  });
+
+  it("exploit does not resolve immediately after startExploit", () => {
+    const s = getState();
+    const card = s.player.hand[0];
+    s.selectedNodeId = "gateway";
+    const resolved = withEvents(E.EXPLOIT_SUCCESS, () => {
+      startExploit("gateway", card.id);
+    }).concat(withEvents(E.EXPLOIT_FAILURE, () => {}));
+    assert.equal(resolved.length, 0, "exploit must not resolve synchronously");
+    assert.notEqual(s.executingExploit, null, "executingExploit must remain set");
+  });
+
+  it("exploit resolves after ticking past its duration", () => {
+    on(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
+    const s = getState();
+    const card = s.player.hand[0];
+    s.selectedNodeId = "gateway";
+    startExploit("gateway", card.id);
+
+    const durationMs = exploitDuration(card.quality);
+    const ticksNeeded = Math.ceil(durationMs / 100) + 2;
+
+    let resolved = false;
+    const handler = () => { resolved = true; };
+    on(E.EXPLOIT_SUCCESS, handler);
+    on(E.EXPLOIT_FAILURE, handler);
+    tick(ticksNeeded);
+    off(E.EXPLOIT_SUCCESS, handler);
+    off(E.EXPLOIT_FAILURE, handler);
+    off(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
+
+    assert.ok(resolved, "exploit must resolve (success or failure) after ticking past its duration");
+    assert.equal(s.executingExploit, null, "executingExploit must be cleared after resolution");
+  });
+
+  it("cancelExploit clears executingExploit and emits EXPLOIT_INTERRUPTED", () => {
+    const s = getState();
+    const card = s.player.hand[0];
+    s.selectedNodeId = "gateway";
+    startExploit("gateway", card.id);
+    assert.notEqual(s.executingExploit, null);
+
+    const fired = withEvents(E.EXPLOIT_INTERRUPTED, () => {
+      cancelExploit();
+    });
+    assert.equal(fired.length, 1, "EXPLOIT_INTERRUPTED must fire once");
+    assert.equal(fired[0].exploitName, card.name);
+    assert.equal(s.executingExploit, null, "executingExploit must be null after cancel");
+  });
+
+  it("starting a second exploit while one is running returns false and logs error", () => {
+    const s = getState();
+    const [card1, card2] = s.player.hand;
+    s.selectedNodeId = "gateway";
+    startExploit("gateway", card1.id);
+
+    const logErrors = withEvents(E.LOG_ENTRY, () => {
+      const result = startExploit("gateway", card2.id);
+      assert.equal(result, false, "second startExploit must return false");
+    }).filter((e) => e.type === "error");
+
+    assert.ok(logErrors.length > 0, "guard must emit a LOG_ENTRY error");
+    assert.equal(s.executingExploit.exploitId, card1.id, "first exploit must remain active");
+  });
+
+  it("ICE detection timer fires independently during exploit execution", () => {
+    on(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
+    on(TIMER.ICE_DETECT,   handleIceDetect);
+
+    const s = getState();
+    const card = s.player.hand[0];
+    s.selectedNodeId = "gateway";
+    s.ice.attentionNodeId = "gateway";
+
+    startExploit("gateway", card.id);
+    // Schedule a fast ICE detection that fires before the exploit resolves
+    scheduleEvent(TIMER.ICE_DETECT, 200, { nodeId: "gateway" });
+
+    let exploitResolved = false;
+    let iceDetected = false;
+    on(E.EXPLOIT_SUCCESS, () => { exploitResolved = true; });
+    on(E.EXPLOIT_FAILURE, () => { exploitResolved = true; });
+    on(E.ICE_DETECTED,    () => { iceDetected = true; });
+
+    // Tick past the full exploit duration
+    const durationMs = exploitDuration(card.quality);
+    tick(Math.ceil(durationMs / 100) + 2);
+
+    off(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
+    off(TIMER.ICE_DETECT,   handleIceDetect);
+
+    assert.ok(iceDetected,     "ICE detection must fire during exploit execution window");
+    assert.ok(exploitResolved, "exploit must still resolve after ICE detection");
   });
 });

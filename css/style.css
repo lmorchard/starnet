@@ -437,6 +437,11 @@ html, body {
   color: #888800;
 }
 
+.ice-timer-executing {
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan-dim);
+}
+
 .nd-actions {
   display: flex;
   flex-direction: column;
@@ -606,6 +611,27 @@ html, body {
 }
 
 .nd-hand.selectable { gap: 0.5rem; }
+
+/* While an exploit is executing, dim the whole hand… */
+.nd-hand.exploit-hand-executing .exploit-card {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* …except the card that's actively executing */
+.nd-hand.exploit-hand-executing .exploit-card.executing {
+  opacity: 1;
+  border-color: var(--cyan);
+  box-shadow: 0 0 6px rgba(0, 200, 255, 0.4);
+}
+
+.ec-executing-label {
+  color: var(--cyan);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  margin-top: 0.2rem;
+  text-shadow: 0 0 6px var(--cyan-dim);
+}
 
 /* ── Action Log ─────────────────────────────────────────── */
 

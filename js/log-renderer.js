@@ -14,6 +14,8 @@
 /** @typedef {import('./types.js').NodeReconfiguredPayload} NodeReconfiguredPayload */
 /** @typedef {import('./types.js').NodeRebootingPayload} NodeRebootingPayload */
 /** @typedef {import('./types.js').NodeRebootedPayload} NodeRebootedPayload */
+/** @typedef {import('./types.js').ExploitStartedPayload} ExploitStartedPayload */
+/** @typedef {import('./types.js').ExploitInterruptedPayload} ExploitInterruptedPayload */
 /** @typedef {import('./types.js').ExploitSuccessPayload} ExploitSuccessPayload */
 /** @typedef {import('./types.js').ExploitFailurePayload} ExploitFailurePayload */
 /** @typedef {import('./types.js').ExploitDisclosedPayload} ExploitDisclosedPayload */
@@ -75,6 +77,10 @@ export function initLogRenderer() {
   on(E.NODE_REBOOTED,     (/** @type {NodeRebootedPayload} */     { label }) => add(`[NODE] ${label}: back online.`, "info"));
 
   // ── Exploit events ───────────────────────────────────────
+  on(E.EXPLOIT_STARTED,      (/** @type {ExploitStartedPayload} */      { label, exploitName, durationMs }) =>
+    add(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`, "info"));
+  on(E.EXPLOIT_INTERRUPTED,  (/** @type {ExploitInterruptedPayload} */  { exploitName }) =>
+    add(`[EXPLOIT] ${exploitName}: interrupted.`, "info"));
   on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { label, flavor, roll, successChance, matchingVulns }) => {
     add(`[EXPLOIT] ${label} — ${flavor}`, "success");
     add(`[EXPLOIT] Roll: ${roll} vs ${successChance}%${matchingVulns.length > 0 ? " (vuln match)" : ""}`, "meta");
