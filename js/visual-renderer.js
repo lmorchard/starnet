@@ -611,6 +611,8 @@ export function openDarknetsStore(state, onBuy) {
   const existing = document.getElementById("darknet-store-modal");
   if (existing) return; // already open
 
+  emitEvent(E.LOG_ENTRY, { text: "[DARKNET] Connected to broker. Commands: store — list catalog | buy <n> — purchase", type: "meta" });
+
   const modal = document.createElement("div");
   modal.id = "darknet-store-modal";
 
