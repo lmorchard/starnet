@@ -626,15 +626,9 @@ export function openDarknetsStore(state, onBuy) {
           ${catalog.map((item) => {
             const canAfford = currentCash >= item.price;
             return `<div class="store-card-row">
-              <div class="store-card-info">
-                <span class="store-item-name">${item.name}</span>
-                <span class="store-item-rarity rarity-${item.rarity}">[${item.rarity.toUpperCase()}]</span>
-                <span class="store-item-vuln">${item.vulnId}</span>
-              </div>
-              <div class="store-card-actions">
-                <span class="store-item-price">¥${item.price}</span>
-                <button class="store-buy-btn" data-vuln-id="${item.vulnId}" data-price="${item.price}" ${canAfford ? "" : "disabled"}>[ BUY ]</button>
-              </div>
+              <span class="store-item-name">${item.name} <span class="store-item-rarity rarity-${item.rarity}">[${item.rarity}]</span> <span class="store-item-vuln">${item.vulnId}</span></span>
+              <span class="store-item-price">¥${item.price}</span>
+              <button class="store-buy-btn" data-vuln-id="${item.vulnId}" data-price="${item.price}" ${canAfford ? "" : "disabled"}>[ BUY ]</button>
             </div>`;
           }).join("")}
         </div>
