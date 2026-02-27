@@ -174,8 +174,8 @@ function resolveCard(token) {
   return null;
 }
 
-function dispatch(eventName, detail = {}) {
-  emitEvent(eventName, { ...detail, fromConsole: true });
+function dispatch(actionId, detail = {}) {
+  emitEvent("starnet:action", { actionId, ...detail, fromConsole: true });
 }
 
 // ── Command implementations ───────────────────────────────
@@ -184,17 +184,17 @@ function cmdSelect(args) {
   if (args.length < 1) { addLogEntry("Usage: select <node>", "error"); return; }
   const node = resolveNode(args[0]);
   if (!node) return;
-  dispatch("starnet:action:select", { nodeId: node.id });
+  dispatch("select", { nodeId: node.id });
 }
 
 function cmdDeselect() {
-  dispatch("starnet:action:deselect");
+  dispatch("deselect");
 }
 
 function cmdProbe(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:probe", { nodeId: node.id });
+  dispatch("probe", { nodeId: node.id });
 }
 
 function cmdExploit(args) {
@@ -205,14 +205,14 @@ function cmdExploit(args) {
     if (!node) return;
     const card = resolveCard(args.slice(1).join(" "));
     if (!card) return;
-    dispatch("starnet:action:launch-exploit", { nodeId: node.id, exploitId: card.id });
+    dispatch("exploit", { nodeId: node.id, exploitId: card.id });
   } else if (args.length === 1 && s.selectedNodeId) {
     // Implicit form: exploit <card>  (uses selected node)
     const node = resolveImplicitNode();
     if (!node) return;
     const card = resolveCard(args[0]);
     if (!card) return;
-    dispatch("starnet:action:launch-exploit", { nodeId: node.id, exploitId: card.id });
+    dispatch("exploit", { nodeId: node.id, exploitId: card.id });
   } else {
     addLogEntry("Usage: exploit <node> <card>  (or select a node first: exploit <card>)", "error");
   }
@@ -221,19 +221,19 @@ function cmdExploit(args) {
 function cmdRead(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:read", { nodeId: node.id });
+  dispatch("read", { nodeId: node.id });
 }
 
 function cmdLoot(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:loot", { nodeId: node.id });
+  dispatch("loot", { nodeId: node.id });
 }
 
 function cmdReconfigure(args) {
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
-  dispatch("starnet:action:reconfigure", { nodeId: node.id });
+  dispatch("reconfigure", { nodeId: node.id });
 }
 
 function cmdEject() {
@@ -242,7 +242,7 @@ function cmdEject() {
     addLogEntry("No ICE present at selected node.", "error");
     return;
   }
-  dispatch("starnet:action:eject", { nodeId: s.selectedNodeId });
+  dispatch("eject", { nodeId: s.selectedNodeId });
 }
 
 function cmdReboot(args) {
@@ -252,7 +252,7 @@ function cmdReboot(args) {
     addLogEntry(`${node.label}: must be owned to reboot.`, "error");
     return;
   }
-  dispatch("starnet:action:reboot", { nodeId: node.id });
+  dispatch("reboot", { nodeId: node.id });
 }
 
 function cmdActions() {
@@ -665,7 +665,7 @@ function cmdCancelProbe() {
     addLogEntry("No probe scan in progress.", "error");
     return;
   }
-  dispatch("starnet:action:cancel-probe");
+  dispatch("cancel-probe");
 }
 
 function cmdCancelExploit() {
@@ -674,7 +674,7 @@ function cmdCancelExploit() {
     addLogEntry("No exploit execution in progress.", "error");
     return;
   }
-  dispatch("starnet:action:cancel-exploit");
+  dispatch("cancel-exploit");
 }
 
 function cmdCancelTrace() {
@@ -683,11 +683,11 @@ function cmdCancelTrace() {
   if (!sel) { addLogEntry("No node selected.", "error"); return; }
   const available = getActions(sel, s).find((a) => a.id === "cancel-trace");
   if (!available) { addLogEntry(`${sel.label}: cancel-trace not available.`, "error"); return; }
-  dispatch("starnet:action:cancel-trace", { nodeId: sel.id });
+  dispatch("cancel-trace", { nodeId: sel.id });
 }
 
 function cmdJackout() {
-  dispatch("starnet:action:jackout");
+  dispatch("jackout");
 }
 
 function cmdCheat(args) {

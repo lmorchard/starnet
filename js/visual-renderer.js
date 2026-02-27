@@ -284,7 +284,7 @@ function renderSidebarNode(sidebarNode, node, state) {
   wireActionButtons(node);
 
   sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
-    emitEvent("starnet:action:deselect", {});
+    emitEvent("starnet:action", { actionId: "deselect" });
   });
 }
 
@@ -308,8 +308,8 @@ function actionBtn(action, label, desc, stub = false) {
 function wireActionButtons(node) {
   document.querySelectorAll(".action-btn:not(.stub)").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const action = /** @type {HTMLElement} */ (btn).dataset.action;
-      emitEvent(`starnet:action:${action}`, { nodeId: node.id });
+      const actionId = /** @type {HTMLElement} */ (btn).dataset.action;
+      emitEvent("starnet:action", { actionId, nodeId: node.id });
     });
   });
 }
@@ -348,7 +348,7 @@ function syncHandPane(state) {
       cardEl.addEventListener("click", () => {
         const exploitId = /** @type {HTMLElement} */ (cardEl).dataset.exploitId;
         const cardIndex = /** @type {HTMLElement} */ (cardEl).dataset.cardIndex;
-        emitEvent("starnet:action:launch-exploit", { nodeId: state.selectedNodeId, exploitId, cardIndex });
+        emitEvent("starnet:action", { actionId: "exploit", nodeId: state.selectedNodeId, exploitId, cardIndex });
       });
     });
   }

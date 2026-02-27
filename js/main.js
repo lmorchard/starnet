@@ -14,6 +14,7 @@ import { handleTraceTick, cancelTraceCountdown } from "./alert.js";
 import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "./node-lifecycle.js";
+import { getAvailableActions } from "./node-actions.js";
 
 // Log a UI-sourced command to both the log pane and the console history.
 function logCommand(cmd) {
@@ -24,7 +25,7 @@ function logCommand(cmd) {
 function init() {
   initLogRenderer();
   const cy = initGraph(NETWORK, onNodeClick, () => {
-    emitEvent("starnet:action:deselect", {});
+    emitEvent("starnet:action", { actionId: "deselect" });
   });
   addIceNode();
   initConsole();
@@ -40,84 +41,56 @@ function init() {
   // LLM playtesting API — accessible via browser console or Playwright evaluate
   window.starnet = { cmd: runCommand, state: getState };
 
+  // ── ActionContext ─────────────────────────────────────────
+  const ctx = {
+    getState,
+    selectNode:       (nodeId) => navigateTo(nodeId),
+    deselectNode:     ()       => navigateAway(),
+    startProbe:       (nodeId) => startProbe(nodeId),
+    cancelProbe:      ()       => cancelProbe(),
+    startExploit:     (nodeId, exploitId) => startExploit(nodeId, exploitId),
+    cancelExploit:    ()       => cancelExploit(),
+    readNode:         (nodeId) => readNode(nodeId),
+    lootNode:         (nodeId) => lootNode(nodeId),
+    ejectIce:         ()       => ejectIce(),
+    rebootNode:       (nodeId) => rebootNode(nodeId),
+    jackOut:          ()       => endRun("success"),
+    logCommand,
+    reconfigureNode:  (nodeId) => reconfigureNode(nodeId),
+    cancelTrace:      ()       => cancelTraceCountdown(),
+  };
+
   // Wire HUD jack-out button
   document.getElementById("jack-out-btn").addEventListener("click", () => {
-    emitEvent("starnet:action:jackout", {});
+    emitEvent("starnet:action", { actionId: "jackout" });
   });
 
-  // ── Action event listeners ────────────────────────────────
-  // Click-sourced events (no fromConsole flag) echo their equivalent command to the log.
-
-  on("starnet:action:select", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) logCommand(`select ${nodeId}`);
-    navigateTo(nodeId);
+  // ── Unified action dispatcher ─────────────────────────────
+  // All UI and console actions fire "starnet:action" with { actionId, nodeId?, ...payload }.
+  // fromConsole suppresses the command echo (console already logged it).
+  on("starnet:action", ({ actionId, nodeId, fromConsole, ...payload }) => {
+    const state = getState();
+    const node = nodeId
+      ? state.nodes[nodeId]
+      : (state.selectedNodeId ? state.nodes[state.selectedNodeId] : null);
+    const available = getAvailableActions(node, state);
+    const action = available.find((a) => a.id === actionId);
+    if (!action?.execute) return;
+    if (!fromConsole) {
+      // For exploit, log the card reference rather than the nodeId (matches console output)
+      const logStr = (actionId === "exploit" && (payload.cardIndex ?? payload.exploitId))
+        ? `exploit ${payload.cardIndex ?? payload.exploitId}`
+        : actionId + (nodeId ? ` ${nodeId}` : "");
+      ctx.logCommand(logStr);
+    }
+    action.execute(node, state, ctx, { nodeId, ...payload });
   });
 
-  on("starnet:action:deselect", ({ fromConsole } = {}) => {
-    if (!fromConsole) logCommand("deselect");
-    navigateAway();
-  });
-
-  on(TIMER.ICE_MOVE,    () => handleIceTick());
-  on(TIMER.ICE_DETECT,  (payload) => handleIceDetect(payload));
-  on(TIMER.TRACE_TICK,  () => handleTraceTick());
+  on(TIMER.ICE_MOVE,     () => handleIceTick());
+  on(TIMER.ICE_DETECT,   (payload) => handleIceDetect(payload));
+  on(TIMER.TRACE_TICK,   () => handleTraceTick());
   on(TIMER.EXPLOIT_EXEC, (payload) => handleExploitExecTimer(payload));
   on(TIMER.PROBE_SCAN,   (payload) => handleProbeScanTimer(payload));
-
-  on("starnet:action:probe", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) logCommand(`probe ${nodeId}`);
-    startProbe(nodeId);
-  });
-
-  on("starnet:action:cancel-probe", ({ fromConsole } = {}) => {
-    if (!fromConsole) logCommand("cancel-probe");
-    cancelProbe();
-  });
-
-  on("starnet:action:launch-exploit", ({ nodeId, exploitId, cardIndex, fromConsole }) => {
-    if (!fromConsole) logCommand(`exploit ${cardIndex ?? exploitId}`);
-    startExploit(nodeId, exploitId);
-  });
-
-  on("starnet:action:cancel-exploit", ({ fromConsole } = {}) => {
-    if (!fromConsole) logCommand("cancel-exploit");
-    cancelExploit();
-  });
-
-  on("starnet:action:reconfigure", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) logCommand(`reconfigure ${nodeId}`);
-    reconfigureNode(nodeId);
-  });
-
-  on("starnet:action:read", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) logCommand(`read ${nodeId}`);
-    readNode(nodeId);
-  });
-
-  on("starnet:action:loot", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) logCommand(`loot ${nodeId}`);
-    lootNode(nodeId);
-  });
-
-  on("starnet:action:cancel-trace", ({ fromConsole }) => {
-    if (!fromConsole) logCommand(`cancel-trace`);
-    cancelTraceCountdown();
-  });
-
-  on("starnet:action:jackout", ({ fromConsole } = {}) => {
-    if (!fromConsole) logCommand(`jackout`);
-    endRun("success");
-  });
-
-  on("starnet:action:eject", ({ fromConsole } = {}) => {
-    if (!fromConsole) logCommand(`eject`);
-    ejectIce();
-  });
-
-  on("starnet:action:reboot", ({ nodeId, fromConsole }) => {
-    if (!fromConsole) logCommand(`reboot ${nodeId}`);
-    rebootNode(nodeId);
-  });
 
   on(TIMER.REBOOT_COMPLETE, (payload) => {
     completeReboot(payload.nodeId);
@@ -148,9 +121,9 @@ function onNodeClick(nodeId) {
   const node = s.nodes[nodeId];
   if (!node || node.visibility === "hidden") return;
   if (s.selectedNodeId === nodeId) {
-    emitEvent("starnet:action:deselect", {});
+    emitEvent("starnet:action", { actionId: "deselect" });
   } else {
-    emitEvent("starnet:action:select", { nodeId });
+    emitEvent("starnet:action", { actionId: "select", nodeId });
   }
 }
 
