@@ -12,6 +12,7 @@
 
 import { on, emitEvent, E } from "./events.js";
 import { getActions } from "./node-types.js";
+import { getNodeActions } from "./node-actions.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
@@ -290,49 +291,11 @@ function renderSidebarNode(sidebarNode, node, state) {
 // ── Actions ───────────────────────────────────────────────
 
 function renderActions(node, state) {
-  const btns = [];
-
-  // While an exploit is executing at this node, only allow cancellation.
-  if (state.executingExploit?.nodeId === node.id) {
-    const execCard = state.player.hand.find((c) => c.id === state.executingExploit.exploitId);
-    btns.push(actionBtn("cancel-exploit", "CANCEL EXPLOIT", `Abort ${execCard?.name ?? "exploit"} execution.`));
-    return btns.join("");
-  }
-
-  if (node.accessLevel === "locked") {
-    if (state.activeProbe?.nodeId === node.id) {
-      btns.push(actionBtn("cancel-probe", "CANCEL PROBE", "Abort vulnerability scan."));
-    } else if (!node.probed && !node.rebooting) {
-      btns.push(actionBtn("probe", "PROBE", "Reveal vulnerabilities. Raises local alert."));
-    }
-  }
-
-  if (node.accessLevel === "compromised") {
-    if (!node.read) {
-      btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections."));
-    }
-  }
-
-  if (node.accessLevel === "owned") {
-    const icePresent = state?.ice?.active && state.ice.attentionNodeId === node.id;
-    if (icePresent) {
-      btns.push(actionBtn("eject", "EJECT", "Boot ICE attention to a random adjacent node."));
-    }
-    if (!node.rebooting) {
-      btns.push(actionBtn("reboot", "REBOOT", "Force ICE home and take node offline 1–3s."));
-    }
-    if (!node.read) {
-      btns.push(actionBtn("read", "READ", "Scan node contents."));
-    }
-    const hasLoot = node.macguffins.some((m) => !m.collected);
-    if (hasLoot) {
-      btns.push(actionBtn("loot", "LOOT", "Collect macguffins for cash."));
-    }
-  }
-
-  // Type-specific actions from the registry
-  getActions(node, state).forEach((a) => btns.push(actionBtn(a.id, a.label, a.desc(node, state))));
-
+  const actions = [
+    ...getNodeActions(node, state),
+    ...getActions(node, state),
+  ];
+  const btns = actions.map((a) => actionBtn(a.id, a.label, a.desc(node, state)));
   return btns.join("") || `<span class="nd-dim">No actions available.</span>`;
 }
 
