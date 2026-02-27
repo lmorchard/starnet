@@ -639,10 +639,7 @@ export function openDarknetsStore(state, onBuy) {
         </div>
       </div>`;
 
-    modal.querySelector("#darknet-close-btn").addEventListener("click", () => {
-      modal.remove();
-      resumeTimers();
-    });
+    modal.querySelector("#darknet-close-btn").addEventListener("click", closeModal);
 
     modal.querySelectorAll(".store-buy-btn:not([disabled])").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -658,6 +655,16 @@ export function openDarknetsStore(state, onBuy) {
       });
     });
   }
+
+  function closeModal() {
+    modal.remove();
+    resumeTimers();
+  }
+
+  // Click on backdrop (not inside .store-box) closes the modal
+  modal.addEventListener("click", (evt) => {
+    if (!/** @type {Element} */ (evt.target).closest(".store-box")) closeModal();
+  });
 
   renderModal(state.player.cash);
   document.getElementById("graph-container").appendChild(modal);

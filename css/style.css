@@ -1044,16 +1044,15 @@ html, body {
 
 .store-close-btn {
   background: none;
-  border: 1px solid var(--cyan-dim);
-  color: var(--cyan-dim);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.05em;
-  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 1rem;
   cursor: pointer;
 }
 
 .store-close-btn:hover {
-  border-color: var(--fg);
-  color: var(--fg);
+  background: rgba(0, 255, 255, 0.08);
 }
