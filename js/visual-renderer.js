@@ -131,10 +131,30 @@ function _positionContextMenu(nodeId) {
   if (!cy) return;
   const node = cy.getElementById(nodeId);
   if (!node || node.length === 0) return;
+
   const pos = node.renderedPosition();
-  const r = node.renderedWidth() / 2;
-  menu.style.left = `${pos.x + r + 8}px`;
-  menu.style.top  = `${pos.y - r * 0.5}px`;
+  const r   = node.renderedWidth() / 2;
+  const gap = 20;
+
+  // Measure menu — valid because it's in the DOM (even at opacity 0)
+  const mw = menu.offsetWidth;
+  const mh = menu.offsetHeight;
+
+  // Container bounds (node positions are relative to the cy canvas)
+  const container = cy.container();
+  const cw = container.offsetWidth;
+  const ch = container.offsetHeight;
+
+  // Horizontal: prefer right of node, flip left if clipped
+  const x = (pos.x + r + gap + mw <= cw)
+    ? pos.x + r + gap
+    : pos.x - r - gap - mw;
+
+  // Vertical: center on node, clamp to container
+  const y = Math.max(4, Math.min(pos.y - mh / 2, ch - mh - 4));
+
+  menu.style.left = `${x}px`;
+  menu.style.top  = `${y}px`;
 }
 
 function syncContextMenu(node, state) {
@@ -144,18 +164,19 @@ function syncContextMenu(node, state) {
   contextMenuNodeId = node.id;
 
   const actions = getAvailableActions(node, state)
-    .filter((a) => !a.noSidebar && a.id !== "select" && a.id !== "jackout");
+    .filter((a) => !a.noSidebar && a.id !== "select" && a.id !== "jackout" && a.id !== "deselect");
 
-  menu.innerHTML = actions.length
-    ? actions.map((a) => {
-        const desc = a.desc(node, state);
-        const isDeselect = a.id === "deselect";
-        return `<button class="ctx-item${isDeselect ? " ctx-deselect" : ""}"
-                        data-action="${a.id}">
-          [ ${a.label} ]${desc ? `<span class="ctx-item-desc">${desc}</span>` : ""}
-        </button>`;
-      }).join("")
-    : `<span class="ctx-item ctx-empty nd-dim">No actions available.</span>`;
+  if (!actions.length) {
+    clearContextMenu();
+    return;
+  }
+
+  menu.innerHTML = actions.map((a) => {
+    const desc = a.desc(node, state);
+    return `<button class="ctx-item" data-action="${a.id}">
+      [ ${a.label} ]${desc ? `<span class="ctx-item-desc">${desc}</span>` : ""}
+    </button>`;
+  }).join("");
 
   menu.querySelectorAll(".ctx-item[data-action]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -344,6 +365,7 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-header">
         <span class="nd-type">[${node.type.toUpperCase()}]</span>
         <span class="nd-label">${node.label}</span>
+        <button class="deselect-btn" data-action="deselect">[ DESELECT ]</button>
       </div>
       <div class="nd-row">
         <span class="nd-key">GRADE</span>
@@ -379,6 +401,10 @@ function renderSidebarNode(sidebarNode, node, state) {
     </div>`;
 
   syncIceTimers(sidebarNode);
+
+  sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
+    emitEvent("starnet:action", { actionId: "deselect" });
+  });
 }
 
 // ── Hand pane ─────────────────────────────────────────────

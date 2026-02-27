@@ -514,16 +514,6 @@ html, body {
   letter-spacing: 0.05em;
 }
 
-.ctx-item.ctx-deselect {
-  color: var(--text-dim);
-  border-top: 1px solid var(--border);
-  margin-top: 1px;
-}
-
-.ctx-item.ctx-deselect:hover {
-  color: var(--green);
-  background: rgba(0, 255, 65, 0.05);
-}
 
 /* ── Action Buttons ─────────────────────────────────────── */
 
