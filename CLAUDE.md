@@ -111,7 +111,11 @@ this one) that don't touch game logic.
 
 Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `plan.md`, `notes.md`.
 
-Most recent session: `docs/dev-sessions/2026-02-27-0950-node-action-registry/`
+**Always commit session docs (spec + plan) before beginning execution.** This keeps the
+planning artifacts in git history independent of the implementation commits, and gives a
+clean restore point if execution needs to be abandoned mid-session.
+
+Most recent session: `docs/dev-sessions/2026-02-27-1423-wan-node-darknet-store/`
 
 ## Headless Playtest Harness
 
