@@ -164,7 +164,7 @@ function syncContextMenu(node, state) {
   contextMenuNodeId = node.id;
 
   const actions = getAvailableActions(node, state)
-    .filter((a) => !a.noSidebar && a.id !== "select" && a.id !== "jackout" && a.id !== "deselect");
+    .filter((a) => !a.noSidebar && a.id !== "select" && a.id !== "jackout" && a.id !== "deselect" && a.id !== "cancel-exploit");
 
   if (!actions.length) {
     clearContextMenu();
@@ -445,6 +445,12 @@ function syncHandPane(state) {
       });
     });
   }
+
+  if (executing) {
+    el.querySelector(".ec-cancel-overlay")?.addEventListener("click", () => {
+      emitEvent("starnet:action", { actionId: "cancel-exploit" });
+    });
+  }
 }
 
 function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false, isExecuting = false, execElapsedMs = 0, execTotalMs = 0) {
@@ -494,6 +500,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
     </div>
     <div class="ec-vulns">${card.targetVulnTypes.map((t) => `<div class="ec-vuln">${t}</div>`).join("")}</div>
     <div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>
+    ${isExecuting ? `<div class="ec-cancel-overlay"><span class="ec-cancel-x">✕</span></div>` : ""}
   </div>`;
 }
 
