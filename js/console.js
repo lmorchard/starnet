@@ -369,7 +369,7 @@ function cmdStatusSummary() {
   let iceStr;
   if (!s.ice) iceStr = "NONE";
   else if (!s.ice.active) iceStr = "INACTIVE";
-  else if (isIceVisible(s.ice, s.nodes))
+  else if (isIceVisible(s.ice, s.nodes, s.selectedNodeId))
     iceStr = `ACTIVE @ ${s.nodes[s.ice.residentNodeId]?.label ?? s.ice.residentNodeId} → ${s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId}`;
   else iceStr = "ACTIVE (location unknown)";
   const detectTimer = timers.find((t) => t.label === "ICE DETECTION");
@@ -457,7 +457,7 @@ function cmdStatusFull() {
   lines.push(`### ICE`);
   if (s.ice?.active) {
     lines.push(`- status: ACTIVE  grade: ${s.ice.grade}`);
-    if (isIceVisible(s.ice, s.nodes)) {
+    if (isIceVisible(s.ice, s.nodes, s.selectedNodeId)) {
       const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
       const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
       lines.push(`- attention: ${pos}  resident: ${resident}`);
@@ -518,7 +518,7 @@ function cmdStatusIce() {
   const lines = ["## STATUS: ICE"];
   if (s.ice?.active) {
     lines.push(`- status: ACTIVE  grade: ${s.ice.grade}`);
-    if (isIceVisible(s.ice, s.nodes)) {
+    if (isIceVisible(s.ice, s.nodes, s.selectedNodeId)) {
       const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
       const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
       lines.push(`- attention: ${pos}  resident: ${resident}`);
@@ -577,7 +577,7 @@ function cmdStatusNode(args) {
       lines.push(`- item: ${m.name}  ¥${m.cashValue.toLocaleString()}${isMission}  collected:${m.collected}`);
     });
   }
-  if (s.ice?.active && s.ice.attentionNodeId === node.id && isIceVisible(s.ice, s.nodes)) {
+  if (s.ice?.active && s.ice.attentionNodeId === node.id && isIceVisible(s.ice, s.nodes, s.selectedNodeId)) {
     lines.push(`- ⚠ ICE present (grade: ${s.ice.grade})`);
   }
   lines.forEach((l) => addLogEntry(l, "meta"));

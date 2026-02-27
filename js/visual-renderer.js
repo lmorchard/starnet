@@ -85,7 +85,7 @@ function syncGraph(state) {
   syncSelection(state.selectedNodeId);
 
   if (state.ice) {
-    syncIceGraph(state.ice, state.nodes);
+    syncIceGraph(state.ice, state.nodes, state.selectedNodeId);
     const iceNode = cy.getElementById("ice-0");
     if (iceNode && iceNode.length > 0) {
       const docked = state.ice.active && state.ice.attentionNodeId === state.selectedNodeId;

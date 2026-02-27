@@ -13,7 +13,7 @@ import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
-import { initState, getState, ejectIce, selectNode } from "../js/state.js";
+import { initState, getState, ejectIce, selectNode, isIceVisible } from "../js/state.js";
 import { navigateTo, navigateAway } from "../js/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce } from "../js/ice.js";
 import { emitEvent, on, off, E } from "../js/events.js";
@@ -712,5 +712,38 @@ describe("Navigation: navigateAway cancels in-progress actions", () => {
     assert.equal(cancelled.length, 1, "PROBE_SCAN_CANCELLED must fire once");
     assert.equal(s.activeProbe, null);
     assert.equal(s.selectedNodeId, null);
+  });
+});
+
+describe("isIceVisible: ICE visible on selected locked node", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("ICE is NOT visible on a locked node when player is not selected there", () => {
+    const s = getState();
+    teleportIce("gateway");
+    // gateway starts locked, no selection
+    assert.equal(s.nodes["gateway"].accessLevel, "locked");
+    assert.equal(s.selectedNodeId, null);
+    assert.equal(isIceVisible(s.ice, s.nodes, s.selectedNodeId), false);
+  });
+
+  it("ICE IS visible on a locked node when player is actively selected there", () => {
+    const s = getState();
+    teleportIce("gateway");
+    s.selectedNodeId = "gateway";
+    assert.equal(s.nodes["gateway"].accessLevel, "locked");
+    assert.equal(isIceVisible(s.ice, s.nodes, s.selectedNodeId), true);
+  });
+
+  it("ICE IS visible on a compromised node regardless of selection", () => {
+    const s = getState();
+    teleportIce("gateway");
+    s.nodes["gateway"].accessLevel = "compromised";
+    s.selectedNodeId = null;
+    assert.equal(isIceVisible(s.ice, s.nodes, s.selectedNodeId), true);
   });
 });

@@ -263,16 +263,40 @@ function buildStylesheet() {
         "border-width": 2,
       },
     },
-    // ICE entity node
+    // ICE entity node — ominous eye shape
     {
       selector: "node.ice",
       style: {
-        shape: "star",
-        width: 28,
-        height: 28,
+        shape: "polygon",
+        "shape-polygon-points": [
+          -1, 0,
+          -0.75, -0.3,
+          -0.45, -0.52,
+          -0.15, -0.6,
+          0.15, -0.6,
+          0.45, -0.52,
+          0.75, -0.3,
+          1, 0,
+          0.75, 0.3,
+          0.45, 0.52,
+          0.15, 0.6,
+          -0.15, 0.6,
+          -0.45, 0.52,
+          -0.75, 0.3,
+        ].join(" "),
+        width: 36,
+        height: 24,
         "background-color": "#1a0010",
         "border-color": "#ff00aa",
         "border-width": 2,
+        "background-image": "data:image/svg+xml," + encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+          '<circle cx="50" cy="68" r="40" fill="#ff00aa" opacity="0.7"/>' +
+          '<circle cx="50" cy="68" r="20" fill="#1a0010"/>' +
+          '</svg>'
+        ),
+        "background-width": "65%",
+        "background-height": "100%",
         label: "ICE",
         color: "#ff00aa",
         "font-family": "Courier New, monospace",
@@ -288,7 +312,7 @@ function buildStylesheet() {
       selector: "node.ice.docked",
       style: {
         "border-color": "#ff2020",
-        "border-width": 4,
+        "border-width": 1,
       },
     },
     // Trace-back waypoint nodes (hidden nodes revealed as part of ICE trace)
@@ -517,7 +541,7 @@ export function addIceNode() {
   cy.getElementById("ice-0").ungrabify();
 }
 
-export function syncIceGraph(iceState, nodeStates) {
+export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
   if (!cy || !iceState) return;
   const iceNode = cy.getElementById("ice-0");
   if (!iceNode || iceNode.length === 0) return;
@@ -535,7 +559,7 @@ export function syncIceGraph(iceState, nodeStates) {
   prevIceNodeId = iceState.attentionNodeId;
 
   const atNodeState = nodeStates[iceState.attentionNodeId];
-  const isVisible = isIceVisible(iceState, nodeStates);
+  const isVisible = isIceVisible(iceState, nodeStates, selectedNodeId);
 
   if (isVisible) {
     const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
@@ -543,7 +567,8 @@ export function syncIceGraph(iceState, nodeStates) {
       iceNode.style("display", "element");
       if (moved) {
         const fromAccess = fromId ? nodeStates[fromId]?.accessLevel : null;
-        const fromWasVisible = fromAccess === "compromised" || fromAccess === "owned";
+        const fromWasVisible = (fromId && fromId === selectedNodeId) ||
+          fromAccess === "compromised" || fromAccess === "owned";
         if (fromWasVisible) {
           iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
         } else {
@@ -563,9 +588,9 @@ export function syncIceGraph(iceState, nodeStates) {
     if (isVisible) {
       setTimeout(() => {
         iceNode.animate(
-          { style: { width: 42, height: 42, "border-width": 5 } },
+          { style: { width: 50, height: 34, "border-width": 5 } },
           { duration: 120, complete: () => iceNode.animate(
-            { style: { width: 28, height: 28, "border-width": 2 } },
+            { style: { width: 36, height: 24, "border-width": 2 } },
             { duration: 300, complete: () => iceNode.removeStyle("width height border-width") }
           )}
         );

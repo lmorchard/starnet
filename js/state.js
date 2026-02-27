@@ -443,8 +443,9 @@ export function emit() {
  * @param {Object<string, NodeState>} nodes
  * @returns {boolean}
  */
-export function isIceVisible(ice, nodes) {
+export function isIceVisible(ice, nodes, selectedNodeId = null) {
   if (!ice?.active) return false;
+  if (selectedNodeId && ice.attentionNodeId === selectedNodeId) return true;
   const atAccess = nodes[ice.attentionNodeId]?.accessLevel;
   return atAccess === "compromised" || atAccess === "owned";
 }
