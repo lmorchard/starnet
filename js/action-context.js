@@ -36,6 +36,23 @@ export function buildActionContext() {
 }
 
 /**
+ * Build the node click handler for graph.js — translates a Cytoscape tap
+ * into a select or deselect action event based on current selection state.
+ * @returns {(nodeId: string) => void}
+ */
+export function buildNodeClickHandler() {
+  return (nodeId) => {
+    const s = getState();
+    const node = s.nodes[nodeId];
+    if (!node || node.visibility === "hidden") return;
+    emitEvent("starnet:action", {
+      actionId: s.selectedNodeId === nodeId ? "deselect" : "select",
+      nodeId,
+    });
+  };
+}
+
+/**
  * Register the unified starnet:action dispatcher.
  * All UI and console actions fire "starnet:action" with { actionId, nodeId?, ...payload }.
  * fromConsole suppresses the COMMAND_ISSUED echo (console already logged it via submitCommand).

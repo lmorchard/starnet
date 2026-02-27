@@ -12,11 +12,11 @@ import { handleTraceTick } from "./alert.js";
 import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "./node-lifecycle.js";
-import { buildActionContext, initActionDispatcher } from "./action-context.js";
+import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "./action-context.js";
 
 function init() {
   initLogRenderer();
-  const cy = initGraph(NETWORK, onNodeClick, () => {
+  const cy = initGraph(NETWORK, buildNodeClickHandler(), () => {
     emitEvent("starnet:action", { actionId: "deselect" });
   });
   addIceNode();
@@ -58,17 +58,6 @@ function init() {
     addIceNode();
     startIce();
   });
-}
-
-function onNodeClick(nodeId) {
-  const s = getState();
-  const node = s.nodes[nodeId];
-  if (!node || node.visibility === "hidden") return;
-  if (s.selectedNodeId === nodeId) {
-    emitEvent("starnet:action", { actionId: "deselect" });
-  } else {
-    emitEvent("starnet:action", { actionId: "select", nodeId });
-  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
