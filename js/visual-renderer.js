@@ -12,10 +12,9 @@
 
 import { on, emitEvent, E } from "./events.js";
 import { getActions } from "./node-types.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, initCxtMenu } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
-import { getState } from "./state.js";
 
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
@@ -72,8 +71,6 @@ export function initVisualRenderer() {
     }, 50);
   });
 
-  // Pie menu — cy must already be initialized when initVisualRenderer is called
-  initCxtMenu((ele) => buildPieCommands(ele));
 }
 
 // ── Graph sync ────────────────────────────────────────────
@@ -276,107 +273,82 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-dim nd-indent">No valuables detected.</div>` : ""}
       <div class="nd-divider">──────────────────</div>
       <div class="ice-timers-slot"></div>
+      <div class="nd-section-label">ACTIONS</div>
+      <div class="nd-actions">
+        ${renderActions(node, state)}
+      </div>
     </div>`;
 
   syncIceTimers(sidebarNode);
+  wireActionButtons(node);
 
   sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
     emitEvent("starnet:action:deselect", {});
   });
 }
 
-// ── Pie menu commands ─────────────────────────────────────
+// ── Actions ───────────────────────────────────────────────
 
-function buildPieCommands(ele) {
-  const state = getState();
-  const nodeId = ele.id();
-  const node = state.nodes[nodeId];
-  if (!node || node.visibility !== "accessible") return [];
+function renderActions(node, state) {
+  const btns = [];
 
-  const cmds = [];
-
-  // DESELECT — only for the currently selected node
-  if (nodeId === state.selectedNodeId) {
-    cmds.push({
-      content: "DESELECT",
-      select: () => emitEvent("starnet:action:deselect", {}),
-    });
+  // While an exploit is executing at this node, only allow cancellation.
+  if (state.executingExploit?.nodeId === node.id) {
+    const execCard = state.player.hand.find((c) => c.id === state.executingExploit.exploitId);
+    btns.push(actionBtn("cancel-exploit", "CANCEL EXPLOIT", `Abort ${execCard?.name ?? "exploit"} execution.`));
+    return btns.join("");
   }
 
-  if (state.executingExploit?.nodeId === nodeId) {
-    cmds.push({
-      content: "CANCEL EXPLOIT",
-      select: () => emitEvent("starnet:action:cancel-exploit", { nodeId }),
-    });
-  } else {
-    if (node.accessLevel === "locked") {
-      if (state.activeProbe?.nodeId === nodeId) {
-        cmds.push({
-          content: "CANCEL PROBE",
-          select: () => emitEvent("starnet:action:cancel-probe", { nodeId }),
-        });
-      } else if (!node.probed && !node.rebooting) {
-        cmds.push({
-          content: "PROBE",
-          select: () => emitEvent("starnet:action:probe", { nodeId }),
-        });
-      }
+  if (node.accessLevel === "locked") {
+    if (state.activeProbe?.nodeId === node.id) {
+      btns.push(actionBtn("cancel-probe", "CANCEL PROBE", "Abort vulnerability scan."));
+    } else if (!node.probed && !node.rebooting) {
+      btns.push(actionBtn("probe", "PROBE", "Reveal vulnerabilities. Raises local alert."));
     }
-
-    // EXPLOIT — best card from sorted hand
-    if ((node.accessLevel === "locked" || node.accessLevel === "compromised") && node.probed) {
-      const available = state.player.hand.filter((c) => c.decayState !== "disclosed");
-      if (available.length > 0) {
-        const best = [...available].sort((a, b) => exploitSortKey(a, node) - exploitSortKey(b, node))[0];
-        cmds.push({
-          content: "EXPLOIT",
-          select: () => emitEvent("starnet:action:launch-exploit", { nodeId, exploitId: best.id }),
-        });
-      }
-    }
-
-    if ((node.accessLevel === "compromised" || node.accessLevel === "owned") && !node.read) {
-      cmds.push({
-        content: "READ",
-        select: () => emitEvent("starnet:action:read", { nodeId }),
-      });
-    }
-
-    if (node.accessLevel === "owned") {
-      const hasLoot = node.macguffins.some((m) => !m.collected);
-      if (hasLoot) {
-        cmds.push({
-          content: "LOOT",
-          select: () => emitEvent("starnet:action:loot", { nodeId }),
-        });
-      }
-
-      const icePresent = state.ice?.active && state.ice.attentionNodeId === nodeId;
-      if (icePresent) {
-        cmds.push({
-          content: "EJECT",
-          select: () => emitEvent("starnet:action:eject", { nodeId }),
-        });
-      }
-
-      if (!node.rebooting) {
-        cmds.push({
-          content: "REBOOT",
-          select: () => emitEvent("starnet:action:reboot", { nodeId }),
-        });
-      }
-    }
-
-    // Type-specific actions (reconfigure, cancel-trace, etc.)
-    getActions(node, state).forEach((a) => {
-      cmds.push({
-        content: a.label,
-        select: () => emitEvent(`starnet:action:${a.id}`, { nodeId }),
-      });
-    });
   }
 
-  return cmds;
+  if (node.accessLevel === "compromised") {
+    if (!node.read) {
+      btns.push(actionBtn("read", "READ", "Scan node contents for loot or connections."));
+    }
+  }
+
+  if (node.accessLevel === "owned") {
+    const icePresent = state?.ice?.active && state.ice.attentionNodeId === node.id;
+    if (icePresent) {
+      btns.push(actionBtn("eject", "EJECT", "Boot ICE attention to a random adjacent node."));
+    }
+    if (!node.rebooting) {
+      btns.push(actionBtn("reboot", "REBOOT", "Force ICE home and take node offline 1–3s."));
+    }
+    if (!node.read) {
+      btns.push(actionBtn("read", "READ", "Scan node contents."));
+    }
+    const hasLoot = node.macguffins.some((m) => !m.collected);
+    if (hasLoot) {
+      btns.push(actionBtn("loot", "LOOT", "Collect macguffins for cash."));
+    }
+  }
+
+  // Type-specific actions from the registry
+  getActions(node, state).forEach((a) => btns.push(actionBtn(a.id, a.label, a.desc(node, state))));
+
+  return btns.join("") || `<span class="nd-dim">No actions available.</span>`;
+}
+
+function actionBtn(action, label, desc, stub = false) {
+  return `<button class="action-btn ${stub ? "stub" : ""}" data-action="${action}">
+    [ ${label} ]<span class="action-desc">${desc}${stub ? " (coming soon)" : ""}</span>
+  </button>`;
+}
+
+function wireActionButtons(node) {
+  document.querySelectorAll(".action-btn:not(.stub)").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const action = /** @type {HTMLElement} */ (btn).dataset.action;
+      emitEvent(`starnet:action:${action}`, { nodeId: node.id });
+    });
+  });
 }
 
 // ── Hand pane ─────────────────────────────────────────────
