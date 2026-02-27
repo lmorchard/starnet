@@ -473,6 +473,58 @@ html, body {
 .grade-C           { color: var(--cyan); }
 .grade-D, .grade-F { color: var(--text-dim); }
 
+/* ── Node Context Menu ───────────────────────────────────── */
+
+#node-context-menu {
+  min-width: 180px;
+  background: var(--bg-panel);
+  border: 1px solid var(--magenta);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.12s ease;
+}
+
+.ctx-item {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.1s, color 0.1s;
+}
+
+.ctx-item:last-child { border-bottom: none; }
+
+.ctx-item:hover {
+  background: rgba(204, 0, 204, 0.1);
+  color: var(--magenta);
+}
+
+.ctx-item-desc {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 0.1rem;
+  letter-spacing: 0.05em;
+}
+
+.ctx-item.ctx-deselect {
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  margin-top: 1px;
+}
+
+.ctx-item.ctx-deselect:hover {
+  color: var(--green);
+  background: rgba(0, 255, 65, 0.05);
+}
+
 /* ── Action Buttons ─────────────────────────────────────── */
 
 .action-btn {

@@ -11,8 +11,7 @@
 /** @typedef {import('./types.js').NodeAccessedPayload} NodeAccessedPayload */
 
 import { on, emitEvent, E } from "./events.js";
-import { getActions } from "./node-types.js";
-import { getNodeActions } from "./node-actions.js";
+import { getAvailableActions } from "./node-actions.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
@@ -31,11 +30,22 @@ let execTotalMs = null;
 let probeStartTime = null;
 let probeTotalMs = null;
 
+// Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
+let contextMenuNodeId = null;
+
 export function initVisualRenderer() {
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
     syncGraph(state);
     syncHud(state);
+    const node = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
+    if (node && node.visibility !== "revealed") {
+      syncContextMenu(node, state);
+    } else {
+      clearContextMenu();
+    }
   });
+
+  on(E.RUN_STARTED, () => clearContextMenu());
 
   // Track exploit execution start time for sub-tick progress animation precision.
   on(E.EXPLOIT_STARTED, ({ durationMs }) => { execStartTime = Date.now(); execTotalMs = durationMs; });
@@ -107,6 +117,64 @@ export function initVisualRenderer() {
     }, 50);
   });
 
+  // Keep context menu attached to node on pan/zoom
+  const cy = getCy();
+  if (cy) cy.on("pan zoom", () => _positionContextMenu(contextMenuNodeId));
+}
+
+// ── Context menu ──────────────────────────────────────────
+
+function _positionContextMenu(nodeId) {
+  const menu = document.getElementById("node-context-menu");
+  if (!menu || !nodeId) return;
+  const cy = getCy();
+  if (!cy) return;
+  const node = cy.getElementById(nodeId);
+  if (!node || node.length === 0) return;
+  const pos = node.renderedPosition();
+  const r = node.renderedWidth() / 2;
+  menu.style.left = `${pos.x + r + 8}px`;
+  menu.style.top  = `${pos.y - r * 0.5}px`;
+}
+
+function syncContextMenu(node, state) {
+  const menu = document.getElementById("node-context-menu");
+  if (!menu) return;
+
+  contextMenuNodeId = node.id;
+
+  const actions = getAvailableActions(node, state)
+    .filter((a) => !a.noSidebar && a.id !== "select" && a.id !== "jackout");
+
+  menu.innerHTML = actions.length
+    ? actions.map((a) => {
+        const desc = a.desc(node, state);
+        const isDeselect = a.id === "deselect";
+        return `<button class="ctx-item${isDeselect ? " ctx-deselect" : ""}"
+                        data-action="${a.id}">
+          [ ${a.label} ]${desc ? `<span class="ctx-item-desc">${desc}</span>` : ""}
+        </button>`;
+      }).join("")
+    : `<span class="ctx-item ctx-empty nd-dim">No actions available.</span>`;
+
+  menu.querySelectorAll(".ctx-item[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const actionId = /** @type {HTMLElement} */ (btn).dataset.action;
+      emitEvent("starnet:action", { actionId, nodeId: node.id });
+    });
+  });
+
+  _positionContextMenu(node.id);
+  menu.style.opacity = "1";
+  menu.style.pointerEvents = "auto";
+}
+
+function clearContextMenu() {
+  contextMenuNodeId = null;
+  const menu = document.getElementById("node-context-menu");
+  if (!menu) return;
+  menu.style.opacity = "0";
+  menu.style.pointerEvents = "none";
 }
 
 // ── Graph sync ────────────────────────────────────────────
@@ -276,7 +344,6 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-header">
         <span class="nd-type">[${node.type.toUpperCase()}]</span>
         <span class="nd-label">${node.label}</span>
-        <button class="deselect-btn" data-action="deselect">[ DESELECT ]</button>
       </div>
       <div class="nd-row">
         <span class="nd-key">GRADE</span>
@@ -309,44 +376,9 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-dim nd-indent">No valuables detected.</div>` : ""}
       <div class="nd-divider">──────────────────</div>
       <div class="ice-timers-slot"></div>
-      <div class="nd-section-label">ACTIONS</div>
-      <div class="nd-actions">
-        ${renderActions(node, state)}
-      </div>
     </div>`;
 
   syncIceTimers(sidebarNode);
-  wireActionButtons(node);
-
-  sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
-    emitEvent("starnet:action", { actionId: "deselect" });
-  });
-}
-
-// ── Actions ───────────────────────────────────────────────
-
-function renderActions(node, state) {
-  const actions = [
-    ...getNodeActions(node, state),
-    ...getActions(node, state),
-  ].filter((a) => !a.noSidebar);
-  const btns = actions.map((a) => actionBtn(a.id, a.label, a.desc(node, state)));
-  return btns.join("") || `<span class="nd-dim">No actions available.</span>`;
-}
-
-function actionBtn(action, label, desc, stub = false) {
-  return `<button class="action-btn ${stub ? "stub" : ""}" data-action="${action}">
-    [ ${label} ]<span class="action-desc">${desc}${stub ? " (coming soon)" : ""}</span>
-  </button>`;
-}
-
-function wireActionButtons(node) {
-  document.querySelectorAll(".action-btn:not(.stub)").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const actionId = /** @type {HTMLElement} */ (btn).dataset.action;
-      emitEvent("starnet:action", { actionId, nodeId: node.id });
-    });
-  });
 }
 
 // ── Hand pane ─────────────────────────────────────────────
