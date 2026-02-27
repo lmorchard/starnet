@@ -14,7 +14,7 @@ import { on, emitEvent, E } from "./events.js";
 import { getAvailableActions } from "./node-actions.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
 import { getVisibleTimers, resumeTimers } from "./timers.js";
-import { exploitSortKey, VULNERABILITY_TYPES, generateExploitForVuln } from "./exploits.js";
+import { exploitSortKey, generateExploitForVuln, getStoreCatalog } from "./exploits.js";
 
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
@@ -33,9 +33,6 @@ let probeTotalMs = null;
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
 
-// Darknet store catalog — generated fresh each run.
-let storeCatalog = [];
-
 export function initVisualRenderer() {
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
     syncGraph(state);
@@ -48,15 +45,7 @@ export function initVisualRenderer() {
     }
   });
 
-  on(E.RUN_STARTED, () => {
-    clearContextMenu();
-    storeCatalog = VULNERABILITY_TYPES.map((v) => ({
-      vulnId: v.id,
-      name: v.name,
-      rarity: v.rarity,
-      price: v.rarity === "rare" ? 500 : v.rarity === "uncommon" ? 250 : 100,
-    }));
-  });
+  on(E.RUN_STARTED, () => clearContextMenu());
 
   // Track exploit execution start time for sub-tick progress animation precision.
   on(E.EXPLOIT_STARTED, ({ durationMs }) => { execStartTime = Date.now(); execTotalMs = durationMs; });
@@ -626,6 +615,7 @@ export function openDarknetsStore(state, onBuy) {
   modal.id = "darknet-store-modal";
 
   function renderModal(currentCash) {
+    const catalog = getStoreCatalog();
     modal.innerHTML = `
       <div class="store-box">
         <div class="store-header">
@@ -633,7 +623,7 @@ export function openDarknetsStore(state, onBuy) {
           <span class="store-wallet">¥${currentCash.toLocaleString()}</span>
         </div>
         <div class="store-card-list">
-          ${storeCatalog.map((item) => {
+          ${catalog.map((item) => {
             const canAfford = currentCash >= item.price;
             return `<div class="store-card-row">
               <div class="store-card-info">
@@ -666,7 +656,7 @@ export function openDarknetsStore(state, onBuy) {
         const success = onBuy(card, price);
         if (success) {
           // STATE_CHANGED fires from buyExploit() → re-renders hand + wallet HUD.
-          // Re-render the modal in-place with the new cash amount.
+          // Re-render the modal in-place using the new cash from state (via onBuy's emission).
           renderModal(currentCash - price);
         }
       });
@@ -674,5 +664,5 @@ export function openDarknetsStore(state, onBuy) {
   }
 
   renderModal(state.player.cash);
-  document.getElementById("app").appendChild(modal);
+  document.getElementById("graph-container").appendChild(modal);
 }
