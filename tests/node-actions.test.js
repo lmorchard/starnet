@@ -313,7 +313,6 @@ function mockCtx(overrides = {}) {
     ejectIce:      () => {},
     rebootNode:    () => {},
     jackOut:       () => {},
-    logCommand:    () => {},
     ...overrides,
   });
 }

@@ -70,4 +70,6 @@ export const E = Object.freeze({
 
   MISSION_STARTED:      "mission:started",
   MISSION_COMPLETE:     "mission:complete",
+
+  COMMAND_ISSUED:       "command:issued",
 });

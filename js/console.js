@@ -8,7 +8,7 @@
 
 import { getState, isIceVisible } from "./state.js";
 import { addLogEntry, getRecentLog } from "./log.js";
-import { emitEvent } from "./events.js";
+import { emitEvent, on, E } from "./events.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 import { getActions } from "./node-types.js";
@@ -30,14 +30,14 @@ export function initConsole() {
   const input = /** @type {HTMLInputElement|null} */ (document.getElementById("console-input"));
   if (!input) return;
 
+  on(E.COMMAND_ISSUED, ({ cmd }) => pushHistory(cmd));
+
   input.addEventListener("keydown", (evt) => {
     if (evt.key === "Enter") {
       const raw = input.value.trim();
       input.value = "";
       historyIndex = -1;
       if (!raw) return;
-      history.unshift(raw);
-      if (history.length > 50) history.length = 50;
       submitCommand(raw);
 
     } else if (evt.key === "ArrowUp") {
@@ -72,7 +72,7 @@ export function runCommand(raw) {
 // ── Command dispatch ──────────────────────────────────────
 
 function submitCommand(raw) {
-  addLogEntry(`> ${raw}`, "command");
+  emitEvent(E.COMMAND_ISSUED, { cmd: raw });
   const tokens = raw.trim().split(/\s+/);
   const verb = tokens[0].toLowerCase();
   const args = tokens.slice(1);

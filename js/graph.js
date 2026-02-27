@@ -732,6 +732,16 @@ function drawIceTrace(fromId, toId, nodeStates) {
   cy.getElementById(toId).addClass("ice-resident");
 }
 
+export function fitGraph(cy) {
+  const visible = cy.nodes(".accessible, .revealed");
+  if (visible.length <= 1) {
+    cy.zoom(1.5);
+    cy.center(visible);
+  } else {
+    cy.fit(visible, 50);
+  }
+}
+
 // Flash a node with a brief animated pulse.
 // type: 'success' (cyan→white→cyan), 'failure' (red flash), 'reveal' (dim cyan pulse)
 export function flashNode(nodeId, type) {

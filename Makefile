@@ -12,7 +12,7 @@ lint:
 		js/types.js js/events.js js/state.js js/exploits.js js/combat.js js/loot.js \
 		js/alert.js js/timers.js js/ice.js js/log.js js/log-renderer.js js/visual-renderer.js js/console.js js/cheats.js \
 		js/node-types.js js/node-lifecycle.js \
-		js/node-actions.js js/global-actions.js
+		js/node-actions.js js/global-actions.js js/action-context.js
 
 # Run unit + integration tests
 test:

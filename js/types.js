@@ -183,7 +183,6 @@
  *   ejectIce:         () => void,
  *   rebootNode:       (nodeId: string) => void,
  *   jackOut:          () => void,
- *   logCommand:       (cmd: string) => void,
  *   reconfigureNode:  (nodeId: string) => void,
  *   cancelTrace:      () => void,
  * }} ActionContext
