@@ -66,6 +66,7 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 
 | Type              | Shape    | What it does                                      |
 |-------------------|----------|---------------------------------------------------|
+| **WAN**           | Barrel   | The network boundary — your tether to the outside. Access the darknet broker here. |
 | **Gateway**       | Diamond  | Entry point. Your foothold into the LAN.          |
 | **Router**        | Circle   | Routes traffic. Bridges to deeper nodes.          |
 | **Firewall**      | Pentagon | High-security chokepoint. Hard to crack.          |
@@ -73,7 +74,7 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 | **File Server**   | Square   | Where documents live. Usually where your mission target is. |
 | **Cryptovault**   | Diamond  | High-value encrypted storage. Hardest targets.    |
 | **IDS**           | Hexagon  | Intrusion Detection System. Watches for exploits and reports to security monitors. Can be subverted. |
-| **Security Mon.** | Hexagon  | Aggregates IDS alerts and raises global alert level. Can be owned to cancel trace. |
+| **Security Mon.** | Octagon  | Aggregates IDS alerts and raises global alert level. Can be owned to cancel trace. |
 
 Nodes also have a **grade** (F through S) that affects how hard they are to exploit.
 Lower grade = softer target = better odds. The gateway is usually grade D or F.
@@ -103,8 +104,8 @@ An IDS at this level can be reconfigured to stop forwarding alerts.
 ### 1. Select a Node
 
 Click a node on the graph or type `select <node-id>`. Only nodes you have access to
-(or nodes adjacent to ones you own) are available. Unknown `???` nodes become accessible
-once you own a neighboring node.
+are selectable. Unknown `???` nodes appear on the graph when you exploit a neighboring
+node — click one to connect to it and begin working.
 
 ### 2. Probe
 
@@ -330,9 +331,10 @@ from your cash score.
 
 Actions depend on the selected node's type and access level:
 
-| Action         | Available when...                              | Effect |
-|----------------|------------------------------------------------|--------|
-| `probe`        | Node is locked and unprobed                   | Reveals vulnerabilities, raises local alert |
+| Action            | Available when...                              | Effect |
+|-------------------|------------------------------------------------|--------|
+| `access-darknet`  | WAN node is selected                           | Opens the darknet broker store; pauses the LAN while shopping |
+| `probe`           | Node is locked and unprobed                   | Reveals vulnerabilities, raises local alert |
 | `exploit <n>`  | Node is locked/compromised + probed — use hand card by clicking it or typing `exploit <n>` | Attempt to raise access level |
 | `read`         | Node is compromised or owned, unread           | Reveals macguffins |
 | `loot`         | Node is owned + has uncollected macguffins     | Extracts macguffins for cash |
@@ -360,6 +362,9 @@ eject                  Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
 cancel-trace           Abort trace (requires owned security-monitor).
 jackout                End run.
+
+store                  List darknet broker catalog (requires WAN selected).
+buy <index>            Purchase exploit card from broker (requires WAN selected).
 
 status                 Summary status (alias: status summary)
 status full            Complete state dump
