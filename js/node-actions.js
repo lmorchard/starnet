@@ -39,6 +39,7 @@ export const NODE_ACTIONS = Object.freeze([
   {
     id: "exploit",
     label: "EXPLOIT",
+    noSidebar: true,  // triggered via exploit card clicks, not sidebar button
     available: (node, state) =>
       node.visibility === "accessible" &&
       !node.rebooting &&

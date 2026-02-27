@@ -191,11 +191,12 @@
 /**
  * An action available on a node — rendered as a sidebar button and console action.
  * @typedef {{
- *   id:        string,
- *   label:     string,
- *   available: (node: NodeState, state: GameState) => boolean,
- *   desc:      (node: NodeState, state: GameState) => string,
- *   execute?:  (node: NodeState, state: GameState, ctx: ActionContext, payload?: Object) => void,
+ *   id:         string,
+ *   label:      string,
+ *   available:  (node: NodeState, state: GameState) => boolean,
+ *   desc:       (node: NodeState, state: GameState) => string,
+ *   execute?:   (node: NodeState, state: GameState, ctx: ActionContext, payload?: Object) => void,
+ *   noSidebar?: boolean,
  * }} ActionDef
  */
 

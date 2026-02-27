@@ -313,7 +313,7 @@ function renderActions(node, state) {
   const actions = [
     ...getNodeActions(node, state),
     ...getActions(node, state),
-  ];
+  ].filter((a) => !a.noSidebar);
   const btns = actions.map((a) => actionBtn(a.id, a.label, a.desc(node, state)));
   return btns.join("") || `<span class="nd-dim">No actions available.</span>`;
 }
