@@ -250,18 +250,21 @@ html, body {
   background: var(--yellow);
   box-shadow: 0 0 6px var(--yellow);
   animation: pulse 1s ease-in-out infinite;
+  will-change: opacity;
 }
 
 #hud .alert-dot.red {
   background: var(--red);
   box-shadow: 0 0 10px var(--red);
   animation: pulse 0.5s ease-in-out infinite;
+  will-change: opacity;
 }
 
 #hud .alert-dot.trace {
   background: var(--red);
   box-shadow: 0 0 14px var(--red);
   animation: pulse 0.3s ease-in-out infinite;
+  will-change: opacity;
 }
 
 /* LAN connection status indicator */
@@ -287,6 +290,7 @@ html, body {
   background: var(--yellow);
   box-shadow: 0 0 8px var(--yellow);
   animation: pulse 0.6s ease-in-out infinite;
+  will-change: opacity;
 }
 
 #hud #conn-status {
@@ -301,6 +305,7 @@ html, body {
 #hud #conn-status.detecting {
   color: var(--yellow);
   animation: pulse-text 0.6s ease-in-out infinite;
+  will-change: opacity;
 }
 
 @keyframes pulse-text {
@@ -741,6 +746,7 @@ html, body {
   color: var(--red) !important;
   text-shadow: 0 0 8px var(--red);
   animation: pulse 0.5s ease-in-out infinite;
+  will-change: opacity;
   letter-spacing: 0.1em;
 }
 
@@ -818,6 +824,7 @@ html, body {
   letter-spacing: 0.15em;
   text-shadow: 0 0 8px var(--magenta);
   animation: pulse 1.5s ease-in-out infinite;
+  will-change: opacity;
 }
 
 /* ── Animations ─────────────────────────────────────────── */
@@ -836,6 +843,7 @@ html, body {
   animation: reticle-spin 12s linear infinite;
   transform-box: fill-box;
   transform-origin: 50% 50%;
+  will-change: transform;
 }
 
 @keyframes reticle-spin {
