@@ -13,7 +13,8 @@ import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
-import { initState, getState, ejectIce } from "../js/state.js";
+import { initState, getState, ejectIce, selectNode } from "../js/state.js";
+import { navigateTo, navigateAway } from "../js/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce } from "../js/ice.js";
 import { emitEvent, on, off, E } from "../js/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/timers.js";
@@ -608,5 +609,85 @@ describe("Probe execution timing", () => {
 
     assert.ok(logErrors.length > 0, "guard must emit a LOG_ENTRY error");
     assert.equal(s.activeProbe.nodeId, "gateway", "first probe must remain active");
+  });
+});
+
+// ── Navigation: navigateTo / navigateAway ─────────────────────────────────────
+
+describe("Navigation: navigateTo cancels in-progress actions", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("navigateTo cancels a running exploit and emits EXPLOIT_INTERRUPTED", () => {
+    const s = getState();
+    const card = s.player.hand[0];
+    s.selectedNodeId = "gateway";
+    startExploit("gateway", card.id);
+    assert.notEqual(s.executingExploit, null);
+
+    const interrupted = withEvents(E.EXPLOIT_INTERRUPTED, () => {
+      navigateTo("router");
+    });
+    assert.equal(interrupted.length, 1, "EXPLOIT_INTERRUPTED must fire once");
+    assert.equal(s.executingExploit, null, "executingExploit must be null after navigateTo");
+    assert.equal(s.selectedNodeId, "router");
+  });
+
+  it("navigateTo cancels a running probe scan and emits PROBE_SCAN_CANCELLED", () => {
+    const s = getState();
+    startProbe("gateway");
+    assert.notEqual(s.activeProbe, null);
+
+    const cancelled = withEvents(E.PROBE_SCAN_CANCELLED, () => {
+      navigateTo("router");
+    });
+    assert.equal(cancelled.length, 1, "PROBE_SCAN_CANCELLED must fire once");
+    assert.equal(s.activeProbe, null, "activeProbe must be null after navigateTo");
+    assert.equal(s.selectedNodeId, "router");
+  });
+
+  it("navigateTo with no in-progress action just selects the node", () => {
+    const s = getState();
+    navigateTo("gateway");
+    assert.equal(s.selectedNodeId, "gateway");
+    assert.equal(s.executingExploit, null);
+    assert.equal(s.activeProbe, null);
+  });
+});
+
+describe("Navigation: navigateAway cancels in-progress actions", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("navigateAway cancels a running exploit and emits EXPLOIT_INTERRUPTED", () => {
+    const s = getState();
+    const card = s.player.hand[0];
+    s.selectedNodeId = "gateway";
+    startExploit("gateway", card.id);
+
+    const interrupted = withEvents(E.EXPLOIT_INTERRUPTED, () => {
+      navigateAway();
+    });
+    assert.equal(interrupted.length, 1, "EXPLOIT_INTERRUPTED must fire once");
+    assert.equal(s.executingExploit, null);
+    assert.equal(s.selectedNodeId, null);
+  });
+
+  it("navigateAway cancels a running probe scan and emits PROBE_SCAN_CANCELLED", () => {
+    const s = getState();
+    startProbe("gateway");
+
+    const cancelled = withEvents(E.PROBE_SCAN_CANCELLED, () => {
+      navigateAway();
+    });
+    assert.equal(cancelled.length, 1, "PROBE_SCAN_CANCELLED must fire once");
+    assert.equal(s.activeProbe, null);
+    assert.equal(s.selectedNodeId, null);
   });
 });

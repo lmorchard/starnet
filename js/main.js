@@ -1,9 +1,10 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
-import { initState, getState, selectNode, deselectNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
+import { initState, getState, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
 import { startExploit, cancelExploit, handleExploitExecTimer } from "./exploit-exec.js";
 import { startProbe, cancelProbe, handleProbeScanTimer } from "./probe-exec.js";
+import { navigateTo, navigateAway } from "./navigation.js";
 import { addLogEntry } from "./log.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand, pushHistory } from "./console.js";
@@ -17,6 +18,12 @@ import { initNodeLifecycle } from "./node-lifecycle.js";
 // Current UI mode for the sidebar: 'node' | 'exploit-select'
 // Kept here (not in visual-renderer) because it's set by action event handlers.
 let sidebarMode = "node";
+
+// Sets sidebar mode in both the local copy and visual-renderer.
+function setMode(mode) {
+  setSidebarMode(mode);
+  sidebarMode = mode;
+}
 
 // Log a UI-sourced command to both the log pane and the console history.
 function logCommand(cmd) {
@@ -53,23 +60,17 @@ function init() {
 
   on("starnet:action:select", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`select ${nodeId}`);
-    cancelExploit();
-    cancelProbe();
     if (sidebarMode !== "node") {
-      setSidebarMode("node");
-      sidebarMode = "node";
+      setMode("node");
       addLogEntry("Action cancelled.", "info");
     }
-    selectNode(nodeId);
+    navigateTo(nodeId);
   });
 
   on("starnet:action:deselect", ({ fromConsole } = {}) => {
     if (!fromConsole) logCommand("deselect");
-    cancelExploit();
-    cancelProbe();
-    deselectNode();
-    setSidebarMode("node");
-    sidebarMode = "node";
+    navigateAway();
+    setMode("node");
   });
 
   on(TIMER.ICE_MOVE,    () => handleIceTick());
@@ -81,8 +82,7 @@ function init() {
   on("starnet:action:probe", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`probe ${nodeId}`);
     startProbe(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
+    setMode("node");
   });
 
   on("starnet:action:cancel-probe", ({ fromConsole } = {}) => {
@@ -91,28 +91,24 @@ function init() {
   });
 
   on("starnet:action:exploit", () => {
-    setSidebarMode("exploit-select");
-    sidebarMode = "exploit-select";
+    setMode("exploit-select");
     emitEvent(E.STATE_CHANGED, getState());
   });
 
   on("starnet:action:escalate", () => {
-    setSidebarMode("exploit-select");
-    sidebarMode = "exploit-select";
+    setMode("exploit-select");
     emitEvent(E.STATE_CHANGED, getState());
   });
 
   on("starnet:action:cancel", () => {
-    setSidebarMode("node");
-    sidebarMode = "node";
+    setMode("node");
     emitEvent(E.STATE_CHANGED, getState());
   });
 
   on("starnet:action:launch-exploit", ({ nodeId, exploitId, cardIndex, fromConsole }) => {
     if (!fromConsole) logCommand(`exploit ${cardIndex ?? exploitId}`);
     // Always return to node mode so the execution countdown is visible in the sidebar
-    setSidebarMode("node");
-    sidebarMode = "node";
+    setMode("node");
     startExploit(nodeId, exploitId);
   });
 
@@ -124,22 +120,19 @@ function init() {
   on("starnet:action:reconfigure", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`reconfigure ${nodeId}`);
     reconfigureNode(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
+    setMode("node");
   });
 
   on("starnet:action:read", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`read ${nodeId}`);
     readNode(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
+    setMode("node");
   });
 
   on("starnet:action:loot", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`loot ${nodeId}`);
     lootNode(nodeId);
-    setSidebarMode("node");
-    sidebarMode = "node";
+    setMode("node");
   });
 
   on("starnet:action:cancel-trace", ({ fromConsole }) => {
@@ -167,8 +160,7 @@ function init() {
   });
 
   on("starnet:action:run-again", () => {
-    setSidebarMode("node");
-    sidebarMode = "node";
+    setMode("node");
     initState(NETWORK);
     const cy = getCy();
     if (cy) fitGraph(cy);

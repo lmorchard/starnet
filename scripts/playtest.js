@@ -15,12 +15,13 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
 import {
-  initState, getState, selectNode, deselectNode, readNode, lootNode,
+  initState, getState, readNode, lootNode,
   endRun, ejectIce, rebootNode, completeReboot, reconfigureNode,
   serializeState, deserializeState,
 } from "../js/state.js";
 import { startExploit, cancelExploit, handleExploitExecTimer } from "../js/exploit-exec.js";
 import { startProbe, cancelProbe, handleProbeScanTimer } from "../js/probe-exec.js";
+import { navigateTo, navigateAway } from "../js/navigation.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
 import { on, E } from "../js/events.js";
 import { tick, TIMER } from "../js/timers.js";
@@ -73,8 +74,8 @@ on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
 // ── Headless action handlers ───────────────────────────────
 // console.js dispatches action events via emitEvent(); these handlers execute them.
 
-on("starnet:action:select",         ({ nodeId }) => { cancelExploit(); cancelProbe(); selectNode(nodeId); });
-on("starnet:action:deselect",       ()           => { cancelExploit(); cancelProbe(); deselectNode(); });
+on("starnet:action:select",         ({ nodeId }) => navigateTo(nodeId));
+on("starnet:action:deselect",       ()           => navigateAway());
 on("starnet:action:probe",          ({ nodeId }) => startProbe(nodeId));
 on("starnet:action:cancel-probe",   ()           => cancelProbe());
 on("starnet:action:launch-exploit", ({ nodeId, exploitId }) => startExploit(nodeId, exploitId));
