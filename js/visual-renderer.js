@@ -25,6 +25,11 @@ let sidebarMode = "node";
 // queue overlapping cy.animate() calls that fight each other.
 let revealFitTimer = null;
 
+// Exploit execution timing — tracked here (not in state) for sub-tick precision.
+// Set when EXPLOIT_STARTED fires; cleared on resolution or cancellation.
+let execStartTime = null;
+let execTotalMs = null;
+
 export function setSidebarMode(mode) {
   sidebarMode = mode;
 }
@@ -35,13 +40,21 @@ export function initVisualRenderer() {
     syncHud(state);
   });
 
-  // Timer-only tick: update just the countdowns in-place — no full re-render.
+  // Track exploit execution start time for sub-tick progress animation precision.
+  on(E.EXPLOIT_STARTED, ({ durationMs }) => { execStartTime = Date.now(); execTotalMs = durationMs; });
+  on(E.EXPLOIT_INTERRUPTED, () => { execStartTime = null; execTotalMs = null; });
+  on(E.EXPLOIT_SUCCESS,     () => { execStartTime = null; execTotalMs = null; });
+  on(E.EXPLOIT_FAILURE,     () => { execStartTime = null; execTotalMs = null; });
+
+  // Timer-only tick: update countdowns in-place. Also refresh the hand if an
+  // exploit is executing so the progress fill and percentage stay current.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
     syncIceTimers();
     const countdown = document.getElementById("trace-countdown");
     if (countdown && state.traceSecondsRemaining !== null) {
       countdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
     }
+    if (state.executingExploit) syncHandPane(state);
   });
 
   // One-shot flash effects keyed to typed game events
@@ -392,7 +405,10 @@ function syncHandPane(state) {
         ? '<span class="nd-dim">No exploits in hand.</span>'
         : sortedHand.map((c, i) => {
             const isExec = executing?.exploitId === c.id;
-            return renderExploitCard(c, selectedNode, i + 1, isSelecting, isExec);
+            const elapsedMs = (isExec && execStartTime !== null && execTotalMs !== null)
+              ? Math.min(Date.now() - execStartTime, execTotalMs)
+              : 0;
+            return renderExploitCard(c, selectedNode, i + 1, isSelecting, isExec, elapsedMs, execTotalMs ?? 0);
           }).join("")}
     </div>`;
 
@@ -407,7 +423,7 @@ function syncHandPane(state) {
   }
 }
 
-function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false, isExecuting = false) {
+function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false, isExecuting = false, execElapsedMs = 0, execTotalMs = 0) {
   const rarityClass = `rarity-${card.rarity}`;
   const disclosed = card.decayState === "disclosed";
   const worn = card.decayState === "worn";
@@ -432,7 +448,14 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
     isExecuting ? "executing" : "",
   ].filter(Boolean).join(" ");
 
-  return `<div class="${classes}" data-exploit-id="${card.id}" data-card-index="${index}">
+  const execPct = (isExecuting && execTotalMs > 0)
+    ? Math.min(100, Math.round((execElapsedMs / execTotalMs) * 100))
+    : 0;
+  const execStyle = (isExecuting && execTotalMs > 0)
+    ? ` style="--exec-total: ${execTotalMs}ms; --exec-elapsed: -${Math.round(execElapsedMs)}ms"`
+    : "";
+
+  return `<div class="${classes}"${execStyle} data-exploit-id="${card.id}" data-card-index="${index}">
     <div class="ec-header">
       ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
       <span class="ec-name">${card.name}</span>
@@ -447,7 +470,7 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
       <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
     </div>
     <div class="ec-vulns">${card.targetVulnTypes.join(" · ")}</div>
-    ${isExecuting ? `<div class="ec-executing-label">▶ EXECUTING</div>` : ""}
+    ${isExecuting ? `<div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>` : ""}
   </div>`;
 }
 

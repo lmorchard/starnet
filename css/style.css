@@ -623,6 +623,26 @@ html, body {
   opacity: 1;
   border-color: var(--cyan);
   box-shadow: 0 0 6px rgba(0, 200, 255, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Progress fill — sweeps left-to-right over the exploit duration */
+.exploit-card.executing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 200, 255, 0.1);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: exec-fill-sweep var(--exec-total) linear forwards;
+  animation-delay: var(--exec-elapsed);
+  pointer-events: none;
+}
+
+@keyframes exec-fill-sweep {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
 .ec-executing-label {
@@ -631,6 +651,7 @@ html, body {
   letter-spacing: 0.1em;
   margin-top: 0.2rem;
   text-shadow: 0 0 6px var(--cyan-dim);
+  position: relative; /* keep above the ::before fill */
 }
 
 /* ── Action Log ─────────────────────────────────────────── */
