@@ -441,6 +441,27 @@ export function getCy() {
   return cy;
 }
 
+export function initCxtMenu(commands) {
+  if (!cy) return;
+  cy.cxtmenu({
+    selector: "node.accessible",
+    commands,
+    menuRadius: () => 85,
+    fillColor: "rgba(5, 5, 15, 0.92)",
+    activeFillColor: "rgba(0, 200, 255, 0.28)",
+    activePadding: 6,
+    indicatorSize: 22,
+    separatorWidth: 3,
+    spotlightPadding: 4,
+    minSpotlightRadius: 14,
+    maxSpotlightRadius: 28,
+    openMenuEvents: "cxttapstart taphold",
+    itemColor: "#00ff41",
+    itemTextShadowColor: "rgba(0, 255, 65, 0.25)",
+    zIndex: 9999,
+  });
+}
+
 export function syncSelection(nodeId) {
   if (!cy) return;
   currentSelectedNodeId = nodeId || null;
