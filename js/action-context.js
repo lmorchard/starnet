@@ -45,9 +45,10 @@ export function buildNodeClickHandler() {
     const s = getState();
     const node = s.nodes[nodeId];
     if (!node || node.visibility === "hidden") return;
+    const isDeselect = s.selectedNodeId === nodeId;
     emitEvent("starnet:action", {
-      actionId: s.selectedNodeId === nodeId ? "deselect" : "select",
-      nodeId,
+      actionId: isDeselect ? "deselect" : "select",
+      ...(isDeselect ? {} : { nodeId }),
     });
   };
 }
