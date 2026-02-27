@@ -73,7 +73,7 @@ on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
 // ── Headless action handlers ───────────────────────────────
 // console.js dispatches action events via emitEvent(); these handlers execute them.
 
-on("starnet:action:select",         ({ nodeId }) => selectNode(nodeId));
+on("starnet:action:select",         ({ nodeId }) => { cancelExploit(); cancelProbe(); selectNode(nodeId); });
 on("starnet:action:deselect",       ()           => { cancelExploit(); cancelProbe(); deselectNode(); });
 on("starnet:action:probe",          ({ nodeId }) => startProbe(nodeId));
 on("starnet:action:cancel-probe",   ()           => cancelProbe());

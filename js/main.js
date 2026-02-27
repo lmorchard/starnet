@@ -53,6 +53,8 @@ function init() {
 
   on("starnet:action:select", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`select ${nodeId}`);
+    cancelExploit();
+    cancelProbe();
     if (sidebarMode !== "node") {
       setSidebarMode("node");
       sidebarMode = "node";
