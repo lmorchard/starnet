@@ -296,6 +296,123 @@ describe("select available", () => {
   });
 });
 
+// ── action execute() routing ──────────────────────────────
+
+/** Build a mock ActionContext that records the last call per method */
+function mockCtx(overrides = {}) {
+  return /** @type {any} */ ({
+    getState:      () => baseState(),
+    selectNode:    () => {},
+    deselectNode:  () => {},
+    startProbe:    () => {},
+    cancelProbe:   () => {},
+    startExploit:  () => {},
+    cancelExploit: () => {},
+    readNode:      () => {},
+    lootNode:      () => {},
+    ejectIce:      () => {},
+    rebootNode:    () => {},
+    jackOut:       () => {},
+    logCommand:    () => {},
+    ...overrides,
+  });
+}
+
+describe("action execute() routing", () => {
+  it("probe calls ctx.startProbe(node.id)", () => {
+    const a = action("probe");
+    const node = lockedNode();
+    let called = null;
+    const ctx = mockCtx({ startProbe: (id) => { called = id; } });
+    a.execute(node, baseState(), ctx);
+    assert.equal(called, node.id);
+  });
+
+  it("cancel-probe calls ctx.cancelProbe()", () => {
+    const a = action("cancel-probe");
+    let called = false;
+    const ctx = mockCtx({ cancelProbe: () => { called = true; } });
+    a.execute(lockedNode(), baseState(), ctx);
+    assert.ok(called);
+  });
+
+  it("exploit calls ctx.startExploit(node.id, payload.exploitId)", () => {
+    const a = action("exploit");
+    const node = lockedNode();
+    let args = null;
+    const ctx = mockCtx({ startExploit: (nid, eid) => { args = [nid, eid]; } });
+    a.execute(node, baseState(), ctx, { exploitId: "card-1" });
+    assert.deepEqual(args, [node.id, "card-1"]);
+  });
+
+  it("cancel-exploit calls ctx.cancelExploit()", () => {
+    const a = action("cancel-exploit");
+    let called = false;
+    const ctx = mockCtx({ cancelExploit: () => { called = true; } });
+    a.execute(lockedNode(), baseState(), ctx);
+    assert.ok(called);
+  });
+
+  it("read calls ctx.readNode(node.id)", () => {
+    const a = action("read");
+    const node = lockedNode({ accessLevel: "compromised" });
+    let called = null;
+    const ctx = mockCtx({ readNode: (id) => { called = id; } });
+    a.execute(node, baseState(), ctx);
+    assert.equal(called, node.id);
+  });
+
+  it("loot calls ctx.lootNode(node.id)", () => {
+    const a = action("loot");
+    const node = lockedNode({ accessLevel: "owned", read: true, macguffins: [{ collected: false }] });
+    let called = null;
+    const ctx = mockCtx({ lootNode: (id) => { called = id; } });
+    a.execute(node, baseState(), ctx);
+    assert.equal(called, node.id);
+  });
+
+  it("eject calls ctx.ejectIce()", () => {
+    const a = action("eject");
+    let called = false;
+    const ctx = mockCtx({ ejectIce: () => { called = true; } });
+    a.execute(lockedNode(), baseState(), ctx);
+    assert.ok(called);
+  });
+
+  it("reboot calls ctx.rebootNode(node.id)", () => {
+    const a = action("reboot");
+    const node = lockedNode({ accessLevel: "owned" });
+    let called = null;
+    const ctx = mockCtx({ rebootNode: (id) => { called = id; } });
+    a.execute(node, baseState(), ctx);
+    assert.equal(called, node.id);
+  });
+
+  it("jackout calls ctx.jackOut()", () => {
+    const a = action("jackout");
+    let called = false;
+    const ctx = mockCtx({ jackOut: () => { called = true; } });
+    a.execute(null, baseState(), ctx);
+    assert.ok(called);
+  });
+
+  it("select calls ctx.selectNode(payload.nodeId)", () => {
+    const a = action("select");
+    let called = null;
+    const ctx = mockCtx({ selectNode: (id) => { called = id; } });
+    a.execute(null, baseState(), ctx, { nodeId: "router-a" });
+    assert.equal(called, "router-a");
+  });
+
+  it("deselect calls ctx.deselectNode()", () => {
+    const a = action("deselect");
+    let called = false;
+    const ctx = mockCtx({ deselectNode: () => { called = true; } });
+    a.execute(null, baseState(), ctx);
+    assert.ok(called);
+  });
+});
+
 // ── getAvailableActions integration parity ────────────────
 
 describe("getAvailableActions integration parity", () => {
