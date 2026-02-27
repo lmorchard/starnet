@@ -925,3 +925,142 @@ html, body {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ── Darknet store modal ──────────────────────────────────── */
+
+#darknet-store-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.store-box {
+  background: var(--bg);
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
+  width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+}
+
+.store-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--dim);
+}
+
+.store-title {
+  color: var(--cyan);
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+}
+
+.store-wallet {
+  color: var(--green);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+}
+
+.store-card-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0.5rem 0;
+}
+
+.store-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.store-card-row:last-child {
+  border-bottom: none;
+}
+
+.store-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.store-item-name {
+  color: var(--fg);
+  font-size: 0.75rem;
+}
+
+.store-item-rarity {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+}
+
+.store-item-vuln {
+  color: var(--dim);
+  font-size: 0.65rem;
+}
+
+.store-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.store-item-price {
+  color: var(--yellow);
+  font-size: 0.75rem;
+  min-width: 3rem;
+  text-align: right;
+}
+
+.store-buy-btn {
+  background: none;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: var(--font);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.store-buy-btn:hover:not([disabled]) {
+  background: rgba(0, 200, 255, 0.1);
+}
+
+.store-buy-btn[disabled] {
+  border-color: var(--dim);
+  color: var(--dim);
+  cursor: not-allowed;
+}
+
+.store-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--dim);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.store-close-btn {
+  background: none;
+  border: 1px solid var(--dim);
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+}
+
+.store-close-btn:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}

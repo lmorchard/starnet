@@ -13,8 +13,8 @@
 import { on, emitEvent, E } from "./events.js";
 import { getAvailableActions } from "./node-actions.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
-import { getVisibleTimers } from "./timers.js";
-import { exploitSortKey } from "./exploits.js";
+import { getVisibleTimers, resumeTimers } from "./timers.js";
+import { exploitSortKey, VULNERABILITY_TYPES, generateExploitForVuln } from "./exploits.js";
 
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
@@ -33,6 +33,9 @@ let probeTotalMs = null;
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
 
+// Darknet store catalog — generated fresh each run.
+let storeCatalog = [];
+
 export function initVisualRenderer() {
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
     syncGraph(state);
@@ -45,7 +48,15 @@ export function initVisualRenderer() {
     }
   });
 
-  on(E.RUN_STARTED, () => clearContextMenu());
+  on(E.RUN_STARTED, () => {
+    clearContextMenu();
+    storeCatalog = VULNERABILITY_TYPES.map((v) => ({
+      vulnId: v.id,
+      name: v.name,
+      rarity: v.rarity,
+      price: v.rarity === "rare" ? 500 : v.rarity === "uncommon" ? 250 : 100,
+    }));
+  });
 
   // Track exploit execution start time for sub-tick progress animation precision.
   on(E.EXPLOIT_STARTED, ({ durationMs }) => { execStartTime = Date.now(); execTotalMs = durationMs; });
@@ -597,4 +608,71 @@ function renderEndScreen(state) {
     overlay.remove();
     emitEvent("starnet:action:run-again", {});
   });
+}
+
+// ── Darknet store modal ────────────────────────────────────
+
+/**
+ * Open the darknet broker store modal. Pauses timers while open.
+ * Called by ActionContext.openDarknetsStore() after it pauses timers.
+ * @param {GameState} state
+ * @param {(card: import('./types.js').ExploitCard, price: number) => boolean} onBuy
+ */
+export function openDarknetsStore(state, onBuy) {
+  const existing = document.getElementById("darknet-store-modal");
+  if (existing) return; // already open
+
+  const modal = document.createElement("div");
+  modal.id = "darknet-store-modal";
+
+  function renderModal(currentCash) {
+    modal.innerHTML = `
+      <div class="store-box">
+        <div class="store-header">
+          <span class="store-title">// DARKNET BROKER</span>
+          <span class="store-wallet">¥${currentCash.toLocaleString()}</span>
+        </div>
+        <div class="store-card-list">
+          ${storeCatalog.map((item) => {
+            const canAfford = currentCash >= item.price;
+            return `<div class="store-card-row">
+              <div class="store-card-info">
+                <span class="store-item-name">${item.name}</span>
+                <span class="store-item-rarity rarity-${item.rarity}">[${item.rarity.toUpperCase()}]</span>
+                <span class="store-item-vuln">${item.vulnId}</span>
+              </div>
+              <div class="store-card-actions">
+                <span class="store-item-price">¥${item.price}</span>
+                <button class="store-buy-btn" data-vuln-id="${item.vulnId}" data-price="${item.price}" ${canAfford ? "" : "disabled"}>[ BUY ]</button>
+              </div>
+            </div>`;
+          }).join("")}
+        </div>
+        <div class="store-footer">
+          <button class="store-close-btn" id="darknet-close-btn">[ CLOSE ]</button>
+        </div>
+      </div>`;
+
+    modal.querySelector("#darknet-close-btn").addEventListener("click", () => {
+      modal.remove();
+      resumeTimers();
+    });
+
+    modal.querySelectorAll(".store-buy-btn:not([disabled])").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const vulnId = /** @type {HTMLElement} */ (btn).dataset.vulnId;
+        const price = Number(/** @type {HTMLElement} */ (btn).dataset.price);
+        const card = generateExploitForVuln(vulnId);
+        const success = onBuy(card, price);
+        if (success) {
+          // STATE_CHANGED fires from buyExploit() → re-renders hand + wallet HUD.
+          // Re-render the modal in-place with the new cash amount.
+          renderModal(currentCash - price);
+        }
+      });
+    });
+  }
+
+  renderModal(state.player.cash);
+  document.getElementById("app").appendChild(modal);
 }
