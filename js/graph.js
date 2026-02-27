@@ -146,6 +146,17 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
 
   cy.on("pan zoom", syncReticle);
 
+  const graphContainer = document.getElementById("graph-container");
+  const syncGrid = () => {
+    const pan = cy.pan();
+    const zoom = cy.zoom();
+    const size = 40 * zoom;
+    graphContainer.style.backgroundSize = `${size}px ${size}px`;
+    graphContainer.style.backgroundPosition = `${pan.x}px ${pan.y}px`;
+  };
+  cy.on("pan zoom", syncGrid);
+  syncGrid();
+
   return cy;
 }
 

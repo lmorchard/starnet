@@ -118,11 +118,13 @@ is watched by an IDS, that alert will propagate.
 
 ### 3. Exploit
 
+Click an exploit card from your hand, or type:
+
 ```
 > exploit <card-number>
 ```
 
-Or click an exploit card from your hand. Each card targets one or more vulnerability types.
+There is no sidebar button for exploiting — the hand strip is the interface. Each card targets one or more vulnerability types.
 If a card matches a known vulnerability on the selected node, your odds improve significantly.
 
 **Exploit resolution:**
@@ -331,7 +333,7 @@ Actions depend on the selected node's type and access level:
 | Action         | Available when...                              | Effect |
 |----------------|------------------------------------------------|--------|
 | `probe`        | Node is locked and unprobed                   | Reveals vulnerabilities, raises local alert |
-| `exploit`      | Node is locked/compromised + probed            | Attempt to raise access level |
+| `exploit <n>`  | Node is locked/compromised + probed — use hand card by clicking it or typing `exploit <n>` | Attempt to raise access level |
 | `read`         | Node is compromised or owned, unread           | Reveals macguffins |
 | `loot`         | Node is owned + has uncollected macguffins     | Extracts macguffins for cash |
 | `reconfigure`  | IDS node is compromised or owned               | Severs event forwarding to security monitor |
