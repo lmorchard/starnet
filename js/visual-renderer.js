@@ -69,15 +69,17 @@ export function initVisualRenderer() {
   on(E.NODE_PROBED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
   on(E.RUN_STARTED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
 
-  // Timer-only tick: update countdowns in-place. Also refresh the hand if an
-  // exploit is executing so the progress fill and percentage stay current.
+  // Timer-only tick: update countdowns in-place. Exploit progress is updated
+  // in-place (not a full re-render) so the cancel overlay stays stable in the DOM.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
     syncIceTimers();
     const countdown = document.getElementById("trace-countdown");
     if (countdown && state.traceSecondsRemaining !== null) {
       countdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
     }
-    if (state.executingExploit) syncHandPane(state);
+    if (state.executingExploit && execStartTime !== null && execTotalMs !== null) {
+      updateExploitProgress();
+    }
     if (state.activeProbe && probeStartTime !== null && probeTotalMs !== null) {
       const elapsed = Math.min(Date.now() - probeStartTime, probeTotalMs);
       syncProbeSweep(state.activeProbe.nodeId, elapsed / probeTotalMs);
@@ -408,6 +410,17 @@ function renderSidebarNode(sidebarNode, node, state) {
 }
 
 // ── Hand pane ─────────────────────────────────────────────
+
+function updateExploitProgress() {
+  if (execStartTime === null || execTotalMs === null) return;
+  const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
+  const pct = Math.min(100, Math.round((elapsed / execTotalMs) * 100));
+  const card = document.querySelector(".exploit-card.executing");
+  if (!card) return;
+  /** @type {HTMLElement} */ (card).style.setProperty("--exec-elapsed", `-${Math.round(elapsed)}ms`);
+  const label = card.querySelector(".ec-executing-label");
+  if (label) label.textContent = `▶ EXECUTING — ${pct}%`;
+}
 
 function syncHandPane(state) {
   const el = document.getElementById("hand-strip");
