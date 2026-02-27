@@ -415,10 +415,7 @@ function updateExploitProgress() {
   if (execStartTime === null || execTotalMs === null) return;
   const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
   const pct = Math.min(100, Math.round((elapsed / execTotalMs) * 100));
-  const card = document.querySelector(".exploit-card.executing");
-  if (!card) return;
-  /** @type {HTMLElement} */ (card).style.setProperty("--exec-elapsed", `-${Math.round(elapsed)}ms`);
-  const label = card.querySelector(".ec-executing-label");
+  const label = document.querySelector(".exploit-card.executing .ec-executing-label");
   if (label) label.textContent = `▶ EXECUTING — ${pct}%`;
 }
 
