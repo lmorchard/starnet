@@ -12,7 +12,7 @@ import { cancelTraceCountdown } from "./alert.js";
 import { getAvailableActions } from "./node-actions.js";
 import { on, emitEvent, E } from "./events.js";
 import { pauseTimers, resumeTimers } from "./timers.js";
-import { openDarknetsStore } from "./visual-renderer.js";
+import { openDarknetsStore } from "./store.js";
 
 /**
  * Build the wired ActionContext — maps abstract ctx methods to concrete state mutators.
