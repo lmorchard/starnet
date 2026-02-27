@@ -67,7 +67,7 @@ export function initState(networkData) {
     nodes,
     adjacency,
     player: {
-      cash: 0,
+      cash: 500,
       hand: generateStartingHand(),
     },
     globalAlert: "green",   // 'green' | 'yellow' | 'red' | 'trace'
@@ -96,6 +96,11 @@ export function initState(networkData) {
   state.mission = missionTarget
     ? { targetMacguffinId: missionTarget.id, targetName: missionTarget.name, complete: false }
     : null;
+
+  // WAN node is always accessible — it's the player's entry point from outside the LAN
+  Object.values(state.nodes).forEach((node) => {
+    if (node.type === "wan") node.visibility = "accessible";
+  });
 
   // Make start node accessible — neighbors stay hidden until compromised
   state.nodes[networkData.startNode].visibility = "accessible";
@@ -448,6 +453,23 @@ export function isIceVisible(ice, nodes, selectedNodeId = null) {
   if (selectedNodeId && ice.attentionNodeId === selectedNodeId) return true;
   const atAccess = nodes[ice.attentionNodeId]?.accessLevel;
   return atAccess === "compromised" || atAccess === "owned";
+}
+
+// ── Store / card acquisition ──────────────────────────────
+
+/**
+ * Deducts price from wallet and adds the card to the player's hand.
+ * Returns false (no-op) if the player cannot afford it.
+ * @param {ExploitCard} card
+ * @param {number} price
+ * @returns {boolean}
+ */
+export function buyExploit(card, price) {
+  if (state.player.cash < price) return false;
+  state.player.cash -= price;
+  state.player.hand.push(card);
+  emit();
+  return true;
 }
 
 // ── Serialization ─────────────────────────────────────────

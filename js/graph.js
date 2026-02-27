@@ -5,6 +5,7 @@ import { isIceVisible } from "./state.js";
 
 // Node type → shape mapping
 const NODE_SHAPES = {
+  "wan":              "barrel",
   "gateway":          "diamond",
   "router":           "ellipse",
   "firewall":         "pentagon",
@@ -201,6 +202,11 @@ function buildStylesheet() {
     {
       selector: "node.hidden",
       style: { display: "none" },
+    },
+    // Pointer cursor on all visible nodes
+    {
+      selector: "node.revealed, node.accessible",
+      style: { cursor: "pointer" },
     },
     // Revealed but not accessible
     {

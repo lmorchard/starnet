@@ -19,6 +19,10 @@ export const TIMER = {
 
 let currentTick = 0;
 let nextId = 1;
+let _paused = false;
+
+export function pauseTimers()  { _paused = true;  }
+export function resumeTimers() { _paused = false; }
 
 // timerId → { id, type, payload, fireAt, intervalTicks, visible, label, startedAt, durationTicks }
 const timers = new Map();
@@ -58,6 +62,7 @@ export function scheduleRepeating(type, intervalMs, payload = {}) {
 }
 
 export function tick(n = 1) {
+  if (_paused) return;
   currentTick += n;
   for (const [id, entry] of timers) {
     if (currentTick >= entry.fireAt) {

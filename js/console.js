@@ -6,15 +6,15 @@
 /** @typedef {import('./types.js').NodeState} NodeState */
 /** @typedef {import('./types.js').ExploitCard} ExploitCard */
 
-import { getState, isIceVisible } from "./state.js";
+import { getState, isIceVisible, buyExploit } from "./state.js";
 import { addLogEntry, getRecentLog } from "./log.js";
 import { emitEvent, on, E } from "./events.js";
 import { getVisibleTimers } from "./timers.js";
-import { exploitSortKey } from "./exploits.js";
+import { exploitSortKey, getStoreCatalog, generateExploitForVuln } from "./exploits.js";
 import { getActions } from "./node-types.js";
 import { getAvailableActions } from "./node-actions.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-trace", "jackout", "status", "actions", "log", "help", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-trace", "jackout", "status", "actions", "store", "buy", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
 
 let history = [];
@@ -96,6 +96,8 @@ function handleCommand(verb, args) {
     case "jackout":      return cmdJackout();
     case "actions":      return cmdActions();
     case "status":       return cmdStatus(args);
+    case "store":        return cmdStore();
+    case "buy":          return cmdBuy(args);
     case "log":          return cmdLog(args);
     case "help":         return cmdHelp();
     case "cheat":        return cmdCheat(args);
@@ -313,10 +315,15 @@ function cmdActions() {
     if (has.has("eject"))  lines.push(`  eject                    — push ICE to adjacent node`);
     if (has.has("reboot")) lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
 
-    // Type-specific actions (reconfigure, cancel-trace, etc.)
+    // Type-specific actions (reconfigure, cancel-trace, access-darknet, etc.)
     getActions(sel, s).forEach((a) => {
       lines.push(`  ${a.id.padEnd(24)} — ${a.desc(sel, s)}`);
     });
+
+    if (sel.type === "wan") {
+      lines.push(`  store                    — list darknet broker catalog`);
+      lines.push(`  buy <index>              — purchase exploit card from broker`);
+    }
 
     if (sel.probed) {
       lines.push(`  cheat give matching      — add matching exploits [balance rescue — sets cheat flag]`);
@@ -620,6 +627,56 @@ function cmdStatusMission() {
   lines.forEach((l) => addLogEntry(l, "meta"));
 }
 
+function resolveWanAccess() {
+  const s = getState();
+  if (s.phase !== "playing") { addLogEntry("Not connected to network.", "error"); return false; }
+  if (s.nodes[s.selectedNodeId]?.type !== "wan") {
+    addLogEntry("Access denied. Select WAN node first.", "error");
+    return false;
+  }
+  return true;
+}
+
+function cmdStore() {
+  if (!resolveWanAccess()) return;
+  const s = getState();
+  const catalog = getStoreCatalog();
+  const lines = ["DARKNET BROKER", "──────────────────────────────────────────", `Wallet: ¥${s.player.cash.toLocaleString()}`];
+  catalog.forEach((item, i) => {
+    const canAfford = s.player.cash >= item.price ? "" : "  [INSUFFICIENT FUNDS]";
+    lines.push(`  [${i + 1}] ${item.name}  [${item.rarity}]  ${item.vulnId}  ¥${item.price}${canAfford}`);
+  });
+  lines.push("Use: buy <index>  to purchase");
+  lines.forEach((l) => addLogEntry(l, "meta"));
+}
+
+function cmdBuy(args) {
+  if (!resolveWanAccess()) return;
+  const s = getState();
+  if (!args[0]) { addLogEntry("Usage: buy <index>", "error"); return; }
+  const catalog = getStoreCatalog();
+  const num = parseInt(args[0], 10);
+  let item = null;
+  if (!isNaN(num) && num >= 1 && num <= catalog.length) {
+    item = catalog[num - 1];
+  } else {
+    const lower = args[0].toLowerCase();
+    const matches = catalog.filter((c) => c.vulnId.startsWith(lower));
+    if (matches.length === 1) { item = matches[0]; }
+    else if (matches.length > 1) { addLogEntry(`Ambiguous: ${matches.map((m) => m.vulnId).join(", ")}`, "error"); return; }
+    else { addLogEntry(`Unknown item: ${args[0]}`, "error"); return; }
+  }
+  if (s.player.cash < item.price) {
+    addLogEntry(`Insufficient funds. Need ¥${item.price}, have ¥${s.player.cash.toLocaleString()}.`, "error");
+    return;
+  }
+  const card = generateExploitForVuln(item.vulnId);
+  const success = buyExploit(card, item.price);
+  if (success) {
+    addLogEntry(`Purchased: ${card.name}  [${item.rarity}]  targets:${item.vulnId}  cost:¥${item.price}`, "success");
+  }
+}
+
 function cmdLog(args) {
   const n = Math.min(Math.max(parseInt(args[0], 10) || 20, 1), 200);
   const entries = getRecentLog(n);
@@ -645,6 +702,8 @@ function cmdHelp() {
     "  jackout                   Disconnect and end run.",
     "  actions                   List all currently valid actions with context.",
     "  status [noun]             Game state. Nouns: summary ice hand node alert mission",
+    "  store                     List darknet broker catalog (requires WAN selected).",
+    "  buy <index>               Purchase exploit card from broker (requires WAN selected).",
     "  log [n]                   Replay last n log entries (default: 20).",
     "  help                      Show this listing.",
     "  // CHEAT — playtesting only. Cheaters never win.",

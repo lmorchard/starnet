@@ -4,6 +4,14 @@
 export const NETWORK = {
   nodes: [
     {
+      id: "wan",
+      type: "wan",
+      label: "WAN",
+      grade: "D",
+      x: 400,
+      y: -80,
+    },
+    {
       id: "gateway",
       type: "gateway",
       label: "INET-GW-01",
@@ -106,6 +114,7 @@ export const NETWORK = {
   ],
 
   edges: [
+    { source: "wan", target: "gateway" },
     { source: "gateway", target: "router-a" },
     { source: "gateway", target: "firewall" },
     { source: "gateway", target: "router-b" },

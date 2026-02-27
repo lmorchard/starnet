@@ -140,6 +140,19 @@ export const NODE_TYPES = {
     actions: [],
   },
 
+  "wan": {
+    behaviors: [],
+    actions: [
+      {
+        id: "access-darknet",
+        label: "ACCESS DARKNET",
+        available: (_node, state) => state.phase === "playing",
+        desc: () => "Access the darknet broker to purchase exploit cards.",
+        execute: (_node, _state, ctx) => ctx.openDarknetsStore(),
+      },
+    ],
+  },
+
   "gateway": {
     behaviors: [],
     actions: [],

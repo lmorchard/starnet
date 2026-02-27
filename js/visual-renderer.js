@@ -598,3 +598,4 @@ function renderEndScreen(state) {
     emitEvent("starnet:action:run-again", {});
   });
 }
+

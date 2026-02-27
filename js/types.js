@@ -183,8 +183,9 @@
  *   ejectIce:         () => void,
  *   rebootNode:       (nodeId: string) => void,
  *   jackOut:          () => void,
- *   reconfigureNode:  (nodeId: string) => void,
- *   cancelTrace:      () => void,
+ *   reconfigureNode:     (nodeId: string) => void,
+ *   cancelTrace:         () => void,
+ *   openDarknetsStore:   () => void,
  * }} ActionContext
  */
 

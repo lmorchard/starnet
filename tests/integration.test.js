@@ -13,13 +13,15 @@ import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
-import { initState, getState, ejectIce, selectNode, isIceVisible } from "../js/state.js";
+import { initState, getState, ejectIce, selectNode, isIceVisible, buyExploit } from "../js/state.js";
 import { navigateTo, navigateAway } from "../js/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce } from "../js/ice.js";
 import { emitEvent, on, off, E } from "../js/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/timers.js";
 import { initNodeLifecycle } from "../js/node-lifecycle.js";
 import { getActions, hasBehavior } from "../js/node-types.js";
+import { getAvailableActions } from "../js/node-actions.js";
+import { generateExploit } from "../js/exploits.js";
 import { startTraceCountdown, recordIceDetection } from "../js/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
@@ -745,5 +747,84 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     s.nodes["gateway"].accessLevel = "compromised";
     s.selectedNodeId = null;
     assert.equal(isIceVisible(s.ice, s.nodes, s.selectedNodeId), true);
+  });
+});
+
+// ── WAN node + darknet store ─────────────────────────────────────────────────
+
+describe("WAN node", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+  });
+
+  it("WAN node starts visible and accessible", () => {
+    const s = getState();
+    const wan = s.nodes["wan"];
+    assert.ok(wan, "wan node should exist");
+    assert.equal(wan.visibility, "accessible");
+  });
+
+  it("access-darknet action is available on WAN node while playing", () => {
+    const s = getState();
+    const wan = s.nodes["wan"];
+    const actions = getAvailableActions(wan, s);
+    assert.ok(actions.some((a) => a.id === "access-darknet"), "access-darknet should be available on WAN");
+  });
+
+  it("access-darknet action is NOT available on gateway node", () => {
+    const s = getState();
+    const gateway = s.nodes["gateway"];
+    const actions = getAvailableActions(gateway, s);
+    assert.ok(!actions.some((a) => a.id === "access-darknet"), "access-darknet should not be on gateway");
+  });
+
+  it("standard node actions (probe, exploit, read) are not available on WAN", () => {
+    const s = getState();
+    const wan = s.nodes["wan"];
+    const actions = getAvailableActions(wan, s);
+    const blocked = ["probe", "exploit", "read", "loot", "reboot"];
+    for (const id of blocked) {
+      assert.ok(!actions.some((a) => a.id === id), `${id} should not be on WAN`);
+    }
+  });
+
+  it("ICE movement from gateway skips WAN even when adjacent", () => {
+    const s = getState();
+    assert.ok(s.adjacency["gateway"]?.includes("wan"), "wan should be adjacent to gateway");
+    teleportIce("gateway");
+    // Run 50 ICE ticks — WAN should never be visited
+    for (let i = 0; i < 50; i++) {
+      handleIceTick();
+    }
+    assert.notEqual(s.ice?.attentionNodeId, "wan", "ICE should never move to WAN");
+  });
+});
+
+describe("buyExploit", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+  });
+
+  it("adds card to hand and deducts cash", () => {
+    const s = getState();
+    const before = s.player.cash;
+    const card = generateExploit("common");
+    const result = buyExploit(card, 100);
+    assert.equal(result, true);
+    assert.equal(s.player.cash, before - 100);
+    assert.ok(s.player.hand.some((c) => c.id === card.id), "card should be in hand");
+  });
+
+  it("returns false and leaves state unchanged when cash < price", () => {
+    const s = getState();
+    s.player.cash = 50;
+    const handBefore = s.player.hand.length;
+    const card = generateExploit("common");
+    const result = buyExploit(card, 100);
+    assert.equal(result, false);
+    assert.equal(s.player.cash, 50);
+    assert.equal(s.player.hand.length, handBefore);
   });
 });
