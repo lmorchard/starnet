@@ -14,6 +14,7 @@ export const TIMER = {
   TRACE_TICK:      "starnet:timer:trace-tick",
   REBOOT_COMPLETE: "starnet:timer:reboot-complete",
   EXPLOIT_EXEC:    "starnet:timer:exploit-exec",
+  PROBE_SCAN:      "starnet:timer:probe-scan",
 };
 
 let currentTick = 0;

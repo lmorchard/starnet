@@ -23,6 +23,7 @@ import { startTraceCountdown, recordIceDetection } from "../js/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
 import { startExploit, cancelExploit, handleExploitExecTimer, exploitDuration } from "../js/exploit-exec.js";
+import { startProbe, cancelProbe, handleProbeScanTimer, probeDuration } from "../js/probe-exec.js";
 
 // Register the node lifecycle dispatcher once for this test file.
 initNodeLifecycle();
@@ -532,5 +533,80 @@ describe("Exploit execution timing", () => {
 
     assert.ok(iceDetected,     "ICE detection must fire during exploit execution window");
     assert.ok(exploitResolved, "exploit must still resolve after ICE detection");
+  });
+});
+
+// ── Probe execution timing ────────────────────────────────────────────────────
+
+describe("Probe execution timing", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("startProbe sets activeProbe on state", () => {
+    const s = getState();
+    const started = startProbe("gateway");
+    assert.ok(started, "startProbe should return true");
+    assert.notEqual(s.activeProbe, null, "activeProbe should be set");
+    assert.equal(s.activeProbe.nodeId, "gateway");
+  });
+
+  it("probe does not complete immediately after startProbe", () => {
+    const s = getState();
+    const probed = withEvents(E.NODE_PROBED, () => {
+      startProbe("gateway");
+    });
+    assert.equal(probed.length, 0, "NODE_PROBED must not fire synchronously");
+    assert.equal(s.nodes["gateway"].probed, false, "node must not be probed immediately");
+    assert.notEqual(s.activeProbe, null, "activeProbe must remain set");
+  });
+
+  it("probe completes after ticking past its duration", () => {
+    on(TIMER.PROBE_SCAN, handleProbeScanTimer);
+    const s = getState();
+    startProbe("gateway");
+
+    const durationMs = probeDuration(s.nodes["gateway"].grade);
+    const ticksNeeded = Math.ceil(durationMs / 100) + 2;
+
+    let probeCompleted = false;
+    const handler = () => { probeCompleted = true; };
+    on(E.NODE_PROBED, handler);
+    tick(ticksNeeded);
+    off(E.NODE_PROBED, handler);
+    off(TIMER.PROBE_SCAN, handleProbeScanTimer);
+
+    assert.ok(probeCompleted, "NODE_PROBED must fire after ticking past the scan duration");
+    assert.equal(s.activeProbe, null, "activeProbe must be cleared after completion");
+    assert.equal(s.nodes["gateway"].probed, true, "node must be probed after completion");
+  });
+
+  it("cancelProbe clears activeProbe and emits PROBE_SCAN_CANCELLED", () => {
+    const s = getState();
+    startProbe("gateway");
+    assert.notEqual(s.activeProbe, null);
+
+    const fired = withEvents(E.PROBE_SCAN_CANCELLED, () => {
+      cancelProbe();
+    });
+    assert.equal(fired.length, 1, "PROBE_SCAN_CANCELLED must fire once");
+    assert.equal(fired[0].nodeId, "gateway");
+    assert.equal(s.activeProbe, null, "activeProbe must be null after cancel");
+    assert.equal(s.nodes["gateway"].probed, false, "node must not be probed after cancel");
+  });
+
+  it("starting a second probe while one is running returns false and logs error", () => {
+    const s = getState();
+    startProbe("gateway");
+
+    const logErrors = withEvents(E.LOG_ENTRY, () => {
+      const result = startProbe("gateway");
+      assert.equal(result, false, "second startProbe must return false");
+    }).filter((e) => e.type === "error");
+
+    assert.ok(logErrors.length > 0, "guard must emit a LOG_ENTRY error");
+    assert.equal(s.activeProbe.nodeId, "gateway", "first probe must remain active");
   });
 });

@@ -1,8 +1,9 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
-import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
+import { initState, getState, selectNode, deselectNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
 import { startExploit, cancelExploit, handleExploitExecTimer } from "./exploit-exec.js";
+import { startProbe, cancelProbe, handleProbeScanTimer } from "./probe-exec.js";
 import { addLogEntry } from "./log.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand, pushHistory } from "./console.js";
@@ -63,6 +64,7 @@ function init() {
   on("starnet:action:deselect", ({ fromConsole } = {}) => {
     if (!fromConsole) logCommand("deselect");
     cancelExploit();
+    cancelProbe();
     deselectNode();
     setSidebarMode("node");
     sidebarMode = "node";
@@ -72,12 +74,18 @@ function init() {
   on(TIMER.ICE_DETECT,  (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK,  () => handleTraceTick());
   on(TIMER.EXPLOIT_EXEC, (payload) => handleExploitExecTimer(payload));
+  on(TIMER.PROBE_SCAN,   (payload) => handleProbeScanTimer(payload));
 
   on("starnet:action:probe", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`probe ${nodeId}`);
-    probeNode(nodeId);
+    startProbe(nodeId);
     setSidebarMode("node");
     sidebarMode = "node";
+  });
+
+  on("starnet:action:cancel-probe", ({ fromConsole } = {}) => {
+    if (!fromConsole) logCommand("cancel-probe");
+    cancelProbe();
   });
 
   on("starnet:action:exploit", () => {

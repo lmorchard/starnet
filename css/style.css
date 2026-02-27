@@ -442,6 +442,11 @@ html, body {
   text-shadow: 0 0 6px var(--cyan-dim);
 }
 
+.ice-timer-scanning {
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan-dim);
+}
+
 .nd-actions {
   display: flex;
   flex-direction: column;

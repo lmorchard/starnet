@@ -80,6 +80,7 @@ export function initState(networkData) {
     ice: null,             // populated below if network defines ICE
     lastDisturbedNodeId: null,
     executingExploit: null,
+    activeProbe: null,
     mission: null,         // populated below after macguffin assignment
   };
 

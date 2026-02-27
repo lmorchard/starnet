@@ -332,7 +332,9 @@ function renderActions(node, state) {
   }
 
   if (node.accessLevel === "locked") {
-    if (!node.probed) {
+    if (state.activeProbe?.nodeId === node.id) {
+      btns.push(actionBtn("cancel-probe", "CANCEL PROBE", "Abort vulnerability scan."));
+    } else if (!node.probed && !node.rebooting) {
       btns.push(actionBtn("probe", "PROBE", "Reveal vulnerabilities. Raises local alert."));
     }
   }
@@ -490,6 +492,7 @@ function renderIceTimers() {
   const rows = timers.map((t) => {
     const cls = t.label === "ICE DETECTION" ? "ice-timer-detect"
               : t.label === "EXECUTING"      ? "ice-timer-executing"
+              : t.label === "SCANNING"       ? "ice-timer-scanning"
               : "ice-timer-reboot";
     return `<div class="ice-timer ${cls}">⚠ ${t.label}: ${t.remaining}s</div>`;
   }).join("");

@@ -76,6 +76,12 @@ export function initLogRenderer() {
   on(E.NODE_REBOOTING,    (/** @type {NodeRebootingPayload} */    { label }) => add(`[NODE] ${label}: REBOOTING — offline temporarily.`, "info"));
   on(E.NODE_REBOOTED,     (/** @type {NodeRebootedPayload} */     { label }) => add(`[NODE] ${label}: back online.`, "info"));
 
+  // ── Probe scan events ────────────────────────────────────
+  on(E.PROBE_SCAN_STARTED,   (/** @type {import('./types.js').ProbeScanStartedPayload} */ { label, durationMs }) =>
+    add(`[PROBE] ${label}: scanning (${Math.round(durationMs / 1000)}s)...`, "info"));
+  on(E.PROBE_SCAN_CANCELLED, (/** @type {import('./types.js').ProbeScanCancelledPayload} */ { label }) =>
+    add(`[PROBE] ${label}: scan cancelled.`, "info"));
+
   // ── Exploit events ───────────────────────────────────────
   on(E.EXPLOIT_STARTED,      (/** @type {ExploitStartedPayload} */      { label, exploitName, durationMs }) =>
     add(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`, "info"));
