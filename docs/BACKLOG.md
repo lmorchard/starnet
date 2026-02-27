@@ -77,7 +77,24 @@ harness (`scripts/playtest.js`) being built this session.
 
 ### Module Refactoring
 - **`state.js` and `main.js` are large** — candidates for splitting once the architecture stabilizes; JSDoc types now in place make this lower risk
-- **Web Components** — noted as a potential architecture for the sidebar if it grows complex; not urgent
+
+### Surgical DOM Rendering
+The current pattern of full `innerHTML` replacement in `visual-renderer.js` is simple but
+causes bugs when animated or interactive elements (event listeners, CSS animations) need to
+survive across state updates. The exploit cancel overlay flickering and click-reliability
+issue (fixed by in-place progress updates) is a concrete example of this friction.
+
+**Consider investigating:**
+- **[lit-html](https://lit.dev/docs/libraries/standalone-templates/)** — template literal
+  rendering that diffs the DOM surgically; zero-framework, ESM-native, fits the no-bundler
+  constraint well
+- **Web Components** — encapsulate cards, sidebar panels, etc. with their own internal
+  DOM; state updates via attributes/properties rather than parent innerHTML replacement
+- **Hybrid** — keep the event bus / state model as-is, adopt lit-html only for the
+  rendering layer in `visual-renderer.js` and `log-renderer.js`
+
+_Trigger: reach for one of these when the in-place workaround pattern recurs a second or
+third time. One case is a data point; a pattern is a signal._
 
 ### Node Type Action Registry
 
