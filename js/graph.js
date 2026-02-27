@@ -269,20 +269,27 @@ function buildStylesheet() {
       style: {
         shape: "polygon",
         "shape-polygon-points": [
+          // 20-point eye outline: pointed canthus at ±x, smooth arcs top and bottom
           -1, 0,
-          -0.75, -0.3,
-          -0.45, -0.52,
-          -0.15, -0.6,
-          0.15, -0.6,
-          0.45, -0.52,
-          0.75, -0.3,
+          -0.8, -0.22,
+          -0.6, -0.42,
+          -0.4, -0.55,
+          -0.2, -0.63,
+          0, -0.65,
+          0.2, -0.63,
+          0.4, -0.55,
+          0.6, -0.42,
+          0.8, -0.22,
           1, 0,
-          0.75, 0.3,
-          0.45, 0.52,
-          0.15, 0.6,
-          -0.15, 0.6,
-          -0.45, 0.52,
-          -0.75, 0.3,
+          0.8, 0.22,
+          0.6, 0.42,
+          0.4, 0.55,
+          0.2, 0.63,
+          0, 0.65,
+          -0.2, 0.63,
+          -0.4, 0.55,
+          -0.6, 0.42,
+          -0.8, 0.22,
         ].join(" "),
         width: 36,
         height: 24,
@@ -291,8 +298,19 @@ function buildStylesheet() {
         "border-width": 2,
         "background-image": "data:image/svg+xml," + encodeURIComponent(
           '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-          '<circle cx="50" cy="68" r="40" fill="#ff00aa" opacity="0.7"/>' +
-          '<circle cx="50" cy="68" r="20" fill="#1a0010"/>' +
+          // Iris
+          '<circle cx="50" cy="50" r="53" fill="#ff00aa" opacity="0.8"/>' +
+          // Limbal ring
+          '<circle cx="50" cy="50" r="53" fill="none" stroke="#880044" stroke-width="5"/>' +
+          // Radial iris lines (covered at center by pupil, visible at iris edge)
+          '<line x1="50" y1="4" x2="50" y2="96" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
+          '<line x1="9" y1="23" x2="91" y2="77" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
+          '<line x1="91" y1="23" x2="9" y2="77" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
+          '<line x1="4" y1="50" x2="96" y2="50" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
+          // Vertical slit pupil
+          '<ellipse cx="50" cy="50" rx="10" ry="26" fill="#0d0008"/>' +
+          // Highlight glint
+          '<circle cx="64" cy="36" r="6" fill="#ffffff" opacity="0.35"/>' +
           '</svg>'
         ),
         "background-width": "65%",
