@@ -278,6 +278,29 @@ describe("ICE detection: detectedAtNode resets when player moves", () => {
   });
 });
 
+/// ── ICE detection: player enters occupied node ───────────────────────────────
+
+describe("ICE detection: player navigates to node where ICE is already present", () => {
+  beforeEach(() => {
+    clearAll();
+    initState(NETWORK);
+    startIce();
+  });
+
+  it("starts detection dwell when player enters ICE's current node", () => {
+    const s = getState();
+    // Place ICE at gateway (accessible from start) without triggering handleIceTick
+    s.ice.attentionNodeId = "gateway";
+
+    const events = withEvents(E.ICE_DETECT_PENDING, () => {
+      navigateTo("gateway");
+    });
+
+    assert.equal(events.length, 1, "ICE_DETECT_PENDING should fire when player enters ICE's node");
+    assert.equal(events[0].nodeId, "gateway");
+  });
+});
+
 // ── ICE detection: eject cancels dwell ───────────────────────────────────────
 
 describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {

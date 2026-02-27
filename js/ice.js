@@ -180,6 +180,14 @@ export function cancelIceDwell() {
   cancelAllByType(TIMER.ICE_DETECT);
 }
 
+// Called by navigation.js after the player moves to a new node.
+// If ICE is already at that node, start the detection dwell.
+export function onPlayerNavigatedTo(nodeId) {
+  const s = getState();
+  if (!s.ice?.active || s.ice.attentionNodeId !== nodeId) return;
+  checkIceDetection(nodeId);
+}
+
 // Teleport ICE directly to a node (cheat / playtesting use only).
 // Resets detectedAtNode so the detection dwell fires immediately on arrival.
 export function teleportIce(nodeId) {

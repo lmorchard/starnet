@@ -6,9 +6,10 @@
 // Imported by main.js and playtest.js instead of calling the individual
 // functions directly, so the logic is testable without DOM coupling.
 
-import { selectNode, deselectNode } from "./state.js";
+import { selectNode, deselectNode, getState } from "./state.js";
 import { cancelExploit } from "./exploit-exec.js";
 import { cancelProbe } from "./probe-exec.js";
+import { onPlayerNavigatedTo } from "./ice.js";
 
 /**
  * Navigate to a new node — cancels any in-progress exploit or probe, then
@@ -16,9 +17,11 @@ import { cancelProbe } from "./probe-exec.js";
  * @param {string} nodeId
  */
 export function navigateTo(nodeId) {
+  const isNewNode = getState().selectedNodeId !== nodeId;
   cancelExploit();
   cancelProbe();
   selectNode(nodeId);
+  if (isNewNode) onPlayerNavigatedTo(nodeId);
 }
 
 /**
