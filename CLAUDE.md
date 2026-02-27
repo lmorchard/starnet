@@ -115,7 +115,7 @@ Session docs live in `docs/dev-sessions/{timestamp}-{slug}/` with `spec.md`, `pl
 planning artifacts in git history independent of the implementation commits, and gives a
 clean restore point if execution needs to be abandoned mid-session.
 
-Most recent session: `docs/dev-sessions/2026-02-27-1423-wan-node-darknet-store/`
+Most recent session: `docs/dev-sessions/2026-02-27-1423-wan-node-darknet-store/` (WAN node + darknet broker store)
 
 ## Headless Playtest Harness
 
@@ -187,8 +187,18 @@ node scripts/playtest.js "status ice"
 
 ## Player Manual
 
-`MANUAL.md` is the player-facing documentation for the game. **Keep it up to date** when
-adding, changing, or removing gameplay mechanics. Specifically:
+`MANUAL.md` is the player-facing documentation for the game and the **canonical reference
+for intended game behavior.**
+
+**Consult MANUAL.md before implementing any feature that touches existing mechanics.**
+If the spec or plan conflicts with what the manual describes, surface the discrepancy
+before writing code — not after.
+
+**Update MANUAL.md as part of completing any feature**, not as an afterthought. Treat
+it as a checklist item in the session retro: if a mechanic was added, changed, or removed,
+the manual must reflect it before the session is considered done.
+
+Specifically, update when:
 
 - New node types → add to the node types table
 - New actions → add to the node actions reference and console commands
@@ -198,9 +208,8 @@ adding, changing, or removing gameplay mechanics. Specifically:
 
 The manual describes the game as it currently exists, not future plans.
 
-When playtesting, **consult MANUAL.md as the source of truth for intended behavior.**
-If the game behaves differently from what the manual describes, that is either a bug
-in gameplay or a bug in the manual — both are worth fixing.
+**If the game behaves differently from what the manual describes, that is a bug** —
+either in gameplay or in the manual. Both are worth filing and fixing.
 
 ---
 
