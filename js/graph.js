@@ -5,6 +5,7 @@ import { isIceVisible } from "./state.js";
 
 // Node type → shape mapping
 const NODE_SHAPES = {
+  "wan":              "barrel",
   "gateway":          "diamond",
   "router":           "ellipse",
   "firewall":         "pentagon",

@@ -113,6 +113,7 @@ export const NODE_ACTIONS = Object.freeze([
  * @returns {ActionDef[]}
  */
 export function getNodeActions(node, state) {
+  if (node.type === "wan") return []; // WAN has only type-specific actions
   return NODE_ACTIONS.filter((a) => a.available(node, state));
 }
 

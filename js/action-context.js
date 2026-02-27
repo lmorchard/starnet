@@ -4,13 +4,15 @@
 
 /** @typedef {import('./types.js').ActionContext} ActionContext */
 
-import { getState, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode } from "./state.js";
+import { getState, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, buyExploit } from "./state.js";
 import { startExploit, cancelExploit } from "./exploit-exec.js";
 import { startProbe, cancelProbe } from "./probe-exec.js";
 import { navigateTo, navigateAway } from "./navigation.js";
 import { cancelTraceCountdown } from "./alert.js";
 import { getAvailableActions } from "./node-actions.js";
 import { on, emitEvent, E } from "./events.js";
+import { pauseTimers, resumeTimers } from "./timers.js";
+import { openDarknetsStore } from "./visual-renderer.js";
 
 /**
  * Build the wired ActionContext — maps abstract ctx methods to concrete state mutators.
@@ -32,6 +34,10 @@ export function buildActionContext() {
     jackOut:          ()       => endRun("success"),
     reconfigureNode:  (nodeId) => reconfigureNode(nodeId),
     cancelTrace:      ()       => cancelTraceCountdown(),
+    openDarknetsStore: () => {
+      pauseTimers();
+      openDarknetsStore(getState(), (card, price) => buyExploit(card, price));
+    },
   };
 }
 

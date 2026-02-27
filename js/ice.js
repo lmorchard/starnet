@@ -89,7 +89,9 @@ export function handleIceTick() {
   if (!s.ice || !s.ice.active || s.phase !== "playing") return;
 
   const { grade, attentionNodeId } = s.ice;
-  const neighbors = s.adjacency[attentionNodeId] || [];
+  // WAN is outside the LAN — ICE never moves there
+  const neighbors = (s.adjacency[attentionNodeId] || [])
+    .filter((n) => s.nodes[n]?.type !== "wan");
   if (neighbors.length === 0) return;
 
   let nextNode;
