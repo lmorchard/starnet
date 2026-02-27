@@ -92,6 +92,7 @@ export function getVisibleTimers() {
     .map((t) => ({
       label: t.label,
       remaining: Math.max(0, Math.ceil((t.fireAt - currentTick) * TICK_MS / 1000)),
+      progress: Math.min(1, (currentTick - t.startedAt) / t.durationTicks),
     }));
 }
 

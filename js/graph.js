@@ -32,6 +32,8 @@ let currentProbeSweepNodeId = null;  // tracks node being probed for sweep overl
 let currentProbeSweepProgress = 0;   // 0..1
 let currentExploitBracketsNodeId = null;
 let currentExploitBracketsProgress = 0;
+let currentIceDetectNodeId = null;
+let currentIceDetectProgress = 0;
 const pulsingNodes = new Set();       // nodeIds running red-alert pulse
 const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
 const rebootingNodes = new Set();     // nodeIds running reboot opacity pulse
@@ -156,6 +158,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     syncReticle();
     _renderProbeSweep();
     _renderExploitBrackets();
+    _renderIceDetectSweep();
     const pan = cy.pan();
     const zoom = cy.zoom();
     const size = 40 * zoom;
@@ -838,6 +841,64 @@ function _renderExploitBrackets() {
   setLine("bracket-br-v", ox + dist,       oy + dist, ox + dist,       oy + dist - arm);
   setLine("bracket-bl-h", ox - dist,       oy + dist, ox - dist + arm, oy + dist);
   setLine("bracket-bl-v", ox - dist,       oy + dist, ox - dist,       oy + dist - arm);
+}
+
+export function syncIceDetectSweep(nodeId, progress) {
+  currentIceDetectNodeId = nodeId;
+  currentIceDetectProgress = Math.max(0, Math.min(1, progress));
+  _renderIceDetectSweep();
+}
+
+export function clearIceDetectSweep() {
+  currentIceDetectNodeId = null;
+  currentIceDetectProgress = 0;
+  const svg = document.getElementById("ice-detect-sweep");
+  if (svg) svg.style.opacity = "0";
+}
+
+// Called on ICE_DETECTED: snap ring to full circle, then fade out.
+export function completeAndClearIceDetectSweep() {
+  if (currentIceDetectNodeId) {
+    currentIceDetectProgress = 1;
+    _renderIceDetectSweep();
+  }
+  clearIceDetectSweep();
+}
+
+function _renderIceDetectSweep() {
+  const svg = document.getElementById("ice-detect-sweep");
+  if (!svg || !cy || !currentIceDetectNodeId) return;
+  const node = cy.getElementById(currentIceDetectNodeId);
+  if (!node || node.length === 0) { clearIceDetectSweep(); return; }
+
+  const pos = node.renderedPosition();
+  const r = node.renderedWidth() / 2;
+  const rRing = r + 10;  // 10px screen-space gap outside the node
+  svg.style.width  = `${rRing * 2}px`;
+  svg.style.height = `${rRing * 2}px`;
+  svg.style.left   = `${pos.x - rRing}px`;
+  svg.style.top    = `${pos.y - rRing}px`;
+  svg.style.opacity = "1";
+
+  const arc = document.getElementById("ice-detect-arc");
+  const p = currentIceDetectProgress;
+  const ox = rRing, oy = rRing;
+  arc.setAttribute("stroke-opacity", String(0.45 + 0.5 * p));  // ramps from dim to bright
+
+  if (p <= 0) {
+    arc.setAttribute("d", "");
+  } else if (p >= 1) {
+    // Full circle — two CCW semi-arcs to avoid degenerate arc case
+    arc.setAttribute("d",
+      `M ${ox},${oy - rRing} a ${rRing},${rRing} 0 1,0 0,${rRing * 2} a ${rRing},${rRing} 0 1,0 0,-${rRing * 2}`);
+  } else {
+    // Counter-clockwise: negate X component, sweep-flag=0
+    const angle = p * 2 * Math.PI;
+    const endX = ox - rRing * Math.sin(angle);
+    const endY = oy - rRing * Math.cos(angle);
+    arc.setAttribute("d",
+      `M ${ox},${oy - rRing} A ${rRing},${rRing} 0 ${p > 0.5 ? 1 : 0},0 ${endX},${endY}`);
+  }
 }
 
 export function fitGraph(cy) {

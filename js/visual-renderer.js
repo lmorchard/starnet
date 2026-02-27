@@ -13,7 +13,7 @@
 import { on, emitEvent, E } from "./events.js";
 import { getActions } from "./node-types.js";
 import { getNodeActions } from "./node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncExploitBrackets, clearExploitBrackets } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
@@ -44,6 +44,15 @@ export function initVisualRenderer() {
   on(E.EXPLOIT_FAILURE,     () => { execStartTime = null; execTotalMs = null; clearExploitBrackets(); });
   on(E.RUN_STARTED,         () => clearExploitBrackets());
 
+  // ICE detection sweep — clear immediately on any event that ends a detection dwell.
+  // TIMERS_UPDATED only fires when visible timers exist, so we can't rely on it alone.
+  on(E.ICE_DETECTED,     () => completeAndClearIceDetectSweep());
+  on(E.ICE_MOVED,        () => clearIceDetectSweep());
+  on(E.ICE_EJECTED,      () => clearIceDetectSweep());
+  on(E.ICE_REBOOTED,     () => clearIceDetectSweep());
+  on(E.PLAYER_NAVIGATED, () => clearIceDetectSweep());
+  on(E.RUN_STARTED,      () => clearIceDetectSweep());
+
   // Track probe scan start time for the radial sweep overlay.
   on(E.PROBE_SCAN_STARTED,   ({ durationMs }) => { probeStartTime = Date.now(); probeTotalMs = durationMs; });
   on(E.PROBE_SCAN_CANCELLED, () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
@@ -66,6 +75,13 @@ export function initVisualRenderer() {
     if (state.executingExploit && execStartTime !== null && execTotalMs !== null) {
       const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
       syncExploitBrackets(state.executingExploit.nodeId, elapsed / execTotalMs);
+    }
+    // ICE detection sweep — driven entirely by timer presence; self-clears when timer is gone
+    const iceDetect = getVisibleTimers().find((t) => t.label === "ICE DETECTION");
+    if (iceDetect) {
+      syncIceDetectSweep("ice-0", iceDetect.progress);
+    } else {
+      clearIceDetectSweep();
     }
   });
 

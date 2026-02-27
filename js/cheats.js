@@ -29,7 +29,7 @@ export function handleCheatCommand(args) {
     return cheatOwn(args.slice(1));
   } else if (sub === "trace") {
     return cheatTrace(args.slice(1));
-  } else if (sub === "summon-ice") {
+  } else if (sub === "summon-ice" || sub === "teleport-ice") {
     return cheatSummonIce(args.slice(1));
   } else if (sub === "help") {
     return cheatHelp();
