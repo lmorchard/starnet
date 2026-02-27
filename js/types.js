@@ -167,12 +167,34 @@
  */
 
 /**
+ * Dependency-injection context passed to action execute() functions.
+ * main.js constructs one instance at init, wiring each field to the
+ * corresponding state mutator. Tests can pass mock contexts.
+ * @typedef {{
+ *   getState:      () => GameState,
+ *   selectNode:    (nodeId: string) => void,
+ *   deselectNode:  () => void,
+ *   startProbe:    (nodeId: string) => void,
+ *   cancelProbe:   () => void,
+ *   startExploit:  (nodeId: string, exploitId: string) => void,
+ *   cancelExploit: () => void,
+ *   readNode:      (nodeId: string) => void,
+ *   lootNode:      (nodeId: string) => void,
+ *   ejectIce:      () => void,
+ *   rebootNode:    (nodeId: string) => void,
+ *   jackOut:       () => void,
+ *   logCommand:    (cmd: string) => void,
+ * }} ActionContext
+ */
+
+/**
  * An action available on a node — rendered as a sidebar button and console action.
  * @typedef {{
  *   id:        string,
  *   label:     string,
  *   available: (node: NodeState, state: GameState) => boolean,
  *   desc:      (node: NodeState, state: GameState) => string,
+ *   execute?:  (node: NodeState, state: GameState, ctx: ActionContext, payload?: Object) => void,
  * }} ActionDef
  */
 
