@@ -38,16 +38,22 @@ export function stopIce() {
   cancelAllByType(TIMER.ICE_DETECT);
 }
 
-// Cancel pending dwell detection when the player actually changes selection.
-// Re-selecting the same node must not reset the timer — check before mutating.
-on("starnet:action:select", ({ nodeId }) => {
+// React to player navigation: cancel pending detection dwell, reset the detection
+// lock so ICE can re-detect on a revisit, and start a new dwell if ICE is already
+// at the node the player just entered. nodeId is null on deselect.
+on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
   const s = getState();
-  if (s.selectedNodeId !== nodeId) {
-    cancelIceDwell();
+  cancelAllByType(TIMER.ICE_DETECT);
+  if (nodeId !== null) {
+    // Moving to a new node — reset lock so ICE can detect on any future visit
     if (s.ice) s.ice.detectedAtNode = null;
+    // ICE already here: start detection immediately
+    if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
+      checkIceDetection(nodeId);
+    }
   }
+  // On deselect (nodeId === null): only cancel the dwell, don't reset detection lock
 });
-on("starnet:action:deselect", cancelIceDwell);
 
 // Eject and reboot forcibly move ICE off its current node — treat as a departure.
 on(E.ICE_EJECTED,  handleIceDeparture);
@@ -178,14 +184,6 @@ function triggerDetection(nodeId) {
 
 export function cancelIceDwell() {
   cancelAllByType(TIMER.ICE_DETECT);
-}
-
-// Called by navigation.js after the player moves to a new node.
-// If ICE is already at that node, start the detection dwell.
-export function onPlayerNavigatedTo(nodeId) {
-  const s = getState();
-  if (!s.ice?.active || s.ice.attentionNodeId !== nodeId) return;
-  checkIceDetection(nodeId);
 }
 
 // Teleport ICE directly to a node (cheat / playtesting use only).

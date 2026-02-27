@@ -59,6 +59,8 @@ export const E = Object.freeze({
   ALERT_TRACE_CANCELLED: "alert:trace-cancelled",
   ALERT_PROPAGATED:      "alert:propagated",
 
+  PLAYER_NAVIGATED:     "player:navigated",
+
   ICE_MOVED:            "ice:moved",
   ICE_DETECT_PENDING:   "ice:detect-pending",
   ICE_DETECTED:         "ice:detected",

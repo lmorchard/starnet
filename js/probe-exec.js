@@ -6,8 +6,11 @@
 /** @typedef {import('./types.js').GameState} GameState */
 
 import { getState, emit, probeNode } from "./state.js";
-import { emitEvent, E } from "./events.js";
+import { emitEvent, on, E } from "./events.js";
 import { scheduleEvent, cancelEvent, TIMER } from "./timers.js";
+
+// Cancel any running probe scan when the player navigates away.
+on(E.PLAYER_NAVIGATED, () => cancelProbe());
 
 // Duration table: grade → milliseconds.
 // Shorter than exploit timing — probing is a recon action, not an attack.

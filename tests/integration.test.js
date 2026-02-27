@@ -260,7 +260,7 @@ describe("ICE detection: detectedAtNode resets when player moves", () => {
     s.selectedNodeId = "gateway";
     s.ice.detectedAtNode = "gateway"; // simulate: detection already happened here
 
-    emitEvent("starnet:action:select", { nodeId: "router-a" });
+    navigateTo("router-a");
 
     assert.equal(s.ice.detectedAtNode, null,
       "detectedAtNode should clear so ICE can detect at gateway again after player returns");
@@ -271,10 +271,10 @@ describe("ICE detection: detectedAtNode resets when player moves", () => {
     s.selectedNodeId = "gateway";
     s.ice.detectedAtNode = "gateway";
 
-    emitEvent("starnet:action:select", { nodeId: "gateway" });
+    navigateTo("gateway");
 
     assert.equal(s.ice.detectedAtNode, "gateway",
-      "detectedAtNode must not reset when player clicks the already-selected node");
+      "detectedAtNode must not reset when player re-selects the already-selected node");
   });
 });
 
