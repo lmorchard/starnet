@@ -146,15 +146,15 @@ function _positionContextMenu(nodeId) {
   const ch = container.offsetHeight;
 
   // Horizontal: prefer right of node, flip left if clipped
-  const x = (pos.x + r + gap + mw <= cw)
-    ? pos.x + r + gap
-    : pos.x - r - gap - mw;
+  const onRight = pos.x + r + gap + mw <= cw;
+  const x = onRight ? pos.x + r + gap : pos.x - r - gap - mw;
 
   // Vertical: center on node, clamp to container
   const y = Math.max(4, Math.min(pos.y - mh / 2, ch - mh - 4));
 
-  menu.style.left = `${x}px`;
-  menu.style.top  = `${y}px`;
+  menu.style.left      = `${x}px`;
+  menu.style.top       = `${y}px`;
+  menu.style.textAlign = onRight ? "left" : "right";
 }
 
 function syncContextMenu(node, state) {
