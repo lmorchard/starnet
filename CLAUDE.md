@@ -226,6 +226,15 @@ in gameplay or a bug in the manual — both are worth fixing.
 - Monospace font throughout
 - Planned (future): screenshake, bloom, vector glitches on countermeasure hits
 
+### Rotation direction convention
+
+Sweeping arcs and radial animations use direction to signal agency:
+
+- **Clockwise** = player action (probe sweep, exploit brackets converging)
+- **Counter-clockwise** = adversarial/system action (ICE detection closing in)
+
+This is a soft convention, not enforced by code — but new animations should follow it.
+
 ## What's In Scope (Current Prototype)
 
 - Single static LAN dungeon, hand-crafted
