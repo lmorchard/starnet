@@ -738,6 +738,7 @@ html, body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  pointer-events: auto;
   z-index: 2;
 }
 
