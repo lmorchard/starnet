@@ -70,6 +70,7 @@ export function initVisualRenderer() {
       });
     }, 50);
   });
+
 }
 
 // ── Graph sync ────────────────────────────────────────────
@@ -162,7 +163,7 @@ function syncHud(state) {
   // End screen
   if (state.phase === "ended") {
     document.getElementById("sidebar-node").innerHTML = "";
-    document.getElementById("sidebar-hand").innerHTML = "";
+    document.getElementById("hand-strip").innerHTML = "";
     renderEndScreen(state);
     return;
   }
@@ -353,7 +354,7 @@ function wireActionButtons(node) {
 // ── Hand pane ─────────────────────────────────────────────
 
 function syncHandPane(state) {
-  const el = document.getElementById("sidebar-hand");
+  const el = document.getElementById("hand-strip");
   if (!el) return;
 
   const executing = state.executingExploit;
@@ -367,7 +368,6 @@ function syncHandPane(state) {
     .filter(Boolean).join(" ");
 
   el.innerHTML = `
-    <div class="nd-section-label">EXPLOIT HAND</div>
     <div class="${handClass}">
       ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
@@ -427,7 +427,6 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
     <div class="ec-header">
       ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
       <span class="ec-name">${card.name}</span>
-      <span class="ec-rarity">[${card.rarity.toUpperCase()}]</span>
     </div>
     <div class="ec-row">
       <span class="ec-key">QUAL</span>
@@ -437,8 +436,8 @@ function renderExploitCard(card, selectedNode = null, index = null, isSelecting 
       <span class="ec-key">USES</span>
       <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
     </div>
-    <div class="ec-vulns">${card.targetVulnTypes.join(" · ")}</div>
-    ${isExecuting ? `<div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>` : ""}
+    <div class="ec-vulns">${card.targetVulnTypes.map((t) => `<div class="ec-vuln">${t}</div>`).join("")}</div>
+    <div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>
   </div>`;
 }
 

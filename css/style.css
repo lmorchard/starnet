@@ -98,13 +98,12 @@ html, body {
 }
 
 #log-entries {
-  flex: 1;
+  flex: 0 0 9rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   overflow-y: auto;
   padding: 0 1rem 0.3rem;
-  min-height: 9rem;
 }
 
 #console-row {
@@ -198,12 +197,12 @@ html, body {
   min-height: 0;
 }
 
-#sidebar-hand {
+#hand-strip {
   flex: 0 0 auto;
+  overflow-x: auto;
   border-top: 1px solid var(--border);
-  overflow-y: auto;
-  max-height: 40vh;
-  padding: 0.5rem 1rem 0.75rem;
+  background: var(--bg-panel);
+  padding: 0.4rem 0.75rem;
 }
 
 /* ── HUD ────────────────────────────────────────────────── */
@@ -536,8 +535,9 @@ html, body {
 
 .nd-hand {
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
 }
 
 .exploit-card {
@@ -548,16 +548,29 @@ html, body {
   gap: 0.2rem;
   font-size: 0.72rem;
   background: var(--bg-panel2);
+  width: 190px;
+  flex-shrink: 0;
+  height: 160px;
+  position: relative;
+  overflow: hidden;
 }
 
-.exploit-card.rarity-uncommon { border-color: var(--cyan-dim); }
-.exploit-card.rarity-rare     { border-color: #440044; }
-.exploit-card.disclosed       { opacity: 0.35; }
+/* Rarity expressed via border + subtle glow; no text label */
+.exploit-card.rarity-uncommon {
+  border-color: #009999;
+  box-shadow: inset 0 0 10px rgba(0, 200, 255, 0.1);
+}
+.exploit-card.rarity-rare {
+  border-color: #bb0077;
+  box-shadow: inset 0 0 10px rgba(255, 0, 200, 0.12);
+}
+.exploit-card.disclosed { opacity: 0.35; }
 
 .ec-header {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .ec-index {
@@ -566,17 +579,12 @@ html, body {
   flex-shrink: 0;
 }
 
-.ec-name { color: var(--green); }
-
-.ec-rarity {
-  margin-left: auto;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
+.ec-name {
+  color: var(--green);
+  /* allow wrapping — card is now tall enough for 2 lines */
+  overflow-wrap: break-word;
+  min-width: 0;
 }
-
-.rarity-common   .ec-rarity { color: var(--text-dim); }
-.rarity-uncommon .ec-rarity { color: var(--cyan); }
-.rarity-rare     .ec-rarity { color: var(--magenta); text-shadow: 0 0 6px var(--magenta); }
 
 .ec-row {
   display: flex;
@@ -589,9 +597,16 @@ html, body {
 .ec-val  { color: var(--green); }
 
 .ec-vulns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-top: 0.6rem;
+  overflow: hidden;
+}
+
+.ec-vuln {
   color: var(--text-dim);
   font-size: 0.65rem;
-  margin-top: 0.1rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -607,15 +622,13 @@ html, body {
 }
 
 .exploit-card.match {
-  border-color: var(--green);
-  box-shadow: 0 0 4px rgba(0, 255, 65, 0.3);
+  opacity: 1;
 }
 
 .exploit-card.no-match {
-  opacity: 0.6;
+  opacity: 0.35;
 }
 
-.nd-hand.selectable { gap: 0.5rem; }
 
 /* While an exploit is executing, dim the whole hand… */
 .nd-hand.exploit-hand-executing .exploit-card {
@@ -632,31 +645,38 @@ html, body {
   overflow: hidden;
 }
 
-/* Progress fill — sweeps left-to-right over the exploit duration */
+/* Progress fill — sweeps bottom-to-top over the exploit duration */
 .exploit-card.executing::before {
   content: '';
   position: absolute;
   inset: 0;
   background: rgba(0, 200, 255, 0.1);
-  transform-origin: left center;
-  transform: scaleX(0);
+  transform-origin: bottom center;
+  transform: scaleY(0);
   animation: exec-fill-sweep var(--exec-total) linear forwards;
   animation-delay: var(--exec-elapsed);
   pointer-events: none;
 }
 
 @keyframes exec-fill-sweep {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
 }
 
 .ec-executing-label {
   color: var(--cyan);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  margin-top: 0.2rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  margin-top: auto; /* push to card bottom */
   text-shadow: 0 0 6px var(--cyan-dim);
   position: relative; /* keep above the ::before fill */
+  visibility: hidden;
+  white-space: nowrap; /* prevents text wrapping which would shift card content */
+  overflow: hidden;
+}
+
+.exploit-card.executing .ec-executing-label {
+  visibility: visible;
 }
 
 /* ── Action Log ─────────────────────────────────────────── */
