@@ -2,7 +2,7 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode } from "./graph.js";
 import { initState, getState, selectNode, deselectNode, probeNode, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, completeReboot, emit } from "./state.js";
-import { launchExploit } from "./combat.js";
+import { startExploit, cancelExploit, handleExploitExecTimer } from "./exploit-exec.js";
 import { addLogEntry } from "./log.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand, pushHistory } from "./console.js";
@@ -62,14 +62,16 @@ function init() {
 
   on("starnet:action:deselect", ({ fromConsole } = {}) => {
     if (!fromConsole) logCommand("deselect");
+    cancelExploit();
     deselectNode();
     setSidebarMode("node");
     sidebarMode = "node";
   });
 
-  on(TIMER.ICE_MOVE,   () => handleIceTick());
-  on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
-  on(TIMER.TRACE_TICK, () => handleTraceTick());
+  on(TIMER.ICE_MOVE,    () => handleIceTick());
+  on(TIMER.ICE_DETECT,  (payload) => handleIceDetect(payload));
+  on(TIMER.TRACE_TICK,  () => handleTraceTick());
+  on(TIMER.EXPLOIT_EXEC, (payload) => handleExploitExecTimer(payload));
 
   on("starnet:action:probe", ({ nodeId, fromConsole }) => {
     if (!fromConsole) logCommand(`probe ${nodeId}`);
@@ -98,21 +100,15 @@ function init() {
 
   on("starnet:action:launch-exploit", ({ nodeId, exploitId, cardIndex, fromConsole }) => {
     if (!fromConsole) logCommand(`exploit ${cardIndex ?? exploitId}`);
+    // Always return to node mode so the execution countdown is visible in the sidebar
+    setSidebarMode("node");
+    sidebarMode = "node";
+    startExploit(nodeId, exploitId);
+  });
 
-    // Click UI (exploit-select mode): stay in exploit-select on failure.
-    const clickMode = sidebarMode === "exploit-select" && !fromConsole;
-    if (!clickMode) {
-      setSidebarMode("node");
-      sidebarMode = "node";
-    }
-
-    const result = launchExploit(nodeId, exploitId);
-
-    if (clickMode && result?.success) {
-      setSidebarMode("node");
-      sidebarMode = "node";
-      emitEvent(E.STATE_CHANGED, getState());
-    }
+  on("starnet:action:cancel-exploit", ({ fromConsole } = {}) => {
+    if (!fromConsole) logCommand("cancel-exploit");
+    cancelExploit();
   });
 
   on("starnet:action:reconfigure", ({ nodeId, fromConsole }) => {

@@ -116,6 +116,15 @@
  */
 
 /**
+ * Tracks an in-progress exploit execution. Null when no exploit is running.
+ * @typedef {{
+ *   nodeId: string,
+ *   exploitId: string,
+ *   timerId: number,
+ * }} ExecutingExploit
+ */
+
+/**
  * @typedef {{
  *   targetMacguffinId: string,
  *   targetName: string,
@@ -216,6 +225,7 @@
  *   ice: IceState|null,
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
+ *   executingExploit: ExecutingExploit|null,
  * }} GameState
  */
 
@@ -238,6 +248,8 @@
 /** @typedef {{ exploitName: string }} ExploitDisclosedPayload */
 /** @typedef {{ exploitName: string, usesRemaining: number }} ExploitPartialBurnPayload */
 /** @typedef {{ nodeId: string, label: string }} ExploitSurfacePayload */
+/** @typedef {{ nodeId: string, label: string, exploitName: string, durationMs: number }} ExploitStartedPayload */
+/** @typedef {{ nodeId: string, exploitName: string }} ExploitInterruptedPayload */
 
 /** @typedef {{ prev: GlobalAlertLevel, next: GlobalAlertLevel }} AlertGlobalRaisedPayload */
 /** @typedef {{ seconds: number }} AlertTraceStartedPayload */

@@ -19,7 +19,7 @@ import {
   endRun, ejectIce, rebootNode, completeReboot, reconfigureNode,
   serializeState, deserializeState,
 } from "../js/state.js";
-import { launchExploit } from "../js/combat.js";
+import { startExploit, cancelExploit, handleExploitExecTimer } from "../js/exploit-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
 import { on, E } from "../js/events.js";
 import { tick, TIMER } from "../js/timers.js";
@@ -66,14 +66,16 @@ on(TIMER.ICE_MOVE,        ()        => handleIceTick());
 on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
 on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
+on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
 
 // ── Headless action handlers ───────────────────────────────
 // console.js dispatches action events via emitEvent(); these handlers execute them.
 
 on("starnet:action:select",         ({ nodeId }) => selectNode(nodeId));
-on("starnet:action:deselect",       ()           => deselectNode());
+on("starnet:action:deselect",       ()           => { cancelExploit(); deselectNode(); });
 on("starnet:action:probe",          ({ nodeId }) => probeNode(nodeId));
-on("starnet:action:launch-exploit", ({ nodeId, exploitId }) => launchExploit(nodeId, exploitId));
+on("starnet:action:launch-exploit", ({ nodeId, exploitId }) => startExploit(nodeId, exploitId));
+on("starnet:action:cancel-exploit", ()                      => cancelExploit());
 on("starnet:action:read",           ({ nodeId }) => readNode(nodeId));
 on("starnet:action:loot",           ({ nodeId }) => lootNode(nodeId));
 on("starnet:action:reconfigure",    ({ nodeId }) => reconfigureNode(nodeId));
@@ -102,6 +104,9 @@ on(E.NODE_READ,            ({ label, macguffinCount }) => out(`[NODE] ${label}: 
 on(E.NODE_LOOTED,          ({ label, items, total })   => out(`[NODE] ${label}: looted ${items} item(s) — ¥${total.toLocaleString()}.`));
 on(E.NODE_REBOOTING,       ({ label })                 => out(`[NODE] ${label}: rebooting.`));
 on(E.NODE_REBOOTED,        ({ label })                 => out(`[NODE] ${label}: online.`));
+on(E.EXPLOIT_STARTED,      ({ label, exploitName, durationMs }) =>
+  out(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`));
+on(E.EXPLOIT_INTERRUPTED,  ({ exploitName }) => out(`[EXPLOIT] ${exploitName}: interrupted.`));
 on(E.EXPLOIT_SUCCESS,      ({ label, exploitName, roll, successChance }) =>
   out(`[EXPLOIT] ${label} — ${exploitName}: SUCCESS (roll ${roll} vs ${successChance}%)`));
 on(E.EXPLOIT_FAILURE,      ({ label, exploitName, roll, successChance }) =>

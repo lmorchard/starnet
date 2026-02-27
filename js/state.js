@@ -79,6 +79,7 @@ export function initState(networkData) {
     isCheating: false,     // set true on first cheat command use
     ice: null,             // populated below if network defines ICE
     lastDisturbedNodeId: null,
+    executingExploit: null,
     mission: null,         // populated below after macguffin assignment
   };
 

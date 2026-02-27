@@ -43,6 +43,8 @@ export const E = Object.freeze({
   NODE_REBOOTING:       "node:rebooting",
   NODE_REBOOTED:        "node:rebooted",
 
+  EXPLOIT_STARTED:      "exploit:started",
+  EXPLOIT_INTERRUPTED:  "exploit:interrupted",
   EXPLOIT_SUCCESS:      "exploit:success",
   EXPLOIT_FAILURE:      "exploit:failure",
   EXPLOIT_DISCLOSED:    "exploit:disclosed",

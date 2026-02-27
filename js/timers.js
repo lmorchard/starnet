@@ -13,6 +13,7 @@ export const TIMER = {
   ICE_DETECT:      "starnet:timer:ice-detect",
   TRACE_TICK:      "starnet:timer:trace-tick",
   REBOOT_COMPLETE: "starnet:timer:reboot-complete",
+  EXPLOIT_EXEC:    "starnet:timer:exploit-exec",
 };
 
 let currentTick = 0;
