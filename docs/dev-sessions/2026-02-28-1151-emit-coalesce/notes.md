@@ -1,0 +1,2 @@
+# Emit Coalesce — Notes
+
