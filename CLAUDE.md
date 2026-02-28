@@ -104,6 +104,18 @@ why. Derive the branch name from the session slug where possible.
 The only commits that may land directly on `main` are pure documentation changes (like
 this one) that don't touch game logic.
 
+### Git commit messages
+
+**Use single-quoted `-m` strings for commit messages**, not `$(cat <<EOF ...)`
+heredocs. The `$()` command substitution triggers permission prompts in
+sandboxed environments. For multi-line messages, use multiple `-m` flags:
+
+```bash
+git commit -m 'Short summary line' -m 'Longer body paragraph here.
+
+Co-Authored-By: ...'
+```
+
 ## Dev Sessions
 
 > **Session directory override:** `docs/dev-sessions/` (not `.claude/dev-sessions/`)

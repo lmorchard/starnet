@@ -6,7 +6,12 @@
 /** @typedef {import('./types.js').ExploitResult} ExploitResult */
 /** @typedef {import('./types.js').Grade} Grade */
 
-import { getState, ALERT_ORDER, revealNeighbors, emit } from "./state.js";
+import { getState, ALERT_ORDER, revealNeighbors } from "./state.js";
+import {
+  setNodeAccessLevel, setNodeAlertState, setNodeVisible, setNodeVulnHidden,
+} from "./state/node.js";
+import { setLastDisturbedNode } from "./state/ice.js";
+import { applyCardDecay as applyCardDecayState } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
 import { resolveNode } from "./node-types.js";
 
@@ -83,22 +88,27 @@ export function resolveExploit(exploit, node) {
  * disclose on detected failures. Mutates both exploit and result in place.
  */
 export function applyCardDecay(exploit, result) {
-  exploit.usesRemaining = Math.max(0, exploit.usesRemaining - 1);
-  if (exploit.usesRemaining === 0) {
-    exploit.decayState = "disclosed";
-  } else if (exploit.usesRemaining === 1 && exploit.decayState === "fresh") {
-    exploit.decayState = "worn";
+  let usesRemaining = Math.max(0, exploit.usesRemaining - 1);
+  let decayState = exploit.decayState;
+
+  if (usesRemaining === 0) {
+    decayState = "disclosed";
+  } else if (usesRemaining === 1 && decayState === "fresh") {
+    decayState = "worn";
   }
 
   if (!result.success && result.disclosed) {
-    const partialBurn = exploit.usesRemaining > 1 && Math.random() < 0.6;
+    const partialBurn = usesRemaining > 1 && Math.random() < 0.6;
     if (partialBurn) {
-      exploit.usesRemaining--;
+      usesRemaining--;
       result.partialBurn = true;
     } else {
-      exploit.decayState = "disclosed";
+      decayState = "disclosed";
     }
   }
+
+  // Apply through the state mutation system
+  applyCardDecayState(exploit.id, usesRemaining, /** @type {import('./types.js').DecayState} */ (decayState));
 }
 
 // ── Flavor text ───────────────────────────────────────────
@@ -164,13 +174,11 @@ export function launchExploit(nodeId, exploitId) {
 
   if (node.accessLevel === "owned") {
     emitEvent(E.LOG_ENTRY, { text: `${node.label}: already owned — nothing left to exploit.`, type: "info" });
-    emit();
     return null;
   }
 
   if (exploit.usesRemaining === 0) {
     emitEvent(E.LOG_ENTRY, { text: `${exploit.name}: No uses remaining.`, type: "error" });
-    emit();
     return null;
   }
 
@@ -182,20 +190,20 @@ export function launchExploit(nodeId, exploitId) {
     const prevAccess = node.accessLevel;
 
     if (node.accessLevel === "locked") {
-      node.accessLevel = "compromised";
-      node.alertState = "green";
-      node.visibility = "accessible";
+      setNodeAccessLevel(nodeId, "compromised");
+      setNodeAlertState(nodeId, "green");
+      setNodeVisible(nodeId, "accessible");
       revealNeighbors(nodeId);
       result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
-      node.accessLevel = "owned";
-      node.alertState = "green";
+      setNodeAccessLevel(nodeId, "owned");
+      setNodeAlertState(nodeId, "green");
       revealNeighbors(nodeId);
       result.levelChanged = true;
     }
 
     // A clean exploit: clear the disturbance so ICE doesn't chase a ghost signal.
-    s.lastDisturbedNodeId = null;
+    setLastDisturbedNode(null);
 
     emitEvent(E.EXPLOIT_SUCCESS, {
       nodeId,
@@ -213,9 +221,9 @@ export function launchExploit(nodeId, exploitId) {
 
     // Reveal staged vulnerabilities unlocked by the exploit's target types
     const usedTypes = exploit.targetVulnTypes;
-    node.vulnerabilities.forEach((v) => {
+    node.vulnerabilities.forEach((v, idx) => {
       if (v.hidden && v.unlockedBy && usedTypes.includes(v.unlockedBy)) {
-        v.hidden = false;
+        setNodeVulnHidden(nodeId, idx, false);
         emitEvent(E.EXPLOIT_SURFACE, { nodeId, label: node.label });
       }
     });
@@ -224,10 +232,10 @@ export function launchExploit(nodeId, exploitId) {
     const prevAlert = node.alertState;
     const idx = ALERT_ORDER.indexOf(node.alertState);
     if (idx < ALERT_ORDER.length - 1) {
-      node.alertState = ALERT_ORDER[idx + 1];
+      setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
     }
 
-    s.lastDisturbedNodeId = nodeId;
+    setLastDisturbedNode(nodeId);
 
     emitEvent(E.EXPLOIT_FAILURE, {
       nodeId,
@@ -250,6 +258,5 @@ export function launchExploit(nodeId, exploitId) {
     }
   }
 
-  emit();
   return result;
 }
