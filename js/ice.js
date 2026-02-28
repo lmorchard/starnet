@@ -128,6 +128,16 @@ export function handleIceTick() {
       nextNode = nextHopToward(attentionNodeId, target, s.adjacency)
         ?? neighbors[Math.floor(Math.random() * neighbors.length)];
     } else {
+      // Arrived at the disturbance target (or no target) — clear signal, resume random walk.
+      if (target && target === attentionNodeId) {
+        s.lastDisturbedNodeId = null;
+        if (isPlayerVisible(s.nodes[attentionNodeId])) {
+          emitEvent(E.LOG_ENTRY, {
+            text: `[ICE] Grade-${grade} ICE found no activity at ${s.nodes[attentionNodeId]?.label ?? attentionNodeId} — resuming patrol.`,
+            type: "info",
+          });
+        }
+      }
       nextNode = neighbors[Math.floor(Math.random() * neighbors.length)];
     }
   } else {
