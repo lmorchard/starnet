@@ -27,6 +27,16 @@ import { clearAll as clearAllTimers, scheduleEvent, serializeTimers, deserialize
 import { emitEvent, E } from "../events.js";
 import { getStateFields, getBehaviors, resolveNode } from "../node-types.js";
 
+// State submodule imports — orchestration functions use these instead of direct mutation
+import { setNodeVisible, setNodeAccessLevel, setNodeProbed, setNodeAlertState,
+         setNodeRead, collectMacguffins, setNodeLooted, setNodeRebooting,
+         setNodeEventForwarding } from "./node.js";
+import { setIceAttention, setIceActive } from "./ice.js";
+import { setLastDisturbedNode } from "./ice.js";
+import { setSelectedNode, setPhase, setRunOutcome } from "./game.js";
+import { setCash, addCash, addCardToHand, setMissionComplete } from "./player.js";
+import { setCheating as _setCheating } from "./game.js";
+
 // ── State + version counter ──────────────────────────────
 
 /** @type {GameState|null} */
@@ -170,38 +180,37 @@ export function getState() {
   return /** @type {GameState} */ (state);
 }
 
-// ── Node access ──────────────────────────────────────────
+// ── Node access orchestration ────────────────────────────
+// These functions combine state mutations with event emission.
+// They use submodule setters for all data changes.
 
 export function accessNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return;
   const wasHidden = node.visibility === "hidden";
-  node.visibility = "accessible";
+  setNodeVisible(nodeId, "accessible");
   if (wasHidden) {
     emitEvent(E.NODE_REVEALED, { nodeId, label: node.label });
   }
   revealNeighbors(nodeId);
 }
 
-export function revealNeighbors(nodeId) { // also used by cheats.js
+export function revealNeighbors(nodeId) {
   (state.adjacency[nodeId] || []).forEach((neighborId) => {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "hidden") {
-      neighbor.visibility = "revealed";
+      setNodeVisible(neighborId, "revealed");
       emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label });
     }
   });
 }
 
-// Promote already-revealed neighbors to accessible (foothold mechanic).
-// Called when a node is compromised — adjacent nodes become reachable for probe/exploit.
 export function accessNeighbors(nodeId) {
   (state.adjacency[nodeId] || []).forEach((neighborId) => {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "revealed") {
-      neighbor.visibility = "accessible";
+      setNodeVisible(neighborId, "accessible");
       emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label, unlocked: true });
-      // Don't cascade reveals here — deeper connections only exposed on compromise, not access.
     }
   });
 }
@@ -211,15 +220,13 @@ export function setAccessLevel(nodeId, level) {
   if (!node) return;
 
   const prev = node.accessLevel;
-  node.accessLevel = level;
+  setNodeAccessLevel(nodeId, level);
 
-  // Gaining any access makes the node accessible in graph terms
   if (node.visibility !== "accessible") {
-    node.visibility = "accessible";
+    setNodeVisible(nodeId, "accessible");
     revealNeighbors(nodeId);
   }
 
-  // Owning a node also reveals neighbors more deeply (same effect here)
   if (level === "owned" && prev !== "owned") {
     revealNeighbors(nodeId);
   }
@@ -227,8 +234,6 @@ export function setAccessLevel(nodeId, level) {
   if (prev !== level) {
     emitEvent(E.NODE_ACCESSED, { nodeId, label: node.label, prev, next: level });
   }
-
-  emit();
 }
 
 // ── Alert system ─────────────────────────────────────────
@@ -242,21 +247,18 @@ export function raiseNodeAlert(nodeId) {
   const prev = node.alertState;
   const idx = ALERT_ORDER.indexOf(node.alertState);
   if (idx < ALERT_ORDER.length - 1) {
-    node.alertState = ALERT_ORDER[idx + 1];
-    emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev, next: node.alertState });
+    setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
+    emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev, next: state.nodes[nodeId].alertState });
   }
-  emit();
 }
-
 
 export function endRun(outcome) {
   clearAllTimers();
-  state.phase = "ended";
-  state.runOutcome = outcome;
-  if (outcome === "caught") state.player.cash = 0;
-  if (state.ice?.active) state.ice.active = false; // timers already cleared above
+  setPhase("ended");
+  setRunOutcome(outcome);
+  if (outcome === "caught") setCash(0);
+  if (state.ice?.active) setIceActive(false);
   emitEvent(E.RUN_ENDED, { outcome });
-  emit();
 }
 
 // ── Probe action ─────────────────────────────────────────
@@ -266,29 +268,24 @@ export function probeNode(nodeId) {
   if (!node) return;
   if (node.probed) {
     emitEvent(E.LOG_ENTRY, { text: `${node.label}: Already probed.`, type: "info" });
-    emit();
     return;
   }
 
-  node.probed = true;
-  state.lastDisturbedNodeId = nodeId;
+  setNodeProbed(nodeId);
+  setLastDisturbedNode(nodeId);
 
   // Raise local alert (green → yellow)
   const prevAlert = node.alertState;
   const idx = ALERT_ORDER.indexOf(node.alertState);
   if (idx < ALERT_ORDER.length - 1) {
-    node.alertState = ALERT_ORDER[idx + 1];
+    setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
   }
 
   emitEvent(E.NODE_PROBED, { nodeId, label: node.label });
-  if (node.alertState !== prevAlert) {
-    // alert.js listener handles propagation to monitors / global recompute
-    emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: node.alertState });
+  if (state.nodes[nodeId].alertState !== prevAlert) {
+    emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: state.nodes[nodeId].alertState });
   }
-
-  emit();
 }
-
 
 // ── Read & Loot ───────────────────────────────────────────
 
@@ -297,45 +294,34 @@ export function readNode(nodeId) {
   if (!node) return;
   if (node.read) {
     emitEvent(E.LOG_ENTRY, { text: `${node.label}: Already scanned.`, type: "info" });
-    emit();
     return;
   }
-  node.read = true;
+  setNodeRead(nodeId);
   emitEvent(E.NODE_READ, { nodeId, label: node.label, macguffinCount: node.macguffins.length });
-  emit();
 }
 
 export function lootNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node || node.looted) return;
 
-  const uncollected = node.macguffins.filter((m) => !m.collected);
-  if (uncollected.length === 0) {
-    node.looted = true;
+  const { items, total } = collectMacguffins(nodeId);
+  if (items.length === 0) {
+    setNodeLooted(nodeId);
     emitEvent(E.LOG_ENTRY, { text: `${node.label}: Nothing to loot.`, type: "info" });
-    emit();
     return;
   }
 
-  let total = 0;
-  uncollected.forEach((m) => {
-    m.collected = true;
-    total += m.cashValue;
-  });
-
-  node.looted = true;
-  state.player.cash += total;
-  emitEvent(E.NODE_LOOTED, { nodeId, label: node.label, items: uncollected.length, total });
+  setNodeLooted(nodeId);
+  addCash(total);
+  emitEvent(E.NODE_LOOTED, { nodeId, label: node.label, items: items.length, total });
 
   if (state.mission && !state.mission.complete) {
-    const gotMission = uncollected.some((m) => m.id === state.mission.targetMacguffinId);
+    const gotMission = items.some((m) => m.id === state.mission.targetMacguffinId);
     if (gotMission) {
-      state.mission.complete = true;
+      setMissionComplete();
       emitEvent(E.MISSION_COMPLETE, { targetName: state.mission.targetName });
     }
   }
-
-  emit();
 }
 
 // ── Reconfigure ──────────────────────────────────────────
@@ -343,28 +329,21 @@ export function lootNode(nodeId) {
 export function reconfigureNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return;
-  node.eventForwardingDisabled = true;
-  // alert.js listener on NODE_RECONFIGURED handles global alert recompute
+  setNodeEventForwarding(nodeId, true);
   emitEvent(E.NODE_RECONFIGURED, { nodeId, label: node.label });
-  emit();
 }
 
 // ── Cheat state mutations ─────────────────────────────────
 
 export function setCheating() {
-  if (!state.isCheating) {
-    state.isCheating = true;
-    emit();
-  }
+  _setCheating();
 }
-
 
 // ── ICE mutations ─────────────────────────────────────────
 
 export function moveIceAttention(nodeId) {
   if (!state.ice || !state.ice.active) return;
-  state.ice.attentionNodeId = nodeId;
-  emit();
+  setIceAttention(nodeId);
 }
 
 export function ejectIce() {
@@ -373,23 +352,20 @@ export function ejectIce() {
   const neighbors = state.adjacency[fromId] || [];
   if (neighbors.length === 0) return;
   const toId = neighbors[Math.floor(Math.random() * neighbors.length)];
-  state.ice.attentionNodeId = toId;
+  setIceAttention(toId);
   emitEvent(E.ICE_EJECTED, { fromId, toId });
-  emit();
 }
 
 export function rebootIce() {
   if (!state.ice || !state.ice.active) return;
-  state.ice.attentionNodeId = state.ice.residentNodeId;
+  setIceAttention(state.ice.residentNodeId);
 }
 
 export function disableIce() {
   if (!state.ice) return;
-  state.ice.active = false;
+  setIceActive(false);
   emitEvent(E.ICE_DISABLED, {});
-  emit();
 }
-
 
 export function rebootNode(nodeId) {
   const node = state.nodes[nodeId];
@@ -406,26 +382,23 @@ export function rebootNode(nodeId) {
 
   // Deselect the player from this node
   if (state.selectedNodeId === nodeId) {
-    state.selectedNodeId = null;
+    setSelectedNode(null);
   }
 
   // Lock the node temporarily
-  node.rebooting = true;
+  setNodeRebooting(nodeId, true);
 
   const durationMs = 1000 + Math.random() * 2000; // 1–3s
   scheduleEvent(TIMER.REBOOT_COMPLETE, durationMs, { nodeId }, { label: `REBOOT: ${node.label}` });
 
   emitEvent(E.NODE_REBOOTING, { nodeId, label: node.label, durationMs });
-
-  emit();
 }
 
 export function completeReboot(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return;
-  node.rebooting = false;
+  setNodeRebooting(nodeId, false);
   emitEvent(E.NODE_REBOOTED, { nodeId, label: node.label });
-  emit();
 }
 
 // ── Selection ────────────────────────────────────────────
@@ -434,10 +407,9 @@ export function selectNode(nodeId) {
   const node = state.nodes[nodeId];
   if (node?.rebooting) {
     emitEvent(E.LOG_ENTRY, { text: `${node.label}: node is rebooting.`, type: "error" });
-    emit();
     return;
   }
-  state.selectedNodeId = nodeId;
+  setSelectedNode(nodeId);
 
   // Traversal: selecting a revealed ("???") node adjacent to any accessible node makes it
   // accessible. This is how the player explores deeper into the network.
@@ -446,23 +418,20 @@ export function selectNode(nodeId) {
       (nid) => state.nodes[nid]?.visibility === "accessible"
     );
     if (hasAccessibleNeighbor) {
-      node.visibility = "accessible";
-      // Don't reveal neighbors yet — that only happens on compromise.
-      // Traversal makes the node reachable; exploitation reveals what's beyond it.
+      setNodeVisible(nodeId, "accessible");
       emitEvent(E.NODE_REVEALED, { nodeId, label: node.label });
       emitEvent(E.LOG_ENTRY, { text: `[NODE] ${node.label}: signal traced. Node accessible.`, type: "info" });
     }
   }
-
-  emit();
 }
 
 export function deselectNode() {
-  state.selectedNodeId = null;
-  emit();
+  setSelectedNode(null);
 }
 
 // ── Event dispatch ───────────────────────────────────────
+// emit() is kept temporarily for initState(). Step 8 removes it entirely
+// and replaces with version-gated emit at cycle boundaries.
 
 export function emit() {
   // @ts-ignore — dev convenience; not part of the typed window interface
@@ -474,8 +443,6 @@ export function emit() {
 
 /**
  * Returns true if ICE is active and on a node the player controls.
- * Used by both graph rendering and console status commands so they apply
- * identical rules — ICE location is only visible on compromised/owned nodes.
  * @param {IceState|null|undefined} ice
  * @param {Object<string, NodeState>} nodes
  * @returns {boolean}
@@ -498,9 +465,8 @@ export function isIceVisible(ice, nodes, selectedNodeId = null) {
  */
 export function buyExploit(card, price) {
   if (state.player.cash < price) return false;
-  state.player.cash -= price;
-  state.player.hand.push(card);
-  emit();
+  addCash(-price);
+  addCardToHand(card);
   return true;
 }
 
