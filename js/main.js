@@ -2,7 +2,7 @@
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode, fitGraph } from "./graph.js";
 import { initState, getState, completeReboot } from "./state.js";
-import { handleExploitExecTimer } from "./exploit-exec.js";
+import { handleExploitExecTimer, handleExploitNoiseTimer } from "./exploit-exec.js";
 import { handleProbeScanTimer } from "./probe-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
@@ -66,7 +66,8 @@ function init() {
   on(TIMER.ICE_MOVE,     () => handleIceTick());
   on(TIMER.ICE_DETECT,   (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK,   () => handleTraceTick());
-  on(TIMER.EXPLOIT_EXEC, (payload) => handleExploitExecTimer(payload));
+  on(TIMER.EXPLOIT_EXEC,   (payload) => handleExploitExecTimer(payload));
+  on(TIMER.EXPLOIT_NOISE,  (payload) => handleExploitNoiseTimer(payload));
   on(TIMER.PROBE_SCAN,   (payload) => handleProbeScanTimer(payload));
 
   on(TIMER.REBOOT_COMPLETE, (payload) => {

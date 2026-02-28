@@ -26,6 +26,10 @@ const MOVE_INTERVALS = { S: 2500, A: 3000, B: 6000, C: 7000, D: 12000, F: 14000 
 // Grade → dwell time before detection (ms); null = instant detection
 const DWELL_TIMES = { S: null, A: null, B: 3500, C: 4500, D: 9000, F: 10000 };
 
+// Grade → noise tick at which ICE first responds to an executing exploit.
+// Exploit emits ticks 1–9 at 10%–90% of duration; 10% intervals.
+const ICE_NOISE_THRESHOLD = { S: 1, A: 2, B: 3, C: 5, D: 7, F: 9 };
+
 export function startIce() {
   const s = getState();
   if (!s.ice || !s.ice.active) return;
@@ -58,6 +62,22 @@ on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
 // Eject and reboot forcibly move ICE off its current node — treat as a departure.
 on(E.ICE_EJECTED,  handleIceDeparture);
 on(E.ICE_REBOOTED, handleIceDeparture);
+
+// Respond to exploit execution noise based on ICE sensitivity.
+on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
+  const s = getState();
+  if (!s.ice?.active || s.phase !== "playing") return;
+  const threshold = ICE_NOISE_THRESHOLD[s.ice.grade] ?? 5;
+  if (tick < threshold) return;
+  if (s.lastDisturbedNodeId === nodeId) return; // already routing here
+  s.lastDisturbedNodeId = nodeId;
+  const label = s.nodes[nodeId]?.label ?? nodeId;
+  emitEvent(E.LOG_ENTRY, {
+    text: `[ICE] Grade-${s.ice.grade} ICE detected exploit activity at ${label} — rerouting.`,
+    type: "warn",
+  });
+  emit();
+});
 
 
 function isPlayerVisible(nodeState) {

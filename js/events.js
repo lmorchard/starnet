@@ -47,6 +47,7 @@ export const E = Object.freeze({
   PROBE_SCAN_CANCELLED: "probe:scan-cancelled",
 
   EXPLOIT_STARTED:      "exploit:started",
+  EXPLOIT_NOISE:        "exploit:noise",
   EXPLOIT_INTERRUPTED:  "exploit:interrupted",
   EXPLOIT_SUCCESS:      "exploit:success",
   EXPLOIT_FAILURE:      "exploit:failure",

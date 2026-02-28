@@ -194,6 +194,9 @@ export function launchExploit(nodeId, exploitId) {
       result.levelChanged = true;
     }
 
+    // A clean exploit: clear the disturbance so ICE doesn't chase a ghost signal.
+    s.lastDisturbedNodeId = null;
+
     emitEvent(E.EXPLOIT_SUCCESS, {
       nodeId,
       label: node.label,

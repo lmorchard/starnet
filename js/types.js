@@ -121,6 +121,8 @@
  *   nodeId: string,
  *   exploitId: string,
  *   timerId: number,
+ *   noiseTimerId: number,
+ *   noiseTick: number,
  * }} ExecutingExploit
  */
 

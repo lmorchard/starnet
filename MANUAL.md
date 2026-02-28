@@ -259,8 +259,12 @@ security monitor, deep in the network) and moves.
 | Grade | Behavior |
 |-------|----------|
 | F, D  | Random walk — wanders unpredictably |
-| C, B  | Disturbance-tracking — drawn toward nodes that have been probed or exploited |
+| C, B  | Disturbance-tracking — drawn toward nodes where activity has been detected |
 | A, S  | Player-seeking — actively hunts your current position |
+
+Disturbance-tracking ICE doesn't only react to completed actions. An exploit in progress
+leaks signal — the longer execution runs, the louder the noise. If ICE picks it up before
+your exploit resolves, it will start routing. Cancelling mid-run leaves that signal in place.
 
 ### ICE Movement
 
