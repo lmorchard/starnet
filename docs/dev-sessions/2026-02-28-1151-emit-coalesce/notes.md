@@ -63,13 +63,20 @@ The ICE detection bug was the direct catalyst for this refactor session.
 - **`state/game.js` added.** Not in the original spec's file list but emerged
   naturally during step 3 for game-level state (selection, phase, outcome, cheating).
 
-## Open Follow-Up
+## Post-Retro Addition: Orchestration Move
 
-- **Move orchestration to callers.** Functions like `probeNode`, `readNode`,
-  `lootNode`, `selectNode`, `endRun`, `ejectIce`, `rebootNode` still live in
-  `state/index.js` and mix mutation + event emission. They should eventually move
-  to their natural caller files (probe-exec.js, action handlers, etc.) so
-  `state/index.js` becomes purely infrastructure.
+After the initial retro, we moved all orchestration functions out of
+`state/index.js` into their natural homes:
+
+- `selectNode/deselectNode` → `navigation.js`
+- `probeNode` → `probe-exec.js`
+- `ejectIce/disableIce/rebootIce` → `ice.js`
+- `readNode/lootNode/reconfigureNode/rebootNode/completeReboot` → `node-orchestration.js` (new)
+
+`state/index.js` now only contains: `initState`, `getState`, `mutate`,
+`getVersion`, `ALERT_ORDER`, `revealNeighbors`, `accessNeighbors`, `endRun`,
+`buyExploit`, `isIceVisible`, and serialization. Dead code (`accessNode`,
+`setAccessLevel`, `raiseNodeAlert`, `setCheating` wrapper) was removed.
 
 ## Key Insights
 
