@@ -32,6 +32,7 @@ From session-5 design discussion — reframe log verbosity as something the play
 - **Chaining exploits** — sequential exploitation requiring specific steps; privilege escalation as a multi-step sequence
 - **Countermeasures** — active defenses beyond ICE (firewalls that degrade card quality, honeypots, etc.)
 - **Visual feedback for staged vuln reveal** — log message on deeper attack surface unlock is subtle; a pulse/flash on the node would be more satisfying (currently only a log entry)
+- **ICE noise saving throw** — current exploit noise detection uses a static per-grade threshold (tick N = respond). A probabilistic variant would roll a detection chance each tick, scaled by ICE grade, giving more variance in ICE response timing. Adds texture to repeated runs without changing the average behavior much. Defer until static table has been playtested enough to know if variance is actually wanted.
 
 ---
 
