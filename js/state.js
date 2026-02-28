@@ -1,30 +1,16 @@
 // @ts-check
-// Re-export shim — all state logic lives in state/index.js.
+// Re-export shim — all state logic lives in state/ submodules.
 // This file exists so existing `import ... from "./state.js"` paths continue to work.
 
 export {
   // Core
   initState, getState, mutate, getVersion,
-  // Node access
-  accessNode, revealNeighbors, accessNeighbors, setAccessLevel,
-  // Alert
-  ALERT_ORDER, raiseNodeAlert,
+  // Graph traversal utilities
+  revealNeighbors, accessNeighbors,
+  // Alert constants
+  ALERT_ORDER,
   // End run
   endRun,
-  // Probe
-  probeNode,
-  // Read & Loot
-  readNode, lootNode,
-  // Reconfigure
-  reconfigureNode,
-  // Cheats
-  setCheating,
-  // ICE
-  moveIceAttention, ejectIce, rebootIce, disableIce,
-  // Node reboot
-  rebootNode, completeReboot,
-  // Selection
-  selectNode, deselectNode,
   // Visibility
   isIceVisible,
   // Store
@@ -55,5 +41,4 @@ export {
 
 export {
   setSelectedNode, setPhase, setRunOutcome,
-  // setCheating omitted — already exported from state/index.js (orchestration version)
 } from "./state/game.js";

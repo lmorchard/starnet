@@ -4,7 +4,9 @@
 
 /** @typedef {import('./types.js').ActionContext} ActionContext */
 
-import { getState, getVersion, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, buyExploit } from "./state.js";
+import { getState, getVersion, endRun, buyExploit } from "./state.js";
+import { readNode, lootNode, reconfigureNode, rebootNode } from "./node-orchestration.js";
+import { ejectIce } from "./ice.js";
 import { addLogEntry } from "./log.js";
 import { startExploit, cancelExploit } from "./exploit-exec.js";
 import { startProbe, cancelProbe } from "./probe-exec.js";

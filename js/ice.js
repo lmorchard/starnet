@@ -7,7 +7,7 @@
 /** @typedef {import('./types.js').NodeState} NodeState */
 
 import { getState } from "./state.js";
-import { setIceAttention, setIceDetectedAt, setIceDwellTimer, setLastDisturbedNode } from "./state/ice.js";
+import { setIceAttention, setIceDetectedAt, setIceDwellTimer, setIceActive, setLastDisturbedNode } from "./state/ice.js";
 import { propagateAlertEvent, recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
@@ -232,4 +232,30 @@ export function teleportIce(nodeId) {
     emitEvent(E.ICE_MOVED, { fromId, toId: nodeId, fromLabel, toLabel, fromVisible, toVisible });
   }
   checkIceDetection(nodeId);
+}
+
+// ── ICE orchestration (moved from state/index.js) ────────
+
+export function ejectIce() {
+  const s = getState();
+  if (!s.ice || !s.ice.active) return;
+  const fromId = s.ice.attentionNodeId;
+  const neighbors = s.adjacency[fromId] || [];
+  if (neighbors.length === 0) return;
+  const toId = neighbors[Math.floor(Math.random() * neighbors.length)];
+  setIceAttention(toId);
+  emitEvent(E.ICE_EJECTED, { fromId, toId });
+}
+
+export function disableIce() {
+  const s = getState();
+  if (!s.ice) return;
+  setIceActive(false);
+  emitEvent(E.ICE_DISABLED, {});
+}
+
+export function rebootIce() {
+  const s = getState();
+  if (!s.ice || !s.ice.active) return;
+  setIceAttention(s.ice.residentNodeId);
 }

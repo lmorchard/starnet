@@ -1,11 +1,12 @@
 // @ts-check
 // Probe execution timing — schedules the scan timer, handles cancellation,
-// and calls through to probeNode on completion.
+// and resolves probes on completion.
 // Imported by main.js; keeps timing logic out of state.js and main.js.
 
 /** @typedef {import('./types.js').GameState} GameState */
 
-import { getState, probeNode } from "./state.js";
+import { getState, ALERT_ORDER } from "./state.js";
+import { setNodeProbed, setNodeAlertState } from "./state/node.js";
 import { setLastDisturbedNode } from "./state/ice.js";
 import { setActiveProbe } from "./state/player.js";
 import { emitEvent, on, E } from "./events.js";
@@ -83,11 +84,33 @@ export function cancelProbe() {
 
 /**
  * Called by main.js when TIMER.PROBE_SCAN fires.
- * Clears probe state then resolves the probe normally.
+ * Clears probe state, marks the node probed, raises local alert, emits events.
  * @param {{ nodeId: string }} payload
  */
 export function handleProbeScanTimer({ nodeId }) {
   setActiveProbe(null);
-  // probeNode handles node.probed = true, alert raise, and all downstream events.
-  probeNode(nodeId);
+
+  const s = getState();
+  const node = s.nodes[nodeId];
+  if (!node) return;
+  if (node.probed) {
+    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Already probed.`, type: "info" });
+    return;
+  }
+
+  setNodeProbed(nodeId);
+  setLastDisturbedNode(nodeId);
+
+  // Raise local alert (green → yellow)
+  const prevAlert = node.alertState;
+  const idx = ALERT_ORDER.indexOf(node.alertState);
+  if (idx < ALERT_ORDER.length - 1) {
+    setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
+  }
+
+  emitEvent(E.NODE_PROBED, { nodeId, label: node.label });
+  if (s.nodes[nodeId].alertState !== prevAlert) {
+    // alert.js listener handles propagation to monitors / global recompute
+    emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: s.nodes[nodeId].alertState });
+  }
 }
