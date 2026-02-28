@@ -170,7 +170,11 @@ export function initState(networkData) {
   emitEvent(E.RUN_STARTED, { state });
 
   version++;
-  emit();
+  // Special case: initState emits STATE_CHANGED directly since it's outside
+  // the tick/action cycle. This is the only place that calls emitEvent(STATE_CHANGED) directly.
+  // @ts-ignore — dev convenience
+  if (typeof window !== "undefined") window._starnetState = state;
+  emitEvent(E.STATE_CHANGED, state);
   return state;
 }
 
@@ -427,16 +431,6 @@ export function selectNode(nodeId) {
 
 export function deselectNode() {
   setSelectedNode(null);
-}
-
-// ── Event dispatch ───────────────────────────────────────
-// emit() is kept temporarily for initState(). Step 8 removes it entirely
-// and replaces with version-gated emit at cycle boundaries.
-
-export function emit() {
-  // @ts-ignore — dev convenience; not part of the typed window interface
-  if (typeof window !== "undefined") window._starnetState = state;
-  emitEvent(E.STATE_CHANGED, state);
 }
 
 // ── Visibility helpers ────────────────────────────────────

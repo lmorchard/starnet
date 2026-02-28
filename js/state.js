@@ -4,7 +4,7 @@
 
 export {
   // Core
-  initState, getState, mutate, getVersion, emit,
+  initState, getState, mutate, getVersion,
   // Node access
   accessNode, revealNeighbors, accessNeighbors, setAccessLevel,
   // Alert
