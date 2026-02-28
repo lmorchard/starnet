@@ -5,7 +5,9 @@
 
 /** @typedef {import('./types.js').GameState} GameState */
 
-import { getState, emit, probeNode } from "./state.js";
+import { getState, probeNode } from "./state.js";
+import { setLastDisturbedNode } from "./state/ice.js";
+import { setActiveProbe } from "./state/player.js";
 import { emitEvent, on, E } from "./events.js";
 import { scheduleEvent, cancelEvent, TIMER } from "./timers.js";
 
@@ -40,7 +42,6 @@ export function startProbe(nodeId) {
       text: "[PROBE] Scan already in progress — wait or cancel-probe.",
       type: "error",
     });
-    emit();
     return false;
   }
 
@@ -48,7 +49,7 @@ export function startProbe(nodeId) {
   if (!node || node.probed || node.rebooting) return false;
 
   // Alert ICE immediately — disturbance happens when the scan starts.
-  s.lastDisturbedNodeId = nodeId;
+  setLastDisturbedNode(nodeId);
 
   const durationMs = probeDuration(node.grade);
   const timerId = scheduleEvent(
@@ -58,9 +59,8 @@ export function startProbe(nodeId) {
     { label: "SCANNING" }
   );
 
-  s.activeProbe = { nodeId, timerId };
+  setActiveProbe({ nodeId, timerId });
   emitEvent(E.PROBE_SCAN_STARTED, { nodeId, label: node.label, durationMs });
-  emit();
   return true;
 }
 
@@ -73,13 +73,12 @@ export function cancelProbe() {
 
   const { nodeId, timerId } = s.activeProbe;
   cancelEvent(timerId);
-  s.activeProbe = null;
+  setActiveProbe(null);
 
   emitEvent(E.PROBE_SCAN_CANCELLED, {
     nodeId,
     label: s.nodes[nodeId]?.label ?? nodeId,
   });
-  emit();
 }
 
 /**
@@ -88,8 +87,7 @@ export function cancelProbe() {
  * @param {{ nodeId: string }} payload
  */
 export function handleProbeScanTimer({ nodeId }) {
-  const s = getState();
-  s.activeProbe = null;
+  setActiveProbe(null);
   // probeNode handles node.probed = true, alert raise, and all downstream events.
   probeNode(nodeId);
 }
