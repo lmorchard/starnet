@@ -132,7 +132,16 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
     elements,
-    layout: { name: "preset" },
+    layout: {
+      name: "cola",
+      animate: false,
+      randomize: true,
+      nodeSpacing: 30,
+      edgeLength: 120,
+      padding: 50,
+      maxSimulationTime: 4000,
+      fit: true,
+    },
     style: buildStylesheet(),
     userZoomingEnabled: true,
     userPanningEnabled: true,
@@ -180,7 +189,6 @@ function buildElements(networkData) {
       type: n.type,
       grade: n.grade,
     },
-    position: { x: n.x, y: n.y },
     classes: ["hidden"],
   }));
 
