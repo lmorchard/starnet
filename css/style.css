@@ -317,6 +317,30 @@ html, body {
   50%       { opacity: 0.4; }
 }
 
+#pause-btn {
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  text-shadow: 0 0 6px var(--cyan);
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+#pause-btn:hover {
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
+}
+
+#pause-btn.active {
+  background: rgba(0, 255, 255, 0.15);
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.7);
+}
+
 #jack-out-btn {
   background: transparent;
   border: 1px solid var(--red);

@@ -7,7 +7,7 @@ _Compiled from all dev session notes. Not a prioritized roadmap — just a livin
 ## Gameplay Systems
 
 ### Exploit Economy / Card Acquisition
-- **Card restock mid-run** — player has no way to get new cards except cheats; consider a "buy card" action at certain node types, or a drop on loot
+- **Card restock mid-run** — ~~player has no way to get new cards except cheats~~ darknet store at WAN node is now in. Remaining: loot drops from owned nodes, additional store nodes deeper in a network, or mid-run card crafting
 - **Persistent inventory between runs** — in the overworld context, exploit loadout carries across LANs; crafting/acquiring a better kit is part of the meta-loop
 - **Balance: starting hand vs. network vulnerability mix** — current hand frequently doesn't match early node vulns; in the overworld context this is solved by pre-run preparation, not hand seeding _(deferred pending overworld design)_
 
@@ -17,6 +17,7 @@ _Compiled from all dev session notes. Not a prioritized roadmap — just a livin
 - **Alert consequence tuning** — trace countdown (60s) may feel long; consider tightening or making it configurable per network
 
 ### Adversarial / ICE
+- **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
 - **`cheat ice-move <node>`** — cheat command to teleport ICE directly to a node for testing detection scenarios without waiting for ticks
 - **ICE path tracing via traffic analysis daemon** — ICE movements currently invisible until dwell fires; a "traffic analysis daemon" installed on a compromised node could reveal ICE movement logs as events _(part of the log-verbosity-as-mechanic idea below)_
 
@@ -28,7 +29,6 @@ From session-5 design discussion — reframe log verbosity as something the play
 - This reframes information asymmetry as diegetic and earned, not a UI toggle
 
 ### Exploit Mechanics (Depth)
-- **Exploit execution takes time** — instead of instant resolution, exploits take a duration that varies with quality (e.g. higher quality = longer to execute, representing a more complex payload). Player is exposed during execution — ICE detection, alert escalation, etc. can fire mid-exploit. Adds tension and a reason to consider exploit quality beyond raw success chance.
 - **Chaining exploits** — sequential exploitation requiring specific steps; privilege escalation as a multi-step sequence
 - **Countermeasures** — active defenses beyond ICE (firewalls that degrade card quality, honeypots, etc.)
 - **Visual feedback for staged vuln reveal** — log message on deeper attack surface unlock is subtle; a pulse/flash on the node would be more satisfying (currently only a log entry)
@@ -53,30 +53,27 @@ From session-5 design discussion — reframe log verbosity as something the play
 
 ## Technical / Architecture
 
-### Node.js Runtime for Core Logic
+### Seeded RNG
+`Math.random()` calls in `combat.js`, `exploits.js`, `ice.js`, `loot.js` need a seedable
+PRNG to make runs fully reproducible from a saved state. State serialization is complete
+(prerequisite met). The seed would be stored in game state and used everywhere random
+numbers are drawn. Prerequisite for deterministic test replays and future AI-driven
+gameplay / AI bot fast-forward scenarios.
 
-**Status: in progress / partially complete** (session 2026-02-25-1605-node-playtesting)
-
-DOM decoupling, virtual tick clock, state serialization, and headless playtest
-harness (`scripts/playtest.js`) being built this session.
-
-**Remaining / follow-on:**
-- **Seeded RNG** — `Math.random()` calls in `combat.js`, `exploits.js`, `ice.js`,
-  `loot.js` need a seedable PRNG to make runs fully reproducible from a saved state.
-  Prerequisite: state serialization (landing this session). The seed would be stored
-  in game state and used everywhere random numbers are drawn.
-
----
+### Tick Multiplier / Game Speed
+`tick(n)` already supports multi-tick advances; just need HUD controls (0.5×/1×/2×/4×)
+and to thread the multiplier through the `setInterval` callback. Most useful when AI bots
+can play the network on the player's behalf and fast-forward is desirable.
 
 ### LLM Playtest Harness
 - **Typed event log** — replace ad-hoc log strings with structured `logEvent(type, payload)` that both renders human-readable and records machine-readable events
 - **Formal log message conventions** — consistent prefixes per category (`ICE:`, `EXPLOIT:`, `ALERT:`, `NODE:`)
 - **LLM playtest script** — feeds `status` output + log to an LLM, reads back console commands; validates game balance and text interface completeness
-- **Richer `status` subcommands** — `status ice`, `status hand`, `status node <id>` for targeted queries without full dump noise
+- **Playtest harness ActionContext wiring** — `scripts/playtest.js` dispatches actions by calling state functions directly, bypassing the unified `starnet:action` event bus. Wiring the harness through `ActionContext` would give full parity with browser behavior, including side-effects like log entries and event emissions.
 - _Recommendation: don't formalize until actually building an LLM agent — requirements will clarify then_
 
 ### Module Refactoring
-- **`state.js` and `main.js` are large** — candidates for splitting once the architecture stabilizes; JSDoc types now in place make this lower risk
+- **`state.js` is large** — candidate for splitting once the architecture stabilizes; JSDoc types and `action-context.js` extraction make this lower risk. (`main.js` was split out in 2026-02-27-1400 and is now ~63 lines.)
 
 ### Surgical DOM Rendering
 The current pattern of full `innerHTML` replacement in `visual-renderer.js` is simple but
@@ -96,48 +93,6 @@ issue (fixed by in-place progress updates) is a concrete example of this frictio
 _Trigger: reach for one of these when the in-place workaround pattern recurs a second or
 third time. One case is a data point; a pattern is a signal._
 
-### Node Type Action Registry
-
-Currently "what actions are available on this node?" is implemented as scattered
-`if (node.type === ...) / if (node.accessLevel === ...)` checks in two separate
-places: `visual-renderer.js` (sidebar buttons) and `console.js` (actions output).
-They can and do drift — the `cancel-trace` button being missing from the sidebar
-while present in console output is a direct example.
-
-**Proposed:** a centralized action registry where each node type declares its
-available actions as a function of game state. Something like:
-
-```js
-// js/node-actions.js
-export const NODE_ACTIONS = {
-  "security-monitor": [
-    {
-      id: "cancel-trace",
-      label: "CANCEL TRACE",
-      available: (node, state) =>
-        node.accessLevel === "owned" && state.traceSecondsRemaining !== null,
-      desc: (node, state) => `Abort trace countdown (${state.traceSecondsRemaining}s remaining).`,
-    },
-    ...
-  ],
-  ...
-};
-```
-
-Both the sidebar renderer and the console `actions` command would derive their
-output from this single source. Adding a new action to a node type would require
-touching exactly one place.
-
-**Extend to node lifecycle events:** Beyond actions, node types could declare
-`onOwned`, `onCompromised`, etc. callbacks — e.g. `security-monitor.onOwned`
-kills ICE and clears the trace. Currently this logic is scattered: ICE disable
-lives in `ice.js` listening on `NODE_ACCESSED`, trace cancel is a separate manual
-action. A per-type lifecycle model would centralize all "what happens when you
-own node X" logic in one place.
-
-Pairs well with the defender ICE / node interaction work — if node behaviors
-become more complex, having a per-type action model is the right foundation.
-
 ### Exploit Card IDs
 - **Legible card IDs** — currently `exploit-1`, `exploit-2`, etc.; consider IDs derived from vuln type + suffix (e.g. `ssh-1`, `privesc-3`) for more diegetic log/console references
 
@@ -145,8 +100,22 @@ become more complex, having a per-type action model is the right foundation.
 
 ## UI / Visual Polish
 
-### Radial / Pie Menu for Node Actions
-- **Diegetic action menu** — replace sidebar action buttons with a radial/pie menu that blooms from the selected node on the graph. More spatially grounded — the action is visually attached to the node, not abstracted to a panel. Design questions: how many actions fit cleanly? How does it interact with the console (symmetric input rule)? Could be contextual: bloom on node click/select, dismiss on deselect or action taken.
+### Context Menu / Pie Menu
+The node context menu (floating, graph-anchored, from `getAvailableActions()`) landed in
+2026-02-27-1211. A radial/pie menu was attempted (ctxmenu CDN library) but reverted — the
+library's styling was too opinionated to fit the phosphene aesthetic cleanly.
+
+The floating context menu satisfies the "spatially grounded" requirement for now. A custom
+pie menu remains a possible direction if the action count grows or the visual direction
+calls for it. Design questions remain: how many actions fit cleanly? How does it interact
+with the console symmetric-input rule?
+
+### Locked Accessible Node Fill Contrast
+Locked nodes that are accessible show background fill `#080810`, nearly identical to the
+container background `#0a0a0f`. On most monitors these are visually indistinguishable.
+Consider increasing the fill lightness for locked/accessible nodes to make their presence
+more readable on the graph — without losing the "dark and unowned" feel relative to
+compromised/owned nodes.
 
 ### Effects (out of scope, recurring)
 - Screenshake on jack-out

@@ -265,3 +265,7 @@ This is a soft convention, not enforced by code — but new animations should fo
 - Wider world (galaxy, planets, cities)
 - Visual effects (screenshake, bloom, glitches)
 - Audio
+
+## Backlog
+
+See `docs/BACKLOG.md` for the full deferred ideas inventory.
