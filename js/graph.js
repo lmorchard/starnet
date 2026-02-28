@@ -139,7 +139,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     boxSelectionEnabled: false,
     wheelSensitivity: 0.2,
     // Clamp so that it's not easy to lose the graph in the void on zoom
-    minZoom: 1.0,
+    minZoom: 0.5,
     maxZoom: 3.0,
   });
   console.warn = _warn;
@@ -903,13 +903,46 @@ function _renderIceDetectSweep() {
 }
 
 export function fitGraph(cy) {
+  const allNodes = cy.nodes().not(".ice");
   const visible = cy.nodes(".accessible, .revealed");
+  const padding = 50;
+
+  // Zoom to fit visible nodes, clamped so small clusters don't over-zoom
+  const MAX_FIT_ZOOM = 1.5;
+  let zoom;
   if (visible.length <= 1) {
-    cy.zoom(1.5);
-    cy.center(visible);
+    zoom = MAX_FIT_ZOOM;
   } else {
-    cy.fit(visible, 50);
+    const vbb = visible.boundingBox();
+    zoom = Math.min(
+      cy.width() / (vbb.w + 2 * padding),
+      cy.height() / (vbb.h + 2 * padding),
+      MAX_FIT_ZOOM
+    );
   }
+
+  // Start with pan centered on the full network (raw positions — boundingBox() skips hidden)
+  const positions = allNodes.map(n => n.position());
+  const xs = positions.map(p => p.x);
+  const ys = positions.map(p => p.y);
+  const bbCx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const bbCy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  let panX = (cy.width() / 2) - zoom * bbCx;
+  let panY = (cy.height() / 2) - zoom * bbCy;
+
+  // Clamp pan so all visible nodes stay within the viewport
+  const vbb = visible.boundingBox();
+  const screenLeft   = panX + zoom * vbb.x1;
+  const screenRight  = panX + zoom * vbb.x2;
+  const screenTop    = panY + zoom * vbb.y1;
+  const screenBottom = panY + zoom * vbb.y2;
+  if (screenLeft < padding)                 panX += padding - screenLeft;
+  if (screenRight > cy.width() - padding)   panX -= screenRight - (cy.width() - padding);
+  if (screenTop < padding)                  panY += padding - screenTop;
+  if (screenBottom > cy.height() - padding) panY -= screenBottom - (cy.height() - padding);
+
+  cy.zoom(zoom);
+  cy.pan({ x: panX, y: panY });
 }
 
 // Flash a node with a brief animated pulse.
