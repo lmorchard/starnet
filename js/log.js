@@ -4,7 +4,7 @@
 
 import { on, emitEvent, E } from "./events.js";
 
-const MAX_LOG = 200;
+const MAX_LOG = 10000;
 
 /** @type {Array<{text: string, type: string}>} */
 const logBuffer = [];
@@ -21,7 +21,7 @@ export function addLogEntry(text, type = "info") {
   emitEvent(E.LOG_ENTRY, { text, type });
 }
 
-// Returns last n entries from the buffer (for the 'log' console command).
-export function getRecentLog(n = 20) {
-  return logBuffer.slice(-n);
+// Returns last n entries from the buffer, or all entries if n is omitted.
+export function getRecentLog(n) {
+  return n ? logBuffer.slice(-n) : logBuffer.slice();
 }

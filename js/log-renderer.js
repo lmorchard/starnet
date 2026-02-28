@@ -35,7 +35,6 @@
 import { on, emitEvent, E } from "./events.js";
 import { initLog, addLogEntry as _addLogEntry, getRecentLog } from "./log.js";
 
-const PANE_SIZE = 8;  // visible entries in the log pane
 
 export function initLogRenderer() {
   initLog();  // start buffer listener first so it runs before renderLogPane
@@ -148,10 +147,9 @@ export { _addLogEntry as addLogEntry, getRecentLog };
 function renderLogPane() {
   const el = document.getElementById("log-entries");
   if (!el) return;
-  const visible = getRecentLog(PANE_SIZE);
-  el.innerHTML = visible.map((entry) => {
-    const prefix = (entry.type === "command" || entry.type === "error") ? "" : "&gt; ";
-    return `<div class="log-entry log-${entry.type}">${prefix}${entry.text}</div>`;
-  }).join("");
+  const visible = getRecentLog();
+  el.innerHTML = visible.map((entry) =>
+    `<div class="log-entry log-${entry.type}">${entry.text}</div>`
+  ).join("");
   el.scrollTop = el.scrollHeight;
 }

@@ -94,20 +94,13 @@ html, body {
   padding: 0.3rem 1rem 0.1rem;
 }
 
-.log-pane-label {
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  letter-spacing: 0.15em;
-  white-space: nowrap;
-}
-
 #log-entries {
-  flex: 0 0 9rem;
+  flex: 0 0 14rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   overflow-y: auto;
-  padding: 0 1rem 0.3rem;
+  padding: 0.3rem 1rem 0.3rem 1rem;
 }
 
 #console-row {
@@ -132,7 +125,6 @@ html, body {
   outline: none;
   color: var(--cyan);
   font-family: var(--font-mono);
-  font-size: 0.82rem;
   letter-spacing: 0.05em;
   caret-color: var(--cyan);
 }
@@ -798,12 +790,14 @@ html, body {
   font-size: 0.7rem;
 }
 
+#console-input, .log-entry { font-size: 15px; }
+
 .log-entry           { color: #4daa55; }
 .log-entry.log-success { color: #7fff7f; font-weight: bold; text-shadow: 0 0 4px rgba(0, 255, 65, 0.5); }
 .log-entry.log-failure { color: var(--red); font-weight: bold; text-shadow: 0 0 4px rgba(255, 32, 32, 0.5); }
-.log-entry.log-meta    { color: #517a57; font-size: 0.73rem; }
+.log-entry.log-meta    { color: #517a57; }
 .log-entry.log-command { color: var(--cyan); }
-.log-entry.log-error   { color: var(--red); font-size: 0.87rem; }
+.log-entry.log-error   { color: var(--red); }
 
 /* ── Macguffins ─────────────────────────────────────────── */
 
