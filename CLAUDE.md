@@ -123,6 +123,8 @@ Most recent session: `docs/dev-sessions/2026-02-27-1423-wan-node-darknet-store/`
 
 **Before spinning up Playwright or a browser, try the harness first.** It's faster and produces a clean transcript.
 
+**`scripts/playtest.js` and `js/main.js` are parallel entry points.** They share the same timer wiring and action dispatcher (`buildActionContext` + `initActionDispatcher`). When changing either file's wiring, check the other. A regression in the harness may not surface in tests if `reset`/`tick`/`status` still work — those bypass `dispatch()` entirely.
+
 ### Usage
 
 ```bash
