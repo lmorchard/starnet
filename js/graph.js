@@ -908,7 +908,13 @@ export function fitGraph(cy) {
   const visible = cy.nodes(".accessible, .revealed");
   if (visible.length === 0) return;
   cy.fit(visible, 50);
-  if (cy.zoom() > MAX_FIT_ZOOM) cy.zoom(MAX_FIT_ZOOM);
+  if (cy.zoom() > MAX_FIT_ZOOM) {
+    // Clamp zoom then re-center on visible nodes so they don't drift off-screen
+    const bb = visible.boundingBox();
+    const cx = (bb.x1 + bb.x2) / 2;
+    const cy2 = (bb.y1 + bb.y2) / 2;
+    cy.zoom({ level: MAX_FIT_ZOOM, position: { x: cx, y: cy2 } });
+  }
 }
 
 // Flash a node with a brief animated pulse.

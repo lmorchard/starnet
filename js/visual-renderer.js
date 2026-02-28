@@ -115,7 +115,14 @@ export function initVisualRenderer() {
       cy.animate({
         fit: { eles: visible, padding: 50 },
         duration: 500,
-        complete: () => { if (cy.zoom() > MAX_FIT_ZOOM) cy.zoom(MAX_FIT_ZOOM); },
+        complete: () => {
+          if (cy.zoom() > MAX_FIT_ZOOM) {
+            const bb = visible.boundingBox();
+            const cx = (bb.x1 + bb.x2) / 2;
+            const cy2 = (bb.y1 + bb.y2) / 2;
+            cy.zoom({ level: MAX_FIT_ZOOM, position: { x: cx, y: cy2 } });
+          }
+        },
       });
     }, 50);
   });
