@@ -61,12 +61,23 @@ function init() {
     emitEvent("starnet:action", { actionId: "jackout" });
   });
 
-  // Wire save/load buttons (lazy-load cheats module to keep it isolated)
+  // Wire save/load buttons.
+  // Save can lazy-load since the download link click is internal.
+  // Load must open the file picker synchronously in the user gesture —
+  // browsers block programmatic .click() on file inputs from async callbacks.
   document.getElementById("save-btn").addEventListener("click", () => {
     import("./cheats.js").then(({ saveGame }) => saveGame());
   });
   document.getElementById("load-btn").addEventListener("click", () => {
-    import("./cheats.js").then(({ loadGame }) => loadGame());
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      import("./cheats.js").then(({ restoreFromFile }) => restoreFromFile(file));
+    };
+    input.click();
   });
 
   const ctx = buildActionContext();

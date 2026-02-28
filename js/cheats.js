@@ -291,19 +291,23 @@ export function loadGame() {
   input.accept = ".json";
   input.onchange = () => {
     const file = input.files?.[0];
-    if (!file) return;
-    file.text().then((text) => {
-      try {
-        const snapshot = JSON.parse(text);
-        deserializeState(snapshot);
-        emitEvent(E.STATE_CHANGED, getState());
-        addLogEntry(`[SYS] Game state loaded from ${file.name}.`, "info");
-      } catch (e) {
-        addLogEntry(`[SYS] Failed to load: ${e.message}`, "error");
-      }
-    });
+    if (file) restoreFromFile(file);
   };
   input.click();
+}
+
+/** Restore game state from a File object. Exported for use by the HUD load button. */
+export function restoreFromFile(file) {
+  file.text().then((text) => {
+    try {
+      const snapshot = JSON.parse(text);
+      deserializeState(snapshot);
+      emitEvent(E.STATE_CHANGED, getState());
+      addLogEntry(`[SYS] Game state loaded from ${file.name}.`, "info");
+    } catch (e) {
+      addLogEntry(`[SYS] Failed to load: ${e.message}`, "error");
+    }
+  });
 }
 
 // ── Internal ──────────────────────────────────────────────
