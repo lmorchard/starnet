@@ -32,3 +32,9 @@ export {
   // Serialization
   serializeState, deserializeState,
 } from "./state/index.js";
+
+export {
+  setNodeVisible, setNodeAccessLevel, setNodeProbed, setNodeAlertState,
+  setNodeRead, collectMacguffins, setNodeLooted, setNodeRebooting,
+  setNodeEventForwarding, setNodeVulnHidden,
+} from "./state/node.js";
