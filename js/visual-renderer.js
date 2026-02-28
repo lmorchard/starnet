@@ -109,36 +109,14 @@ export function initVisualRenderer() {
       const cy = getCy();
       if (!cy) return;
       const visible = cy.nodes(".accessible, .revealed");
-      // Skip animated fit for a single node — it would zoom in absurdly.
-      // The initial fitGraph() in main.js already positioned it correctly.
       if (visible.length <= 1) return;
-      // Zoom from visible nodes (clamped), pan centered on full network,
-      // then clamp pan so all visible nodes stay in the viewport.
       const MAX_FIT_ZOOM = 1.5;
-      const vbb = visible.boundingBox();
-      const pad = 50;
-      const zoom = Math.min(
-        cy.width() / (vbb.w + 2 * pad),
-        cy.height() / (vbb.h + 2 * pad),
-        MAX_FIT_ZOOM
-      );
-      const allNodes = cy.nodes().not(".ice");
-      const positions = allNodes.map(n => n.position());
-      const xs = positions.map(p => p.x);
-      const ys = positions.map(p => p.y);
-      const bbCx = (Math.min(...xs) + Math.max(...xs)) / 2;
-      const bbCy = (Math.min(...ys) + Math.max(...ys)) / 2;
-      let panX = (cy.width() / 2) - zoom * bbCx;
-      let panY = (cy.height() / 2) - zoom * bbCy;
-      const sL = panX + zoom * vbb.x1;
-      const sR = panX + zoom * vbb.x2;
-      const sT = panY + zoom * vbb.y1;
-      const sB = panY + zoom * vbb.y2;
-      if (sL < pad)                 panX += pad - sL;
-      if (sR > cy.width() - pad)   panX -= sR - (cy.width() - pad);
-      if (sT < pad)                 panY += pad - sT;
-      if (sB > cy.height() - pad)  panY -= sB - (cy.height() - pad);
-      cy.animate({ zoom, pan: { x: panX, y: panY }, duration: 500 });
+      cy.stop(); // cancel any in-flight animation
+      cy.animate({
+        fit: { eles: visible, padding: 50 },
+        duration: 500,
+        complete: () => { if (cy.zoom() > MAX_FIT_ZOOM) cy.zoom(MAX_FIT_ZOOM); },
+      });
     }, 50);
   });
 

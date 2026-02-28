@@ -902,47 +902,13 @@ function _renderIceDetectSweep() {
   }
 }
 
+const MAX_FIT_ZOOM = 1.5;
+
 export function fitGraph(cy) {
-  const allNodes = cy.nodes().not(".ice");
   const visible = cy.nodes(".accessible, .revealed");
-  const padding = 50;
-
-  // Zoom to fit visible nodes, clamped so small clusters don't over-zoom
-  const MAX_FIT_ZOOM = 1.5;
-  let zoom;
-  if (visible.length <= 1) {
-    zoom = MAX_FIT_ZOOM;
-  } else {
-    const vbb = visible.boundingBox();
-    zoom = Math.min(
-      cy.width() / (vbb.w + 2 * padding),
-      cy.height() / (vbb.h + 2 * padding),
-      MAX_FIT_ZOOM
-    );
-  }
-
-  // Start with pan centered on the full network (raw positions — boundingBox() skips hidden)
-  const positions = allNodes.map(n => n.position());
-  const xs = positions.map(p => p.x);
-  const ys = positions.map(p => p.y);
-  const bbCx = (Math.min(...xs) + Math.max(...xs)) / 2;
-  const bbCy = (Math.min(...ys) + Math.max(...ys)) / 2;
-  let panX = (cy.width() / 2) - zoom * bbCx;
-  let panY = (cy.height() / 2) - zoom * bbCy;
-
-  // Clamp pan so all visible nodes stay within the viewport
-  const vbb = visible.boundingBox();
-  const screenLeft   = panX + zoom * vbb.x1;
-  const screenRight  = panX + zoom * vbb.x2;
-  const screenTop    = panY + zoom * vbb.y1;
-  const screenBottom = panY + zoom * vbb.y2;
-  if (screenLeft < padding)                 panX += padding - screenLeft;
-  if (screenRight > cy.width() - padding)   panX -= screenRight - (cy.width() - padding);
-  if (screenTop < padding)                  panY += padding - screenTop;
-  if (screenBottom > cy.height() - padding) panY -= screenBottom - (cy.height() - padding);
-
-  cy.zoom(zoom);
-  cy.pan({ x: panX, y: panY });
+  if (visible.length === 0) return;
+  cy.fit(visible, 50);
+  if (cy.zoom() > MAX_FIT_ZOOM) cy.zoom(MAX_FIT_ZOOM);
 }
 
 // Flash a node with a brief animated pulse.
