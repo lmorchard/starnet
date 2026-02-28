@@ -6,7 +6,8 @@
 /** @typedef {import('./types.js').IceState} IceState */
 /** @typedef {import('./types.js').NodeState} NodeState */
 
-import { getState, moveIceAttention, disableIce, emit } from "./state.js";
+import { getState } from "./state.js";
+import { setIceAttention, setIceDetectedAt, setIceDwellTimer, setLastDisturbedNode } from "./state/ice.js";
 import { propagateAlertEvent, recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
@@ -16,9 +17,7 @@ import { emitEvent, on, E } from "./events.js";
 // re-detect on its next visit.
 function handleIceDeparture() {
   cancelAllByType(TIMER.ICE_DETECT);
-  const s = getState();
-  if (s.ice) s.ice.detectedAtNode = null;
-  emit(); // re-render sidebar to clear stale detection countdown
+  setIceDetectedAt(null);
 }
 
 // Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry
@@ -51,7 +50,7 @@ on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
   cancelAllByType(TIMER.ICE_DETECT);
   if (nodeId !== null) {
     // Moving to a new node — reset lock so ICE can detect on any future visit
-    if (s.ice) s.ice.detectedAtNode = null;
+    setIceDetectedAt(null);
     // ICE already here: start detection immediately
     if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
       checkIceDetection(nodeId);
@@ -71,8 +70,7 @@ on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
   const threshold = ICE_NOISE_THRESHOLD[s.ice.grade] ?? 5;
   if (tick < threshold) return;
   if (s.lastDisturbedNodeId === nodeId) return; // already routing here
-  s.lastDisturbedNodeId = nodeId;
-  emit();
+  setLastDisturbedNode(nodeId);
 });
 
 
@@ -126,7 +124,7 @@ export function handleIceTick() {
     } else {
       // Arrived at the disturbance target (or no target) — clear signal, resume random walk.
       if (target && target === attentionNodeId) {
-        s.lastDisturbedNodeId = null;
+        setLastDisturbedNode(null);
         if (isPlayerVisible(s.nodes[attentionNodeId])) {
           emitEvent(E.LOG_ENTRY, {
             text: `[ICE] Grade-${grade} ICE found no activity at ${s.nodes[attentionNodeId]?.label ?? attentionNodeId} — resuming patrol.`,
@@ -157,7 +155,7 @@ export function handleIceTick() {
   }
 
   const fromId = attentionNodeId; // capture before move
-  moveIceAttention(nextNode);
+  setIceAttention(nextNode);
 
   // Emit movement event (log-renderer formats based on visibility)
   const fromVisible = isPlayerVisible(s.nodes[fromId]);
@@ -188,9 +186,8 @@ function checkIceDetection(nodeId) {
   } else {
     // Schedule timer first so it's in the Map before the event triggers a re-render
     const timerId = scheduleEvent(TIMER.ICE_DETECT, dwellMs, { nodeId }, { label: "ICE DETECTION" });
-    s.ice.dwellTimerId = timerId;
+    setIceDwellTimer(timerId);
     emitEvent(E.ICE_DETECT_PENDING, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId, dwellMs });
-    emit(); // re-render sidebar so the detection countdown becomes visible
   }
 }
 
@@ -220,14 +217,14 @@ export function teleportIce(nodeId) {
   const s = getState();
   if (!s.ice || !s.ice.active) return;
   if (!s.nodes[nodeId]) return;
-  s.ice.detectedAtNode = null;
+  setIceDetectedAt(null);
   // Reschedule ICE_MOVE from now so it doesn't fire mid-dwell and cancel detection.
   const interval = MOVE_INTERVALS[s.ice.grade] ?? 6000;
   cancelAllByType(TIMER.ICE_MOVE);
   scheduleRepeating(TIMER.ICE_MOVE, interval);
   const fromId = s.ice.attentionNodeId;
   if (fromId !== nodeId) {
-    moveIceAttention(nodeId);
+    setIceAttention(nodeId);
     const fromVisible = isPlayerVisible(s.nodes[fromId]);
     const toVisible   = isPlayerVisible(s.nodes[nodeId]);
     const fromLabel = fromVisible ? (s.nodes[fromId]?.label ?? fromId) : "???";
