@@ -3,7 +3,8 @@
 // Advance with tick(n). Browser drives via setInterval(() => tick(1), TICK_MS).
 // All state is plain data and fully serializable.
 
-import { emitEvent } from "./events.js";
+import { emitEvent, E } from "./events.js";
+import { getVersion, getState } from "./state/index.js";
 
 export const TICK_MS = 100; // ms per tick; browser master interval uses this
 
@@ -65,6 +66,7 @@ export function scheduleRepeating(type, intervalMs, payload = {}) {
 
 export function tick(n = 1) {
   if (_pauseCount > 0) return;
+  const versionBefore = getVersion();
   currentTick += n;
   for (const [id, entry] of timers) {
     // Repeating timers fire once per elapsed interval; one-shots fire once.
@@ -77,6 +79,10 @@ export function tick(n = 1) {
         break;
       }
     }
+  }
+  // Emit STATE_CHANGED once at the end of the tick cycle if any state mutation occurred.
+  if (getVersion() !== versionBefore) {
+    emitEvent(E.STATE_CHANGED, getState());
   }
 }
 

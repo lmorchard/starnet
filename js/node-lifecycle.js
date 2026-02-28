@@ -8,8 +8,7 @@
 import { on, E } from "./events.js";
 import { getState } from "./state.js";
 import { getBehaviors } from "./node-types.js";
-import { stopIce } from "./ice.js";
-import { disableIce } from "./state.js";
+import { stopIce, disableIce } from "./ice.js";
 import { cancelTraceCountdown } from "./alert.js";
 
 export function initNodeLifecycle() {

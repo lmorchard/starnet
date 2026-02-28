@@ -7,7 +7,10 @@
 // gated, disabled, or penalized as a unit in future builds.
 // Any use of a cheat command sets state.isCheating = true for the run.
 
-import { getState, setCheating, revealNeighbors, accessNeighbors, emit } from "./state.js";
+import { getState, revealNeighbors, accessNeighbors } from "./state.js";
+import { setNodeAccessLevel, setNodeAlertState, setNodeVisible } from "./state/node.js";
+import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
+import { setCheating } from "./state/game.js";
 import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
 import { teleportIce } from "./ice.js";
 import { addLogEntry } from "./log.js";
@@ -77,7 +80,7 @@ function cheatGive(args) {
         addLogEntry(`[CHEAT] Restored "${spent.name}" (${v.id}) — uses reset.`, "success");
       } else {
         const card = generateExploitForVuln(v.id);
-        s.player.hand.push(card);
+        addCardToHand(card);
         addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" targeting ${v.id}.`, "success");
       }
     });
@@ -88,8 +91,7 @@ function cheatGive(args) {
   if (what === "card") {
     const rarity = VALID_RARITIES.includes(args[1]) ? args[1] : null;
     const card = generateExploit(rarity);
-    const s = getState();
-    s.player.hand.push(card);
+    addCardToHand(card);
     activateCheat();
     addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" to hand.`, "success");
     return true;
@@ -101,8 +103,7 @@ function cheatGive(args) {
       addLogEntry("Usage: cheat give cash <amount>", "error");
       return false;
     }
-    const s = getState();
-    s.player.cash += amount;
+    addCash(amount);
     activateCheat();
     addLogEntry(`[CHEAT] Added ¥${amount.toLocaleString()} to wallet.`, "success");
     return true;
@@ -150,9 +151,9 @@ function cheatOwn(args) {
   }
 
   const prev = node.accessLevel;
-  node.accessLevel = "owned";
-  node.alertState = "green";
-  node.visibility = "accessible";
+  setNodeAccessLevel(node.id, "owned");
+  setNodeAlertState(node.id, "green");
+  setNodeVisible(node.id, "accessible");
   emitEvent(E.NODE_ACCESSED, { nodeId: node.id, label: node.label, prev, next: "owned" });
   revealNeighbors(node.id);
   accessNeighbors(node.id);
@@ -256,11 +257,9 @@ function cheatHelp() {
 const USES_BY_RARITY = { common: 3, uncommon: 5, rare: 8 };
 
 function restoreCard(card) {
-  card.usesRemaining = USES_BY_RARITY[card.rarity] ?? 3;
-  card.decayState = "fresh";
+  applyCardDecay(card.id, USES_BY_RARITY[card.rarity] ?? 3, "fresh");
 }
 
 function activateCheat() {
   setCheating();
-  emit();
 }

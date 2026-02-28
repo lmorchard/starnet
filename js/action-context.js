@@ -4,7 +4,9 @@
 
 /** @typedef {import('./types.js').ActionContext} ActionContext */
 
-import { getState, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, buyExploit } from "./state.js";
+import { getState, getVersion, endRun, buyExploit } from "./state.js";
+import { readNode, lootNode, reconfigureNode, rebootNode } from "./node-orchestration.js";
+import { ejectIce } from "./ice.js";
 import { addLogEntry } from "./log.js";
 import { startExploit, cancelExploit } from "./exploit-exec.js";
 import { startProbe, cancelProbe } from "./probe-exec.js";
@@ -85,6 +87,11 @@ export function initActionDispatcher(ctx) {
         : actionId + (nodeId ? ` ${nodeId}` : "");
       emitEvent(E.COMMAND_ISSUED, { cmd: logStr });
     }
+    const versionBefore = getVersion();
     action.execute(node, state, ctx, { nodeId, ...payload });
+    // Emit STATE_CHANGED once after the action if any state mutation occurred.
+    if (getVersion() !== versionBefore) {
+      emitEvent(E.STATE_CHANGED, ctx.getState());
+    }
   });
 }

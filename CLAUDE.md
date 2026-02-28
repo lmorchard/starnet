@@ -37,7 +37,14 @@ css/style.css           — all styles (cyberpunk vector phosphene aesthetic)
 js/
   types.js              — JSDoc @typedef definitions (no runtime code)
   events.js             — pub/sub event bus + event type catalog (E.*)
-  state.js              — central game state + all mutation functions
+  state.js              — re-export shim for state/ module
+  state/
+    index.js            — state object, initState, getState, mutate(), getVersion()
+    node.js             — node state mutations (visibility, access, alert, probed, etc.)
+    ice.js              — ICE state mutations (attention, detection, disturbance)
+    alert.js            — global alert / trace state mutations
+    player.js           — player state mutations (cash, hand, exploit execution)
+    game.js             — game-level state mutations (selection, phase, cheating)
   main.js               — app init, action event wiring (@ts-nocheck)
   graph.js              — Cytoscape.js init and node style sync (@ts-nocheck)
   visual-renderer.js    — subscribes to events, drives graph + HUD rendering
@@ -58,9 +65,20 @@ docs/
 
 ### State Management
 
-All game state lives in `js/state.js` as a plain object. Rules:
-- **Never mutate state directly** — always use exported functions
-- After every mutation, `emit()` calls `emitEvent(E.STATE_CHANGED, state)`
+All game state lives in `js/state/` as a plain object. Rules:
+
+- **All mutations go through `mutate()`** — the wrapper in `state/index.js` that
+  increments a monotonic version counter. Submodule setters (e.g. `setNodeProbed`,
+  `setGlobalAlert`) use `mutate()` internally.
+- **No direct state mutation outside `js/state/`** — callers use the setter functions
+  exported by submodules. `getState()` returns the raw object for reads, but writing
+  to it directly is forbidden by convention.
+- **`STATE_CHANGED` fires at cycle boundaries only** — at the end of `tick()` in
+  `timers.js` and after `action.execute()` in `action-context.js`, gated by
+  `getVersion()` before/after comparison. No scattered `emit()` calls.
+- **State submodules are pure data** — they don't emit game events or contain
+  orchestration logic. Event emission happens in the caller layer (ice.js, alert.js,
+  combat.js, etc.).
 - `visual-renderer.js` and `log-renderer.js` subscribe to `E.STATE_CHANGED` and typed game events
 - User actions dispatch DOM custom events upward (e.g. `starnet:action:probe`) which `main.js` handles
 
@@ -103,6 +121,18 @@ why. Derive the branch name from the session slug where possible.
 
 The only commits that may land directly on `main` are pure documentation changes (like
 this one) that don't touch game logic.
+
+### Git commit messages
+
+**Use single-quoted `-m` strings for commit messages**, not `$(cat <<EOF ...)`
+heredocs. The `$()` command substitution triggers permission prompts in
+sandboxed environments. For multi-line messages, use multiple `-m` flags:
+
+```bash
+git commit -m 'Short summary line' -m 'Longer body paragraph here.
+
+Co-Authored-By: ...'
+```
 
 ## Dev Sessions
 

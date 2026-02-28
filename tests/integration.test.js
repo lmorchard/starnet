@@ -13,9 +13,9 @@ import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
-import { initState, getState, ejectIce, selectNode, isIceVisible, buyExploit } from "../js/state.js";
+import { initState, getState, isIceVisible, buyExploit } from "../js/state.js";
 import { navigateTo, navigateAway } from "../js/navigation.js";
-import { startIce, handleIceTick, handleIceDetect, teleportIce } from "../js/ice.js";
+import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/ice.js";
 import { emitEvent, on, off, E } from "../js/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/timers.js";
 import { initNodeLifecycle } from "../js/node-lifecycle.js";

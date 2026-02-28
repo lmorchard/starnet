@@ -5,7 +5,10 @@
 
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { getState, endRun, emit, ALERT_ORDER } from "./state.js";
+import { getState, endRun, ALERT_ORDER } from "./state.js";
+import { setNodeAlertState } from "./state/node.js";
+import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
+import { setIceDetectedAt, incrementIceDetectionCount } from "./state/ice.js";
 import { emitEvent, on, E } from "./events.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
 import { hasBehavior, getBehaviors } from "./node-types.js";
@@ -53,7 +56,7 @@ export function propagateAlertEvent(fromNodeId) {
     if (neighbor && hasBehavior(neighbor, "monitor")) {
       const idx = ALERT_ORDER.indexOf(neighbor.alertState);
       if (idx < ALERT_ORDER.length - 1) {
-        neighbor.alertState = ALERT_ORDER[idx + 1];
+        setNodeAlertState(neighborId, ALERT_ORDER[idx + 1]);
       }
       emitEvent(E.ALERT_PROPAGATED, {
         fromNodeId,
@@ -88,9 +91,9 @@ function recomputeGlobalAlert() {
   const next    = GLOBAL_ALERT_ORDER.indexOf(newLevel);
   if (next > current) {
     const prev = s.globalAlert;
-    s.globalAlert = newLevel;
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: s.globalAlert });
-    if (s.globalAlert === "trace" && s.traceSecondsRemaining === null) {
+    setGlobalAlert(newLevel);
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: newLevel });
+    if (newLevel === "trace" && s.traceSecondsRemaining === null) {
       startTraceCountdown();
     }
   }
@@ -103,33 +106,32 @@ export function raiseGlobalAlert() {
   const prev = s.globalAlert;
   const idx = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
   if (idx < GLOBAL_ALERT_ORDER.length - 1) {
-    s.globalAlert = GLOBAL_ALERT_ORDER[idx + 1];
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: s.globalAlert });
+    setGlobalAlert(GLOBAL_ALERT_ORDER[idx + 1]);
   }
-  if (s.globalAlert === "trace" && s.traceSecondsRemaining === null) {
+  const updated = getState().globalAlert;
+  if (prev !== updated) {
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: updated });
+  }
+  if (updated === "trace" && getState().traceSecondsRemaining === null) {
     startTraceCountdown();
   }
-  emit();
 }
 
 // ── Trace countdown ───────────────────────────────────────
 
 export function startTraceCountdown() {
-  const s = getState();
-  s.traceSecondsRemaining = 60;
+  setTraceCountdown(60);
   emitEvent(E.ALERT_TRACE_STARTED, { seconds: 60 });
-  s.traceTimerId = scheduleRepeating(TIMER.TRACE_TICK, 1000);
-  emit();
+  const timerId = scheduleRepeating(TIMER.TRACE_TICK, 1000);
+  setTraceTimerId(timerId);
 }
 
 export function handleTraceTick() {
   const s = getState();
   if (!s || s.phase !== "playing") return;
-  s.traceSecondsRemaining -= 1;
-  if (s.traceSecondsRemaining <= 0) {
+  const remaining = decrementTraceCountdown();
+  if (remaining !== null && remaining <= 0) {
     endRun("caught");
-  } else {
-    emit();
   }
 }
 
@@ -137,12 +139,11 @@ export function cancelTraceCountdown() {
   const s = getState();
   if (s.traceTimerId !== null) {
     cancelEvent(s.traceTimerId);
-    s.traceTimerId = null;
+    setTraceTimerId(null);
   }
-  s.traceSecondsRemaining = null;
-  s.globalAlert = "green";
+  setTraceCountdown(null);
+  setGlobalAlert("green");
   emitEvent(E.ALERT_TRACE_CANCELLED, {});
-  emit();
 }
 
 // Bypass escalation-only rule — cheat use only
@@ -150,14 +151,13 @@ export function forceGlobalAlert(level) {
   if (!GLOBAL_ALERT_ORDER.includes(level)) return;
   const s = getState();
   const prev = s.globalAlert;
-  s.globalAlert = level;
+  setGlobalAlert(level);
   if (level !== prev) {
     emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: level });
   }
-  if (level === "trace" && s.traceSecondsRemaining === null) {
+  if (level === "trace" && getState().traceSecondsRemaining === null) {
     startTraceCountdown();
   }
-  emit();
 }
 
 // ── ICE detection ─────────────────────────────────────────
@@ -165,8 +165,8 @@ export function forceGlobalAlert(level) {
 export function recordIceDetection(nodeId) {
   const s = getState();
   if (!s.ice?.active) return;
-  s.ice.detectedAtNode = nodeId;
-  s.ice.detectionCount++;
+  setIceDetectedAt(nodeId);
+  incrementIceDetectionCount();
 
   // Each detection escalates global alert one step (capped at red).
   // The threshold check below handles the jump to trace.
@@ -174,20 +174,20 @@ export function recordIceDetection(nodeId) {
   const redIdx = GLOBAL_ALERT_ORDER.indexOf("red");
   if (curIdx < redIdx) {
     const prev = s.globalAlert;
-    s.globalAlert = GLOBAL_ALERT_ORDER[curIdx + 1];
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: s.globalAlert });
+    setGlobalAlert(GLOBAL_ALERT_ORDER[curIdx + 1]);
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: getState().globalAlert });
   }
 
-  if (s.traceSecondsRemaining !== null) { emit(); return; }
-  const threshold = DETECTION_TRACE_THRESHOLD[s.ice.grade] ?? 2;
-  if (s.ice.detectionCount >= threshold) {
-    if (s.globalAlert !== "trace") {
-      const prev = s.globalAlert;
-      s.globalAlert = "trace";
+  // Re-read state after mutations
+  const updated = getState();
+  if (updated.traceSecondsRemaining !== null) return;
+  const threshold = DETECTION_TRACE_THRESHOLD[updated.ice.grade] ?? 2;
+  if (updated.ice.detectionCount >= threshold) {
+    if (updated.globalAlert !== "trace") {
+      const prev = updated.globalAlert;
+      setGlobalAlert("trace");
       emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: "trace" });
     }
-    startTraceCountdown(); // calls emit() internally
-  } else {
-    emit();
+    startTraceCountdown();
   }
 }

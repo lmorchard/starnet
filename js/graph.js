@@ -139,7 +139,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     boxSelectionEnabled: false,
     wheelSensitivity: 0.2,
     // Clamp so that it's not easy to lose the graph in the void on zoom
-    minZoom: 1.0,
+    minZoom: 0.5,
     maxZoom: 3.0,
   });
   console.warn = _warn;
@@ -902,14 +902,13 @@ function _renderIceDetectSweep() {
   }
 }
 
+const MAX_FIT_ZOOM = 1.5;
+
 export function fitGraph(cy) {
   const visible = cy.nodes(".accessible, .revealed");
-  if (visible.length <= 1) {
-    cy.zoom(1.5);
-    cy.center(visible);
-  } else {
-    cy.fit(visible, 50);
-  }
+  if (visible.length === 0) return;
+  cy.fit(visible, 50);
+  if (cy.zoom() > MAX_FIT_ZOOM) cy.zoom(MAX_FIT_ZOOM);
 }
 
 // Flash a node with a brief animated pulse.

@@ -1,7 +1,8 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode, fitGraph } from "./graph.js";
-import { initState, getState, completeReboot } from "./state.js";
+import { initState, getState } from "./state.js";
+import { completeReboot } from "./node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "./exploit-exec.js";
 import { handleProbeScanTimer } from "./probe-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";

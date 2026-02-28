@@ -109,12 +109,13 @@ export function initVisualRenderer() {
       const cy = getCy();
       if (!cy) return;
       const visible = cy.nodes(".accessible, .revealed");
-      // Skip animated fit for a single node — it would zoom in absurdly.
-      // The initial fitGraph() in main.js already positioned it correctly.
       if (visible.length <= 1) return;
+      const MAX_FIT_ZOOM = 1.5;
+      cy.stop(); // cancel any in-flight animation
       cy.animate({
         fit: { eles: visible, padding: 50 },
         duration: 500,
+        complete: () => { if (cy.zoom() > MAX_FIT_ZOOM) cy.zoom(MAX_FIT_ZOOM); },
       });
     }, 50);
   });
