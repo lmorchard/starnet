@@ -71,11 +71,6 @@ on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
   if (tick < threshold) return;
   if (s.lastDisturbedNodeId === nodeId) return; // already routing here
   s.lastDisturbedNodeId = nodeId;
-  const label = s.nodes[nodeId]?.label ?? nodeId;
-  emitEvent(E.LOG_ENTRY, {
-    text: `[ICE] Grade-${s.ice.grade} ICE detected exploit activity at ${label} — rerouting.`,
-    type: "warn",
-  });
   emit();
 });
 
