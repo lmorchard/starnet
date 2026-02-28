@@ -18,6 +18,7 @@ function handleIceDeparture() {
   cancelAllByType(TIMER.ICE_DETECT);
   const s = getState();
   if (s.ice) s.ice.detectedAtNode = null;
+  emit(); // re-render sidebar to clear stale detection countdown
 }
 
 // Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry
