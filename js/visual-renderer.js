@@ -111,19 +111,21 @@ export function initVisualRenderer() {
       const visible = cy.nodes(".accessible, .revealed");
       if (visible.length <= 1) return;
       const MAX_FIT_ZOOM = 1.5;
-      cy.stop(); // cancel any in-flight animation
-      cy.animate({
-        fit: { eles: visible, padding: 50 },
-        duration: 500,
-        complete: () => {
-          if (cy.zoom() > MAX_FIT_ZOOM) {
-            const bb = visible.boundingBox();
-            const cx = (bb.x1 + bb.x2) / 2;
-            const cy2 = (bb.y1 + bb.y2) / 2;
-            cy.zoom({ level: MAX_FIT_ZOOM, position: { x: cx, y: cy2 } });
-          }
-        },
-      });
+      const pad = 50;
+      const bb = visible.boundingBox();
+      const zoom = Math.min(
+        cy.width() / (bb.w + 2 * pad),
+        cy.height() / (bb.h + 2 * pad),
+        MAX_FIT_ZOOM
+      );
+      const cx = (bb.x1 + bb.x2) / 2;
+      const cy2 = (bb.y1 + bb.y2) / 2;
+      const pan = {
+        x: cy.width() / 2 - zoom * cx,
+        y: cy.height() / 2 - zoom * cy2,
+      };
+      cy.stop();
+      cy.animate({ zoom, pan, duration: 500 });
     }, 50);
   });
 
