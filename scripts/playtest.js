@@ -15,7 +15,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
 import { initState, completeReboot, serializeState, deserializeState } from "../js/state.js";
-import { handleExploitExecTimer } from "../js/exploit-exec.js";
+import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-exec.js";
 import { handleProbeScanTimer } from "../js/probe-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
 import { on, E } from "../js/events.js";
@@ -65,6 +65,7 @@ on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
 on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
 on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
+on(TIMER.EXPLOIT_NOISE,   (payload) => handleExploitNoiseTimer(payload));
 on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
 
 // ── Action dispatcher ──────────────────────────────────────
