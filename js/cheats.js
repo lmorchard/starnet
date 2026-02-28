@@ -7,7 +7,7 @@
 // gated, disabled, or penalized as a unit in future builds.
 // Any use of a cheat command sets state.isCheating = true for the run.
 
-import { getState, revealNeighbors, accessNeighbors } from "./state.js";
+import { getState, revealNeighbors, accessNeighbors, serializeState, deserializeState } from "./state.js";
 import { setNodeAccessLevel, setNodeAlertState, setNodeVisible } from "./state/node.js";
 import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
 import { setCheating } from "./state/game.js";
@@ -36,6 +36,10 @@ export function handleCheatCommand(args) {
     return cheatSummonIce(args.slice(1));
   } else if (sub === "ice-state") {
     return cheatIceState();
+  } else if (sub === "snapshot") {
+    return cheatSnapshot();
+  } else if (sub === "restore") {
+    return cheatRestore();
   } else if (sub === "help") {
     return cheatHelp();
   } else {
@@ -247,9 +251,59 @@ function cheatHelp() {
     "  cheat trace end             Cancel active trace countdown.",
     "  cheat summon-ice [node]     Teleport ICE to node (default: selected). Resets dwell.",
     "  cheat ice-state             Dump raw ICE state: grade, position, disturbance target.",
+    "  cheat snapshot              Save game state to file.",
+    "  cheat restore               Load game state from file.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
   return true;
+}
+
+// CHEAT: snapshot — save game state to file
+function cheatSnapshot() {
+  saveGame();
+  addLogEntry("[SYS] Game state saved.", "info");
+  return true;
+}
+
+// CHEAT: restore — load game state from file
+function cheatRestore() {
+  loadGame();
+  return true;
+}
+
+/** Save current game state as a downloadable JSON file. */
+export function saveGame() {
+  const snapshot = serializeState();
+  const json = JSON.stringify(snapshot, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `starnet-save-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Prompt the user to select a JSON save file and restore game state from it. */
+export function loadGame() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    file.text().then((text) => {
+      try {
+        const snapshot = JSON.parse(text);
+        deserializeState(snapshot);
+        emitEvent(E.STATE_CHANGED, getState());
+        addLogEntry(`[SYS] Game state loaded from ${file.name}.`, "info");
+      } catch (e) {
+        addLogEntry(`[SYS] Failed to load: ${e.message}`, "error");
+      }
+    });
+  };
+  input.click();
 }
 
 // ── Internal ──────────────────────────────────────────────

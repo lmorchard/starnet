@@ -3,6 +3,7 @@ import { NETWORK } from "../data/network.js";
 import { initGraph, getCy, addIceNode, fitGraph } from "./graph.js";
 import { initState, getState } from "./state.js";
 import { completeReboot } from "./node-orchestration.js";
+import { saveGame, loadGame } from "./cheats.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "./exploit-exec.js";
 import { handleProbeScanTimer } from "./probe-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
@@ -60,6 +61,10 @@ function init() {
   document.getElementById("jack-out-btn").addEventListener("click", () => {
     emitEvent("starnet:action", { actionId: "jackout" });
   });
+
+  // Wire save/load buttons
+  document.getElementById("save-btn").addEventListener("click", () => saveGame());
+  document.getElementById("load-btn").addEventListener("click", () => loadGame());
 
   const ctx = buildActionContext();
   initActionDispatcher(ctx);

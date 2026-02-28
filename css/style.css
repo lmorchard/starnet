@@ -309,7 +309,7 @@ html, body {
   50%       { opacity: 0.4; }
 }
 
-#pause-btn {
+#pause-btn, #save-btn, #load-btn {
   background: transparent;
   border: 1px solid var(--cyan);
   color: var(--cyan);
@@ -323,7 +323,7 @@ html, body {
   transition: background 0.15s, box-shadow 0.15s;
 }
 
-#pause-btn:hover {
+#pause-btn:hover, #save-btn:hover, #load-btn:hover {
   background: rgba(0, 255, 255, 0.1);
   box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
 }

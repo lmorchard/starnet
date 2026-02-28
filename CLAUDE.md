@@ -65,7 +65,14 @@ docs/
 
 ### State Management
 
-All game state lives in `js/state/` as a plain object. Rules:
+All game state lives in `js/state/` as a single plain object. **The entire game
+state MUST be fully encapsulated in this object so that the game can be
+saved, loaded, and reconstituted at any instant.** No gameplay-relevant state
+may live outside the state object (e.g. in module-level variables, DOM, or
+closures). If serializing the state object and deserializing it doesn't
+perfectly reproduce the game, that is a bug.
+
+Rules:
 
 - **All mutations go through `mutate()`** — the wrapper in `state/index.js` that
   increments a monotonic version counter. Submodule setters (e.g. `setNodeProbed`,
