@@ -5,6 +5,7 @@
 /** @typedef {import('./types.js').ActionContext} ActionContext */
 
 import { getState, reconfigureNode, readNode, lootNode, endRun, ejectIce, rebootNode, buyExploit } from "./state.js";
+import { addLogEntry } from "./log.js";
 import { startExploit, cancelExploit } from "./exploit-exec.js";
 import { startProbe, cancelProbe } from "./probe-exec.js";
 import { navigateTo, navigateAway } from "./navigation.js";
@@ -73,7 +74,10 @@ export function initActionDispatcher(ctx) {
       : (state.selectedNodeId ? state.nodes[state.selectedNodeId] : null);
     const available = getAvailableActions(node, state);
     const action = available.find((a) => a.id === actionId);
-    if (!action?.execute) return;
+    if (!action?.execute) {
+      if (fromConsole) addLogEntry(`${actionId}: not available.`, "error");
+      return;
+    }
     if (!fromConsole) {
       // For exploit, log the card reference rather than the nodeId (matches console output)
       const logStr = (actionId === "exploit" && (payload.cardIndex ?? payload.exploitId))

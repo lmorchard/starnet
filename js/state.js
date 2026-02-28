@@ -67,7 +67,7 @@ export function initState(networkData) {
     nodes,
     adjacency,
     player: {
-      cash: 500,
+      cash: 1000,
       hand: generateStartingHand(),
     },
     globalAlert: "green",   // 'green' | 'yellow' | 'red' | 'trace'

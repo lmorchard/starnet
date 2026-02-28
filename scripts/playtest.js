@@ -14,22 +14,18 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
-import {
-  initState, getState, readNode, lootNode,
-  endRun, ejectIce, rebootNode, completeReboot, reconfigureNode,
-  serializeState, deserializeState,
-} from "../js/state.js";
-import { startExploit, cancelExploit, handleExploitExecTimer } from "../js/exploit-exec.js";
-import { startProbe, cancelProbe, handleProbeScanTimer } from "../js/probe-exec.js";
-import { navigateTo, navigateAway } from "../js/navigation.js";
+import { initState, completeReboot, serializeState, deserializeState } from "../js/state.js";
+import { handleExploitExecTimer } from "../js/exploit-exec.js";
+import { handleProbeScanTimer } from "../js/probe-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
 import { on, E } from "../js/events.js";
 import { tick, TIMER } from "../js/timers.js";
-import { handleTraceTick, cancelTraceCountdown } from "../js/alert.js";
-import { initLog } from "../js/log.js";
+import { handleTraceTick } from "../js/alert.js";
+import { initLog, addLogEntry } from "../js/log.js";
 import { runCommand } from "../js/console.js";
 import { handleCheatCommand } from "../js/cheats.js";
 import { initNodeLifecycle } from "../js/node-lifecycle.js";
+import { buildActionContext, initActionDispatcher } from "../js/action-context.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
@@ -71,22 +67,14 @@ on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
 on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
 on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
 
-// ── Headless action handlers ───────────────────────────────
-// console.js dispatches action events via emitEvent(); these handlers execute them.
+// ── Action dispatcher ──────────────────────────────────────
+// Same path as the browser: starnet:action → getAvailableActions guard → ActionDef.execute()
 
-on("starnet:action:select",         ({ nodeId }) => navigateTo(nodeId));
-on("starnet:action:deselect",       ()           => navigateAway());
-on("starnet:action:probe",          ({ nodeId }) => startProbe(nodeId));
-on("starnet:action:cancel-probe",   ()           => cancelProbe());
-on("starnet:action:launch-exploit", ({ nodeId, exploitId }) => startExploit(nodeId, exploitId));
-on("starnet:action:cancel-exploit", ()                      => cancelExploit());
-on("starnet:action:read",           ({ nodeId }) => readNode(nodeId));
-on("starnet:action:loot",           ({ nodeId }) => lootNode(nodeId));
-on("starnet:action:reconfigure",    ({ nodeId }) => reconfigureNode(nodeId));
-on("starnet:action:cancel-trace",   ()           => cancelTraceCountdown());
-on("starnet:action:eject",          ()           => ejectIce());
-on("starnet:action:reboot",         ({ nodeId }) => rebootNode(nodeId));
-on("starnet:action:jackout",        ()           => endRun("success"));
+const ctx = {
+  ...buildActionContext(),
+  openDarknetsStore: () => addLogEntry("[DARKNET] Use 'store' and 'buy' commands in the harness.", "meta"),
+};
+initActionDispatcher(ctx);
 
 // ── Event → output ─────────────────────────────────────────
 
