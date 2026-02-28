@@ -71,8 +71,16 @@ From session-5 design discussion — reframe log verbosity as something the play
 `Math.random()` calls in `combat.js`, `exploits.js`, `ice.js`, `loot.js` need a seedable
 PRNG to make runs fully reproducible from a saved state. State serialization is complete
 (prerequisite met). The seed would be stored in game state and used everywhere random
-numbers are drawn. Prerequisite for deterministic test replays and future AI-driven
-gameplay / AI bot fast-forward scenarios.
+numbers are drawn. Prerequisite for deterministic test replays, snapshot-based testing,
+and future AI-driven gameplay / AI bot fast-forward scenarios.
+
+### Snapshot-Based Testing
+With save/load implemented and seeded RNG (above), we can write tests that start from a
+captured game state snapshot and replay a deterministic sequence of actions to reproduce
+specific scenarios — especially hard-to-reproduce bugs like ICE detection firing on the
+wrong node. The workflow: capture a snapshot during play when a bug occurs, write a test
+that loads the snapshot, seeds the RNG, executes the triggering actions, and asserts the
+correct outcome. Requires seeded RNG to be fully deterministic.
 
 ### Tick Multiplier / Game Speed
 `tick(n)` already supports multi-tick advances; just need HUD controls (0.5×/1×/2×/4×)
@@ -87,7 +95,7 @@ can play the network on the player's behalf and fast-forward is desirable.
 - _Recommendation: don't formalize until actually building an LLM agent — requirements will clarify then_
 
 ### Module Refactoring
-- **`state.js` is large** — candidate for splitting once the architecture stabilizes; JSDoc types and `action-context.js` extraction make this lower risk. (`main.js` was split out in 2026-02-27-1400 and is now ~63 lines.)
+- ~~**`state.js` is large**~~ — Done. Split into `state/` directory with submodules (2026-02-28 emit-coalesce session).
 
 ### Surgical DOM Rendering
 The current pattern of full `innerHTML` replacement in `visual-renderer.js` is simple but
