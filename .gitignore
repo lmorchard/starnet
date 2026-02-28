@@ -1,3 +1,4 @@
 /.playwright-mcp/
 /*.png
 /scripts/playtest-state.json
+/node_modules/
