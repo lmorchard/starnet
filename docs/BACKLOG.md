@@ -20,6 +20,7 @@ _Compiled from all dev session notes. Not a prioritized roadmap — just a livin
 - **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
 - **`cheat ice-move <node>`** — cheat command to teleport ICE directly to a node for testing detection scenarios without waiting for ticks
 - **ICE path tracing via traffic analysis daemon** — ICE movements currently invisible until dwell fires; a "traffic analysis daemon" installed on a compromised node could reveal ICE movement logs as events _(part of the log-verbosity-as-mechanic idea below)_
+- **ICE status readout on owned-node crossings** — when ICE moves through a node you own, the log reports its path but not its behavioral state. A brief status tag (e.g. `[PATROLLING]`, `[ALERTED]`, `[HUNTING]`) in the movement log entry would let the player read ICE intent at a glance — useful for deciding whether to deselect and go dark or commit to an action. Status maps naturally to the existing grade-behavior tiers: D/F = patrolling, B/C with a disturbance target = alerted, A/S or B/C chasing player = hunting.
 
 ### Information Asymmetry (Log Verbosity as Game Mechanic)
 From session-5 design discussion — reframe log verbosity as something the player *earns*:
