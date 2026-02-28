@@ -67,12 +67,14 @@ export function tick(n = 1) {
   if (_pauseCount > 0) return;
   currentTick += n;
   for (const [id, entry] of timers) {
-    if (currentTick >= entry.fireAt) {
+    // Repeating timers fire once per elapsed interval; one-shots fire once.
+    while (currentTick >= entry.fireAt) {
       emitEvent(entry.type, { ...entry.payload, timerId: id });
       if (entry.intervalTicks !== null) {
         entry.fireAt += entry.intervalTicks;
       } else {
         timers.delete(id);
+        break;
       }
     }
   }

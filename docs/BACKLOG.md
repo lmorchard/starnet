@@ -16,6 +16,18 @@ _Compiled from all dev session notes. Not a prioritized roadmap — just a livin
 - **Node flavor text** — when you `read` a node, give it cyberpunk lore flavor beyond "X item(s) found"
 - **Alert consequence tuning** — trace countdown (60s) may feel long; consider tightening or making it configurable per network
 
+### ICE System Overhaul (Future)
+The current ICE implementation assumes a single ICE entity with a fixed grade and behavior
+tier. A full overhaul will be needed to support:
+- **Multiple concurrent ICE instances** — different entities patrolling different zones of the LAN
+- **Variant ICE types** — each with distinct behaviors (patrol routes, detection radii, response
+  patterns) beyond the current grade-tier model; Defender ICE (reverse-access) would be one type
+- **Per-instance state** — each ICE entity needs its own attention node, detection state, dwell
+  timer, and behavioral flags
+- The current `s.ice` singleton and `ice.js` module will need to become a collection + behavior
+  dispatch system. This is a significant architectural change — defer until the single-ICE
+  prototype is fully playtested and the design is stable.
+
 ### Adversarial / ICE
 - **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
 - **`cheat ice-move <node>`** — cheat command to teleport ICE directly to a node for testing detection scenarios without waiting for ticks

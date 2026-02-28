@@ -31,6 +31,8 @@ export function handleCheatCommand(args) {
     return cheatTrace(args.slice(1));
   } else if (sub === "summon-ice" || sub === "teleport-ice") {
     return cheatSummonIce(args.slice(1));
+  } else if (sub === "ice-state") {
+    return cheatIceState();
   } else if (sub === "help") {
     return cheatHelp();
   } else {
@@ -215,6 +217,22 @@ function cheatTrace(args) {
   return false;
 }
 
+// CHEAT: ice-state — read-only ICE diagnostic dump (no cheat flag)
+function cheatIceState() {
+  const s = getState();
+  if (!s.ice) {
+    addLogEntry("[CHEAT] No ICE in this run.", "meta");
+    return true;
+  }
+  const { grade, active, attentionNodeId, detectedAtNode } = s.ice;
+  const label = s.nodes[attentionNodeId]?.label ?? attentionNodeId ?? "unknown";
+  const disturbLabel = s.lastDisturbedNodeId
+    ? (s.nodes[s.lastDisturbedNodeId]?.label ?? s.lastDisturbedNodeId)
+    : "none";
+  addLogEntry(`[ICE] grade:${grade}  active:${active}  node:${label}  detectedAt:${detectedAtNode ?? "none"}  disturbance:${disturbLabel}`, "meta");
+  return true;
+}
+
 // CHEAT: help
 function cheatHelp() {
   const lines = [
@@ -227,6 +245,7 @@ function cheatHelp() {
     "  cheat trace start           Start the 60s trace countdown immediately.",
     "  cheat trace end             Cancel active trace countdown.",
     "  cheat summon-ice [node]     Teleport ICE to node (default: selected). Resets dwell.",
+    "  cheat ice-state             Dump raw ICE state: grade, position, disturbance target.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
   return true;
