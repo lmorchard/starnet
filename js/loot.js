@@ -9,61 +9,61 @@ const MACGUFFIN_TYPES = [
     id: "research-dossier",
     name: "Encrypted Research Dossier",
     description: "Proprietary quantum-lattice compression research, pre-publication draft.",
-    cashRange: [2000, 8000],
+    cashRange: [400, 1600],
   },
   {
     id: "cryptowallet",
     name: "Corporate Cryptowallet Fragment",
     description: "Partial seed phrase for a high-value Ansible Credits escrow account.",
-    cashRange: [5000, 20000],
+    cashRange: [1000, 4000],
   },
   {
     id: "credential-dump",
     name: "Auth Credential Dump",
     description: "Hashed password archive from directory server, 847 accounts.",
-    cashRange: [1000, 4000],
+    cashRange: [200, 800],
   },
   {
     id: "binary-archive",
     name: "Proprietary Binary Archive",
     description: "Compiled firmware images with embedded signing keys — no source included.",
-    cashRange: [3000, 10000],
+    cashRange: [600, 2000],
   },
   {
     id: "executive-comms",
     name: "Executive Correspondence Bundle",
     description: "Flagged comms between C-suite and off-book subsidiary. Highly compromising.",
-    cashRange: [2000, 6000],
+    cashRange: [400, 1200],
   },
   {
     id: "zero-day-archive",
     name: "Zero-Day Archive",
     description: "Unpublished exploit collection, attributed to a known threat actor group.",
-    cashRange: [8000, 25000],
+    cashRange: [1600, 5000],
   },
   {
     id: "biometric-db",
     name: "Biometric Identity Database",
     description: "Neural interface authentication hashes for 12,000 registered users.",
-    cashRange: [4000, 12000],
+    cashRange: [800, 2400],
   },
   {
     id: "ansible-keys",
     name: "Ansible Relay Access Keys",
     description: "Provisional auth tokens for a private ansible relay node. Expires in 72 hours.",
-    cashRange: [6000, 18000],
+    cashRange: [1200, 3600],
   },
   {
     id: "financial-records",
     name: "Obfuscated Financial Records",
     description: "Laundered transaction logs through shell corps on three planets.",
-    cashRange: [3000, 9000],
+    cashRange: [600, 1800],
   },
   {
     id: "ai-weights",
     name: "Contraband AI Model Weights",
     description: "Fine-tuned daemon substrate — provenance unknown, possibly alien artifact.",
-    cashRange: [10000, 30000],
+    cashRange: [2000, 6000],
   },
 ];
 
@@ -95,7 +95,7 @@ export function flagMissionMacguffin(nodes) {
   if (all.length === 0) return null;
   const target = randomFrom(all);
   target.isMission = true;
-  target.cashValue *= 10;
+  target.cashValue *= 3;
   return { id: target.id, name: target.name };
 }
 
