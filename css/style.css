@@ -200,14 +200,14 @@ html, body {
 .mission-status-failed   { font-size: 0.7rem; color: var(--red); }
 
 #sidebar-node {
-  flex: 1 1 auto;
+  flex: 1 1 50%;
   overflow-y: auto;
   min-height: 0;
 }
 
 #hand-strip {
-  flex: 0 0 auto;
-  overflow-x: auto;
+  flex: 0 0 50%;
+  overflow-y: auto;
   border-top: 1px solid var(--border);
   background: var(--bg-panel);
   padding: 0.4rem 0.75rem;
@@ -613,9 +613,8 @@ html, body {
 }
 
 .nd-hand {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
@@ -627,8 +626,7 @@ html, body {
   gap: 0.2rem;
   font-size: 0.72rem;
   background: var(--bg-panel2);
-  width: 190px;
-  flex-shrink: 0;
+  width: auto;
   height: 160px;
   position: relative;
   overflow: hidden;
