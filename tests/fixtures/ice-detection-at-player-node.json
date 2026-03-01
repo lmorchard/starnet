@@ -1,0 +1,714 @@
+{
+  "nodes": {
+    "wan": {
+      "id": "wan",
+      "type": "wan",
+      "label": "WAN",
+      "grade": "D",
+      "visibility": "accessible",
+      "accessLevel": "locked",
+      "alertState": "green",
+      "probed": false,
+      "vulnerabilities": [
+        {
+          "id": "weak-auth",
+          "name": "Weak Authentication",
+          "description": "Default or trivially guessable credentials on administrative interface.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "path-traversal",
+          "name": "Path Traversal in File Service",
+          "description": "Insufficient input sanitization allows directory escape via encoded sequences.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "unpatched-ssh",
+          "name": "Unpatched SSH Daemon",
+          "description": "Remote code execution via heap overflow in OpenSSH authentication handler.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "stale-firmware",
+          "name": "Stale Firmware",
+          "description": "End-of-life firmware with unmitigated CVEs in bootloader and device drivers.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    },
+    "gateway": {
+      "id": "gateway",
+      "type": "gateway",
+      "label": "INET-GW-01",
+      "grade": "D",
+      "visibility": "accessible",
+      "accessLevel": "compromised",
+      "alertState": "green",
+      "probed": true,
+      "vulnerabilities": [
+        {
+          "id": "side-channel",
+          "name": "Timing Side-Channel",
+          "description": "Cryptographic comparison leaks key material via measurable response latency.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "weak-auth",
+          "name": "Weak Authentication",
+          "description": "Default or trivially guessable credentials on administrative interface.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "race-condition",
+          "name": "TOCTOU Race Condition",
+          "description": "Time-of-check to time-of-use flaw in privilege escalation gate enables bypass.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "kernel-exploit",
+          "name": "Kernel Privilege Escalation",
+          "description": "Use-after-free in kernel scheduler enables local privilege elevation to ring 0.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": true,
+      "looted": false,
+      "rebooting": false
+    },
+    "router-a": {
+      "id": "router-a",
+      "type": "router",
+      "label": "RTR-A",
+      "grade": "C",
+      "visibility": "accessible",
+      "accessLevel": "compromised",
+      "alertState": "green",
+      "probed": true,
+      "vulnerabilities": [
+        {
+          "id": "race-condition",
+          "name": "TOCTOU Race Condition",
+          "description": "Time-of-check to time-of-use flaw in privilege escalation gate enables bypass.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "kernel-exploit",
+          "name": "Kernel Privilege Escalation",
+          "description": "Use-after-free in kernel scheduler enables local privilege elevation to ring 0.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "stale-firmware",
+          "name": "Stale Firmware",
+          "description": "End-of-life firmware with unmitigated CVEs in bootloader and device drivers.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": true,
+      "looted": false,
+      "rebooting": false
+    },
+    "router-b": {
+      "id": "router-b",
+      "type": "router",
+      "label": "RTR-B",
+      "grade": "C",
+      "visibility": "accessible",
+      "accessLevel": "locked",
+      "alertState": "yellow",
+      "probed": true,
+      "vulnerabilities": [
+        {
+          "id": "weak-auth",
+          "name": "Weak Authentication",
+          "description": "Default or trivially guessable credentials on administrative interface.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "unpatched-ssh",
+          "name": "Unpatched SSH Daemon",
+          "description": "Remote code execution via heap overflow in OpenSSH authentication handler.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    },
+    "firewall": {
+      "id": "firewall",
+      "type": "firewall",
+      "label": "FW-CORE",
+      "grade": "A",
+      "visibility": "accessible",
+      "accessLevel": "locked",
+      "alertState": "yellow",
+      "probed": true,
+      "vulnerabilities": [
+        {
+          "id": "cryptographic-weakness",
+          "name": "Broken Key Exchange",
+          "description": "Weak entropy in ephemeral key generation allows session key recovery offline.",
+          "rarity": "rare",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "zero-day-rce",
+          "name": "Zero-Day RCE",
+          "description": "Unattributed memory corruption in core service; no patch exists in the wild.",
+          "rarity": "rare",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    },
+    "workstation-a": {
+      "id": "workstation-a",
+      "type": "workstation",
+      "label": "WS-ALPHA",
+      "grade": "F",
+      "visibility": "revealed",
+      "accessLevel": "locked",
+      "alertState": "green",
+      "probed": false,
+      "vulnerabilities": [
+        {
+          "id": "unpatched-ssh",
+          "name": "Unpatched SSH Daemon",
+          "description": "Remote code execution via heap overflow in OpenSSH authentication handler.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "weak-auth",
+          "name": "Weak Authentication",
+          "description": "Default or trivially guessable credentials on administrative interface.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "snmp-public",
+          "name": "SNMP Public Community String",
+          "description": "Monitoring agent responding to v1 queries with factory-default community string.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "stale-firmware",
+          "name": "Stale Firmware",
+          "description": "End-of-life firmware with unmitigated CVEs in bootloader and device drivers.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [
+        {
+          "id": "binary-archive-1772387958102-64zj",
+          "typeId": "binary-archive",
+          "name": "Proprietary Binary Archive",
+          "description": "Compiled firmware images with embedded signing keys — no source included.",
+          "cashValue": 1064,
+          "collected": false
+        }
+      ],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    },
+    "workstation-b": {
+      "id": "workstation-b",
+      "type": "workstation",
+      "label": "WS-BETA",
+      "grade": "F",
+      "visibility": "revealed",
+      "accessLevel": "locked",
+      "alertState": "green",
+      "probed": false,
+      "vulnerabilities": [
+        {
+          "id": "stale-firmware",
+          "name": "Stale Firmware",
+          "description": "End-of-life firmware with unmitigated CVEs in bootloader and device drivers.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "buffer-overflow",
+          "name": "Buffer Overflow in Auth Handler",
+          "description": "Stack smashing vulnerability in credential parsing routine, exploitable pre-auth.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "open-telnet",
+          "name": "Open Telnet Port",
+          "description": "Cleartext management protocol exposed on LAN interface with no rate limiting.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    },
+    "ids": {
+      "id": "ids",
+      "type": "ids",
+      "label": "IDS-01",
+      "grade": "B",
+      "visibility": "hidden",
+      "accessLevel": "locked",
+      "alertState": "green",
+      "probed": false,
+      "vulnerabilities": [
+        {
+          "id": "stale-firmware",
+          "name": "Stale Firmware",
+          "description": "End-of-life firmware with unmitigated CVEs in bootloader and device drivers.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "weak-auth",
+          "name": "Weak Authentication",
+          "description": "Default or trivially guessable credentials on administrative interface.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": false,
+      "looted": false,
+      "rebooting": false,
+      "eventForwardingDisabled": false
+    },
+    "fileserver": {
+      "id": "fileserver",
+      "type": "fileserver",
+      "label": "FS-VAULT",
+      "grade": "B",
+      "visibility": "revealed",
+      "accessLevel": "locked",
+      "alertState": "green",
+      "probed": false,
+      "vulnerabilities": [
+        {
+          "id": "side-channel",
+          "name": "Timing Side-Channel",
+          "description": "Cryptographic comparison leaks key material via measurable response latency.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "snmp-public",
+          "name": "SNMP Public Community String",
+          "description": "Monitoring agent responding to v1 queries with factory-default community string.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "stale-firmware",
+          "name": "Stale Firmware",
+          "description": "End-of-life firmware with unmitigated CVEs in bootloader and device drivers.",
+          "rarity": "common",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "kernel-exploit",
+          "name": "Kernel Privilege Escalation",
+          "description": "Use-after-free in kernel scheduler enables local privilege elevation to ring 0.",
+          "rarity": "uncommon",
+          "unlockedBy": "path-traversal",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": true
+        }
+      ],
+      "macguffins": [
+        {
+          "id": "cryptowallet-1772387958102-3zo0",
+          "typeId": "cryptowallet",
+          "name": "Corporate Cryptowallet Fragment",
+          "description": "Partial seed phrase for a high-value Ansible Credits escrow account.",
+          "cashValue": 2014,
+          "collected": false
+        },
+        {
+          "id": "ansible-keys-1772387958102-mu0y",
+          "typeId": "ansible-keys",
+          "name": "Ansible Relay Access Keys",
+          "description": "Provisional auth tokens for a private ansible relay node. Expires in 72 hours.",
+          "cashValue": 2872,
+          "collected": false
+        }
+      ],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    },
+    "cryptovault": {
+      "id": "cryptovault",
+      "type": "cryptovault",
+      "label": "CRYPT-X9",
+      "grade": "S",
+      "visibility": "hidden",
+      "accessLevel": "locked",
+      "alertState": "green",
+      "probed": false,
+      "vulnerabilities": [
+        {
+          "id": "supply-chain",
+          "name": "Supply Chain Implant",
+          "description": "Firmware update channel compromised; malicious payload signed with vendor key.",
+          "rarity": "rare",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        },
+        {
+          "id": "hardware-backdoor",
+          "name": "Hardware Backdoor",
+          "description": "Undocumented maintenance interface hardwired into silicon; bypasses all software auth.",
+          "rarity": "rare",
+          "unlockedBy": "side-channel",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": true
+        }
+      ],
+      "macguffins": [
+        {
+          "id": "cryptowallet-1772387958102-63er",
+          "typeId": "cryptowallet",
+          "name": "Corporate Cryptowallet Fragment",
+          "description": "Partial seed phrase for a high-value Ansible Credits escrow account.",
+          "cashValue": 3683,
+          "collected": false
+        },
+        {
+          "id": "binary-archive-1772387958102-b0rp",
+          "typeId": "binary-archive",
+          "name": "Proprietary Binary Archive",
+          "description": "Compiled firmware images with embedded signing keys — no source included.",
+          "cashValue": 3978,
+          "collected": false,
+          "isMission": true
+        }
+      ],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    },
+    "security-monitor": {
+      "id": "security-monitor",
+      "type": "security-monitor",
+      "label": "SEC-MON",
+      "grade": "A",
+      "visibility": "hidden",
+      "accessLevel": "locked",
+      "alertState": "green",
+      "probed": false,
+      "vulnerabilities": [
+        {
+          "id": "side-channel",
+          "name": "Timing Side-Channel",
+          "description": "Cryptographic comparison leaks key material via measurable response latency.",
+          "rarity": "uncommon",
+          "patched": false,
+          "patchTurn": null,
+          "hidden": false,
+          "unlockedBy": null
+        }
+      ],
+      "macguffins": [],
+      "read": false,
+      "looted": false,
+      "rebooting": false
+    }
+  },
+  "adjacency": {
+    "wan": [
+      "gateway"
+    ],
+    "gateway": [
+      "wan",
+      "router-a",
+      "firewall",
+      "router-b"
+    ],
+    "router-a": [
+      "gateway",
+      "workstation-a",
+      "workstation-b",
+      "fileserver"
+    ],
+    "router-b": [
+      "gateway",
+      "ids"
+    ],
+    "firewall": [
+      "gateway",
+      "fileserver",
+      "cryptovault"
+    ],
+    "workstation-a": [
+      "router-a"
+    ],
+    "workstation-b": [
+      "router-a",
+      "cryptovault"
+    ],
+    "ids": [
+      "router-b",
+      "security-monitor"
+    ],
+    "fileserver": [
+      "router-a",
+      "firewall"
+    ],
+    "cryptovault": [
+      "firewall",
+      "workstation-b"
+    ],
+    "security-monitor": [
+      "ids"
+    ]
+  },
+  "player": {
+    "cash": 1000,
+    "hand": [
+      {
+        "id": "exploit-1",
+        "name": "LegacyPoke Pro",
+        "rarity": "common",
+        "quality": 0.26,
+        "targetVulnTypes": [
+          "weak-auth"
+        ],
+        "decayState": "fresh",
+        "usesRemaining": 2
+      },
+      {
+        "id": "exploit-2",
+        "name": "NullRoute Zero",
+        "rarity": "common",
+        "quality": 0.47,
+        "targetVulnTypes": [
+          "open-telnet"
+        ],
+        "decayState": "fresh",
+        "usesRemaining": 3
+      },
+      {
+        "id": "exploit-3",
+        "name": "PathEscape v2.1",
+        "rarity": "uncommon",
+        "quality": 0.73,
+        "targetVulnTypes": [
+          "weak-auth",
+          "open-telnet"
+        ],
+        "decayState": "fresh",
+        "usesRemaining": 5
+      },
+      {
+        "id": "exploit-4",
+        "name": "TimingOracle Ω",
+        "rarity": "uncommon",
+        "quality": 0.61,
+        "targetVulnTypes": [
+          "open-telnet",
+          "weak-auth"
+        ],
+        "decayState": "fresh",
+        "usesRemaining": 5
+      },
+      {
+        "id": "exploit-5",
+        "name": "TimingOracle mk2",
+        "rarity": "uncommon",
+        "quality": 0.51,
+        "targetVulnTypes": [
+          "weak-auth",
+          "unpatched-ssh"
+        ],
+        "decayState": "fresh",
+        "usesRemaining": 5
+      },
+      {
+        "id": "exploit-6",
+        "name": "PhantomGate X",
+        "rarity": "rare",
+        "quality": 0.88,
+        "targetVulnTypes": [
+          "stale-firmware",
+          "cryptographic-weakness",
+          "race-condition"
+        ],
+        "decayState": "fresh",
+        "usesRemaining": 7
+      }
+    ]
+  },
+  "globalAlert": "green",
+  "traceSecondsRemaining": null,
+  "traceTimerId": null,
+  "selectedNodeId": "router-b",
+  "phase": "playing",
+  "runOutcome": null,
+  "isCheating": false,
+  "ice": {
+    "grade": "C",
+    "residentNodeId": "security-monitor",
+    "attentionNodeId": "router-b",
+    "active": true,
+    "dwellTimerId": 10,
+    "detectedAtNode": null,
+    "detectionCount": 0
+  },
+  "lastDisturbedNodeId": null,
+  "executingExploit": null,
+  "activeProbe": null,
+  "mission": {
+    "targetMacguffinId": "binary-archive-1772387958102-b0rp",
+    "targetName": "Proprietary Binary Archive",
+    "complete": false
+  },
+  "_timers": {
+    "currentTick": 890,
+    "nextId": 11,
+    "entries": [
+      {
+        "id": 1,
+        "type": "starnet:timer:ice-move",
+        "payload": {},
+        "fireAt": 910,
+        "intervalTicks": 70,
+        "visible": false,
+        "label": null,
+        "startedAt": 0,
+        "durationTicks": 70
+      },
+      {
+        "id": 10,
+        "type": "starnet:timer:ice-detect",
+        "payload": {
+          "nodeId": "router-b"
+        },
+        "fireAt": 901,
+        "intervalTicks": null,
+        "visible": true,
+        "label": "ICE DETECTION",
+        "startedAt": 856,
+        "durationTicks": 45
+      }
+    ]
+  },
+  "_exploitIdCounter": 7
+}

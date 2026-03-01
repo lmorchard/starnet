@@ -164,10 +164,15 @@ export function handleIceTick() {
   const toLabel = toVisible ? (s.nodes[nextNode]?.label ?? nextNode) : "???";
   emitEvent(E.ICE_MOVED, { fromId, toId: nextNode, fromLabel, toLabel, fromVisible, toVisible });
 
-  checkIceDetection(nextNode);
+  checkIceDetection(nextNode, { justArrived: true });
 }
 
-function checkIceDetection(nodeId) {
+// Delay before detection starts when ICE arrives via movement (ms).
+// Matches the ICE movement animation duration so the visual and the
+// detection timer stay in sync — player sees ICE arrive, then countdown starts.
+const ARRIVAL_DELAY_MS = 400;
+
+function checkIceDetection(nodeId, { justArrived = false } = {}) {
   const s = getState();
   if (!s.ice || !s.ice.active) return;
   if (s.selectedNodeId !== nodeId) {
@@ -184,10 +189,10 @@ function checkIceDetection(nodeId) {
     // Instant detection — no escape possible
     triggerDetection(nodeId);
   } else {
-    // Schedule timer first so it's in the Map before the event triggers a re-render
-    const timerId = scheduleEvent(TIMER.ICE_DETECT, dwellMs, { nodeId }, { label: "ICE DETECTION" });
+    const totalMs = dwellMs + (justArrived ? ARRIVAL_DELAY_MS : 0);
+    const timerId = scheduleEvent(TIMER.ICE_DETECT, totalMs, { nodeId }, { label: "ICE DETECTION" });
     setIceDwellTimer(timerId);
-    emitEvent(E.ICE_DETECT_PENDING, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId, dwellMs });
+    emitEvent(E.ICE_DETECT_PENDING, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId, dwellMs: totalMs });
   }
 }
 
