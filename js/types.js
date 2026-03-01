@@ -257,6 +257,7 @@
  * The complete game state. Managed exclusively through state.js.
  * Never mutate directly — always use exported state mutation functions.
  * @typedef {{
+ *   seed: string,
  *   nodes: Object.<string, NodeState>,
  *   adjacency: Object.<string, string[]>,
  *   player: PlayerState,

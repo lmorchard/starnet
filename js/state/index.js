@@ -23,6 +23,7 @@
 /** @typedef {import('../types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('../types.js').GlobalAlertLevel} GlobalAlertLevel */
 
+import { initRng, getSeed, serializeRng, deserializeRng } from "../rng.js";
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers } from "../timers.js";
@@ -60,7 +61,9 @@ export function getVersion() {
 
 // ── Initialization ───────────────────────────────────────
 
-export function initState(networkData) {
+export function initState(networkData, seedString) {
+  initRng(seedString);
+
   /** @type {Object.<string, NodeState>} */
   const nodes = {};
   networkData.nodes.forEach((n) => {
@@ -100,6 +103,7 @@ export function initState(networkData) {
   });
 
   state = {
+    seed: getSeed(),
     nodes,
     adjacency,
     player: { cash: 1000, hand: generateStartingHand() },
@@ -244,12 +248,13 @@ export function buyExploit(card, price) {
 // ── Serialization ─────────────────────────────────────────
 
 export function serializeState() {
-  return { ...state, _timers: serializeTimers(), _exploitIdCounter };
+  return { ...state, _timers: serializeTimers(), _rng: serializeRng(), _exploitIdCounter };
 }
 
 export function deserializeState(snapshot) {
-  const { _timers, _exploitIdCounter: exploitId, ...gameState } = snapshot;
+  const { _timers, _rng, _exploitIdCounter: exploitId, ...gameState } = snapshot;
   state = gameState;
   deserializeTimers(_timers);
+  if (_rng) deserializeRng(_rng);
   if (exploitId != null) setExploitIdCounter(exploitId);
 }
