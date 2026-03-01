@@ -401,8 +401,7 @@ function buildStylesheet() {
       style: {
         display: "element",
         "line-color": "#0a4433",
-        "target-arrow-color": "#0a4433",
-        "target-arrow-shape": "triangle",
+        "target-arrow-shape": "none",
         "curve-style": "bezier",
         width: 1.5,
         opacity: 0.7,
@@ -413,7 +412,6 @@ function buildStylesheet() {
       selector: "edge.owned-path",
       style: {
         "line-color": "#00ff41",
-        "target-arrow-color": "#00ff41",
         opacity: 0.5,
         width: 2,
       },
