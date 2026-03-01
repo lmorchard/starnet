@@ -943,6 +943,17 @@ const LAYOUTS = {
     padding: 50,
     fit: true,
   }),
+  klay: (animate) => ({
+    name: "klay",
+    animate,
+    klay: {
+      direction: "DOWN",
+      spacing: 60,
+      edgeSpacingFactor: 0.3,
+    },
+    padding: 50,
+    fit: true,
+  }),
   cose: (animate) => ({
     name: "cose",
     animate,
