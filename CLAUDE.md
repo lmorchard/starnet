@@ -54,6 +54,7 @@ js/
   combat.js             — exploit vs node resolution (probability + flavor)
   loot.js               — macguffin types and node assignment
   ice.js                — ICE AI movement, detection, dwell timer logic
+  rng.js                — seeded PRNG (Mulberry32, named streams, helpers)
   timers.js             — centralized timer system (scheduleEvent, repeating)
   cheats.js             — playtesting cheat commands (lazy-loaded)
 data/
@@ -218,7 +219,7 @@ node scripts/playtest.js "status ice"
 
 ### Notes
 
-- **Seeded RNG not yet implemented** — `Math.random()` is used in combat, exploits, and ICE; runs are probabilistic and not fully reproducible from a saved state. Seeded RNG is a future backlog item.
+- **Seeded RNG** — `js/rng.js` provides Mulberry32 PRNG with 5 named streams (exploit, combat, ice, loot, world). String seeds hashed via djb2. All gameplay randomness is deterministic for a given seed. Use `--seed "value"` for reproducible runs.
 - `console.js` is DOM-coupled and not used by the harness; command dispatch is inline in `playtest.js`
 - Cheat commands are not yet supported in the harness
 

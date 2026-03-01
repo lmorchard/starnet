@@ -58,6 +58,10 @@ at the end of this manual.
 
 **HUD** — Top bar shows global alert level and your current cash balance.
 
+**Seed** — Each run is generated from a seed string, shown in the status display.
+Sharing a seed lets someone else play the same network layout, vulnerabilities,
+and exploit hand. Use `status summary` to see your current seed.
+
 ---
 
 ## NODE TYPES
