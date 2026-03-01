@@ -1,0 +1,179 @@
+{
+  "nodes": [
+    {
+      "id": "wan-1",
+      "type": "wan",
+      "label": "WAN",
+      "grade": "D",
+      "x": 400,
+      "y": -90
+    },
+    {
+      "id": "gateway-2",
+      "type": "gateway",
+      "label": "INET-GW-02",
+      "grade": "D",
+      "x": 400,
+      "y": 50
+    },
+    {
+      "id": "security-monitor-3",
+      "type": "security-monitor",
+      "label": "SEC-MON-01",
+      "grade": "A",
+      "x": 200,
+      "y": 470
+    },
+    {
+      "id": "ids-4",
+      "type": "ids",
+      "label": "IDS-01",
+      "grade": "B",
+      "x": 0,
+      "y": 330
+    },
+    {
+      "id": "router-5",
+      "type": "router",
+      "label": "RTR-A",
+      "grade": "C",
+      "x": 100,
+      "y": 190
+    },
+    {
+      "id": "router-6",
+      "type": "router",
+      "label": "RTR-02",
+      "grade": "B",
+      "x": 300,
+      "y": 190
+    },
+    {
+      "id": "firewall-7",
+      "type": "firewall",
+      "label": "FW-CORE",
+      "grade": "A",
+      "x": 500,
+      "y": 190
+    },
+    {
+      "id": "fileserver-8",
+      "type": "fileserver",
+      "label": "FS-ARCHIVE",
+      "grade": "C",
+      "x": 400,
+      "y": 470
+    },
+    {
+      "id": "cryptovault-9",
+      "type": "cryptovault",
+      "label": "VAULT-S",
+      "grade": "A",
+      "x": 600,
+      "y": 470
+    },
+    {
+      "id": "workstation-10",
+      "type": "workstation",
+      "label": "WS-BETA",
+      "grade": "D",
+      "x": 200,
+      "y": 330
+    },
+    {
+      "id": "workstation-11",
+      "type": "workstation",
+      "label": "WS-01",
+      "grade": "D",
+      "x": 400,
+      "y": 330
+    },
+    {
+      "id": "workstation-12",
+      "type": "workstation",
+      "label": "WS-GAMMA",
+      "grade": "B",
+      "x": 600,
+      "y": 330
+    },
+    {
+      "id": "fileserver-13",
+      "type": "fileserver",
+      "label": "FS-02",
+      "grade": "A",
+      "x": 800,
+      "y": 330
+    },
+    {
+      "id": "firewall-14",
+      "type": "firewall",
+      "label": "FW-01",
+      "grade": "S",
+      "x": 700,
+      "y": 190
+    }
+  ],
+  "edges": [
+    {
+      "source": "wan-1",
+      "target": "gateway-2"
+    },
+    {
+      "source": "ids-4",
+      "target": "security-monitor-3"
+    },
+    {
+      "source": "gateway-2",
+      "target": "router-5"
+    },
+    {
+      "source": "gateway-2",
+      "target": "router-6"
+    },
+    {
+      "source": "router-5",
+      "target": "ids-4"
+    },
+    {
+      "source": "gateway-2",
+      "target": "firewall-7"
+    },
+    {
+      "source": "firewall-7",
+      "target": "fileserver-8"
+    },
+    {
+      "source": "firewall-7",
+      "target": "cryptovault-9"
+    },
+    {
+      "source": "router-5",
+      "target": "workstation-10"
+    },
+    {
+      "source": "router-6",
+      "target": "workstation-11"
+    },
+    {
+      "source": "workstation-12",
+      "target": "fileserver-13"
+    },
+    {
+      "source": "firewall-14",
+      "target": "fileserver-13"
+    },
+    {
+      "source": "router-6",
+      "target": "workstation-12"
+    },
+    {
+      "source": "gateway-2",
+      "target": "firewall-14"
+    }
+  ],
+  "startNode": "gateway-2",
+  "ice": {
+    "grade": "B",
+    "startNode": "security-monitor-3"
+  }
+}
