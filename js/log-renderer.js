@@ -83,6 +83,12 @@ export function initLogRenderer() {
   on(E.PROBE_SCAN_CANCELLED, (/** @type {import('./types.js').ProbeScanCancelledPayload} */ { label }) =>
     add(`[PROBE] ${label}: scan cancelled.`, "info"));
 
+  // ── Read scan events ────────────────────────────────────
+  on(E.READ_SCAN_STARTED,    (/** @type {import('./types.js').ReadScanStartedPayload} */ { label, durationMs }) =>
+    add(`[READ] ${label}: extracting data (${Math.round(durationMs / 1000)}s)...`, "info"));
+  on(E.READ_SCAN_CANCELLED,  (/** @type {import('./types.js').ReadScanCancelledPayload} */ { label }) =>
+    add(`[READ] ${label}: extraction cancelled.`, "info"));
+
   // ── Exploit events ───────────────────────────────────────
   on(E.EXPLOIT_STARTED,      (/** @type {ExploitStartedPayload} */      { label, exploitName, durationMs }) =>
     add(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`, "info"));

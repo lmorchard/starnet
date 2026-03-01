@@ -46,6 +46,9 @@ export const E = Object.freeze({
   PROBE_SCAN_STARTED:   "probe:scan-started",
   PROBE_SCAN_CANCELLED: "probe:scan-cancelled",
 
+  READ_SCAN_STARTED:    "read:scan-started",
+  READ_SCAN_CANCELLED:  "read:scan-cancelled",
+
   EXPLOIT_STARTED:      "exploit:started",
   EXPLOIT_NOISE:        "exploit:noise",
   EXPLOIT_INTERRUPTED:  "exploit:interrupted",

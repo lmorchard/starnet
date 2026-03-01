@@ -135,6 +135,14 @@
  */
 
 /**
+ * Tracks an in-progress read scan. Null when no read is running.
+ * @typedef {{
+ *   nodeId: string,
+ *   timerId: number,
+ * }} ActiveRead
+ */
+
+/**
  * @typedef {{
  *   targetMacguffinId: string,
  *   targetName: string,
@@ -180,7 +188,8 @@
  *   cancelProbe:   () => void,
  *   startExploit:  (nodeId: string, exploitId: string) => void,
  *   cancelExploit: () => void,
- *   readNode:      (nodeId: string) => void,
+ *   startRead:     (nodeId: string) => void,
+ *   cancelRead:    () => void,
  *   lootNode:      (nodeId: string) => void,
  *   ejectIce:         () => void,
  *   rebootNode:       (nodeId: string) => void,
@@ -262,6 +271,7 @@
  *   mission: MissionState|null,
  *   executingExploit: ExecutingExploit|null,
  *   activeProbe: ActiveProbe|null,
+ *   activeRead: ActiveRead|null,
  * }} GameState
  */
 
@@ -289,6 +299,9 @@
 
 /** @typedef {{ nodeId: string, label: string, durationMs: number }} ProbeScanStartedPayload */
 /** @typedef {{ nodeId: string, label: string }} ProbeScanCancelledPayload */
+
+/** @typedef {{ nodeId: string, label: string, durationMs: number }} ReadScanStartedPayload */
+/** @typedef {{ nodeId: string, label: string }} ReadScanCancelledPayload */
 
 /** @typedef {{ prev: GlobalAlertLevel, next: GlobalAlertLevel }} AlertGlobalRaisedPayload */
 /** @typedef {{ seconds: number }} AlertTraceStartedPayload */

@@ -45,6 +45,13 @@ export function setActiveProbe(data) {
   });
 }
 
+/** Sets state.activeRead (pass null to clear). */
+export function setActiveRead(data) {
+  mutate((s) => {
+    s.activeRead = data;
+  });
+}
+
 /** Marks the current mission as complete. */
 export function setMissionComplete() {
   mutate((s) => {
