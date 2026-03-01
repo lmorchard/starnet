@@ -903,10 +903,10 @@ function _renderIceDetectSweep() {
 
 const MAX_FIT_ZOOM = 1.5;
 
-function colaLayout() {
+function colaLayout({ animate = false } = {}) {
   return {
     name: "cola",
-    animate: false,
+    animate,
     randomize: true,
     nodeSpacing: 30,
     edgeLength: 120,
@@ -919,7 +919,7 @@ function colaLayout() {
 /** Re-run the layout algorithm with fresh random positions. */
 export function relayout() {
   if (!cy) return;
-  cy.layout(colaLayout()).run();
+  cy.layout(colaLayout({ animate: true })).run();
 }
 
 export function fitGraph(cy) {
