@@ -14,7 +14,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
-import { initState, serializeState, deserializeState } from "../js/state.js";
+import { initState, getState, serializeState, deserializeState } from "../js/state.js";
 import { completeReboot } from "../js/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-exec.js";
 import { handleProbeScanTimer } from "../js/probe-exec.js";
