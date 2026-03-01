@@ -14,6 +14,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
+import { generateNetwork } from "../js/network-gen.js";
 import { initState, getState, serializeState, deserializeState } from "../js/state.js";
 import { completeReboot } from "../js/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-exec.js";
@@ -39,6 +40,8 @@ initNodeLifecycle();
 let stateFile = "scripts/playtest-state.json";
 let cmdStr = null;
 let seedArg = null;
+let timeArg = null;
+let moneyArg = null;
 
 {
   const argv = process.argv.slice(2);
@@ -47,14 +50,24 @@ let seedArg = null;
       stateFile = argv[++i];
     } else if (argv[i] === "--seed" && argv[i + 1]) {
       seedArg = argv[++i];
+    } else if (argv[i] === "--time" && argv[i + 1]) {
+      timeArg = argv[++i].toUpperCase();
+    } else if (argv[i] === "--money" && argv[i + 1]) {
+      moneyArg = argv[++i].toUpperCase();
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
   }
 }
 
+// ── Network selection ───────────────────────────────────────
+// Use generated network when --time and --money are both present; otherwise static.
+const network = (timeArg && moneyArg)
+  ? generateNetwork(seedArg ?? "default", timeArg, moneyArg)
+  : NETWORK;
+
 if (!cmdStr) {
-  console.error("Usage: node scripts/playtest.js [--state <file>] <command>");
+  console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] <command>");
   console.error("Commands: reset  tick <n>  select <node>  deselect");
   console.error("          probe [node]  exploit <node> <card>  read [node]");
   console.error("          loot [node]  reconfigure [node]  jackout");
@@ -148,9 +161,12 @@ function runCmd(raw) {
 
   // Harness-only commands
   if (verb === "reset") {
-    initState(NETWORK, seedArg ?? undefined);
+    initState(network, seedArg ?? undefined);
     startIce();
-    out(`[SYS] Initialized. Seed: "${getState().seed}". Network: ${NETWORK.nodes.length} nodes.`);
+    const genInfo = (timeArg && moneyArg)
+      ? ` (generated: time=${timeArg} money=${moneyArg})`
+      : "";
+    out(`[SYS] Initialized. Seed: "${getState().seed}". Network: ${network.nodes.length} nodes${genInfo}.`);
     return;
   }
   if (verb === "tick") {
