@@ -4,8 +4,8 @@
 import { isIceVisible } from "./state.js";
 
 // Still playing with what might be the best default here
-// const DEFAULT_LAYOUT_ALGO = "cola";
-const DEFAULT_LAYOUT_ALGO = "dagre";
+const DEFAULT_LAYOUT_ALGO = "cola";
+// const DEFAULT_LAYOUT_ALGO = "dagre";
 
 // Node type → shape mapping
 const NODE_SHAPES = {
