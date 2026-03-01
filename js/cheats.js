@@ -38,7 +38,7 @@ export function handleCheatCommand(args) {
   } else if (sub === "ice-state") {
     return cheatIceState();
   } else if (sub === "relayout") {
-    return cheatRelayout();
+    return cheatRelayout(args.slice(1));
   } else if (sub === "snapshot") {
     return cheatSnapshot();
   } else if (sub === "restore") {
@@ -254,7 +254,7 @@ function cheatHelp() {
     "  cheat trace end             Cancel active trace countdown.",
     "  cheat summon-ice [node]     Teleport ICE to node (default: selected). Resets dwell.",
     "  cheat ice-state             Dump raw ICE state: grade, position, disturbance target.",
-    "  cheat relayout              Re-run graph layout with fresh random positions.",
+    "  cheat relayout [algo]       Re-run layout. Algos: cola dagre euler breadthfirst cose",
     "  cheat snapshot              Save game state to file.",
     "  cheat restore               Load game state from file.",
   ];
@@ -277,11 +277,16 @@ function cheatRestore() {
   return true;
 }
 
-// CHEAT: relayout — re-run graph layout with fresh random positions
-function cheatRelayout() {
-  import("./graph.js").then(({ relayout }) => {
-    relayout();
-    addLogEntry("[CHEAT] Graph re-laid out.", "success");
+// CHEAT: relayout [algorithm] — re-run graph layout
+function cheatRelayout(args) {
+  const name = args[0]?.toLowerCase();
+  import("./graph.js").then(({ relayout, getLayoutNames }) => {
+    const used = relayout(name);
+    if (name && used !== name) {
+      addLogEntry(`[CHEAT] Unknown layout "${name}". Options: ${getLayoutNames().join(", ")}`, "error");
+    } else {
+      addLogEntry(`[CHEAT] Graph re-laid out (${used}).`, "success");
+    }
   });
   return true;
 }

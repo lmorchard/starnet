@@ -132,7 +132,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
     elements,
-    layout: colaLayout(),
+    layout: LAYOUTS[currentLayout](false),
     style: buildStylesheet(),
     userZoomingEnabled: true,
     userPanningEnabled: true,
@@ -903,8 +903,8 @@ function _renderIceDetectSweep() {
 
 const MAX_FIT_ZOOM = 1.5;
 
-function colaLayout({ animate = false } = {}) {
-  return {
+const LAYOUTS = {
+  cola: (animate) => ({
     name: "cola",
     animate,
     randomize: true,
@@ -913,13 +913,63 @@ function colaLayout({ animate = false } = {}) {
     padding: 50,
     maxSimulationTime: 4000,
     fit: true,
-  };
+  }),
+  dagre: (animate) => ({
+    name: "dagre",
+    animate,
+    rankDir: "TB",
+    nodeSep: 60,
+    rankSep: 100,
+    padding: 50,
+    fit: true,
+  }),
+  euler: (animate) => ({
+    name: "euler",
+    animate,
+    randomize: true,
+    springLength: 150,
+    springCoeff: 0.0003,
+    gravity: -2,
+    padding: 50,
+    maxIterations: 1000,
+    fit: true,
+  }),
+  breadthfirst: (animate) => ({
+    name: "breadthfirst",
+    animate,
+    roots: "#gateway",
+    directed: false,
+    spacingFactor: 1.5,
+    padding: 50,
+    fit: true,
+  }),
+  cose: (animate) => ({
+    name: "cose",
+    animate,
+    randomize: true,
+    nodeRepulsion: () => 80000,
+    idealEdgeLength: () => 200,
+    nodeOverlap: 40,
+    gravity: 0.05,
+    padding: 50,
+    numIter: 1000,
+    fit: true,
+  }),
+};
+
+let currentLayout = "cola";
+
+/** Re-run the layout algorithm. Pass a name to switch algorithms. */
+export function relayout(name) {
+  if (!cy) return;
+  if (name && LAYOUTS[name]) currentLayout = name;
+  cy.layout(LAYOUTS[currentLayout](true)).run();
+  return currentLayout;
 }
 
-/** Re-run the layout algorithm with fresh random positions. */
-export function relayout() {
-  if (!cy) return;
-  cy.layout(colaLayout({ animate: true })).run();
+/** Returns the list of available layout names. */
+export function getLayoutNames() {
+  return Object.keys(LAYOUTS);
 }
 
 export function fitGraph(cy) {
