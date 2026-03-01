@@ -685,9 +685,15 @@ function flashIcePath(fromId, toId) {
     cur = prev;
   }
 
-  // Flash each edge in sequence; skip edges that are hidden (fog of war)
+  // Flash each edge in sequence; skip edges not in player-controlled territory.
+  // Requires at least one endpoint to be compromised or owned (not just visible).
   pathEdges.forEach((edge, i) => {
     if (edge.hasClass("hidden")) return;
+    const src = cy.getElementById(edge.data("source"));
+    const tgt = cy.getElementById(edge.data("target"));
+    const srcControlled = src.hasClass("compromised") || src.hasClass("owned");
+    const tgtControlled = tgt.hasClass("compromised") || tgt.hasClass("owned");
+    if (!srcControlled && !tgtControlled) return;
     setTimeout(() => {
       edge.animate(
         { style: { "line-color": "#ff00aa", width: 3, opacity: 1 } },
