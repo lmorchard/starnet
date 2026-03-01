@@ -80,6 +80,14 @@ wrong node. The workflow: capture a snapshot during play when a bug occurs, writ
 that loads the snapshot, seeds the RNG, executes the triggering actions, and asserts the
 correct outcome. Requires seeded RNG to be fully deterministic.
 
+### Visual Preview Harness ("Storybook")
+Extract and isolate the visual rendering subsystem (graph.js overlays, CSS animations,
+SVG effects) into a standalone preview tool. Allows testing and refining visuals — probe
+sweep, exploit brackets + zaps, ICE detection arc, read sectors, etc. — without going
+through gameplay. Inspired by Storybook: render each effect in isolation with sliders for
+progress, node size, and timing. Prerequisite: further decoupling visual renderers from
+game state (currently tightly coupled via Cytoscape node positions).
+
 ### Tick Multiplier / Game Speed
 `tick(n)` already supports multi-tick advances; just need HUD controls (0.5×/1×/2×/4×)
 and to thread the multiplier through the `setInterval` callback. Most useful when AI bots
