@@ -12,7 +12,7 @@
 /** @typedef {import('./types.js').CombatConfig} CombatConfig */
 /** @typedef {import('./types.js').VulnConfig} VulnConfig */
 
-import { randomInt } from "./rng.js";
+import { RNG, randomInt } from "./rng.js";
 
 // ── Behavior atoms ────────────────────────────────────────
 // Each atom is a plain object with optional lifecycle hooks.
@@ -59,7 +59,7 @@ export const BEHAVIORS = {
       const lootConfig = ctx.typeDef?.lootConfig;
       if (!lootConfig) return;
       const [min, max] = lootConfig.count;
-      const count = randomInt("loot", min, max);
+      const count = randomInt(RNG.LOOT, min, max);
       for (let i = 0; i < count; i++) {
         node.macguffins.push(ctx.generateMacguffin());
       }

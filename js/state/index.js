@@ -23,7 +23,7 @@
 /** @typedef {import('../types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('../types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { initRng, getSeed, serializeRng, deserializeRng, randomPick } from "../rng.js";
+import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick } from "../rng.js";
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers } from "../timers.js";
@@ -148,7 +148,7 @@ export function initState(networkData, seedString) {
   if (networkData.ice) {
     const nodeIds = Object.keys(nodes);
     const residentNodeId = networkData.ice.startNode
-      ?? randomPick("world", nodeIds);
+      ?? randomPick(RNG.WORLD, nodeIds);
     state.ice = {
       grade: networkData.ice.grade,
       residentNodeId,

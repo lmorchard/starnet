@@ -34,7 +34,16 @@ function hashString(str) {
 
 // ── Stream state ─────────────────────────────────────────
 
-const STREAM_NAMES = ["exploit", "combat", "ice", "loot", "world"];
+/** Named RNG stream constants — use these instead of string literals. */
+export const RNG = Object.freeze({
+  EXPLOIT: "exploit",
+  COMBAT:  "combat",
+  ICE:     "ice",
+  LOOT:    "loot",
+  WORLD:   "world",
+});
+
+const STREAM_NAMES = Object.values(RNG);
 
 /** @type {string} */
 let _seed = "";
