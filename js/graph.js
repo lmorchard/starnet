@@ -892,12 +892,14 @@ function _renderReadSectors() {
 
 // ── Loot ring animation ──────────────────────────────────
 let currentLootRingsNodeId = null;
+let currentLootProgress = 0;
 let lootRingIntervalId = null;
 const LOOT_RING_SPAWN_MS = 200;  // spawn a new ring every 200ms
 const LOOT_RING_LIFETIME_MS = 800; // ring takes 800ms to expand and fade
 
 export function syncLootRings(nodeId, progress) {
   currentLootRingsNodeId = nodeId;
+  currentLootProgress = progress;
   _renderLootRings();
   if (lootRingIntervalId === null) {
     _spawnLootRing(); // immediate first ring
@@ -952,7 +954,10 @@ function _spawnLootRing() {
   const r = node.renderedWidth() / 2;
   const cx = r + 12;
   const cy2 = r + 12;
-  const strokeWidth = 1 + Math.random() * 2; // 1-3px random thickness
+  // Rings start thin, get thicker as loot approaches completion
+  const minWidth = 0.5 + currentLootProgress * 2.5;  // 0.5px → 3px
+  const maxWidth = minWidth + 1 + currentLootProgress * 2; // +1..3px variance
+  const strokeWidth = minWidth + Math.random() * (maxWidth - minWidth);
 
   const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   ring.setAttribute("cx", String(cx));
