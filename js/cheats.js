@@ -254,7 +254,7 @@ function cheatHelp() {
     "  cheat trace end             Cancel active trace countdown.",
     "  cheat summon-ice [node]     Teleport ICE to node (default: selected). Resets dwell.",
     "  cheat ice-state             Dump raw ICE state: grade, position, disturbance target.",
-    "  cheat relayout [algo]       Re-run layout. Algos: cola dagre klay euler breadthfirst cose",
+    "  cheat relayout [algo]       Re-run layout. Try: dagre klay cola fcose cose-bilkent euler spread",
     "  cheat snapshot              Save game state to file.",
     "  cheat restore               Load game state from file.",
   ];
