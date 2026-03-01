@@ -954,10 +954,11 @@ function _spawnLootRing() {
   const r = node.renderedWidth() / 2;
   const cx = r + 12;
   const cy2 = r + 12;
-  // Rings start thin, get thicker as loot approaches completion
-  const minWidth = 0.5 + currentLootProgress * 2.5;  // 0.5px → 3px
-  const maxWidth = minWidth + 1 + currentLootProgress * 2; // +1..3px variance
-  const strokeWidth = minWidth + Math.random() * (maxWidth - minWidth);
+  // Rings start as thin hairlines, grow to nearly fill the node by completion
+  const p = currentLootProgress;
+  const minWidth = 0.5 + p * p * r * 0.6;    // 0.5px → ~60% of node radius
+  const variance = 1 + p * 3;                 // small jitter at start, more at end
+  const strokeWidth = minWidth + Math.random() * variance;
 
   const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   ring.setAttribute("cx", String(cx));
