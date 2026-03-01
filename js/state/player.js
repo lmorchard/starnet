@@ -52,6 +52,13 @@ export function setActiveRead(data) {
   });
 }
 
+/** Sets state.activeLoot (pass null to clear). */
+export function setActiveLoot(data) {
+  mutate((s) => {
+    s.activeLoot = data;
+  });
+}
+
 /** Marks the current mission as complete. */
 export function setMissionComplete() {
   mutate((s) => {

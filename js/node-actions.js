@@ -90,12 +90,22 @@ export const NODE_ACTIONS = Object.freeze([
   {
     id: "loot",
     label: "LOOT",
-    available: (node) =>
+    available: (node, state) =>
       node.accessLevel === "owned" &&
       node.read &&
-      node.macguffins.some((m) => !m.collected),
-    desc: () => "Collect macguffins for cash.",
-    execute: (node, _state, ctx) => ctx.lootNode(node.id),
+      !node.rebooting &&
+      node.macguffins.some((m) => !m.collected) &&
+      state.activeLoot?.nodeId !== node.id,
+    desc: () => "Extract macguffins for cash.",
+    execute: (node, _state, ctx) => ctx.startLoot(node.id),
+  },
+
+  {
+    id: "cancel-loot",
+    label: "CANCEL LOOT",
+    available: (node, state) => state.activeLoot?.nodeId === node.id,
+    desc: () => "Abort extraction.",
+    execute: (_node, _state, ctx) => ctx.cancelLoot(),
   },
 
   {

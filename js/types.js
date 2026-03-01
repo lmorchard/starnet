@@ -143,6 +143,14 @@
  */
 
 /**
+ * Tracks an in-progress loot extraction. Null when no loot is running.
+ * @typedef {{
+ *   nodeId: string,
+ *   timerId: number,
+ * }} ActiveLoot
+ */
+
+/**
  * @typedef {{
  *   targetMacguffinId: string,
  *   targetName: string,
@@ -190,7 +198,8 @@
  *   cancelExploit: () => void,
  *   startRead:     (nodeId: string) => void,
  *   cancelRead:    () => void,
- *   lootNode:      (nodeId: string) => void,
+ *   startLoot:     (nodeId: string) => void,
+ *   cancelLoot:    () => void,
  *   ejectIce:         () => void,
  *   rebootNode:       (nodeId: string) => void,
  *   jackOut:          () => void,
@@ -274,6 +283,7 @@
  *   executingExploit: ExecutingExploit|null,
  *   activeProbe: ActiveProbe|null,
  *   activeRead: ActiveRead|null,
+ *   activeLoot: ActiveLoot|null,
  * }} GameState
  */
 
@@ -304,6 +314,9 @@
 
 /** @typedef {{ nodeId: string, label: string, durationMs: number }} ReadScanStartedPayload */
 /** @typedef {{ nodeId: string, label: string }} ReadScanCancelledPayload */
+
+/** @typedef {{ nodeId: string, label: string, durationMs: number }} LootExtractStartedPayload */
+/** @typedef {{ nodeId: string, label: string }} LootExtractCancelledPayload */
 
 /** @typedef {{ prev: GlobalAlertLevel, next: GlobalAlertLevel }} AlertGlobalRaisedPayload */
 /** @typedef {{ seconds: number }} AlertTraceStartedPayload */

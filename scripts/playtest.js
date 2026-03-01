@@ -19,6 +19,7 @@ import { completeReboot } from "../js/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-exec.js";
 import { handleProbeScanTimer } from "../js/probe-exec.js";
 import { handleReadScanTimer } from "../js/read-exec.js";
+import { handleLootExtractTimer } from "../js/loot-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
 import { on, E } from "../js/events.js";
 import { tick, TIMER } from "../js/timers.js";
@@ -73,6 +74,7 @@ on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
 on(TIMER.EXPLOIT_NOISE,   (payload) => handleExploitNoiseTimer(payload));
 on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
 on(TIMER.READ_SCAN,       (payload) => handleReadScanTimer(payload));
+on(TIMER.LOOT_EXTRACT,    (payload) => handleLootExtractTimer(payload));
 
 // ── Action dispatcher ──────────────────────────────────────
 // Same path as the browser: starnet:action → getAvailableActions guard → ActionDef.execute()
@@ -109,6 +111,9 @@ on(E.PROBE_SCAN_CANCELLED, ({ label }) => out(`[PROBE] ${label}: scan cancelled.
 on(E.READ_SCAN_STARTED,    ({ label, durationMs }) =>
   out(`[READ] ${label}: extracting data (${Math.round(durationMs / 1000)}s)...`));
 on(E.READ_SCAN_CANCELLED,  ({ label }) => out(`[READ] ${label}: extraction cancelled.`));
+on(E.LOOT_EXTRACT_STARTED,    ({ label, durationMs }) =>
+  out(`[LOOT] ${label}: extracting loot (${Math.round(durationMs / 1000)}s)...`));
+on(E.LOOT_EXTRACT_CANCELLED,  ({ label }) => out(`[LOOT] ${label}: extraction cancelled.`));
 on(E.EXPLOIT_STARTED,      ({ label, exploitName, durationMs }) =>
   out(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`));
 on(E.EXPLOIT_INTERRUPTED,  ({ exploitName }) => out(`[EXPLOIT] ${exploitName}: interrupted.`));

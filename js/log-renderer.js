@@ -89,6 +89,12 @@ export function initLogRenderer() {
   on(E.READ_SCAN_CANCELLED,  (/** @type {import('./types.js').ReadScanCancelledPayload} */ { label }) =>
     add(`[READ] ${label}: extraction cancelled.`, "info"));
 
+  // ── Loot extract events ─────────────────────────────────
+  on(E.LOOT_EXTRACT_STARTED,    (/** @type {import('./types.js').LootExtractStartedPayload} */ { label, durationMs }) =>
+    add(`[LOOT] ${label}: extracting (${Math.round(durationMs / 1000)}s)...`, "info"));
+  on(E.LOOT_EXTRACT_CANCELLED,  (/** @type {import('./types.js').LootExtractCancelledPayload} */ { label }) =>
+    add(`[LOOT] ${label}: extraction cancelled.`, "info"));
+
   // ── Exploit events ───────────────────────────────────────
   on(E.EXPLOIT_STARTED,      (/** @type {ExploitStartedPayload} */      { label, exploitName, durationMs }) =>
     add(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`, "info"));

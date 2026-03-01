@@ -167,6 +167,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     syncReticle();
     _renderProbeSweep();
     _renderReadSectors();
+    _renderLootRings();
     _renderExploitBrackets();
     _renderIceDetectSweep();
     const pan = cy.pan();
@@ -887,6 +888,100 @@ function _renderReadSectors() {
     d += `M ${r},${r} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z `;
   }
   fill.setAttribute("d", d.trim());
+}
+
+// ── Loot ring animation ──────────────────────────────────
+let currentLootRingsNodeId = null;
+let lootRingIntervalId = null;
+const LOOT_RING_SPAWN_MS = 200;  // spawn a new ring every 200ms
+const LOOT_RING_LIFETIME_MS = 800; // ring takes 800ms to expand and fade
+
+export function syncLootRings(nodeId, progress) {
+  currentLootRingsNodeId = nodeId;
+  _renderLootRings();
+  if (lootRingIntervalId === null) {
+    _spawnLootRing(); // immediate first ring
+    lootRingIntervalId = setInterval(_spawnLootRing, LOOT_RING_SPAWN_MS);
+  }
+}
+
+export function clearLootRings() {
+  currentLootRingsNodeId = null;
+  if (lootRingIntervalId !== null) {
+    clearInterval(lootRingIntervalId);
+    lootRingIntervalId = null;
+  }
+  const svg = document.getElementById("loot-rings");
+  if (svg) {
+    svg.style.opacity = "0";
+    // Clear any lingering ring elements after fade
+    setTimeout(() => { if (!currentLootRingsNodeId && svg) svg.innerHTML = ""; }, 200);
+  }
+}
+
+function _renderLootRings() {
+  const svg = document.getElementById("loot-rings");
+  if (!svg || !cy || !currentLootRingsNodeId) return;
+
+  const node = cy.getElementById(currentLootRingsNodeId);
+  if (!node || node.length === 0) { clearLootRings(); return; }
+
+  const pos = node.renderedPosition();
+  const r = node.renderedWidth() / 2;
+  const size = (r + 12) * 2; // slight padding for ring expansion
+  const cx = r + 12;
+  const cy2 = r + 12;
+
+  svg.style.width  = `${size}px`;
+  svg.style.height = `${size}px`;
+  svg.style.left   = `${pos.x - cx}px`;
+  svg.style.top    = `${pos.y - cy2}px`;
+  svg.style.opacity = "1";
+
+  // Update viewBox center for existing rings
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+}
+
+function _spawnLootRing() {
+  const svg = document.getElementById("loot-rings");
+  if (!svg || !cy || !currentLootRingsNodeId) return;
+
+  const node = cy.getElementById(currentLootRingsNodeId);
+  if (!node || node.length === 0) return;
+
+  const r = node.renderedWidth() / 2;
+  const cx = r + 12;
+  const cy2 = r + 12;
+  const strokeWidth = 1 + Math.random() * 2; // 1-3px random thickness
+
+  const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  ring.setAttribute("cx", String(cx));
+  ring.setAttribute("cy", String(cy2));
+  ring.setAttribute("r", "2");
+  ring.setAttribute("fill", "none");
+  ring.setAttribute("stroke", "rgba(0,255,160,0.35)");
+  ring.setAttribute("stroke-width", String(strokeWidth));
+  svg.appendChild(ring);
+
+  const startTime = performance.now();
+  const maxR = r + 8;
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(1, elapsed / LOOT_RING_LIFETIME_MS);
+    const currentR = 2 + t * (maxR - 2);
+    const opacity = 0.35 * (1 - t); // fade out as it expands
+    ring.setAttribute("r", String(currentR));
+    ring.setAttribute("stroke", `rgba(0,255,160,${opacity})`);
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      ring.remove();
+    }
+  }
+
+  requestAnimationFrame(animate);
 }
 
 function setLine(id, x1, y1, x2, y2) {

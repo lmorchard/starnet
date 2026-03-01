@@ -4,39 +4,13 @@
 // These were previously in state/index.js; moved here to keep state/ pure.
 
 import { getState, ALERT_ORDER } from "./state.js";
-import { collectMacguffins, setNodeLooted, setNodeEventForwarding, setNodeRebooting } from "./state/node.js";
+import { setNodeEventForwarding, setNodeRebooting } from "./state/node.js";
 import { setIceAttention } from "./state/ice.js";
 import { setSelectedNode } from "./state/game.js";
-import { addCash, setMissionComplete } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
 import { scheduleEvent, TIMER } from "./timers.js";
 import { RNG, random } from "./rng.js";
 import { rebootIce } from "./ice.js";
-
-export function lootNode(nodeId) {
-  const s = getState();
-  const node = s.nodes[nodeId];
-  if (!node || node.looted) return;
-
-  const { items, total } = collectMacguffins(nodeId);
-  if (items.length === 0) {
-    setNodeLooted(nodeId);
-    emitEvent(E.LOG_ENTRY, { text: `${node.label}: Nothing to loot.`, type: "info" });
-    return;
-  }
-
-  setNodeLooted(nodeId);
-  addCash(total);
-  emitEvent(E.NODE_LOOTED, { nodeId, label: node.label, items: items.length, total });
-
-  if (s.mission && !s.mission.complete) {
-    const gotMission = items.some((m) => m.id === s.mission.targetMacguffinId);
-    if (gotMission) {
-      setMissionComplete();
-      emitEvent(E.MISSION_COMPLETE, { targetName: s.mission.targetName });
-    }
-  }
-}
 
 export function reconfigureNode(nodeId) {
   const s = getState();

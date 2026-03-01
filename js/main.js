@@ -6,6 +6,7 @@ import { completeReboot } from "./node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "./exploit-exec.js";
 import { handleProbeScanTimer } from "./probe-exec.js";
 import { handleReadScanTimer } from "./read-exec.js";
+import { handleLootExtractTimer } from "./loot-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "./ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "./events.js";
@@ -85,6 +86,7 @@ function init() {
   on(TIMER.EXPLOIT_NOISE,  (payload) => handleExploitNoiseTimer(payload));
   on(TIMER.PROBE_SCAN,   (payload) => handleProbeScanTimer(payload));
   on(TIMER.READ_SCAN,    (payload) => handleReadScanTimer(payload));
+  on(TIMER.LOOT_EXTRACT, (payload) => handleLootExtractTimer(payload));
 
   on(TIMER.REBOOT_COMPLETE, (payload) => {
     completeReboot(payload.nodeId);

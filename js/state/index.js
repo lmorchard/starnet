@@ -119,6 +119,7 @@ export function initState(networkData, seedString) {
     executingExploit: null,
     activeProbe: null,
     activeRead: null,
+    activeLoot: null,
     mission: null,
   };
 

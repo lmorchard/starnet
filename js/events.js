@@ -49,6 +49,9 @@ export const E = Object.freeze({
   READ_SCAN_STARTED:    "read:scan-started",
   READ_SCAN_CANCELLED:  "read:scan-cancelled",
 
+  LOOT_EXTRACT_STARTED:   "loot:extract-started",
+  LOOT_EXTRACT_CANCELLED: "loot:extract-cancelled",
+
   EXPLOIT_STARTED:      "exploit:started",
   EXPLOIT_NOISE:        "exploit:noise",
   EXPLOIT_INTERRUPTED:  "exploit:interrupted",

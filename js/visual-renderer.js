@@ -12,7 +12,7 @@
 
 import { on, emitEvent, E } from "./events.js";
 import { getAvailableActions } from "./node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
@@ -33,6 +33,10 @@ let probeTotalMs = null;
 // Read scan timing — same pattern, drives the sector fill overlay.
 let readStartTime = null;
 let readTotalMs = null;
+
+// Loot extract timing — same pattern, drives the ripple ring overlay.
+let lootStartTime = null;
+let lootTotalMs = null;
 
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
@@ -79,6 +83,12 @@ export function initVisualRenderer() {
   on(E.NODE_READ,            () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
   on(E.RUN_STARTED,          () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
 
+  // Track loot extract start time for the ripple ring overlay.
+  on(E.LOOT_EXTRACT_STARTED,    ({ durationMs }) => { lootStartTime = Date.now(); lootTotalMs = durationMs; });
+  on(E.LOOT_EXTRACT_CANCELLED,  () => { lootStartTime = null; lootTotalMs = null; clearLootRings(); });
+  on(E.NODE_LOOTED,             () => { lootStartTime = null; lootTotalMs = null; clearLootRings(); });
+  on(E.RUN_STARTED,             () => { lootStartTime = null; lootTotalMs = null; clearLootRings(); });
+
   // Timer-only tick: update countdowns in-place. Exploit progress is updated
   // in-place (not a full re-render) so the cancel overlay stays stable in the DOM.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
@@ -97,6 +107,10 @@ export function initVisualRenderer() {
     if (state.activeRead && readStartTime !== null && readTotalMs !== null) {
       const elapsed = Math.min(Date.now() - readStartTime, readTotalMs);
       syncReadSectors(state.activeRead.nodeId, elapsed / readTotalMs);
+    }
+    if (state.activeLoot && lootStartTime !== null && lootTotalMs !== null) {
+      const elapsed = Math.min(Date.now() - lootStartTime, lootTotalMs);
+      syncLootRings(state.activeLoot.nodeId, elapsed / lootTotalMs);
     }
     if (state.executingExploit && execStartTime !== null && execTotalMs !== null) {
       const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
@@ -556,6 +570,7 @@ function renderIceTimers() {
               : t.label === "EXECUTING"      ? "ice-timer-executing"
               : t.label === "SCANNING"       ? "ice-timer-scanning"
               : t.label === "READING"        ? "ice-timer-scanning"
+              : t.label === "EXTRACTING"     ? "ice-timer-scanning"
               : "ice-timer-reboot";
     return `<div class="ice-timer ${cls}">⚠ ${t.label}: ${t.remaining}s</div>`;
   }).join("");
