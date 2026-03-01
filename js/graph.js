@@ -3,6 +3,10 @@
 
 import { isIceVisible } from "./state.js";
 
+// Still playing with what might be the best default here
+// const DEFAULT_LAYOUT_ALGO = "cola";
+const DEFAULT_LAYOUT_ALGO = "dagre";
+
 // Node type → shape mapping
 const NODE_SHAPES = {
   "wan":              "barrel",
@@ -996,7 +1000,7 @@ const LAYOUTS = {
   }),
 };
 
-let currentLayout = "dagre";
+let currentLayout = DEFAULT_LAYOUT_ALGO;
 
 /** Re-run the layout algorithm. Pass a name to switch algorithms. */
 export function relayout(name) {
