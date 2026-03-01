@@ -1,6 +1,6 @@
 // @ts-check
 // Node type registry — behavior atoms, type definitions, query helpers.
-// This file has NO imports from other game modules (alert.js, ice.js, loot.js, state.js).
+// Only imports rng.js (no circular deps). No imports from alert.js, ice.js, loot.js, state.js.
 // Behavior atom hooks receive a ctx object injected by their dispatcher (dependency injection).
 
 /** @typedef {import('./types.js').NodeState} NodeState */
@@ -11,6 +11,8 @@
 /** @typedef {import('./types.js').NodeTypeDef} NodeTypeDef */
 /** @typedef {import('./types.js').CombatConfig} CombatConfig */
 /** @typedef {import('./types.js').VulnConfig} VulnConfig */
+
+import { randomInt } from "./rng.js";
 
 // ── Behavior atoms ────────────────────────────────────────
 // Each atom is a plain object with optional lifecycle hooks.
@@ -57,7 +59,7 @@ export const BEHAVIORS = {
       const lootConfig = ctx.typeDef?.lootConfig;
       if (!lootConfig) return;
       const [min, max] = lootConfig.count;
-      const count = min + Math.floor(Math.random() * (max - min + 1));
+      const count = randomInt("loot", min, max);
       for (let i = 0; i < count; i++) {
         node.macguffins.push(ctx.generateMacguffin());
       }

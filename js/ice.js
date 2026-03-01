@@ -11,6 +11,7 @@ import { setIceAttention, setIceDetectedAt, setIceDwellTimer, setIceActive, setL
 import { propagateAlertEvent, recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
+import { randomPick } from "./rng.js";
 
 // Called whenever ICE vacates a node for any reason: normal movement, eject, or reboot.
 // Cancels any pending detection dwell and releases the detection lock so ICE can
@@ -112,7 +113,7 @@ export function handleIceTick() {
 
   if (grade === "D" || grade === "F") {
     // Random walk
-    nextNode = neighbors[Math.floor(Math.random() * neighbors.length)];
+    nextNode = randomPick("ice", neighbors);
   } else if (grade === "C" || grade === "B") {
     // Move toward last disturbed node, fall back to random.
     // Skip pathfinding if ICE already detected at that node — prevents oscillation.
@@ -120,7 +121,7 @@ export function handleIceTick() {
     const alreadyDetectedTarget = s.ice.detectedAtNode === target;
     if (target && target !== attentionNodeId && !alreadyDetectedTarget) {
       nextNode = nextHopToward(attentionNodeId, target, s.adjacency)
-        ?? neighbors[Math.floor(Math.random() * neighbors.length)];
+        ?? randomPick("ice", neighbors);
     } else {
       // Arrived at the disturbance target (or no target) — clear signal, resume random walk.
       if (target && target === attentionNodeId) {
@@ -132,16 +133,16 @@ export function handleIceTick() {
           });
         }
       }
-      nextNode = neighbors[Math.floor(Math.random() * neighbors.length)];
+      nextNode = randomPick("ice", neighbors);
     }
   } else {
     // A/S: pathfind directly to player's selected node, fall back to random
     const target = s.selectedNodeId;
     if (target && target !== attentionNodeId) {
       nextNode = nextHopToward(attentionNodeId, target, s.adjacency)
-        ?? neighbors[Math.floor(Math.random() * neighbors.length)];
+        ?? randomPick("ice", neighbors);
     } else {
-      nextNode = neighbors[Math.floor(Math.random() * neighbors.length)];
+      nextNode = randomPick("ice", neighbors);
     }
   }
 
@@ -149,7 +150,7 @@ export function handleIceTick() {
   if (s.nodes[nextNode]?.rebooting) {
     const nonRebooting = neighbors.filter((n) => !s.nodes[n]?.rebooting);
     nextNode = nonRebooting.length > 0
-      ? nonRebooting[Math.floor(Math.random() * nonRebooting.length)]
+      ? randomPick("ice", nonRebooting)
       : null;
     if (!nextNode) return;
   }
@@ -247,7 +248,7 @@ export function ejectIce() {
   const fromId = s.ice.attentionNodeId;
   const neighbors = s.adjacency[fromId] || [];
   if (neighbors.length === 0) return;
-  const toId = neighbors[Math.floor(Math.random() * neighbors.length)];
+  const toId = randomPick("ice", neighbors);
   setIceAttention(toId);
   emitEvent(E.ICE_EJECTED, { fromId, toId });
 }

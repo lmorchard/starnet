@@ -7,6 +7,7 @@
 /** @typedef {import('./types.js').Grade} Grade */
 
 import { getState, ALERT_ORDER, revealNeighbors } from "./state.js";
+import { random, randomPick } from "./rng.js";
 import {
   setNodeAccessLevel, setNodeAlertState, setNodeVisible, setNodeVulnHidden,
 } from "./state/node.js";
@@ -64,12 +65,12 @@ export function resolveExploit(exploit, node) {
   const matchBonus = matchingVulns.length > 0 ? 0.4 : 0;
   const successChance = Math.min(0.95, exploit.quality * gradeModifier + matchBonus);
 
-  const roll = Math.random();
+  const roll = random("combat");
   const success = roll <= successChance;
 
   let disclosed = false;
   if (!success) {
-    const disclosureRoll = Math.random();
+    const disclosureRoll = random("combat");
     disclosed = disclosureRoll <= disclosureChance;
   }
 
@@ -99,7 +100,7 @@ export function applyCardDecay(exploit, result) {
   }
 
   if (!result.success && result.disclosed) {
-    const partialBurn = usesRemaining > 1 && Math.random() < 0.6;
+    const partialBurn = usesRemaining > 1 && random("combat") < 0.6;
     if (partialBurn) {
       usesRemaining--;
       result.partialBurn = true;
@@ -146,17 +147,17 @@ const FAIL_FLAVORS_NO_MATCH = [
 ];
 
 function pickSuccessFlavor(exploit, vulns) {
-  const fn = SUCCESS_FLAVORS[Math.floor(Math.random() * SUCCESS_FLAVORS.length)];
+  const fn = randomPick("combat", SUCCESS_FLAVORS);
   return fn(exploit, vulns);
 }
 
 function pickFailFlavor(exploit, disclosed, matchingVulns) {
   if (disclosed) {
-    const fn = FAIL_FLAVORS_DETECTED[Math.floor(Math.random() * FAIL_FLAVORS_DETECTED.length)];
+    const fn = randomPick("combat", FAIL_FLAVORS_DETECTED);
     return fn(exploit);
   }
   const pool = matchingVulns.length > 0 ? FAIL_FLAVORS_MATCH : FAIL_FLAVORS_NO_MATCH;
-  const fn = pool[Math.floor(Math.random() * pool.length)];
+  const fn = randomPick("combat", pool);
   return fn(exploit);
 }
 

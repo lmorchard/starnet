@@ -10,6 +10,7 @@ import { setSelectedNode } from "./state/game.js";
 import { addCash, setMissionComplete } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
 import { scheduleEvent, TIMER } from "./timers.js";
+import { random } from "./rng.js";
 import { rebootIce } from "./ice.js";
 
 export function lootNode(nodeId) {
@@ -67,7 +68,7 @@ export function rebootNode(nodeId) {
   // Lock the node temporarily
   setNodeRebooting(nodeId, true);
 
-  const durationMs = 1000 + Math.random() * 2000; // 1–3s
+  const durationMs = 1000 + random("world") * 2000; // 1–3s
   scheduleEvent(TIMER.REBOOT_COMPLETE, durationMs, { nodeId }, { label: `REBOOT: ${node.label}` });
 
   emitEvent(E.NODE_REBOOTING, { nodeId, label: node.label, durationMs });
