@@ -954,10 +954,10 @@ function _spawnLootRing() {
   const r = node.renderedWidth() / 2;
   const cx = r + 12;
   const cy2 = r + 12;
-  // Rings start as thin hairlines, grow to nearly fill the node by completion
-  const p = currentLootProgress;
-  const minWidth = 0.5 + p * p * r * 0.6;    // 0.5px → ~60% of node radius
-  const variance = 1 + p * 3;                 // small jitter at start, more at end
+  // Rings start fat (node is full) and thin out as it's drained
+  const remaining = 1 - currentLootProgress;
+  const minWidth = 0.5 + remaining * remaining * r * 0.6;
+  const variance = 1 + remaining * 3;
   const strokeWidth = minWidth + Math.random() * variance;
 
   const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
