@@ -53,8 +53,13 @@ From session-5 design discussion — reframe log verbosity as something the play
 
 ### Overworld / Meta-loop
 - **Overworld linking LANs** — the dungeon run takes place in a larger world context; structure connecting LAN to LAN (planet internets, star systems, ansible networks)
-- **Procedural or semi-procedural network generation** — random LAN topologies with seeded RNG for reproducibility (roguelike runs); currently static hand-crafted network
+- **Procedural or semi-procedural network generation** — ~~random LAN topologies with seeded RNG for reproducibility (roguelike runs); currently static hand-crafted network~~ _in progress: 2026-03-01-1458-procedural-lan-gen_
 - **Inter-run progression** — player skills, reputation, contacts, persistent exploit inventory carry between runs
+- **Biome system** — node type palette, flavor text, and set piece pool selected by biome (corporate, military, black market, etc.); third axis for the procedural generator after timeCost/moneyCost are stable
+- **LAN generator set pieces (future):**
+  - **Workstation array** — multiple low-grade workstations behind a router for methodical looting
+  - **Lucky break** — a low-grade firewall in front of a cryptovault (the corp cut corners on hardening)
+  - **Security theater** — low-grade fileservers behind a high-grade firewall (counting on perimeter, soft inside)
 
 ### Worldbuilding (from SPEC.md)
 - Sprites, daemons, machine elves as in-network entities / power-ups (semi-autonomous AI anomalies)
@@ -71,6 +76,14 @@ From session-5 design discussion — reframe log verbosity as something the play
 Implemented in `js/rng.js` — Mulberry32 PRNG with 5 named streams (exploit, combat,
 ice, loot, world). String seeds hashed via djb2. All 26 gameplay `Math.random()` calls
 replaced. Deterministic runs verified. Playtest harness supports `--seed`.
+
+### Centralized Grade Constants Module
+All grade-keyed lookup tables (ICE move intervals, dwell times, noise thresholds, node
+grade ranges, etc.) are currently scattered across `ice.js`, `combat.js`, `probe-exec.js`,
+and the generator. A dedicated `js/grades.js` module exporting the grade order, grade-to-index
+mapping, and shared utility functions (gradeToIndex, indexToGrade, gradeRange) would make
+tuning easier and eliminate duplication. Natural time to do this: when the generator's budget
+tables create a third or fourth copy of the grade scale.
 
 ### Snapshot-Based Testing
 With save/load implemented and seeded RNG (above), we can write tests that start from a
