@@ -218,6 +218,45 @@ When a node is selected, your hand re-sorts: matching cards first, then usable c
 then worn, then disclosed. Cards that match the selected node's known vulnerabilities
 highlight in cyan.
 
+The numbers shown next to cards in `status hand` are the numbers to use with
+`exploit <n>` — the sort order changes with your selection, so always check
+`status hand` to confirm which card is at which position.
+
+---
+
+## THE DARKNET BROKER
+
+The **WAN node** — the boundary between your tether and the LAN — is more than an exit
+point. A darknet broker operates through it, selling exploit cards mid-run.
+
+### Accessing the Store
+
+Select the WAN node and use the `access-darknet` action (or click the button in the
+sidebar). **The LAN pauses while you shop** — ICE stops moving, timers freeze. You
+can browse without the clock running.
+
+```
+> select wan
+> store           # list available cards and prices
+> buy <index>     # purchase the card at that position
+> deselect        # or select another node to resume
+```
+
+### When to Use It
+
+- Your hand doesn't match the node vulnerabilities you're facing — check the catalog
+  for a better-targeted card
+- Key cards are worn or disclosed mid-run — replenish before tackling hard nodes
+- You've looted enough cash to afford an upgrade and a tough node lies ahead
+
+### What's Available
+
+The broker stocks a rotating catalog of exploit cards at varying prices. Cards cost
+more the higher their rarity and quality. Rare cards with broad vulnerability coverage
+are expensive but powerful against the hardest nodes.
+
+You'll need cash to buy. Loot macguffins first, then shop.
+
 ---
 
 ## THE ALERT SYSTEM
@@ -445,6 +484,10 @@ the high-grade nodes. A disclosed card is deadweight.
 **The security monitor is the kill switch.** If you can own the security monitor,
 you can cancel the trace and work at your own pace. It's usually the hardest node
 on the board — but worth it if you're going for a deep run.
+
+**If your hand doesn't match, shop.** The WAN node is always accessible. If you're
+locked out of a key node because your cards don't match its vulnerabilities, detour
+through the WAN and check the darknet catalog. The LAN freezes while you browse.
 
 **Jack out when the job is done.** There's no shame in a clean exit.
 
