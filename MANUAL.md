@@ -114,8 +114,12 @@ node — click one to connect to it and begin working.
 ```
 
 Scanning a node reveals its **vulnerabilities** — the specific weaknesses in its software
-you can exploit. Probing raises the node's local alert from green to yellow. If this node
-is watched by an IDS, that alert will propagate.
+you can exploit. Probing takes time — higher-grade nodes take longer to scan. A clockwise
+sweep animation shows progress. You can cancel a scan in progress with `cancel-probe`,
+and navigating away from the node cancels it automatically.
+
+Probing raises the node's local alert from green to yellow. If this node is watched by
+an IDS, that alert will propagate.
 
 ### 3. Exploit
 
@@ -141,8 +145,12 @@ If a card matches a known vulnerability on the selected node, your odds improve 
 > read
 ```
 
-On a compromised or owned node, `read` scans for contents — data packages, files,
-anything of value. You'll see what macguffins are present and whether your mission
+On a compromised or owned node, `read` extracts data from the node's filesystem —
+data packages, files, anything of value. This takes time, scaled by node grade.
+A random pie-sector animation fills the node as data is extracted. You can cancel
+with `cancel-read`, and navigating away cancels automatically.
+
+Once complete, you'll see what macguffins are present and whether your mission
 target is here.
 
 ### 5. Loot
@@ -338,9 +346,12 @@ Actions depend on the selected node's type and access level:
 | Action            | Available when...                              | Effect |
 |-------------------|------------------------------------------------|--------|
 | `access-darknet`  | WAN node is selected                           | Opens the darknet broker store; pauses the LAN while shopping |
-| `probe`           | Node is locked and unprobed                   | Reveals vulnerabilities, raises local alert |
+| `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
+| `cancel-probe`    | Probe scan in progress on selected node        | Aborts the probe scan |
 | `exploit <n>`  | Node is locked/compromised + probed — use hand card by clicking it or typing `exploit <n>` | Attempt to raise access level |
-| `read`         | Node is compromised or owned, unread           | Reveals macguffins |
+| `cancel-exploit`  | Exploit executing on selected node             | Aborts the exploit (no card decay) |
+| `read`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
+| `cancel-read`  | Read scan in progress on selected node         | Aborts the data extraction |
 | `loot`         | Node is owned + has uncollected macguffins     | Extracts macguffins for cash |
 | `reconfigure`  | IDS node is compromised or owned               | Severs event forwarding to security monitor |
 | `eject`        | Owned node + ICE is present here               | Boots ICE to adjacent node |
@@ -358,8 +369,11 @@ The console accepts the following commands. Tab-complete works on node IDs.
 select <node>          Select a node. Alias: s
 deselect               Deselect current node.
 probe [node]           Probe selected or specified node.
+cancel-probe           Abort an in-progress probe scan.
 exploit <#|name>       Use exploit card by number or name on selected node.
+cancel-exploit         Abort an in-progress exploit execution (no card decay).
 read [node]            Read contents of selected/specified node.
+cancel-read            Abort an in-progress data extraction.
 loot [node]            Loot macguffins from owned node.
 reconfigure [node]     Disable IDS event forwarding.
 eject                  Push ICE off current node to adjacent node.
