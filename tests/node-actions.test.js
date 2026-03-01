@@ -106,9 +106,9 @@ describe("exploit available", () => {
     const a = action("exploit");
     assert.ok(a.available(lockedNode({ accessLevel: "compromised" }), baseState()));
   });
-  it("unavailable for owned node", () => {
+  it("available for owned node (disturbance strategy)", () => {
     const a = action("exploit");
-    assert.ok(!a.available(lockedNode({ accessLevel: "owned" }), baseState()));
+    assert.ok(a.available(lockedNode({ accessLevel: "owned" }), baseState()));
   });
   it("unavailable when rebooting", () => {
     const a = action("exploit");
@@ -458,7 +458,7 @@ describe("getAvailableActions integration parity", () => {
     assert.ok(!ids.includes("cancel-probe"), "should not include cancel-probe");
   });
 
-  it("owned read node with loot: reboot + loot, no probe/read/exploit", () => {
+  it("owned read node with loot: reboot + loot + exploit, no probe/read", () => {
     const node = lockedNode({
       accessLevel: "owned",
       read: true,
@@ -468,10 +468,10 @@ describe("getAvailableActions integration parity", () => {
     const ids = getAvailableActions(node, state).map((a) => a.id);
     assert.ok(ids.includes("reboot"), "should include reboot");
     assert.ok(ids.includes("loot"), "should include loot");
+    assert.ok(ids.includes("exploit"), "should include exploit (disturbance)");
     assert.ok(ids.includes("jackout"), "should include jackout");
     assert.ok(!ids.includes("probe"), "should not include probe");
     assert.ok(!ids.includes("read"), "should not include read");
-    assert.ok(!ids.includes("exploit"), "should not include exploit");
   });
 
   it("active exploit on node: only cancel-exploit (no probe/exploit/read)", () => {

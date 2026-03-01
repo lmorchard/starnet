@@ -43,7 +43,6 @@ export const NODE_ACTIONS = Object.freeze([
     available: (node, state) =>
       node.visibility === "accessible" &&
       !node.rebooting &&
-      node.accessLevel !== "owned" &&
       state.executingExploit?.nodeId !== node.id,
     desc: (node) => `Attack ${node.id} with an exploit card.`,
     execute: (node, _state, ctx, payload) =>
