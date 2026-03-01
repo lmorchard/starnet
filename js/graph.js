@@ -996,7 +996,7 @@ const LAYOUTS = {
   }),
 };
 
-let currentLayout = "cola";
+let currentLayout = "dagre";
 
 /** Re-run the layout algorithm. Pass a name to switch algorithms. */
 export function relayout(name) {
