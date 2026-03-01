@@ -1,5 +1,7 @@
 # STARNET
 
+![screenshot](./docs/screenshot.png)
+
 A cyberpunk nethacking game with an interplanetary setting.
 
 You are a decker. You jack into a corporate LAN, probe its nodes for vulnerabilities,
