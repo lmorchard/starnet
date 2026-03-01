@@ -13,6 +13,7 @@ import {
 import { setLastDisturbedNode } from "./state/ice.js";
 import { applyCardDecay as applyCardDecayState } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
+import { getGateAccess } from "./node-types.js";
 import { resolveNode } from "./node-types.js";
 
 // Success chance modifier by node security grade
@@ -188,7 +189,7 @@ export function launchExploit(nodeId, exploitId) {
       setNodeAccessLevel(nodeId, "compromised");
       setNodeAlertState(nodeId, "green");
       setNodeVisible(nodeId, "accessible");
-      revealNeighbors(nodeId);
+      if (getGateAccess(node) !== "owned") revealNeighbors(nodeId);
       result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
       setNodeAccessLevel(nodeId, "owned");

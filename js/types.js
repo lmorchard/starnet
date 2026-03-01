@@ -246,6 +246,7 @@
  *   lootConfig?:    { count: number[] },
  *   combatConfig?:  CombatConfig,
  *   vulnConfig?:    VulnConfig,
+ *   gateAccess?:    "probed"|"compromised"|"owned",
  *   gradeOverrides?: Partial<Record<Grade, GradeOverride>>,
  * }} NodeTypeDef
  */

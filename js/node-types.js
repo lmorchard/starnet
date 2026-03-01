@@ -78,6 +78,7 @@ export const BEHAVIORS = {
 /** @type {Record<string, NodeTypeDef>} */
 export const NODE_TYPES = {
   "ids": {
+    gateAccess: "owned",
     behaviors: ["detection"],
     actions: [
       {
@@ -98,6 +99,7 @@ export const NODE_TYPES = {
   },
 
   "security-monitor": {
+    gateAccess: "owned",
     behaviors: ["monitor", "iceResident"],
     actions: [
       {
@@ -159,11 +161,13 @@ export const NODE_TYPES = {
   },
 
   "router": {
+    gateAccess: "compromised",
     behaviors: [],
     actions: [],
   },
 
   "firewall": {
+    gateAccess: "owned",
     behaviors: [],
     actions: [],
   },
@@ -213,6 +217,16 @@ export function resolveNode(node) {
     : undefined;
 
   return { ...base, behaviors, actions, combatConfig, vulnConfig };
+}
+
+/**
+ * Returns the gateAccess level for a node (grade-aware).
+ * Defaults to "probed" if the type doesn't specify one.
+ * @param {{ type: string, grade: Grade }} node
+ * @returns {"probed"|"compromised"|"owned"}
+ */
+export function getGateAccess(node) {
+  return resolveNode(node).gateAccess ?? "probed";
 }
 
 /**

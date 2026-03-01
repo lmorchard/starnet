@@ -5,12 +5,13 @@
 
 /** @typedef {import('./types.js').GameState} GameState */
 
-import { getState, ALERT_ORDER } from "./state.js";
+import { getState, ALERT_ORDER, revealNeighbors } from "./state.js";
 import { setNodeProbed, setNodeAlertState } from "./state/node.js";
 import { setLastDisturbedNode } from "./state/ice.js";
 import { setActiveProbe } from "./state/player.js";
 import { emitEvent, on, E } from "./events.js";
 import { scheduleEvent, cancelEvent, TIMER } from "./timers.js";
+import { getGateAccess } from "./node-types.js";
 
 // Cancel any running probe scan when the player navigates away.
 on(E.PLAYER_NAVIGATED, () => cancelProbe());
@@ -100,6 +101,11 @@ export function handleProbeScanTimer({ nodeId }) {
 
   setNodeProbed(nodeId);
   setLastDisturbedNode(nodeId);
+
+  // Reveal neighbors for transparent (probed-gated) nodes
+  if (getGateAccess(node) === "probed") {
+    revealNeighbors(nodeId);
+  }
 
   // Raise local alert (green → yellow)
   const prevAlert = node.alertState;
