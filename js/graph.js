@@ -962,7 +962,7 @@ function _tickZaps() {
     });
   }
 
-  zapNextCorner = (zapNextCorner + 1) % 4;
+  zapNextCorner = Math.floor(Math.random() * 4);
   // 1-3 ticks between zaps (30-90ms) — rapid cycling through corners
   zapTicksToFire = 1 + Math.floor(Math.random() * 3);
 }
