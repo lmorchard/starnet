@@ -13,6 +13,7 @@ lint:
 		js/exploits.js js/combat.js js/loot.js \
 		js/alert.js js/timers.js js/ice.js js/log.js js/log-renderer.js js/visual-renderer.js js/store.js js/console.js js/cheats.js \
 		js/node-types.js js/node-lifecycle.js \
+		js/probe-exec.js js/read-exec.js js/navigation.js \
 		js/node-actions.js js/global-actions.js js/action-context.js js/node-orchestration.js
 
 # Run unit + integration tests

@@ -5,7 +5,8 @@
 /** @typedef {import('./types.js').ActionContext} ActionContext */
 
 import { getState, getVersion, endRun, buyExploit } from "./state.js";
-import { readNode, lootNode, reconfigureNode, rebootNode } from "./node-orchestration.js";
+import { lootNode, reconfigureNode, rebootNode } from "./node-orchestration.js";
+import { startRead, cancelRead } from "./read-exec.js";
 import { ejectIce } from "./ice.js";
 import { addLogEntry } from "./log.js";
 import { startExploit, cancelExploit } from "./exploit-exec.js";
@@ -30,7 +31,8 @@ export function buildActionContext() {
     cancelProbe:      ()       => cancelProbe(),
     startExploit:     (nodeId, exploitId) => startExploit(nodeId, exploitId),
     cancelExploit:    ()       => cancelExploit(),
-    readNode:         (nodeId) => readNode(nodeId),
+    startRead:        (nodeId) => startRead(nodeId),
+    cancelRead:       ()       => cancelRead(),
     lootNode:         (nodeId) => lootNode(nodeId),
     ejectIce:         ()       => ejectIce(),
     rebootNode:       (nodeId) => rebootNode(nodeId),

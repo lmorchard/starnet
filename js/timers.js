@@ -17,6 +17,7 @@ export const TIMER = {
   EXPLOIT_EXEC:    "starnet:timer:exploit-exec",
   EXPLOIT_NOISE:   "starnet:timer:exploit-noise",
   PROBE_SCAN:      "starnet:timer:probe-scan",
+  READ_SCAN:       "starnet:timer:read-scan",
 };
 
 let currentTick = 0;

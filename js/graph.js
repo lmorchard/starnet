@@ -35,6 +35,10 @@ let prevIceNodeId = null;        // tracks ICE's last position for movement flas
 let currentSelectedNodeId = null; // tracks selected node for reticle positioning
 let currentProbeSweepNodeId = null;  // tracks node being probed for sweep overlay
 let currentProbeSweepProgress = 0;   // 0..1
+let currentReadSectorsNodeId = null;
+let currentReadSectorsProgress = 0;
+let readSectorCount = 0;
+let readSectorOrder = [];
 let currentExploitBracketsNodeId = null;
 let currentExploitBracketsProgress = 0;
 let currentIceDetectNodeId = null;
@@ -162,6 +166,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   const onPanZoom = () => {
     syncReticle();
     _renderProbeSweep();
+    _renderReadSectors();
     _renderExploitBrackets();
     _renderIceDetectSweep();
     const pan = cy.pan();
@@ -795,6 +800,87 @@ function _renderProbeSweep() {
     fill.setAttribute("d",
       `M ${r},${r} L ${r},${0} A ${r},${r} 0 ${p > 0.5 ? 1 : 0},1 ${endX},${endY} Z`);
   }
+}
+
+export function syncReadSectors(nodeId, progress) {
+  if (nodeId !== currentReadSectorsNodeId) {
+    // New read target — generate random sector count and fill order
+    currentReadSectorsNodeId = nodeId;
+    readSectorCount = 7 + Math.floor(Math.random() * 14); // 7–20
+    readSectorOrder = Array.from({ length: readSectorCount }, (_, i) => i);
+    // Fisher-Yates shuffle
+    for (let i = readSectorOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [readSectorOrder[i], readSectorOrder[j]] = [readSectorOrder[j], readSectorOrder[i]];
+    }
+  }
+  // Scale so all sectors are filled at 90% progress — looks full just before completion
+  currentReadSectorsProgress = Math.max(0, Math.min(1, progress / 0.9));
+  _renderReadSectors();
+}
+
+export function clearReadSectors() {
+  currentReadSectorsNodeId = null;
+  currentReadSectorsProgress = 0;
+  readSectorCount = 0;
+  readSectorOrder = [];
+  const svg = document.getElementById("read-sectors");
+  if (svg) svg.style.opacity = "0";
+}
+
+function _renderReadSectors() {
+  const svg = document.getElementById("read-sectors");
+  if (!svg || !cy || !currentReadSectorsNodeId) return;
+
+  const node = cy.getElementById(currentReadSectorsNodeId);
+  if (!node || node.length === 0) { clearReadSectors(); return; }
+
+  const pos = node.renderedPosition();
+  const r = node.renderedWidth() / 2;
+  const size = r * 2;
+
+  svg.style.width  = `${size}px`;
+  svg.style.height = `${size}px`;
+  svg.style.left   = `${pos.x - r}px`;
+  svg.style.top    = `${pos.y - r}px`;
+  svg.style.opacity = "1";
+
+  const ring = document.getElementById("read-sectors-ring");
+  ring.setAttribute("cx", String(r));
+  ring.setAttribute("cy", String(r));
+  ring.setAttribute("r", String(r - 1));
+
+  const fill = document.getElementById("read-sectors-fill");
+  const p = currentReadSectorsProgress;
+  const filledCount = Math.floor(p * readSectorCount);
+
+  if (filledCount <= 0) {
+    fill.setAttribute("d", "");
+    return;
+  }
+
+  if (filledCount >= readSectorCount) {
+    // Full circle
+    fill.setAttribute("d",
+      `M ${r},${r} m 0,-${r} a ${r},${r} 0 1,1 0,${r * 2} a ${r},${r} 0 1,1 0,-${r * 2} Z`);
+    return;
+  }
+
+  // Build path from filled sectors (each is a pie wedge)
+  const sliceAngle = (2 * Math.PI) / readSectorCount;
+  let d = "";
+  for (let i = 0; i < filledCount; i++) {
+    const idx = readSectorOrder[i];
+    const startAngle = idx * sliceAngle - Math.PI / 2; // start from 12 o'clock
+    const endAngle = startAngle + sliceAngle;
+    const x1 = r + r * Math.cos(startAngle);
+    const y1 = r + r * Math.sin(startAngle);
+    const x2 = r + r * Math.cos(endAngle);
+    const y2 = r + r * Math.sin(endAngle);
+    const largeArc = sliceAngle > Math.PI ? 1 : 0;
+    d += `M ${r},${r} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z `;
+  }
+  fill.setAttribute("d", d.trim());
 }
 
 function setLine(id, x1, y1, x2, y2) {

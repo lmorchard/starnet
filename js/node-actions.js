@@ -66,14 +66,25 @@ export const NODE_ACTIONS = Object.freeze([
   {
     id: "read",
     label: "READ",
-    available: (node) =>
+    available: (node, state) =>
       (node.accessLevel === "compromised" || node.accessLevel === "owned") &&
-      !node.read,
+      !node.read &&
+      !node.rebooting &&
+      state.activeRead?.nodeId !== node.id &&
+      state.executingExploit?.nodeId !== node.id,
     desc: (node) =>
       node.accessLevel === "compromised"
         ? "Scan node contents for loot or connections."
         : "Scan node contents.",
-    execute: (node, _state, ctx) => ctx.readNode(node.id),
+    execute: (node, _state, ctx) => ctx.startRead(node.id),
+  },
+
+  {
+    id: "cancel-read",
+    label: "CANCEL READ",
+    available: (node, state) => state.activeRead?.nodeId === node.id,
+    desc: () => "Abort data extraction.",
+    execute: (_node, _state, ctx) => ctx.cancelRead(),
   },
 
   {

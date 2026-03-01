@@ -12,7 +12,7 @@
 
 import { on, emitEvent, E } from "./events.js";
 import { getAvailableActions } from "./node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
 import { getVisibleTimers } from "./timers.js";
 import { exploitSortKey } from "./exploits.js";
 
@@ -29,6 +29,10 @@ let execTotalMs = null;
 // Probe scan timing — same pattern, drives the sweep overlay in the graph.
 let probeStartTime = null;
 let probeTotalMs = null;
+
+// Read scan timing — same pattern, drives the sector fill overlay.
+let readStartTime = null;
+let readTotalMs = null;
 
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
@@ -69,6 +73,12 @@ export function initVisualRenderer() {
   on(E.NODE_PROBED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
   on(E.RUN_STARTED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
 
+  // Track read scan start time for the sector fill overlay.
+  on(E.READ_SCAN_STARTED,    ({ durationMs }) => { readStartTime = Date.now(); readTotalMs = durationMs; });
+  on(E.READ_SCAN_CANCELLED,  () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
+  on(E.NODE_READ,            () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
+  on(E.RUN_STARTED,          () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
+
   // Timer-only tick: update countdowns in-place. Exploit progress is updated
   // in-place (not a full re-render) so the cancel overlay stays stable in the DOM.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
@@ -83,6 +93,10 @@ export function initVisualRenderer() {
     if (state.activeProbe && probeStartTime !== null && probeTotalMs !== null) {
       const elapsed = Math.min(Date.now() - probeStartTime, probeTotalMs);
       syncProbeSweep(state.activeProbe.nodeId, elapsed / probeTotalMs);
+    }
+    if (state.activeRead && readStartTime !== null && readTotalMs !== null) {
+      const elapsed = Math.min(Date.now() - readStartTime, readTotalMs);
+      syncReadSectors(state.activeRead.nodeId, elapsed / readTotalMs);
     }
     if (state.executingExploit && execStartTime !== null && execTotalMs !== null) {
       const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
@@ -541,6 +555,7 @@ function renderIceTimers() {
     const cls = t.label === "ICE DETECTION" ? "ice-timer-detect"
               : t.label === "EXECUTING"      ? "ice-timer-executing"
               : t.label === "SCANNING"       ? "ice-timer-scanning"
+              : t.label === "READING"        ? "ice-timer-scanning"
               : "ice-timer-reboot";
     return `<div class="ice-timer ${cls}">⚠ ${t.label}: ${t.remaining}s</div>`;
   }).join("");

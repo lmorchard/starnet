@@ -114,6 +114,7 @@ export function initState(networkData) {
     lastDisturbedNodeId: null,
     executingExploit: null,
     activeProbe: null,
+    activeRead: null,
     mission: null,
   };
 

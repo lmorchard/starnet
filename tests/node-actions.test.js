@@ -28,6 +28,7 @@ function baseState(extra = {}) {
     phase: "playing",
     selectedNodeId: null,
     activeProbe: null,
+    activeRead: null,
     executingExploit: null,
     ice: null,
     traceSecondsRemaining: null,
@@ -318,7 +319,8 @@ function mockCtx(overrides = {}) {
     cancelProbe:   () => {},
     startExploit:  () => {},
     cancelExploit: () => {},
-    readNode:      () => {},
+    startRead:     () => {},
+    cancelRead:    () => {},
     lootNode:      () => {},
     ejectIce:      () => {},
     rebootNode:    () => {},
@@ -362,13 +364,21 @@ describe("action execute() routing", () => {
     assert.ok(called);
   });
 
-  it("read calls ctx.readNode(node.id)", () => {
+  it("read calls ctx.startRead(node.id)", () => {
     const a = action("read");
     const node = lockedNode({ accessLevel: "compromised" });
     let called = null;
-    const ctx = mockCtx({ readNode: (id) => { called = id; } });
+    const ctx = mockCtx({ startRead: (id) => { called = id; } });
     a.execute(node, baseState(), ctx);
     assert.equal(called, node.id);
+  });
+
+  it("cancel-read calls ctx.cancelRead()", () => {
+    const a = action("cancel-read");
+    let called = false;
+    const ctx = mockCtx({ cancelRead: () => { called = true; } });
+    a.execute(lockedNode(), baseState({ activeRead: { nodeId: "test-1", timerId: 1 } }), ctx);
+    assert.ok(called);
   });
 
   it("loot calls ctx.lootNode(node.id)", () => {

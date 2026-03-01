@@ -14,7 +14,7 @@ import { exploitSortKey, getStoreCatalog, generateExploitForVuln } from "./explo
 import { getActions } from "./node-types.js";
 import { getAvailableActions } from "./node-actions.js";
 
-const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-trace", "jackout", "status", "actions", "store", "buy", "log", "help", "cheat"];
+const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-read", "cancel-trace", "jackout", "status", "actions", "store", "buy", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
 
 let history = [];
@@ -92,6 +92,7 @@ function handleCommand(verb, args) {
     case "reconfigure":  return cmdReconfigure(args);
     case "cancel-probe":   return cmdCancelProbe();
     case "cancel-exploit": return cmdCancelExploit();
+    case "cancel-read":    return cmdCancelRead();
     case "cancel-trace": return cmdCancelTrace();
     case "jackout":      return cmdJackout();
     case "actions":      return cmdActions();
@@ -310,7 +311,11 @@ function cmdActions() {
       }
     }
 
-    if (has.has("read"))   lines.push(`  read                     — scan ${sel.id} contents`);
+    if (has.has("cancel-read")) {
+      lines.push(`  cancel-read              — abort data extraction`);
+    } else if (has.has("read")) {
+      lines.push(`  read                     — scan ${sel.id} contents`);
+    }
     if (has.has("loot"))   lines.push(`  loot                     — collect items from ${sel.id}`);
     if (has.has("eject"))  lines.push(`  eject                    — push ICE to adjacent node`);
     if (has.has("reboot")) lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
@@ -388,6 +393,13 @@ function cmdStatusSummary() {
     const scanTimer = timers.find((t) => t.label === "SCANNING");
     const scanStr = scanTimer ? `${scanTimer.remaining}s remaining` : "resolving...";
     lines.push(`  Scanning: ${s.nodes[s.activeProbe.nodeId]?.label ?? s.activeProbe.nodeId}  |  ${scanStr}`);
+  }
+
+  // Active read scan
+  if (s.activeRead) {
+    const readTimer = timers.find((t) => t.label === "READING");
+    const readStr = readTimer ? `${readTimer.remaining}s remaining` : "resolving...";
+    lines.push(`  Reading: ${s.nodes[s.activeRead.nodeId]?.label ?? s.activeRead.nodeId}  |  ${readStr}`);
   }
 
   // Executing exploit
@@ -695,6 +707,7 @@ function cmdHelp() {
     "  loot [node]               Collect macguffins from owned node.",
     "  reconfigure [node]        Disable IDS event forwarding.",
     "  cancel-probe              Abort an in-progress probe scan.",
+    "  cancel-read               Abort an in-progress data extraction.",
     "  cancel-exploit            Abort an in-progress exploit execution (no card decay).",
     "  cancel-trace              Abort trace countdown (requires owned security-monitor selected).",
     "  eject                     Push ICE attention to adjacent node.",
@@ -725,6 +738,15 @@ function cmdCancelProbe() {
     return;
   }
   dispatch("cancel-probe");
+}
+
+function cmdCancelRead() {
+  const s = getState();
+  if (!s.activeRead) {
+    addLogEntry("No read scan in progress.", "error");
+    return;
+  }
+  dispatch("cancel-read");
 }
 
 function cmdCancelExploit() {
