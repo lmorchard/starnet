@@ -1078,3 +1078,8 @@ html, body {
 .store-close-btn:hover {
   background: rgba(0, 255, 255, 0.08);
 }
+
+/* Exploit zap laser lines — instant attack, slow decay */
+.exploit-zap {
+  transition: stroke-opacity 180ms ease-out;
+}

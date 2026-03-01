@@ -896,15 +896,94 @@ function setLine(id, x1, y1, x2, y2) {
   el.setAttribute("x2", x2); el.setAttribute("y2", y2);
 }
 
+// ── Exploit zap state ─────────────────────────────────────
+let zapIntervalId = null;
+// Per-corner: ticks remaining until next zap fire (30ms tick rate)
+const zapTimers = [0, 0, 0, 0];
+const ZAP_IDS = ["zap-tl", "zap-tr", "zap-br", "zap-bl"];
+const ZAP_TICK_MS = 30;
+
+function startExploitZaps() {
+  if (zapIntervalId !== null) return;
+  for (let i = 0; i < 4; i++) zapTimers[i] = 1 + Math.floor(Math.random() * 3);
+  zapIntervalId = setInterval(_tickZaps, ZAP_TICK_MS);
+}
+
+function stopExploitZaps() {
+  if (zapIntervalId !== null) {
+    clearInterval(zapIntervalId);
+    zapIntervalId = null;
+  }
+  // Fade out all zap lines
+  for (const id of ZAP_IDS) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute("stroke-opacity", "0");
+  }
+}
+
+function _tickZaps() {
+  if (!currentExploitBracketsNodeId || !cy) { stopExploitZaps(); return; }
+  const node = cy.getElementById(currentExploitBracketsNodeId);
+  if (!node || node.length === 0) { stopExploitZaps(); return; }
+
+  const r = node.renderedWidth() / 2;
+  const ox = r, oy = r;
+  const p = currentExploitBracketsProgress;
+  const dist = r * 1.8 - r * 0.7 * p;
+
+  // Corner positions (pre-rotation, same coords as bracket rendering)
+  const corners = [
+    [ox - dist, oy - dist], // TL
+    [ox + dist, oy - dist], // TR
+    [ox + dist, oy + dist], // BR
+    [ox - dist, oy + dist], // BL
+  ];
+
+  for (let i = 0; i < 4; i++) {
+    zapTimers[i]--;
+    if (zapTimers[i] <= 0) {
+      // Fire zap: random target within node radius
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * r * 0.85;
+      const tx = ox + Math.cos(angle) * radius;
+      const ty = oy + Math.sin(angle) * radius;
+
+      const el = document.getElementById(ZAP_IDS[i]);
+      if (el) {
+        // Instant attack: bypass CSS transition for the "on" stroke
+        el.style.transition = "none";
+        el.setAttribute("x1", String(corners[i][0]));
+        el.setAttribute("y1", String(corners[i][1]));
+        el.setAttribute("x2", String(tx));
+        el.setAttribute("y2", String(ty));
+        el.setAttribute("stroke-opacity", "0.95");
+        // Force reflow so the transition-less opacity takes effect
+        el.getBoundingClientRect();
+        // Re-enable transition for the decay
+        el.style.transition = "";
+        // Schedule fade-out on next frame
+        requestAnimationFrame(() => {
+          el.setAttribute("stroke-opacity", "0");
+        });
+      }
+
+      // Reset timer: 1-4 ticks (30-120ms)
+      zapTimers[i] = 1 + Math.floor(Math.random() * 4);
+    }
+  }
+}
+
 export function syncExploitBrackets(nodeId, progress) {
   currentExploitBracketsNodeId = nodeId;
   currentExploitBracketsProgress = Math.max(0, Math.min(1, progress));
   _renderExploitBrackets();
+  startExploitZaps();
 }
 
 export function clearExploitBrackets() {
   currentExploitBracketsNodeId = null;
   currentExploitBracketsProgress = 0;
+  stopExploitZaps();
   const svg = document.getElementById("exploit-brackets");
   if (svg) {
     svg.style.opacity = "0";
