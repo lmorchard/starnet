@@ -64,17 +64,23 @@ at the end of this manual.
 
 Each node in the LAN has a **type** that determines what it does and why you want it:
 
-| Type              | Shape    | What it does                                      |
-|-------------------|----------|---------------------------------------------------|
-| **WAN**           | Barrel   | The network boundary — your tether to the outside. Access the darknet broker here. |
-| **Gateway**       | Diamond  | Entry point. Your foothold into the LAN.          |
-| **Router**        | Circle   | Routes traffic. Bridges to deeper nodes.          |
-| **Firewall**      | Pentagon | High-security chokepoint. Hard to crack.          |
-| **Workstation**   | Circle   | User machines. Often soft targets with loose data.|
-| **File Server**   | Square   | Where documents live. Usually where your mission target is. |
-| **Cryptovault**   | Diamond  | High-value encrypted storage. Hardest targets.    |
-| **IDS**           | Hexagon  | Intrusion Detection System. Watches for exploits and reports to security monitors. Can be subverted. |
-| **Security Mon.** | Octagon  | Aggregates IDS alerts and raises global alert level. Can be owned to cancel trace. |
+| Type              | Shape    | Gate         | What it does                                      |
+|-------------------|----------|--------------|---------------------------------------------------|
+| **WAN**           | Barrel   | Probe        | The network boundary — your tether to the outside. Access the darknet broker here. |
+| **Gateway**       | Diamond  | Probe        | Entry point. Your foothold into the LAN.          |
+| **Router**        | Circle   | Compromised  | Routes traffic. Bridges to deeper nodes. Must compromise to see connections. |
+| **Firewall**      | Pentagon | Owned        | High-security chokepoint. Must fully own to reveal what's beyond. |
+| **Workstation**   | Circle   | Probe        | User machines. Often soft targets with loose data.|
+| **File Server**   | Square   | Probe        | Where documents live. Usually where your mission target is. |
+| **Cryptovault**   | Diamond  | Probe        | High-value encrypted storage. Hardest targets.    |
+| **IDS**           | Hexagon  | Owned        | Intrusion Detection System. Must own to see connections. Can be subverted. |
+| **Security Mon.** | Octagon  | Owned        | Aggregates IDS alerts. Must own to see connections. Can cancel trace. |
+
+The **Gate** column shows when a node reveals its connections to neighboring nodes.
+"Probe" means probing the node is enough to see what's connected. "Compromised" or
+"Owned" means you must reach that access level before the node reveals what's beyond it.
+Security infrastructure and chokepoints gate their connections — you can't just scan
+them to map the network.
 
 Nodes also have a **grade** (F through S) that affects how hard they are to exploit.
 Lower grade = softer target = better odds. The gateway is usually grade D or F.
@@ -117,6 +123,12 @@ Scanning a node reveals its **vulnerabilities** — the specific weaknesses in i
 you can exploit. Probing takes time — higher-grade nodes take longer to scan. A clockwise
 sweep animation shows progress. You can cancel a scan in progress with `cancel-probe`,
 and navigating away from the node cancels it automatically.
+
+For most node types, probing also reveals **neighboring connections** — you'll see new
+`???` nodes appear on the graph. However, security infrastructure (firewalls, IDS,
+security monitors) and routers gate their connections. You must reach a higher access
+level before those nodes reveal what's beyond them. Check the node types table for
+each type's gate level.
 
 Probing raises the node's local alert from green to yellow. If this node is watched by
 an IDS, that alert will propagate.
@@ -403,6 +415,11 @@ help                   Command listing
 
 **Probe before you exploit.** Without probing, you're attacking blind. A matched
 vulnerability can mean the difference between a 30% and a 65% success chance.
+
+**Firewalls hide what's behind them.** You won't see any connections beyond a
+firewall, IDS, or security monitor until you own it. Routers require at least
+compromised access. Plan your route — sometimes the soft path through a workstation
+reveals more of the network than hammering on a hardened chokepoint.
 
 **Watch the IDS chain.** Before you start hammering on nodes deep in the network,
 find the IDS nodes and figure out which security monitor they feed. If you can
