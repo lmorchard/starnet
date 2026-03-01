@@ -67,12 +67,10 @@ From session-5 design discussion — reframe log verbosity as something the play
 
 ## Technical / Architecture
 
-### Seeded RNG
-`Math.random()` calls in `combat.js`, `exploits.js`, `ice.js`, `loot.js` need a seedable
-PRNG to make runs fully reproducible from a saved state. State serialization is complete
-(prerequisite met). The seed would be stored in game state and used everywhere random
-numbers are drawn. Prerequisite for deterministic test replays, snapshot-based testing,
-and future AI-driven gameplay / AI bot fast-forward scenarios.
+### ~~Seeded RNG~~ ✓ DONE
+Implemented in `js/rng.js` — Mulberry32 PRNG with 5 named streams (exploit, combat,
+ice, loot, world). String seeds hashed via djb2. All 26 gameplay `Math.random()` calls
+replaced. Deterministic runs verified. Playtest harness supports `--seed`.
 
 ### Snapshot-Based Testing
 With save/load implemented and seeded RNG (above), we can write tests that start from a

@@ -367,7 +367,7 @@ function cmdStatusSummary() {
 
   // Alert + trace
   const traceStr = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "—";
-  lines.push(`  Alert: ${s.globalAlert.toUpperCase()}  |  Cash: ¥${s.player.cash.toLocaleString()}  |  Trace: ${traceStr}`);
+  lines.push(`  Seed: "${s.seed}"  |  Alert: ${s.globalAlert.toUpperCase()}  |  Cash: ¥${s.player.cash.toLocaleString()}  |  Trace: ${traceStr}`);
 
   // ICE + detection timer
   let iceStr;
@@ -453,6 +453,7 @@ function cmdStatusFull() {
     + (disclosed ? `, ${disclosed} disclosed` : "");
   lines.push(`## STATUS`);
   lines.push(`### PLAYER`);
+  lines.push(`- seed: "${s.seed}"`);
   lines.push(`- cash: ¥${s.player.cash.toLocaleString()}`);
   lines.push(`- ${handDesc}`);
 

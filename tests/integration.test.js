@@ -28,6 +28,7 @@ import { startTraceCountdown, recordIceDetection } from "../js/alert.js";
 // NODE_RECONFIGURED listeners. No separate init call needed.
 import { startExploit, cancelExploit, handleExploitExecTimer, exploitDuration } from "../js/exploit-exec.js";
 import { startProbe, cancelProbe, handleProbeScanTimer, probeDuration } from "../js/probe-exec.js";
+import { RNG, _forceNext } from "../js/rng.js";
 
 // Register the node lifecycle dispatcher once for this test file.
 initNodeLifecycle();
@@ -851,14 +852,10 @@ describe("Exploit success: neighbor visibility", () => {
         `Precondition: ${nid} should be hidden before exploit`);
     }
 
-    // Force Math.random to 0 so launchExploit always succeeds
-    const origRandom = Math.random;
-    Math.random = () => 0;
-    try {
-      launchExploit("gateway", s.player.hand[0].id);
-    } finally {
-      Math.random = origRandom;
-    }
+    // Force combat roll to succeed + flavor pick
+    _forceNext(RNG.COMBAT, 0);
+    _forceNext(RNG.COMBAT, 0);
+    launchExploit("gateway", s.player.hand[0].id);
 
     assert.equal(gateway.accessLevel, "compromised",
       "Gateway should be compromised after successful exploit");

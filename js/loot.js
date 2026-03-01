@@ -67,19 +67,13 @@ const MACGUFFIN_TYPES = [
   },
 ];
 
-function randomInt(min, max) {
-  return min + Math.floor(Math.random() * (max - min + 1));
-}
-
-function randomFrom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
+import { RNG, randomInt, randomPick, randomId } from "./rng.js";
 
 export function generateMacguffin() {
-  const type = randomFrom(MACGUFFIN_TYPES);
-  const value = randomInt(...type.cashRange);
+  const type = randomPick(RNG.LOOT, MACGUFFIN_TYPES);
+  const value = randomInt(RNG.LOOT, type.cashRange[0], type.cashRange[1]);
   return {
-    id: `${type.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: `${type.id}-${randomId(RNG.LOOT)}`,
     typeId: type.id,
     name: type.name,
     description: type.description,
@@ -93,7 +87,7 @@ export function generateMacguffin() {
 export function flagMissionMacguffin(nodes) {
   const all = nodes.flatMap((n) => n.macguffins);
   if (all.length === 0) return null;
-  const target = randomFrom(all);
+  const target = randomPick(RNG.LOOT, all);
   target.isMission = true;
   target.cashValue *= 3;
   return { id: target.id, name: target.name };

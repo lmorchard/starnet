@@ -14,7 +14,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
-import { initState, serializeState, deserializeState } from "../js/state.js";
+import { initState, getState, serializeState, deserializeState } from "../js/state.js";
 import { completeReboot } from "../js/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-exec.js";
 import { handleProbeScanTimer } from "../js/probe-exec.js";
@@ -37,12 +37,15 @@ initNodeLifecycle();
 
 let stateFile = "scripts/playtest-state.json";
 let cmdStr = null;
+let seedArg = null;
 
 {
   const argv = process.argv.slice(2);
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--state" && argv[i + 1]) {
       stateFile = argv[++i];
+    } else if (argv[i] === "--seed" && argv[i + 1]) {
+      seedArg = argv[++i];
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
@@ -140,9 +143,9 @@ function runCmd(raw) {
 
   // Harness-only commands
   if (verb === "reset") {
-    initState(NETWORK);
+    initState(NETWORK, seedArg ?? undefined);
     startIce();
-    out(`[SYS] Initialized. Network: ${NETWORK.nodes.length} nodes.`);
+    out(`[SYS] Initialized. Seed: "${getState().seed}". Network: ${NETWORK.nodes.length} nodes.`);
     return;
   }
   if (verb === "tick") {
@@ -171,12 +174,12 @@ if (!isReset) {
       deserializeState(JSON.parse(readFileSync(stateFile, "utf8")));
     } catch (e) {
       out(`[SYS] Failed to load ${stateFile}: ${e.message}. Initializing fresh.`);
-      initState(NETWORK);
+      initState(NETWORK, seedArg ?? undefined);
       startIce();
     }
   } else {
     out(`[SYS] No state file at ${stateFile}. Initializing fresh.`);
-    initState(NETWORK);
+    initState(NETWORK, seedArg ?? undefined);
     startIce();
   }
 }

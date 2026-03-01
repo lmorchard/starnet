@@ -13,6 +13,7 @@ import { handleProbeScanTimer } from "../js/probe-exec.js";
 import { setNodeAccessLevel, setNodeVisible } from "../js/state/node.js";
 import { initNodeLifecycle } from "../js/node-lifecycle.js";
 import { on, off, E } from "../js/events.js";
+import { RNG, _forceNext } from "../js/rng.js";
 
 initNodeLifecycle();
 
@@ -135,11 +136,10 @@ describe("Exploit reveals neighbors at correct gate levels", () => {
     );
     assert.ok(neighbors.length > 0, "router-a should have hidden neighbors");
 
-    // Force success
-    const origRandom = Math.random;
-    Math.random = () => 0;
-    try { launchExploit("router-a", s.player.hand[0].id); }
-    finally { Math.random = origRandom; }
+    // Force combat roll to succeed + flavor pick
+    _forceNext(RNG.COMBAT, 0);
+    _forceNext(RNG.COMBAT, 0);
+    launchExploit("router-a", s.player.hand[0].id);
 
     assert.equal(s.nodes["router-a"].accessLevel, "compromised");
     for (const nid of neighbors) {
@@ -156,10 +156,9 @@ describe("Exploit reveals neighbors at correct gate levels", () => {
     );
     assert.ok(neighbors.length > 0, "firewall should have hidden neighbors");
 
-    const origRandom = Math.random;
-    Math.random = () => 0;
-    try { launchExploit("firewall", s.player.hand[0].id); }
-    finally { Math.random = origRandom; }
+    _forceNext(RNG.COMBAT, 0);
+    _forceNext(RNG.COMBAT, 0);
+    launchExploit("firewall", s.player.hand[0].id);
 
     assert.equal(s.nodes["firewall"].accessLevel, "compromised");
     for (const nid of neighbors) {
@@ -178,10 +177,9 @@ describe("Exploit reveals neighbors at correct gate levels", () => {
     );
     assert.ok(neighbors.length > 0, "firewall should have hidden neighbors");
 
-    const origRandom = Math.random;
-    Math.random = () => 0;
-    try { launchExploit("firewall", s.player.hand[0].id); }
-    finally { Math.random = origRandom; }
+    _forceNext(RNG.COMBAT, 0);
+    _forceNext(RNG.COMBAT, 0);
+    launchExploit("firewall", s.player.hand[0].id);
 
     assert.equal(s.nodes["firewall"].accessLevel, "owned");
     for (const nid of neighbors) {
