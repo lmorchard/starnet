@@ -6,6 +6,7 @@
 // Does NOT depend on js/rng.js so it doesn't affect gameplay randomness.
 
 import { GRADES, GRADE_INDEX, parseGrade, shiftGrade, randomGrade, clampGrade } from "./grades.js";
+import { SET_PIECES, applySetPiece } from "./set-pieces.js";
 
 // ── Local RNG ─────────────────────────────────────────────────────────────────
 
@@ -244,6 +245,20 @@ function buildNetwork(rng, tc, mc) {
   for (let i = 0; i < wsCount; i++) {
     const wsId = addNode("workstation", softGrade(), 2);
     addEdge(pick(rng, routerIds), wsId);
+  }
+
+  // ── Set piece (optional) ────────────────────────────────────────────────────
+  // careless-user: eligible when moneyCost ≥ C and there's a firewall in the network
+  if (GRADE_INDEX[mc] >= GRADE_INDEX["C"] && firewallId && rng() < 0.6) {
+    const baseGrade = pathGrade();
+    applySetPiece(
+      SET_PIECES["careless-user"],
+      { nodes, edges },
+      rng,
+      baseGrade,
+      nextLabel,
+      makeId,
+    );
   }
 
   // ── Assign x,y positions ────────────────────────────────────────────────────
