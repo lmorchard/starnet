@@ -175,8 +175,11 @@ target is here.
 > loot
 ```
 
-On an owned node with contents, `loot` extracts all macguffins and credits their
-value to your wallet. Your mission target, if found, is flagged as collected.
+On an owned node with contents, `loot` begins extracting all macguffins. This takes
+time, scaled by node grade. Concentric rings ripple outward from the node as data
+is siphoned. You can cancel with `cancel-loot`, and navigating away cancels
+automatically. Once complete, all items are credited to your wallet. Your mission
+target, if found, is flagged as collected.
 
 ### 6. Jack Out
 
@@ -368,7 +371,8 @@ Actions depend on the selected node's type and access level:
 | `cancel-exploit`  | Exploit executing on selected node             | Aborts the exploit (no card decay) |
 | `read`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
 | `cancel-read`  | Read scan in progress on selected node         | Aborts the data extraction |
-| `loot`         | Node is owned + has uncollected macguffins     | Extracts macguffins for cash |
+| `loot`         | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
+| `cancel-loot`  | Loot extraction in progress on selected node   | Aborts the extraction |
 | `reconfigure`  | IDS node is compromised or owned               | Severs event forwarding to security monitor |
 | `eject`        | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
@@ -390,7 +394,8 @@ exploit <#|name>       Use exploit card by number or name on selected node.
 cancel-exploit         Abort an in-progress exploit execution (no card decay).
 read [node]            Read contents of selected/specified node.
 cancel-read            Abort an in-progress data extraction.
-loot [node]            Loot macguffins from owned node.
+loot [node]            Extract macguffins from owned node.
+cancel-loot            Abort an in-progress loot extraction.
 reconfigure [node]     Disable IDS event forwarding.
 eject                  Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
