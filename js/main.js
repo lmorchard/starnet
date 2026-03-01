@@ -1,5 +1,6 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { NETWORK } from "../data/network.js";
+import { generateNetwork } from "./network-gen.js";
 import { initGraph, getCy, addIceNode, fitGraph } from "./graph.js";
 import { initState, getState } from "./state.js";
 import { completeReboot } from "./node-orchestration.js";
@@ -17,15 +18,38 @@ import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "./node-lifecycle.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "./action-context.js";
 
+/** Read seed/time/money from URL search params. Returns null if any are missing. */
+function getNetworkParams() {
+  const p = new URLSearchParams(location.search);
+  const seed  = p.get("seed");
+  const time  = p.get("time")?.toUpperCase();
+  const money = p.get("money")?.toUpperCase();
+  if (seed && time && money) return { seed, timeCost: time, moneyCost: money };
+  return null;
+}
+
+/** Active network for this session — generated from URL params or static fallback. */
+let network = NETWORK;
+{
+  const params = getNetworkParams();
+  if (params) {
+    try {
+      network = generateNetwork(params.seed, params.timeCost, params.moneyCost);
+    } catch (err) {
+      console.warn("[starnet] generateNetwork failed, using static network:", err);
+    }
+  }
+}
+
 function init() {
   initLogRenderer();
-  const cy = initGraph(NETWORK, buildNodeClickHandler(), () => {
+  const cy = initGraph(network, buildNodeClickHandler(), () => {
     emitEvent("starnet:action", { actionId: "deselect" });
   });
   addIceNode();
   initConsole();
   initVisualRenderer();  // must subscribe before initState fires STATE_CHANGED
-  initState(NETWORK);
+  initState(network);
   fitGraph(cy);
   startIce();
   setInterval(() => {
@@ -93,7 +117,7 @@ function init() {
   });
 
   on("starnet:action:run-again", () => {
-    initState(NETWORK);
+    initState(network);
     const cy = getCy();
     if (cy) fitGraph(cy);
     addIceNode();
