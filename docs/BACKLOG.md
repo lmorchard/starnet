@@ -93,6 +93,13 @@ game state (currently tightly coupled via Cytoscape node positions).
 and to thread the multiplier through the `setInterval` callback. Most useful when AI bots
 can play the network on the player's behalf and fast-forward is desirable.
 
+**Diegetic tick speed as player mechanic:** The neuraldeck accelerates the user's brain
+to compete with automated systems. Tick multiplier becomes an in-game stat rather than
+just a dev control. Upgrades (better deck hardware, stimulants) speed the player up;
+damage or countermeasures slow them down. At 0.5× the world feels faster — ICE moves
+more aggressively, timers feel tighter. At 2× the player has breathing room to plan.
+This reframes game speed as a resource the player manages, not a UI preference.
+
 ### LLM Playtest Harness
 - **Typed event log** — replace ad-hoc log strings with structured `logEvent(type, payload)` that both renders human-readable and records machine-readable events
 - **Formal log message conventions** — consistent prefixes per category (`ICE:`, `EXPLOIT:`, `ALERT:`, `NODE:`)
