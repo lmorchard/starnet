@@ -132,16 +132,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
     elements,
-    layout: {
-      name: "cola",
-      animate: false,
-      randomize: true,
-      nodeSpacing: 30,
-      edgeLength: 120,
-      padding: 50,
-      maxSimulationTime: 4000,
-      fit: true,
-    },
+    layout: colaLayout(),
     style: buildStylesheet(),
     userZoomingEnabled: true,
     userPanningEnabled: true,
@@ -911,6 +902,25 @@ function _renderIceDetectSweep() {
 }
 
 const MAX_FIT_ZOOM = 1.5;
+
+function colaLayout() {
+  return {
+    name: "cola",
+    animate: false,
+    randomize: true,
+    nodeSpacing: 30,
+    edgeLength: 120,
+    padding: 50,
+    maxSimulationTime: 4000,
+    fit: true,
+  };
+}
+
+/** Re-run the layout algorithm with fresh random positions. */
+export function relayout() {
+  if (!cy) return;
+  cy.layout(colaLayout()).run();
+}
 
 export function fitGraph(cy) {
   const visible = cy.nodes(".accessible, .revealed");

@@ -37,6 +37,8 @@ export function handleCheatCommand(args) {
     return cheatSummonIce(args.slice(1));
   } else if (sub === "ice-state") {
     return cheatIceState();
+  } else if (sub === "relayout") {
+    return cheatRelayout();
   } else if (sub === "snapshot") {
     return cheatSnapshot();
   } else if (sub === "restore") {
@@ -252,6 +254,7 @@ function cheatHelp() {
     "  cheat trace end             Cancel active trace countdown.",
     "  cheat summon-ice [node]     Teleport ICE to node (default: selected). Resets dwell.",
     "  cheat ice-state             Dump raw ICE state: grade, position, disturbance target.",
+    "  cheat relayout              Re-run graph layout with fresh random positions.",
     "  cheat snapshot              Save game state to file.",
     "  cheat restore               Load game state from file.",
   ];
@@ -271,6 +274,15 @@ function cheatRestore() {
   // Fall back to programmatic click — may not work in all browsers.
   const input = document.getElementById("load-file-input");
   if (input) input.click();
+  return true;
+}
+
+// CHEAT: relayout — re-run graph layout with fresh random positions
+function cheatRelayout() {
+  import("./graph.js").then(({ relayout }) => {
+    relayout();
+    addLogEntry("[CHEAT] Graph re-laid out.", "success");
+  });
   return true;
 }
 
