@@ -814,7 +814,10 @@ export function clearExploitBrackets() {
   currentExploitBracketsNodeId = null;
   currentExploitBracketsProgress = 0;
   const svg = document.getElementById("exploit-brackets");
-  if (svg) svg.style.opacity = "0";
+  if (svg) {
+    svg.style.opacity = "0";
+    svg.style.transform = "rotate(0deg)";
+  }
 }
 
 function _renderExploitBrackets() {
@@ -836,6 +839,10 @@ function _renderExploitBrackets() {
   // Brackets start at 1.8x radius from center, converge to 1.1x
   const dist = r * 1.8 - r * 0.7 * p;   // lerp(1.8r, 1.1r, p)
   const arm  = r * 0.4;                  // fixed arm length
+
+  // Clockwise rotation: 0° at start → 360° at completion (player action convention)
+  svg.style.transform = `rotate(${p * 360}deg)`;
+  svg.style.transformOrigin = `${ox}px ${oy}px`;
 
   setLine("bracket-tl-h", ox - dist,       oy - dist, ox - dist + arm, oy - dist);
   setLine("bracket-tl-v", ox - dist,       oy - dist, ox - dist,       oy - dist + arm);
