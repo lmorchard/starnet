@@ -61,23 +61,17 @@ function init() {
     emitEvent("starnet:action", { actionId: "jackout" });
   });
 
-  // Wire save/load buttons.
-  // Save can lazy-load since the download link click is internal.
-  // Load must open the file picker synchronously in the user gesture —
-  // browsers block programmatic .click() on file inputs from async callbacks.
+  // Wire save/load buttons
   document.getElementById("save-btn").addEventListener("click", () => {
-    import("./cheats.js").then(({ saveGame }) => saveGame());
+    import("./save-load.js").then(({ saveGame }) => saveGame());
   });
-  document.getElementById("load-btn").addEventListener("click", () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      import("./cheats.js").then(({ restoreFromFile }) => restoreFromFile(file));
-    };
-    input.click();
+  // Load uses a <label> wrapping a file input — clicking the label natively
+  // triggers the file picker without programmatic .click() (most reliable).
+  document.getElementById("load-file-input").addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    import("./save-load.js").then(({ restoreFromFile }) => restoreFromFile(file));
+    e.target.value = ""; // reset so the same file can be loaded again
   });
 
   const ctx = buildActionContext();

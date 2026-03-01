@@ -7,7 +7,8 @@
 // gated, disabled, or penalized as a unit in future builds.
 // Any use of a cheat command sets state.isCheating = true for the run.
 
-import { getState, revealNeighbors, accessNeighbors, serializeState, deserializeState } from "./state.js";
+import { getState, revealNeighbors, accessNeighbors } from "./state.js";
+import { saveGame, restoreFromFile } from "./save-load.js";
 import { setNodeAccessLevel, setNodeAlertState, setNodeVisible } from "./state/node.js";
 import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
 import { setCheating } from "./state/game.js";
@@ -261,53 +262,16 @@ function cheatHelp() {
 // CHEAT: snapshot — save game state to file
 function cheatSnapshot() {
   saveGame();
-  addLogEntry("[SYS] Game state saved.", "info");
   return true;
 }
 
-// CHEAT: restore — load game state from file
+// CHEAT: restore — trigger file picker for load
 function cheatRestore() {
-  loadGame();
+  // The label click approach won't work from a cheat command (no user gesture).
+  // Fall back to programmatic click — may not work in all browsers.
+  const input = document.getElementById("load-file-input");
+  if (input) input.click();
   return true;
-}
-
-/** Save current game state as a downloadable JSON file. */
-export function saveGame() {
-  const snapshot = serializeState();
-  const json = JSON.stringify(snapshot, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `starnet-save-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/** Prompt the user to select a JSON save file and restore game state from it. */
-export function loadGame() {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".json";
-  input.onchange = () => {
-    const file = input.files?.[0];
-    if (file) restoreFromFile(file);
-  };
-  input.click();
-}
-
-/** Restore game state from a File object. Exported for use by the HUD load button. */
-export function restoreFromFile(file) {
-  file.text().then((text) => {
-    try {
-      const snapshot = JSON.parse(text);
-      deserializeState(snapshot);
-      emitEvent(E.STATE_CHANGED, getState());
-      addLogEntry(`[SYS] Game state loaded from ${file.name}.`, "info");
-    } catch (e) {
-      addLogEntry(`[SYS] Failed to load: ${e.message}`, "error");
-    }
-  });
 }
 
 // ── Internal ──────────────────────────────────────────────
