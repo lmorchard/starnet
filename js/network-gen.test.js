@@ -156,7 +156,7 @@ describe("generateNetwork: set pieces", () => {
   });
 
   it("careless-user adds expected nodes", () => {
-    // sp-test-1 at B/B does NOT fire the set piece naturally (11 nodes)
+    // sp-test-1 at B/B does NOT fire the set piece naturally
     const without = generateNetwork("sp-test-1", "B", "B");
     const withPiece = generateNetwork("sp-test-1", "B", "B", { forcePieces: ["careless-user"] });
     // careless-user adds 3 nodes: workstation, fileserver, firewall

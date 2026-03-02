@@ -33,6 +33,6 @@ export const SET_PIECES = {
     ],
     eligible: ({ mc, state }) =>
       GRADE_INDEX[mc] >= GRADE_INDEX["C"] && (state.gate?.length ?? 0) > 0,
-    probability: 0.6,
+    probability: 0.35,
   },
 };
