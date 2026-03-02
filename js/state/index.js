@@ -106,7 +106,7 @@ export function initState(networkData, seedString) {
     seed: getSeed(),
     nodes,
     adjacency,
-    player: { cash: 1000, hand: generateStartingHand() },
+    player: { cash: networkData.startCash ?? 1000, hand: generateStartingHand(networkData.startHandSpec) },
     globalAlert: "green",
     traceSecondsRemaining: null,
     traceTimerId: null,

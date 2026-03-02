@@ -45,12 +45,40 @@ function pickRemove(rng, arr) {
 
 /** timeCost grade → ICE grade, network depth budget, gate count. */
 const TIME_BUDGET = {
-  F: { iceGrade: "F", depthBudget: 2, gateCount: 0 },
+  F: { iceGrade: "F", depthBudget: 3, gateCount: 0 },
   D: { iceGrade: "D", depthBudget: 2, gateCount: 1 },
   C: { iceGrade: "C", depthBudget: 3, gateCount: 1 },
   B: { iceGrade: "B", depthBudget: 3, gateCount: 2 },
   A: { iceGrade: "A", depthBudget: 4, gateCount: 2 },
   S: { iceGrade: "S", depthBudget: 5, gateCount: 3 },
+};
+
+/**
+ * moneyCost grade → starting hand composition (array of rarity strings).
+ * Harder LANs have tougher node vulns, so the player needs more and better cards.
+ * F/D: standard 6-card hand. C+: extra rares. A/S: no commons, 8 cards.
+ */
+const HAND_BUDGET = {
+  F: ["common", "common", "uncommon", "uncommon", "uncommon", "rare"],
+  D: ["common", "common", "uncommon", "uncommon", "uncommon", "rare"],
+  C: ["common", "common", "uncommon", "uncommon", "uncommon", "rare", "rare"],
+  B: ["common", "uncommon", "uncommon", "uncommon", "uncommon", "rare", "rare"],
+  A: ["uncommon", "uncommon", "uncommon", "uncommon", "uncommon", "rare", "rare", "rare"],
+  S: ["uncommon", "uncommon", "uncommon", "uncommon", "uncommon", "rare", "rare", "rare"],
+};
+
+/**
+ * moneyCost grade → suggested starting cash for the player.
+ * Reflects what a player at this tier would reasonably have accumulated from prior runs.
+ * Higher difficulties expect the player to have a bigger wallet for card replenishment.
+ */
+const CASH_BUDGET = {
+  F: 1000,
+  D: 1000,
+  C: 1250,
+  B: 1500,
+  A: 2000,
+  S: 2500,
 };
 
 /** moneyCost grade → grade range for critical path nodes, target depth. */
@@ -117,19 +145,24 @@ function assignPositions(nodes) {
  * @param {string} seed
  * @param {string} timeCost  - grade letter S/A/B/C/D/F
  * @param {string} moneyCost - grade letter S/A/B/C/D/F
+ * @param {{ forcePieces?: string[] }} [options]
+ *   forcePieces: set piece IDs to apply unconditionally (bypasses rng check).
+ *   Intended for headless playtesting and integration tests — not for general play.
  * @returns {object} NETWORK-compatible object
  */
-export function generateNetwork(seed, timeCost, moneyCost) {
+export function generateNetwork(seed, timeCost, moneyCost, options = {}) {
   const tc = parseGrade(timeCost);
   const mc = parseGrade(moneyCost);
   if (!tc) throw new Error(`generateNetwork: invalid timeCost "${timeCost}"`);
   if (!mc) throw new Error(`generateNetwork: invalid moneyCost "${moneyCost}"`);
 
+  const forcePieces = options.forcePieces ?? [];
+
   const MAX_ATTEMPTS = 10;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     // Each attempt gets a fresh RNG derived from seed + attempt index.
     const rng = makeMulberry32(djb2(`${seed}-network-${attempt}`));
-    const candidate = buildNetwork(rng, tc, mc);
+    const candidate = buildNetwork(rng, tc, mc, forcePieces);
     const failure = validate(candidate);
     if (!failure) return candidate;
     if (attempt === MAX_ATTEMPTS - 1) {
@@ -141,7 +174,7 @@ export function generateNetwork(seed, timeCost, moneyCost) {
 }
 
 /** Build one candidate network. May produce an invalid result — caller validates. */
-function buildNetwork(rng, tc, mc) {
+function buildNetwork(rng, tc, mc, forcePieces = []) {
   const time   = TIME_BUDGET[tc];
   const money  = MONEY_BUDGET[mc];
 
@@ -249,7 +282,8 @@ function buildNetwork(rng, tc, mc) {
 
   // ── Set piece (optional) ────────────────────────────────────────────────────
   // careless-user: eligible when moneyCost ≥ C and there's a firewall in the network
-  if (GRADE_INDEX[mc] >= GRADE_INDEX["C"] && firewallId && rng() < 0.6) {
+  const forceCareless = forcePieces.includes("careless-user");
+  if (GRADE_INDEX[mc] >= GRADE_INDEX["C"] && firewallId && (forceCareless || rng() < 0.6)) {
     const baseGrade = pathGrade();
     applySetPiece(
       SET_PIECES["careless-user"],
@@ -275,6 +309,8 @@ function buildNetwork(rng, tc, mc) {
     nodes: finalNodes,
     edges,
     startNode: gatewayId,
+    startCash: CASH_BUDGET[mc],
+    startHandSpec: HAND_BUDGET[mc],
     ice: {
       grade:     time.iceGrade,
       startNode: monitorId,

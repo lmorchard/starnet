@@ -21,8 +21,8 @@
       "type": "security-monitor",
       "label": "SEC-MON-01",
       "grade": "D",
-      "x": 300,
-      "y": 330
+      "x": 400,
+      "y": 470
     },
     {
       "id": "ids-4",
@@ -30,18 +30,26 @@
       "label": "IDS-01",
       "grade": "D",
       "x": 200,
-      "y": 190
+      "y": 330
     },
     {
       "id": "router-5",
       "type": "router",
       "label": "RTR-A",
       "grade": "F",
+      "x": 200,
+      "y": 190
+    },
+    {
+      "id": "router-6",
+      "type": "router",
+      "label": "RTR-02",
+      "grade": "F",
       "x": 400,
       "y": 190
     },
     {
-      "id": "fileserver-6",
+      "id": "fileserver-7",
       "type": "fileserver",
       "label": "FS-ARCHIVE",
       "grade": "F",
@@ -49,11 +57,19 @@
       "y": 190
     },
     {
-      "id": "workstation-7",
+      "id": "workstation-8",
       "type": "workstation",
       "label": "WS-BETA",
       "grade": "F",
-      "x": 500,
+      "x": 400,
+      "y": 330
+    },
+    {
+      "id": "workstation-9",
+      "type": "workstation",
+      "label": "WS-01",
+      "grade": "F",
+      "x": 600,
       "y": 330
     }
   ],
@@ -71,19 +87,36 @@
       "target": "router-5"
     },
     {
+      "source": "gateway-2",
+      "target": "router-6"
+    },
+    {
       "source": "router-5",
       "target": "ids-4"
     },
     {
       "source": "router-5",
-      "target": "fileserver-6"
+      "target": "fileserver-7"
+    },
+    {
+      "source": "router-6",
+      "target": "workstation-8"
     },
     {
       "source": "router-5",
-      "target": "workstation-7"
+      "target": "workstation-9"
     }
   ],
   "startNode": "gateway-2",
+  "startCash": 1000,
+  "startHandSpec": [
+    "common",
+    "common",
+    "uncommon",
+    "uncommon",
+    "uncommon",
+    "rare"
+  ],
   "ice": {
     "grade": "F",
     "startNode": "security-monitor-3"

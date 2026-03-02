@@ -172,6 +172,16 @@
     }
   ],
   "startNode": "gateway-2",
+  "startCash": 1500,
+  "startHandSpec": [
+    "common",
+    "uncommon",
+    "uncommon",
+    "uncommon",
+    "uncommon",
+    "rare",
+    "rare"
+  ],
   "ice": {
     "grade": "B",
     "startNode": "security-monitor-3"

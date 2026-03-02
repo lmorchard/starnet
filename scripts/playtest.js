@@ -42,6 +42,8 @@ let cmdStr = null;
 let seedArg = null;
 let timeArg = null;
 let moneyArg = null;
+/** @type {string[]} */
+const forcePiecesArg = [];
 
 {
   const argv = process.argv.slice(2);
@@ -54,6 +56,8 @@ let moneyArg = null;
       timeArg = argv[++i].toUpperCase();
     } else if (argv[i] === "--money" && argv[i + 1]) {
       moneyArg = argv[++i].toUpperCase();
+    } else if (argv[i] === "--force-piece" && argv[i + 1]) {
+      forcePiecesArg.push(argv[++i]);
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
@@ -63,11 +67,11 @@ let moneyArg = null;
 // ── Network selection ───────────────────────────────────────
 // Use generated network when --time and --money are both present; otherwise static.
 const network = (timeArg && moneyArg)
-  ? generateNetwork(seedArg ?? "default", timeArg, moneyArg)
+  ? generateNetwork(seedArg ?? "default", timeArg, moneyArg, { forcePieces: forcePiecesArg })
   : NETWORK;
 
 if (!cmdStr) {
-  console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] <command>");
+  console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] [--force-piece <id>] <command>");
   console.error("Commands: reset  tick <n>  select <node>  deselect");
   console.error("          probe [node]  exploit <node> <card>  read [node]");
   console.error("          loot [node]  reconfigure [node]  jackout");

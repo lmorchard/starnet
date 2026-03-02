@@ -504,7 +504,7 @@ function cmdStatusFull() {
   // Network
   lines.push(`### NETWORK`);
   const accessible = Object.values(s.nodes).filter((n) => n.visibility === "accessible");
-  const revealedCount = Object.values(s.nodes).filter((n) => n.visibility === "revealed").length;
+  const revealed = Object.values(s.nodes).filter((n) => n.visibility === "revealed");
 
   accessible.forEach((node) => {
     const selected = node.id === s.selectedNodeId ? "  [SELECTED]" : "";
@@ -519,7 +519,9 @@ function cmdStatusFull() {
     }
   });
 
-  if (revealedCount > 0) lines.push(`- ${revealedCount} node(s) revealed (inaccessible)`);
+  revealed.forEach((node) => {
+    lines.push(`- ${node.id}  [${node.type}]  revealed`);
+  });
 
   // Hand
   lines.push(`### HAND`);
