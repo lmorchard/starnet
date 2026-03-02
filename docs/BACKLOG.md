@@ -46,6 +46,38 @@ the ICE resident node, and `iceResident` behavior needs to move from
 security-monitor to the new node type.
 _Identified during bot census session (2026-03-01)._
 
+### Player Upgrades / Deck Hardware
+The overworld progression system should give players tools that shift the
+balance at higher difficulties. These are equipment/upgrades acquired between
+runs, not in-run pickups.
+
+- **Deck speed** — reduces exploit execution duration. A faster deck means
+  shorter exposure windows during exploits, directly improving survivability
+  against ICE. Could be a multiplier on `exploitDuration()`.
+- **Signal masking / stealth** — increases ICE dwell time before detection.
+  The player's presence is harder to detect, giving more time to complete
+  actions before ICE triggers. Could add a flat bonus to DWELL_TIMES.
+- **Chaff / decoys** — creates false disturbance signals at other nodes,
+  drawing ICE away from the player. ICE investigates the decoy instead of
+  the real exploit noise. Mechanically: set `lastDisturbedNodeId` to a
+  decoy node on demand.
+- **Bot partners (daemons)** — autonomous agents that hack alongside the
+  player, potentially in parallel. Could probe nodes, create distractions,
+  or exploit low-grade targets. Implementation may be simplified (not full
+  bot-player instances) — e.g. a daemon "claims" a node and applies a
+  timed state change without full exploit resolution. The fiction: the
+  player deploys semi-autonomous programs into the network.
+- **ICE scanner** — reveals ICE position and movement direction when the
+  player owns a node ICE passes through. Reduces information asymmetry
+  and enables timing-based play. See also: traffic analysis daemon in the
+  information asymmetry section below.
+
+These upgrades are the intended solution for A/A and S/S difficulty. The base
+game mechanics (evasion, IDS reconfigure) handle C/B; player upgrades extend
+viability to the hardest tiers. Bot census data (2026-03-01) confirms: the
+dumb bot hits 0% at A/A without upgrades, but the mechanical levers (deck
+speed, stealth) would directly address the exploit-duration vs ICE-dwell race.
+
 ### Adversarial / ICE
 - **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
 - **`cheat ice-move <node>`** — cheat command to teleport ICE directly to a node for testing detection scenarios without waiting for ticks
