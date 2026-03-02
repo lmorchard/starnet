@@ -11,7 +11,7 @@ import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-e
 import { handleProbeScanTimer } from "../js/probe-exec.js";
 import { handleReadScanTimer } from "../js/read-exec.js";
 import { handleLootExtractTimer } from "../js/loot-exec.js";
-import { on, off, emitEvent, E, clearHandlers } from "../js/events.js";
+import { on, off, emitEvent, E } from "../js/events.js";
 import { tick, TIMER } from "../js/timers.js";
 import { initLog } from "../js/log.js";
 import { initNodeLifecycle } from "../js/node-lifecycle.js";
@@ -64,29 +64,30 @@ export function runBot(network, seed, options = {}) {
   const { tickIncrement = DEFAULT_TICK_INCREMENT, maxTicks = DEFAULT_MAX_TICKS, evasion = false } = options;
 
   // ── Setup ────────────────────────────────────────────────
-  clearHandlers();
+  // One-time init: timer wiring + action dispatcher. These persist across runs
+  // because we don't call clearHandlers() (module-level handlers must survive).
+  if (!runBot._initialized) {
+    initNodeLifecycle();
+    on(TIMER.ICE_MOVE,        ()        => handleIceTick());
+    on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
+    on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
+    on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
+    on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
+    on(TIMER.EXPLOIT_NOISE,   (payload) => handleExploitNoiseTimer(payload));
+    on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
+    on(TIMER.READ_SCAN,       (payload) => handleReadScanTimer(payload));
+    on(TIMER.LOOT_EXTRACT,    (payload) => handleLootExtractTimer(payload));
+    const ctx = {
+      ...buildActionContext(),
+      openDarknetsStore: () => {},
+    };
+    initActionDispatcher(ctx);
+    runBot._initialized = true;
+  }
+
   initLog();
-  initNodeLifecycle();
   initState(network, seed);
   startIce();
-
-  // Timer wiring (same as playtest.js)
-  on(TIMER.ICE_MOVE,        ()        => handleIceTick());
-  on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
-  on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
-  on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
-  on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
-  on(TIMER.EXPLOIT_NOISE,   (payload) => handleExploitNoiseTimer(payload));
-  on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
-  on(TIMER.READ_SCAN,       (payload) => handleReadScanTimer(payload));
-  on(TIMER.LOOT_EXTRACT,    (payload) => handleLootExtractTimer(payload));
-
-  // Action dispatcher
-  const ctx = {
-    ...buildActionContext(),
-    openDarknetsStore: () => {},  // bot uses buyFromStore directly
-  };
-  initActionDispatcher(ctx);
 
   // ── Stat tracking via events ─────────────────────────────
   let traceFired = false;
@@ -248,9 +249,35 @@ export function runBot(network, seed, options = {}) {
   let avoidNodeId = null;
 
   /**
+   * Check if there's an IDS node that should be reconfigured.
+   * Returns the IDS node ID if one is reachable and not yet disabled, null otherwise.
+   * @returns {string | null}
+   */
+  function findReconfigurableIDS() {
+    if (!evasion) return null;
+    const state = getState();
+    // Look for IDS nodes that are visible, reachable, and not yet reconfigured
+    for (const [id, node] of Object.entries(state.nodes)) {
+      if (node.type !== "ids") continue;
+      if (node.visibility === "hidden") continue;
+      if (node.eventForwardingDisabled) continue;
+      // IDS needs to be compromised or owned to reconfigure. If not yet, we need to
+      // own it first. Either way, it's a target.
+      if (node.accessLevel === "owned" && !node.eventForwardingDisabled) {
+        // Can reconfigure immediately — but that's handled in the main loop
+        return id;
+      }
+      if (node.accessLevel !== "owned") {
+        // Need to own it first
+        return id;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Find the next node to target.
-   * Priority: adjacent lootable > nearest unowned > null (stuck)
-   * Only considers visible, non-security nodes.
+   * Priority: IDS to reconfigure (evasion) > lootable > nearest unowned > null
    * @returns {{ id: string } | null}
    */
   function pickNextNode() {
@@ -264,6 +291,10 @@ export function runBot(network, seed, options = {}) {
         !SECURITY_TYPES.has(currentNode.type)) {
       return { id: currentId };
     }
+
+    // Evasion: prioritize IDS reconfiguration
+    const idsTarget = findReconfigurableIDS();
+    if (idsTarget) return { id: idsTarget };
 
     // BFS from currentId through owned nodes to find nearest unowned visible node
     /** @type {Map<string, string|null>} */
@@ -305,8 +336,6 @@ export function runBot(network, seed, options = {}) {
     // Prefer nodes that aren't the one we just fled from
     let targetId = bestLootable ?? bestAny;
     if (evasion && targetId === avoidNodeId) {
-      // Try to find an alternative — re-BFS skipping the avoided node
-      // But only if there IS an alternative; otherwise use the avoided node anyway
       const alt = bestLootable && bestLootable !== avoidNodeId ? bestLootable
         : bestAny && bestAny !== avoidNodeId ? bestAny : null;
       if (alt) targetId = alt;
@@ -480,6 +509,16 @@ export function runBot(network, seed, options = {}) {
     // Successfully worked on this node — clear avoidance
     if (getState().nodes[target.id]?.accessLevel === "owned") avoidNodeId = null;
 
+    // Reconfigure IDS nodes when owned (evasion strategy)
+    const workedNode = getState().nodes[target.id];
+    if (evasion && workedNode?.type === "ids" &&
+        (workedNode.accessLevel === "compromised" || workedNode.accessLevel === "owned") &&
+        !workedNode.eventForwardingDisabled) {
+      dispatchAction("select", { nodeId: target.id });
+      dispatchAction("reconfigure", { nodeId: target.id });
+      if (evasion) dispatchAction("deselect");
+    }
+
     // Check if mission is complete
     const ms = getState().mission;
     if (ms?.complete) missionDone = true;
@@ -515,6 +554,15 @@ export function runBot(network, seed, options = {}) {
   const fullClear = clearableOwned === clearableTotal;
 
   const cashSpent = startingCash - endState.player.cash;
+
+  // Clean up per-run stat handlers so they don't stack on subsequent runs
+  off(E.ALERT_GLOBAL_RAISED, onAlertRaised);
+  off(E.ALERT_TRACE_STARTED, onTraceStarted);
+  off(E.ICE_DETECTED, onIceDetected);
+  off(E.EXPLOIT_STARTED, onExploitStarted);
+  off(E.EXPLOIT_DISCLOSED, onExploitDisclosed);
+  off(E.NODE_ACCESSED, onNodeAccessed);
+  off(E.MISSION_COMPLETE, onMissionComplete);
 
   return {
     missionSuccess: missionDone,

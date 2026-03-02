@@ -21,28 +21,37 @@ const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
 
 // ── Event-driven hooks ────────────────────────────────────
 
-// When any node alert raises, propagate if it's a detection node; otherwise
-// recompute global alert directly. Runs synchronously before STATE_CHANGED fires.
-on(E.NODE_ALERT_RAISED, ({ nodeId }) => {
-  const s = getState();
-  const node = s.nodes[nodeId];
-  if (!node) return;
-  const ctx = { propagateAlertEvent, startTraceCountdown, recomputeGlobalAlert };
-  const handled = getBehaviors(node).some((atom) => {
-    if (atom.onAlertRaised) { atom.onAlertRaised(node, s, ctx); return true; }
-    return false;
+/**
+ * Register alert event handlers. Called at module load and can be re-called
+ * after clearHandlers() (e.g. in the bot census loop).
+ */
+export function initAlertHandlers() {
+  // When any node alert raises, propagate if it's a detection node; otherwise
+  // recompute global alert directly. Runs synchronously before STATE_CHANGED fires.
+  on(E.NODE_ALERT_RAISED, ({ nodeId }) => {
+    const s = getState();
+    const node = s.nodes[nodeId];
+    if (!node) return;
+    const ctx = { propagateAlertEvent, startTraceCountdown, recomputeGlobalAlert };
+    const handled = getBehaviors(node).some((atom) => {
+      if (atom.onAlertRaised) { atom.onAlertRaised(node, s, ctx); return true; }
+      return false;
+    });
+    if (!handled) recomputeGlobalAlert();
   });
-  if (!handled) recomputeGlobalAlert();
-});
 
-// Reconfiguring a node — dispatch onReconfigured atom, then recompute.
-on(E.NODE_RECONFIGURED, ({ nodeId }) => {
-  const s = getState();
-  const node = s.nodes[nodeId];
-  if (!node) return;
-  const ctx = { recomputeGlobalAlert };
-  getBehaviors(node).forEach((atom) => atom.onReconfigured?.(node, s, ctx));
-});
+  // Reconfiguring a node — dispatch onReconfigured atom, then recompute.
+  on(E.NODE_RECONFIGURED, ({ nodeId }) => {
+    const s = getState();
+    const node = s.nodes[nodeId];
+    if (!node) return;
+    const ctx = { recomputeGlobalAlert };
+    getBehaviors(node).forEach((atom) => atom.onReconfigured?.(node, s, ctx));
+  });
+}
+
+// Register on first import
+initAlertHandlers();
 
 // ── Propagation ───────────────────────────────────────────
 
@@ -162,32 +171,32 @@ export function forceGlobalAlert(level) {
 
 // ── ICE detection ─────────────────────────────────────────
 
+/**
+ * Record an ICE detection event. Instead of directly escalating global alert,
+ * ICE reports through the IDS chain: raise alert on all IDS nodes, which then
+ * propagate to the security monitor via the normal forwarding path. If the IDS
+ * is reconfigured (eventForwardingDisabled), the report goes nowhere.
+ *
+ * This makes IDS reconfiguration the key counterplay to ICE pressure.
+ */
 export function recordIceDetection(nodeId) {
   const s = getState();
   if (!s.ice?.active) return;
   setIceDetectedAt(nodeId);
   incrementIceDetectionCount();
 
-  // Each detection escalates global alert one step (capped at red).
-  // The threshold check below handles the jump to trace.
-  const curIdx = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
-  const redIdx = GLOBAL_ALERT_ORDER.indexOf("red");
-  if (curIdx < redIdx) {
-    const prev = s.globalAlert;
-    setGlobalAlert(GLOBAL_ALERT_ORDER[curIdx + 1]);
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: getState().globalAlert });
-  }
-
-  // Re-read state after mutations
-  const updated = getState();
-  if (updated.traceSecondsRemaining !== null) return;
-  const threshold = DETECTION_TRACE_THRESHOLD[updated.ice.grade] ?? 2;
-  if (updated.ice.detectionCount >= threshold) {
-    if (updated.globalAlert !== "trace") {
-      const prev = updated.globalAlert;
-      setGlobalAlert("trace");
-      emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: "trace" });
+  // Raise alert on all IDS (detection) nodes — they propagate to the monitor.
+  // This replaces the old direct global alert escalation.
+  const detectors = Object.entries(s.nodes).filter(
+    ([, n]) => hasBehavior(n, "detection") || hasBehavior(n, "direct-trace")
+  );
+  for (const [detId, det] of detectors) {
+    const prevAlert = det.alertState;
+    const idx = ALERT_ORDER.indexOf(prevAlert);
+    if (idx < ALERT_ORDER.length - 1) {
+      const nextAlert = ALERT_ORDER[idx + 1];
+      setNodeAlertState(detId, nextAlert);
+      emitEvent(E.NODE_ALERT_RAISED, { nodeId: detId, label: det.label, prev: prevAlert, next: nextAlert });
     }
-    startTraceCountdown();
   }
 }

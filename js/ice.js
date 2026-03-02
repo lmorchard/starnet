@@ -21,8 +21,9 @@ function handleIceDeparture() {
   setIceDetectedAt(null);
 }
 
-// Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry
-const MOVE_INTERVALS = { S: 2500, A: 3000, B: 6000, C: 7000, D: 12000, F: 14000 };
+// Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry.
+// A/S slowed from 2500/3000 to give players a narrow window for exploit completion.
+const MOVE_INTERVALS = { S: 4000, A: 5000, B: 6000, C: 7000, D: 12000, F: 14000 };
 
 // Grade → dwell time before detection (ms).
 // S/A get very short dwells — tight but evadable with fast reactions.
@@ -44,36 +45,42 @@ export function stopIce() {
   cancelAllByType(TIMER.ICE_DETECT);
 }
 
-// React to player navigation: cancel pending detection dwell, reset the detection
-// lock so ICE can re-detect on a revisit, and start a new dwell if ICE is already
-// at the node the player just entered. nodeId is null on deselect.
-on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
-  const s = getState();
-  cancelAllByType(TIMER.ICE_DETECT);
-  if (nodeId !== null) {
-    // Moving to a new node — reset lock so ICE can detect on any future visit
-    setIceDetectedAt(null);
-    // ICE already here: start detection immediately
-    if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
-      checkIceDetection(nodeId);
+/**
+ * Register ICE event handlers. Called at module load and can be re-called
+ * after clearHandlers() (e.g. in the bot census loop).
+ */
+export function initIceHandlers() {
+  // React to player navigation: cancel pending detection dwell, reset the detection
+  // lock so ICE can re-detect on a revisit, and start a new dwell if ICE is already
+  // at the node the player just entered. nodeId is null on deselect.
+  on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
+    const s = getState();
+    cancelAllByType(TIMER.ICE_DETECT);
+    if (nodeId !== null) {
+      setIceDetectedAt(null);
+      if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
+        checkIceDetection(nodeId);
+      }
     }
-  }
-  // On deselect (nodeId === null): only cancel the dwell, don't reset detection lock
-});
+  });
 
-// Eject and reboot forcibly move ICE off its current node — treat as a departure.
-on(E.ICE_EJECTED,  handleIceDeparture);
-on(E.ICE_REBOOTED, handleIceDeparture);
+  // Eject and reboot forcibly move ICE off its current node — treat as a departure.
+  on(E.ICE_EJECTED,  handleIceDeparture);
+  on(E.ICE_REBOOTED, handleIceDeparture);
 
-// Respond to exploit execution noise based on ICE sensitivity.
-on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
-  const s = getState();
-  if (!s.ice?.active || s.phase !== "playing") return;
-  const threshold = ICE_NOISE_THRESHOLD[s.ice.grade] ?? 5;
-  if (tick < threshold) return;
-  if (s.lastDisturbedNodeId === nodeId) return; // already routing here
-  setLastDisturbedNode(nodeId);
-});
+  // Respond to exploit execution noise based on ICE sensitivity.
+  on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
+    const s = getState();
+    if (!s.ice?.active || s.phase !== "playing") return;
+    const threshold = ICE_NOISE_THRESHOLD[s.ice.grade] ?? 5;
+    if (tick < threshold) return;
+    if (s.lastDisturbedNodeId === nodeId) return;
+    setLastDisturbedNode(nodeId);
+  });
+}
+
+// Register on first import
+initIceHandlers();
 
 
 function isPlayerVisible(nodeState) {
