@@ -17,13 +17,13 @@ import { cancelTraceCountdown } from "../alert.js";
 import { getAvailableActions } from "./node-actions.js";
 import { on, emitEvent, E } from "../events.js";
 import { pauseTimers, resumeTimers } from "../timers.js";
-import { openDarknetsStore } from "../../ui/store.js";
 
 /**
  * Build the wired ActionContext — maps abstract ctx methods to concrete state mutators.
+ * @param {(state: import('../types.js').GameState) => void} [openStore] Optional browser-side store opener; no-op in headless contexts.
  * @returns {ActionContext}
  */
-export function buildActionContext() {
+export function buildActionContext(openStore = () => {}) {
   return {
     getState,
     selectNode:       (nodeId) => navigateTo(nodeId),
@@ -43,7 +43,7 @@ export function buildActionContext() {
     cancelTrace:      ()       => cancelTraceCountdown(),
     openDarknetsStore: () => {
       pauseTimers();
-      openDarknetsStore(getState());
+      openStore(getState());
     },
   };
 }
