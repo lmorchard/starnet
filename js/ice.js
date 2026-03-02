@@ -122,8 +122,10 @@ export function handleIceTick() {
   if (grade === "D" || grade === "F") {
     // Random walk
     nextNode = randomPick(RNG.ICE, neighbors);
-  } else if (grade === "C" || grade === "B") {
-    // Move toward last disturbed node, fall back to random.
+  } else {
+    // C/B/A/S: move toward last disturbed node, fall back to random.
+    // All grades above D use disturbance tracking — higher grades just move
+    // faster (via MOVE_INTERVALS) and detect sooner (via DWELL_TIMES).
     // Skip pathfinding if ICE already detected at that node — prevents oscillation.
     const target = s.lastDisturbedNodeId;
     const alreadyDetectedTarget = s.ice.detectedAtNode === target;
@@ -141,15 +143,6 @@ export function handleIceTick() {
           });
         }
       }
-      nextNode = randomPick(RNG.ICE, neighbors);
-    }
-  } else {
-    // A/S: pathfind directly to player's selected node, fall back to random
-    const target = s.selectedNodeId;
-    if (target && target !== attentionNodeId) {
-      nextNode = nextHopToward(attentionNodeId, target, s.adjacency)
-        ?? randomPick(RNG.ICE, neighbors);
-    } else {
       nextNode = randomPick(RNG.ICE, neighbors);
     }
   }
