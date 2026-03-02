@@ -1,4 +1,4 @@
-.PHONY: serve lint test check
+.PHONY: serve lint test check census
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -22,3 +22,7 @@ test:
 
 # Full check: lint + test
 check: lint test
+
+# Run network census report across all difficulty combos
+census:
+	node scripts/network-census.js
