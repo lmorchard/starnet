@@ -4,7 +4,7 @@
 
 /** @typedef {import('./types.js').ActionContext} ActionContext */
 
-import { getState, getVersion, endRun, buyExploit } from "./state.js";
+import { getState, getVersion, endRun } from "./state.js";
 import { reconfigureNode, rebootNode } from "./node-orchestration.js";
 import { startLoot, cancelLoot } from "./loot-exec.js";
 import { startRead, cancelRead } from "./read-exec.js";
@@ -43,7 +43,7 @@ export function buildActionContext() {
     cancelTrace:      ()       => cancelTraceCountdown(),
     openDarknetsStore: () => {
       pauseTimers();
-      openDarknetsStore(getState(), (card, price) => buyExploit(card, price));
+      openDarknetsStore(getState());
     },
   };
 }

@@ -1,0 +1,150 @@
+=== MONEY CURVE: varying moneyCost, timeCost=F, 50 seeds ===
+
+=== BOT SIMULATION: F/F ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     47/50 (94%)
+Avg ticks:        1460 (succeeded) / 2576 (failed)
+Failure reasons:  trace=2  tick-cap=1
+
+--- FULL EXPLORATION ---
+Full clear rate:  46/50 (92%)
+Avg nodes owned:  5.7 / 8.0 total (72%)
+
+--- RESOURCE USAGE (47 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    11.0    13.0   20.0
+Cards burned:  0.0     0.0    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    2218    8111   19328
+
+--- PRESSURE ---
+Peak alert:   GREEN=22  YELLOW=21  RED=7
+Trace fired:  2/50
+ICE detects:  avg 0.7  max 3
+
+=== BOT SIMULATION: F/D ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     44/50 (88%)
+Avg ticks:        1481 (succeeded) / 2040 (failed)
+Failure reasons:  trace=5  tick-cap=1
+
+--- FULL EXPLORATION ---
+Full clear rate:  43/50 (86%)
+Avg nodes owned:  5.5 / 8.0 total (69%)
+
+--- RESOURCE USAGE (44 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    11.0    13.1   16.0
+Cards burned:  0.0     0.0    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    2218    7931   19328
+
+--- PRESSURE ---
+Peak alert:   GREEN=20  YELLOW=18  RED=12
+Trace fired:  5/50
+ICE detects:  avg 0.9  max 3
+
+=== BOT SIMULATION: F/C ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     33/50 (66%)
+Avg ticks:        2168 (succeeded) / 2895 (failed)
+Failure reasons:  trace=13  tick-cap=4
+
+--- FULL EXPLORATION ---
+Full clear rate:  27/50 (54%)
+Avg nodes owned:  5.2 / 9.0 total (58%)
+
+--- RESOURCE USAGE (33 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    10.0    15.2   20.0
+Cards burned:  0.0     0.2    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    2468    7931   19578
+
+--- PRESSURE ---
+Peak alert:   GREEN=17  YELLOW=12  RED=21
+Trace fired:  16/50
+ICE detects:  avg 1.4  max 3
+
+=== BOT SIMULATION: F/B ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     18/50 (36%)
+Avg ticks:        2924 (succeeded) / 3073 (failed)
+Failure reasons:  trace=22  tick-cap=10
+
+--- FULL EXPLORATION ---
+Full clear rate:  5/50 (10%)
+Avg nodes owned:  3.9 / 10.0 total (39%)
+
+--- RESOURCE USAGE (18 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    10.0    18.7   30.0
+Cards burned:  0.0     0.7    3.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    4362    8598   19828
+
+--- PRESSURE ---
+Peak alert:   GREEN=9  YELLOW=8  RED=33
+Trace fired:  24/50
+ICE detects:  avg 2.0  max 3
+
+=== BOT SIMULATION: F/A ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     9/50 (18%)
+Avg ticks:        2940 (succeeded) / 3217 (failed)
+Failure reasons:  tick-cap=12  trace=29
+
+--- FULL EXPLORATION ---
+Full clear rate:  2/50 (4%)
+Avg nodes owned:  2.6 / 10.0 total (26%)
+
+--- RESOURCE USAGE (9 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    10.0    17.0   22.0
+Cards burned:  0.0     0.4    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    5517    8272   13835
+
+--- PRESSURE ---
+Peak alert:   GREEN=3  YELLOW=8  RED=39
+Trace fired:  32/50
+ICE detects:  avg 2.4  max 3
+
+=== BOT SIMULATION: F/S ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     0/50 (0%)
+Avg ticks:        — (succeeded) / 2920 (failed)
+Failure reasons:  tick-cap=10  trace=40
+
+--- FULL EXPLORATION ---
+Full clear rate:  0/50 (0%)
+Avg nodes owned:  1.3 / 10.0 total (13%)
+
+--- RESOURCE USAGE (all runs — no successes) ---
+              Min    Avg    Max
+Card uses:     1.0     6.3   17.0
+Cards burned:  0.0     1.2    2.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+
+--- PRESSURE ---
+Peak alert:   GREEN=2  YELLOW=4  RED=44
+Trace fired:  40/50
+ICE detects:  avg 2.6  max 3

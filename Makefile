@@ -1,4 +1,4 @@
-.PHONY: serve lint test check census
+.PHONY: serve lint test check census bot-census
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -14,7 +14,8 @@ lint:
 		js/alert.js js/timers.js js/ice.js js/log.js js/log-renderer.js js/visual-renderer.js js/store.js js/console.js js/cheats.js \
 		js/node-types.js js/node-lifecycle.js \
 		js/rng.js js/probe-exec.js js/read-exec.js js/loot-exec.js js/navigation.js \
-		js/node-actions.js js/global-actions.js js/action-context.js js/node-orchestration.js
+		js/node-actions.js js/global-actions.js js/action-context.js js/node-orchestration.js \
+		js/store-logic.js
 
 # Run unit + integration tests
 test:
@@ -26,3 +27,10 @@ check: lint test
 # Run network census report across all difficulty combos
 census:
 	node scripts/network-census.js
+
+# Run bot simulation at B/B (override with: make bot-census TC=S MC=S SEEDS=50)
+TC ?= B
+MC ?= B
+SEEDS ?= 100
+bot-census:
+	node scripts/bot-census.js --time $(TC) --money $(MC) --seeds $(SEEDS)

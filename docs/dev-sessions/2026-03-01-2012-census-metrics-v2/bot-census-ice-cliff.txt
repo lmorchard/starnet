@@ -1,0 +1,149 @@
+=== ICE CLIFF: varying timeCost, moneyCost=D, 50 seeds ===
+
+=== BOT SIMULATION: F/D ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     44/50 (88%)
+Avg ticks:        1481 (succeeded) / 2040 (failed)
+Failure reasons:  trace=5  tick-cap=1
+
+--- FULL EXPLORATION ---
+Full clear rate:  43/50 (86%)
+Avg nodes owned:  5.5 / 8.0 total (69%)
+
+--- RESOURCE USAGE (44 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    11.0    13.1   16.0
+Cards burned:  0.0     0.0    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    2218    7931   19328
+
+--- PRESSURE ---
+Peak alert:   GREEN=20  YELLOW=18  RED=12
+Trace fired:  5/50
+ICE detects:  avg 0.9  max 3
+
+=== BOT SIMULATION: D/D ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     40/50 (80%)
+Avg ticks:        1579 (succeeded) / 1330 (failed)
+Failure reasons:  trace=10
+
+--- FULL EXPLORATION ---
+Full clear rate:  37/50 (74%)
+Avg nodes owned:  5.3 / 8.0 total (66%)
+
+--- RESOURCE USAGE (40 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    10.0    13.2   19.0
+Cards burned:  0.0     0.1    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    2218    7971   19328
+
+--- PRESSURE ---
+Peak alert:   GREEN=19  YELLOW=12  RED=19
+Trace fired:  12/50
+ICE detects:  avg 1.2  max 3
+
+=== BOT SIMULATION: C/D ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     4/50 (8%)
+Avg ticks:        1047 (succeeded) / 609 (failed)
+Failure reasons:  trace=46
+
+--- FULL EXPLORATION ---
+Full clear rate:  0/50 (0%)
+Avg nodes owned:  2.2 / 9.0 total (24%)
+
+--- RESOURCE USAGE (4 succeeded runs) ---
+              Min    Avg    Max
+Card uses:     7.0    10.5   14.0
+Cards burned:  0.0     0.0    0.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    1942    8088   17148
+
+--- PRESSURE ---
+Peak alert:   GREEN=0  YELLOW=0  RED=50
+Trace fired:  50/50
+ICE detects:  avg 2.0  max 2
+
+=== BOT SIMULATION: B/D ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     1/50 (2%)
+Avg ticks:        939 (succeeded) / 525 (failed)
+Failure reasons:  trace=49
+
+--- FULL EXPLORATION ---
+Full clear rate:  0/50 (0%)
+Avg nodes owned:  1.8 / 9.0 total (20%)
+
+--- RESOURCE USAGE (1 succeeded runs) ---
+              Min    Avg    Max
+Card uses:     9.0     9.0    9.0
+Cards burned:  0.0     0.0    0.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    1960    1960   1960
+
+--- PRESSURE ---
+Peak alert:   GREEN=0  YELLOW=0  RED=50
+Trace fired:  50/50
+ICE detects:  avg 2.0  max 2
+
+=== BOT SIMULATION: A/D ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     0/50 (0%)
+Avg ticks:        — (succeeded) / 90 (failed)
+Failure reasons:  trace=50
+
+--- FULL EXPLORATION ---
+Full clear rate:  0/50 (0%)
+Avg nodes owned:  0.0 / 9.0 total (0%)
+
+--- RESOURCE USAGE (all runs — no successes) ---
+              Min    Avg    Max
+Card uses:     1.0     1.1    2.0
+Cards burned:  0.0     0.0    0.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+
+--- PRESSURE ---
+Peak alert:   GREEN=0  YELLOW=50  RED=0
+Trace fired:  50/50
+ICE detects:  avg 1.0  max 1
+
+=== BOT SIMULATION: S/D ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     0/50 (0%)
+Avg ticks:        — (succeeded) / 75 (failed)
+Failure reasons:  trace=50
+
+--- FULL EXPLORATION ---
+Full clear rate:  0/50 (0%)
+Avg nodes owned:  0.0 / 9.0 total (0%)
+
+--- RESOURCE USAGE (all runs — no successes) ---
+              Min    Avg    Max
+Card uses:     1.0     1.0    1.0
+Cards burned:  0.0     0.0    0.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+
+--- PRESSURE ---
+Peak alert:   GREEN=0  YELLOW=50  RED=0
+Trace fired:  50/50
+ICE detects:  avg 1.0  max 1

@@ -1,19 +1,20 @@
 // @ts-check
-// Darknet broker store — modal UI and catalog logic.
+// Darknet broker store — DOM modal UI.
+// Buy logic lives in store-logic.js; this module only handles the modal rendering.
 
 /** @typedef {import('./types.js').GameState} GameState */
 
 import { emitEvent, E } from "./events.js";
 import { resumeTimers } from "./timers.js";
-import { generateExploitForVuln, getStoreCatalog } from "./exploits.js";
+import { getStoreCatalog } from "./exploits.js";
+import { buyFromStore } from "./store-logic.js";
 
 /**
  * Open the darknet broker store modal. Pauses timers while open.
  * Called by ActionContext.openDarknetsStore() after it pauses timers.
  * @param {GameState} state
- * @param {(card: import('./types.js').ExploitCard, price: number) => boolean} onBuy
  */
-export function openDarknetsStore(state, onBuy) {
+export function openDarknetsStore(state) {
   const existing = document.getElementById("darknet-store-modal");
   if (existing) return; // already open
 
@@ -36,7 +37,7 @@ export function openDarknetsStore(state, onBuy) {
             return `<div class="store-card-row">
               <span class="store-item-name">${item.name} <span class="store-item-rarity rarity-${item.rarity}">[${item.rarity}]</span> <span class="store-item-vuln">${item.vulnId}</span></span>
               <span class="store-item-price">¥${item.price}</span>
-              <button class="store-buy-btn" data-vuln-id="${item.vulnId}" data-price="${item.price}" data-index="${i + 1}" ${canAfford ? "" : "disabled"}>[ BUY ]</button>
+              <button class="store-buy-btn" data-vuln-id="${item.vulnId}" data-index="${i + 1}" ${canAfford ? "" : "disabled"}>[ BUY ]</button>
             </div>`;
           }).join("")}
         </div>
@@ -50,17 +51,12 @@ export function openDarknetsStore(state, onBuy) {
     modal.querySelectorAll(".store-buy-btn:not([disabled])").forEach((btn) => {
       btn.addEventListener("click", () => {
         const el = /** @type {HTMLElement} */ (btn);
-        const vulnId = el.dataset.vulnId;
-        const price = Number(el.dataset.price);
-        const index = el.dataset.index;
-        const card = generateExploitForVuln(vulnId);
+        const index = Number(el.dataset.index);
         emitEvent(E.COMMAND_ISSUED, { cmd: `buy ${index}` });
-        const success = onBuy(card, price);
-        if (success) {
-          emitEvent(E.LOG_ENTRY, { text: `Purchased: ${card.name}  [${card.rarity}]  targets:${vulnId}  cost:¥${price}`, type: "success" });
-          // STATE_CHANGED fires from buyExploit() → re-renders hand + wallet HUD.
-          // Re-render the modal in-place with the updated cash.
-          renderModal(currentCash - price);
+        const result = buyFromStore(index);
+        if (result) {
+          emitEvent(E.LOG_ENTRY, { text: `Purchased: ${result.card.name}  [${result.card.rarity}]  targets:${result.vulnId}  cost:¥${result.price}`, type: "success" });
+          renderModal(currentCash - result.price);
         }
       });
     });

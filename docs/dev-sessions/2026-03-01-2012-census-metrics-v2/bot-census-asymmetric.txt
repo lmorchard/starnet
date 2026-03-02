@@ -1,0 +1,50 @@
+=== ASYMMETRIC: F/C and C/F, 50 seeds ===
+=== BOT SIMULATION: F/C ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     33/50 (66%)
+Avg ticks:        2168 (succeeded) / 2895 (failed)
+Failure reasons:  trace=13  tick-cap=4
+
+--- FULL EXPLORATION ---
+Full clear rate:  27/50 (54%)
+Avg nodes owned:  5.2 / 9.0 total (58%)
+
+--- RESOURCE USAGE (33 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    10.0    15.2   20.0
+Cards burned:  0.0     0.2    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    2468    7931   19578
+
+--- PRESSURE ---
+Peak alert:   GREEN=17  YELLOW=12  RED=21
+Trace fired:  16/50
+ICE detects:  avg 1.4  max 3
+
+=== BOT SIMULATION: C/F ===
+Seeds: bot-0 through bot-49 (50 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     5/50 (10%)
+Avg ticks:        1100 (succeeded) / 659 (failed)
+Failure reasons:  trace=45
+
+--- FULL EXPLORATION ---
+Full clear rate:  2/50 (4%)
+Avg nodes owned:  2.6 / 9.0 total (29%)
+
+--- RESOURCE USAGE (5 succeeded runs) ---
+              Min    Avg    Max
+Card uses:     7.0    11.0   15.0
+Cards burned:  0.0     0.0    0.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    1942    9637   19328
+
+--- PRESSURE ---
+Peak alert:   GREEN=0  YELLOW=2  RED=48
+Trace fired:  48/50
+ICE detects:  avg 2.0  max 2

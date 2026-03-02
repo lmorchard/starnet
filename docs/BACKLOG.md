@@ -11,6 +11,11 @@ _Compiled from all dev session notes. Not a prioritized roadmap — just a livin
 - **Persistent inventory between runs** — in the overworld context, exploit loadout carries across LANs; crafting/acquiring a better kit is part of the meta-loop
 - **Balance: starting hand vs. network vulnerability mix** — current hand frequently doesn't match early node vulns; in the overworld context this is solved by pre-run preparation, not hand seeding _(deferred pending overworld design)_
 
+### Reward Scaling with Difficulty
+- **Macguffin value scaling** — higher-difficulty networks cost more to crack (harder nodes, deeper paths, more ICE pressure) but don't contain more valuable loot. Macguffin `cashValue` should scale with `moneyCost` grade so players have incentive to tackle harder networks. This is a game state layer change (`loot.js`), not a generator change.
+- **Risk/reward feedback loop** — the darknet store already costs cash; if harder networks pay more, the player's cash economy becomes meaningful (spend to crack, earn to profit). Currently all cash feels like pure score.
+- _Identified during bot census session (2026-03-01): zero deficit at all difficulties, but no reward differential either._
+
 ### Mission / Objectives
 - **Mission conditions** — secondary objectives like "never exceed yellow alert" or "don't trigger trace"; adds replayability and run variety
 - **Node flavor text** — when you `read` a node, give it cyberpunk lore flavor beyond "X item(s) found"
@@ -28,8 +33,59 @@ tier. A full overhaul will be needed to support:
   dispatch system. This is a significant architectural change — defer until the single-ICE
   prototype is fully playtested and the design is stable.
 
+### ICE Resident Node Relocation
+Currently ICE starts at the security monitor. The fiction would be cleaner if
+ICE started at a node on the far side of the IDS — patrolling the working
+network, reporting back through the IDS chain. Benefits:
+- ICE patrols where the player operates (routing/workstation layer)
+- Detection reports travel through IDS → monitor (severable via reconfigure)
+- Reboot sends ICE to its new resident node, not the monitor
+- Security monitor remains valuable for cancel-trace, but isn't ICE home base
+This is a topology/gen-rules change — the layer processor needs a new role for
+the ICE resident node, and `iceResident` behavior needs to move from
+security-monitor to the new node type.
+_Identified during bot census session (2026-03-01)._
+
+### Player Upgrades / Deck Hardware
+The overworld progression system should give players tools that shift the
+balance at higher difficulties. These are equipment/upgrades acquired between
+runs, not in-run pickups.
+
+- **Deck speed** — reduces exploit execution duration. A faster deck means
+  shorter exposure windows during exploits, directly improving survivability
+  against ICE. Could be a multiplier on `exploitDuration()`.
+- **Signal masking / stealth** — increases ICE dwell time before detection.
+  The player's presence is harder to detect, giving more time to complete
+  actions before ICE triggers. Could add a flat bonus to DWELL_TIMES.
+- **Chaff / decoys** — creates false disturbance signals at other nodes,
+  drawing ICE away from the player. ICE investigates the decoy instead of
+  the real exploit noise. Mechanically: set `lastDisturbedNodeId` to a
+  decoy node on demand.
+- **Bot partners (daemons)** — autonomous agents that hack alongside the
+  player, potentially in parallel. Could probe nodes, create distractions,
+  or exploit low-grade targets. Implementation may be simplified (not full
+  bot-player instances) — e.g. a daemon "claims" a node and applies a
+  timed state change without full exploit resolution. The fiction: the
+  player deploys semi-autonomous programs into the network.
+- **ICE scanner** — reveals ICE position and movement direction when the
+  player owns a node ICE passes through. Reduces information asymmetry
+  and enables timing-based play. See also: traffic analysis daemon in the
+  information asymmetry section below.
+
+These upgrades are the intended solution for A/A and S/S difficulty. The base
+game mechanics (evasion, IDS reconfigure) handle C/B; player upgrades extend
+viability to the hardest tiers. Bot census data (2026-03-01) confirms: the
+dumb bot hits 0% at A/A without upgrades, but the mechanical levers (deck
+speed, stealth) would directly address the exploit-duration vs ICE-dwell race.
+
 ### Adversarial / ICE
 - **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
+- **Bot player: eject and reboot** — the bot currently never uses eject (push
+  ICE to adjacent node) or reboot (force ICE to resident, node goes offline).
+  Eject is a simple reflex ("ICE is here, push it away") and worth adding —
+  it buys time without cancelling the current exploit. Reboot is more strategic
+  (requires planning about which node and when) and may be too complex for
+  the dumb bot. Both require tracking ICE position (`iceCurrentNode`).
 - **`cheat ice-move <node>`** — cheat command to teleport ICE directly to a node for testing detection scenarios without waiting for ticks
 - **ICE path tracing via traffic analysis daemon** — ICE movements currently invisible until dwell fires; a "traffic analysis daemon" installed on a compromised node could reveal ICE movement logs as events _(part of the log-verbosity-as-mechanic idea below)_
 - **ICE status readout on owned-node crossings** — when ICE moves through a node you own, the log reports its path but not its behavioral state. A brief status tag (e.g. `[PATROLLING]`, `[ALERTED]`, `[HUNTING]`) in the movement log entry would let the player read ICE intent at a glance — useful for deciding whether to deselect and go dark or commit to an action. Status maps naturally to the existing grade-behavior tiers: D/F = patrolling, B/C with a disturbance target = alerted, A/S or B/C chasing player = hunting.

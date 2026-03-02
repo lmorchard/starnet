@@ -21,11 +21,14 @@ function handleIceDeparture() {
   setIceDetectedAt(null);
 }
 
-// Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry
-const MOVE_INTERVALS = { S: 2500, A: 3000, B: 6000, C: 7000, D: 12000, F: 14000 };
+// Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry.
+// A/S slowed from 2500/3000 to give players a narrow window for exploit completion.
+const MOVE_INTERVALS = { S: 4000, A: 5000, B: 6000, C: 7000, D: 12000, F: 14000 };
 
-// Grade → dwell time before detection (ms); null = instant detection
-const DWELL_TIMES = { S: null, A: null, B: 3500, C: 4500, D: 9000, F: 10000 };
+// Grade → dwell time before detection (ms).
+// S/A get very short dwells — tight but evadable with fast reactions.
+// C/B bumped from 4500/3500 to give players a window to complete exploits.
+const DWELL_TIMES = { S: 800, A: 1500, B: 4500, C: 5500, D: 9000, F: 10000 };
 
 // Grade → noise tick at which ICE first responds to an executing exploit.
 // Exploit emits ticks 1–9 at 10%–90% of duration; 10% intervals.
@@ -43,36 +46,42 @@ export function stopIce() {
   cancelAllByType(TIMER.ICE_DETECT);
 }
 
-// React to player navigation: cancel pending detection dwell, reset the detection
-// lock so ICE can re-detect on a revisit, and start a new dwell if ICE is already
-// at the node the player just entered. nodeId is null on deselect.
-on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
-  const s = getState();
-  cancelAllByType(TIMER.ICE_DETECT);
-  if (nodeId !== null) {
-    // Moving to a new node — reset lock so ICE can detect on any future visit
-    setIceDetectedAt(null);
-    // ICE already here: start detection immediately
-    if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
-      checkIceDetection(nodeId);
+/**
+ * Register ICE event handlers. Called at module load and can be re-called
+ * after clearHandlers() (e.g. in the bot census loop).
+ */
+export function initIceHandlers() {
+  // React to player navigation: cancel pending detection dwell, reset the detection
+  // lock so ICE can re-detect on a revisit, and start a new dwell if ICE is already
+  // at the node the player just entered. nodeId is null on deselect.
+  on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
+    const s = getState();
+    cancelAllByType(TIMER.ICE_DETECT);
+    if (nodeId !== null) {
+      setIceDetectedAt(null);
+      if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
+        checkIceDetection(nodeId);
+      }
     }
-  }
-  // On deselect (nodeId === null): only cancel the dwell, don't reset detection lock
-});
+  });
 
-// Eject and reboot forcibly move ICE off its current node — treat as a departure.
-on(E.ICE_EJECTED,  handleIceDeparture);
-on(E.ICE_REBOOTED, handleIceDeparture);
+  // Eject and reboot forcibly move ICE off its current node — treat as a departure.
+  on(E.ICE_EJECTED,  handleIceDeparture);
+  on(E.ICE_REBOOTED, handleIceDeparture);
 
-// Respond to exploit execution noise based on ICE sensitivity.
-on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
-  const s = getState();
-  if (!s.ice?.active || s.phase !== "playing") return;
-  const threshold = ICE_NOISE_THRESHOLD[s.ice.grade] ?? 5;
-  if (tick < threshold) return;
-  if (s.lastDisturbedNodeId === nodeId) return; // already routing here
-  setLastDisturbedNode(nodeId);
-});
+  // Respond to exploit execution noise based on ICE sensitivity.
+  on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
+    const s = getState();
+    if (!s.ice?.active || s.phase !== "playing") return;
+    const threshold = ICE_NOISE_THRESHOLD[s.ice.grade] ?? 5;
+    if (tick < threshold) return;
+    if (s.lastDisturbedNodeId === nodeId) return;
+    setLastDisturbedNode(nodeId);
+  });
+}
+
+// Register on first import
+initIceHandlers();
 
 
 function isPlayerVisible(nodeState) {
@@ -114,8 +123,10 @@ export function handleIceTick() {
   if (grade === "D" || grade === "F") {
     // Random walk
     nextNode = randomPick(RNG.ICE, neighbors);
-  } else if (grade === "C" || grade === "B") {
-    // Move toward last disturbed node, fall back to random.
+  } else {
+    // C/B/A/S: move toward last disturbed node, fall back to random.
+    // All grades above D use disturbance tracking — higher grades just move
+    // faster (via MOVE_INTERVALS) and detect sooner (via DWELL_TIMES).
     // Skip pathfinding if ICE already detected at that node — prevents oscillation.
     const target = s.lastDisturbedNodeId;
     const alreadyDetectedTarget = s.ice.detectedAtNode === target;
@@ -133,15 +144,6 @@ export function handleIceTick() {
           });
         }
       }
-      nextNode = randomPick(RNG.ICE, neighbors);
-    }
-  } else {
-    // A/S: pathfind directly to player's selected node, fall back to random
-    const target = s.selectedNodeId;
-    if (target && target !== attentionNodeId) {
-      nextNode = nextHopToward(attentionNodeId, target, s.adjacency)
-        ?? randomPick(RNG.ICE, neighbors);
-    } else {
       nextNode = randomPick(RNG.ICE, neighbors);
     }
   }

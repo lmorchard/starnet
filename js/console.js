@@ -6,13 +6,14 @@
 /** @typedef {import('./types.js').NodeState} NodeState */
 /** @typedef {import('./types.js').ExploitCard} ExploitCard */
 
-import { getState, isIceVisible, buyExploit } from "./state.js";
+import { getState, isIceVisible } from "./state.js";
 import { addLogEntry, getRecentLog } from "./log.js";
 import { emitEvent, on, E } from "./events.js";
 import { getVisibleTimers } from "./timers.js";
-import { exploitSortKey, getStoreCatalog, generateExploitForVuln } from "./exploits.js";
+import { exploitSortKey, getStoreCatalog } from "./exploits.js";
 import { getActions } from "./node-types.js";
 import { getAvailableActions } from "./node-actions.js";
+import { buyFromStore } from "./store-logic.js";
 
 const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-read", "cancel-loot", "cancel-trace", "jackout", "status", "actions", "store", "buy", "log", "help", "cheat"];
 const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
@@ -679,29 +680,23 @@ function cmdStore() {
 
 function cmdBuy(args) {
   if (!resolveWanAccess()) return;
-  const s = getState();
   if (!args[0]) { addLogEntry("Usage: buy <index>", "error"); return; }
-  const catalog = getStoreCatalog();
   const num = parseInt(args[0], 10);
-  let item = null;
-  if (!isNaN(num) && num >= 1 && num <= catalog.length) {
-    item = catalog[num - 1];
-  } else {
-    const lower = args[0].toLowerCase();
-    const matches = catalog.filter((c) => c.vulnId.startsWith(lower));
-    if (matches.length === 1) { item = matches[0]; }
-    else if (matches.length > 1) { addLogEntry(`Ambiguous: ${matches.map((m) => m.vulnId).join(", ")}`, "error"); return; }
-    else { addLogEntry(`Unknown item: ${args[0]}`, "error"); return; }
-  }
-  if (s.player.cash < item.price) {
-    addLogEntry(`Insufficient funds. Need ¥${item.price}, have ¥${s.player.cash.toLocaleString()}.`, "error");
+  const key = !isNaN(num) ? num : args[0];
+  const result = buyFromStore(key);
+  if (!result) {
+    const s = getState();
+    // Distinguish "not found" from "can't afford"
+    const catalog = getStoreCatalog();
+    const item = !isNaN(num) ? catalog[num - 1] : catalog.find((c) => c.vulnId.toLowerCase().startsWith(args[0].toLowerCase()));
+    if (item && s.player.cash < item.price) {
+      addLogEntry(`Insufficient funds. Need ¥${item.price}, have ¥${s.player.cash.toLocaleString()}.`, "error");
+    } else {
+      addLogEntry(`Unknown item: ${args[0]}`, "error");
+    }
     return;
   }
-  const card = generateExploitForVuln(item.vulnId);
-  const success = buyExploit(card, item.price);
-  if (success) {
-    addLogEntry(`Purchased: ${card.name}  [${item.rarity}]  targets:${item.vulnId}  cost:¥${item.price}`, "success");
-  }
+  addLogEntry(`Purchased: ${result.card.name}  [${result.card.rarity}]  targets:${result.vulnId}  cost:¥${result.price}`, "success");
 }
 
 function cmdLog(args) {

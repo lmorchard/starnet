@@ -1,0 +1,24 @@
+=== BOT SIMULATION: F/F ===
+Seeds: bot-0 through bot-99 (100 runs)
+
+--- MISSION COMPLETION ---
+Success rate:     97/100 (97%)
+Avg ticks:        1415 (succeeded) / 2576 (failed)
+Failure reasons:  trace=2  tick-cap=1
+
+--- FULL EXPLORATION ---
+Full clear rate:  96/100 (96%)
+Avg nodes owned:  5.9 / 8.0 total (73%)
+
+--- RESOURCE USAGE (97 succeeded runs) ---
+              Min    Avg    Max
+Card uses:    11.0    13.0   20.0
+Cards burned:  0.0     0.0    1.0
+Store visits:  0.0     0.0    0.0
+Cash spent:      0       0      0
+Cash left:    2218    9578   21618
+
+--- PRESSURE ---
+Peak alert:   GREEN=48  YELLOW=40  RED=12
+Trace fired:  2/100
+ICE detects:  avg 0.7  max 3
