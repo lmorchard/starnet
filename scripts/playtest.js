@@ -14,22 +14,22 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
-import { generateNetwork } from "../js/network-gen.js";
-import { initState, getState, serializeState, deserializeState } from "../js/state.js";
-import { completeReboot } from "../js/node-orchestration.js";
-import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-exec.js";
-import { handleProbeScanTimer } from "../js/probe-exec.js";
-import { handleReadScanTimer } from "../js/read-exec.js";
-import { handleLootExtractTimer } from "../js/loot-exec.js";
-import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
-import { on, E } from "../js/events.js";
-import { tick, TIMER } from "../js/timers.js";
-import { handleTraceTick } from "../js/alert.js";
-import { initLog, addLogEntry } from "../js/log.js";
-import { runCommand } from "../js/console.js";
-import { handleCheatCommand } from "../js/cheats.js";
-import { initNodeLifecycle } from "../js/node-lifecycle.js";
-import { buildActionContext, initActionDispatcher } from "../js/action-context.js";
+import { generateNetwork } from "../js/core/network/network-gen.js";
+import { initState, getState, serializeState, deserializeState } from "../js/core/state.js";
+import { completeReboot } from "../js/core/node-orchestration.js";
+import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/core/actions/exploit-exec.js";
+import { handleProbeScanTimer } from "../js/core/actions/probe-exec.js";
+import { handleReadScanTimer } from "../js/core/actions/read-exec.js";
+import { handleLootExtractTimer } from "../js/core/actions/loot-exec.js";
+import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
+import { on, E } from "../js/core/events.js";
+import { tick, TIMER } from "../js/core/timers.js";
+import { handleTraceTick } from "../js/core/alert.js";
+import { initLog, addLogEntry } from "../js/core/log.js";
+import { runCommand } from "../js/ui/console.js";
+import { handleCheatCommand } from "../js/core/cheats.js";
+import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
+import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)

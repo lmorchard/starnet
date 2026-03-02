@@ -9,7 +9,7 @@
 //   node scripts/bot-census.js --time B --money B --seeds 50   # 50 runs
 //   node scripts/bot-census.js --time F --money F              # easy baseline
 
-import { generateNetwork } from "../js/network-gen.js";
+import { generateNetwork } from "../js/core/network/network-gen.js";
 import { runBot } from "./bot-player.js";
 
 // ── Argument parsing ─────────────────────────────────────────────────────────

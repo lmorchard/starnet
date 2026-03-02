@@ -1,7 +1,7 @@
 // @ts-check
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { generateNetwork } from "../js/network-gen.js";
+import { generateNetwork } from "../js/core/network/network-gen.js";
 import { runBot } from "./bot-player.js";
 
 describe("runBot", () => {

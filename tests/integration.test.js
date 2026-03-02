@@ -13,22 +13,22 @@ import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
-import { initState, getState, isIceVisible, buyExploit } from "../js/state.js";
-import { navigateTo, navigateAway } from "../js/navigation.js";
-import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/ice.js";
-import { emitEvent, on, off, E } from "../js/events.js";
-import { clearAll, tick, scheduleEvent, TIMER } from "../js/timers.js";
-import { initNodeLifecycle } from "../js/node-lifecycle.js";
-import { getActions, hasBehavior } from "../js/node-types.js";
-import { getAvailableActions } from "../js/node-actions.js";
-import { generateExploit } from "../js/exploits.js";
-import { launchExploit } from "../js/combat.js";
-import { startTraceCountdown, recordIceDetection } from "../js/alert.js";
+import { initState, getState, isIceVisible, buyExploit } from "../js/core/state.js";
+import { navigateTo, navigateAway } from "../js/core/navigation.js";
+import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/core/ice.js";
+import { emitEvent, on, off, E } from "../js/core/events.js";
+import { clearAll, tick, scheduleEvent, TIMER } from "../js/core/timers.js";
+import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
+import { getActions, hasBehavior } from "../js/core/actions/node-types.js";
+import { getAvailableActions } from "../js/core/actions/node-actions.js";
+import { generateExploit } from "../js/core/exploits.js";
+import { launchExploit } from "../js/core/combat.js";
+import { startTraceCountdown, recordIceDetection } from "../js/core/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
-import { startExploit, cancelExploit, handleExploitExecTimer, exploitDuration } from "../js/exploit-exec.js";
-import { startProbe, cancelProbe, handleProbeScanTimer, probeDuration } from "../js/probe-exec.js";
-import { RNG, _forceNext } from "../js/rng.js";
+import { startExploit, cancelExploit, handleExploitExecTimer, exploitDuration } from "../js/core/actions/exploit-exec.js";
+import { startProbe, cancelProbe, handleProbeScanTimer, probeDuration } from "../js/core/actions/probe-exec.js";
+import { RNG, _forceNext } from "../js/core/rng.js";
 
 // Register the node lifecycle dispatcher once for this test file.
 initNodeLifecycle();

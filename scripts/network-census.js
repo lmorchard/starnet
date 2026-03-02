@@ -9,7 +9,7 @@
 //   node scripts/network-census.js --detail all       # per-seed detail for all combos
 //   node scripts/network-census.js --seeds 20         # override sample count
 
-import { generateNetwork } from "../js/network-gen.js";
+import { generateNetwork } from "../js/core/network/network-gen.js";
 import { analyzeTopology, estimateResources } from "./census-metrics.js";
 
 const GRADES = ["F", "D", "C", "B", "A", "S"];

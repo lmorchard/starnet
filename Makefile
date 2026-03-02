@@ -9,17 +9,20 @@ serve:
 # Excludes main.js (@ts-nocheck — CustomEvent.detail typing noise)
 lint:
 	npx tsc --noEmit --allowJs --checkJs --target ES2020 --moduleResolution bundler --module ES2020 \
-		js/types.js js/events.js js/state.js js/state/index.js js/state/node.js js/state/ice.js js/state/alert.js js/state/player.js js/state/game.js \
-		js/exploits.js js/combat.js js/loot.js \
-		js/alert.js js/timers.js js/ice.js js/log.js js/log-renderer.js js/visual-renderer.js js/store.js js/console.js js/cheats.js \
-		js/node-types.js js/node-lifecycle.js \
-		js/rng.js js/probe-exec.js js/read-exec.js js/loot-exec.js js/navigation.js \
-		js/node-actions.js js/global-actions.js js/action-context.js js/node-orchestration.js \
-		js/store-logic.js
+		js/core/types.js js/core/events.js js/core/state.js \
+		js/core/state/index.js js/core/state/node.js js/core/state/ice.js js/core/state/alert.js js/core/state/player.js js/core/state/game.js \
+		js/core/exploits.js js/core/combat.js js/core/loot.js \
+		js/core/alert.js js/core/timers.js js/core/ice.js js/core/log.js js/core/cheats.js \
+		js/core/node-lifecycle.js js/core/rng.js js/core/navigation.js \
+		js/core/node-orchestration.js js/core/store-logic.js js/core/grades.js \
+		js/core/actions/node-types.js js/core/actions/node-actions.js js/core/actions/global-actions.js \
+		js/core/actions/action-context.js js/core/actions/probe-exec.js js/core/actions/read-exec.js \
+		js/core/actions/loot-exec.js js/core/actions/exploit-exec.js \
+		js/ui/log-renderer.js js/ui/visual-renderer.js js/ui/store.js js/ui/console.js js/ui/save-load.js
 
 # Run unit + integration tests
 test:
-	node --test tests/*.test.js js/*.test.js js/**/*.test.js scripts/*.test.js
+	node --test $(shell find tests js scripts -name '*.test.js' ! -path '*/fixtures/*')
 
 # Full check: lint + test
 check: lint test
