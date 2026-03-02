@@ -1170,6 +1170,7 @@ html, body {
   letter-spacing: 0.1em;
   padding: 0.25rem 0.75rem;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .level-select-btn:hover {
