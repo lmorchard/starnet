@@ -67,9 +67,11 @@ export const BEHAVIORS = {
   },
 
   // High-grade detection variant: skips alert propagation, triggers trace directly.
+  // Respects eventForwardingDisabled — reconfiguring an S/A IDS node disables this.
   "direct-trace": {
     id: "direct-trace",
     onAlertRaised: (node, state, ctx) => {
+      if (node.eventForwardingDisabled) return;
       ctx.startTraceCountdown();
     },
   },

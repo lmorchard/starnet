@@ -244,6 +244,8 @@ export function runBot(network, seed, options = {}) {
   let missionDone = false;
   /** @type {null | string} */
   let failReason = null;
+  /** @type {string | null} Node to avoid after ICE encounter */
+  let avoidNodeId = null;
 
   /**
    * Find the next node to target.
@@ -300,7 +302,15 @@ export function runBot(network, seed, options = {}) {
       if (bestLootable) break;
     }
 
-    const targetId = bestLootable ?? bestAny;
+    // Prefer nodes that aren't the one we just fled from
+    let targetId = bestLootable ?? bestAny;
+    if (evasion && targetId === avoidNodeId) {
+      // Try to find an alternative — re-BFS skipping the avoided node
+      // But only if there IS an alternative; otherwise use the avoided node anyway
+      const alt = bestLootable && bestLootable !== avoidNodeId ? bestLootable
+        : bestAny && bestAny !== avoidNodeId ? bestAny : null;
+      if (alt) targetId = alt;
+    }
     return targetId ? { id: targetId } : null;
   }
 
@@ -386,7 +396,8 @@ export function runBot(network, seed, options = {}) {
         const { interrupted } = tickUntilEventOrIce(E.NODE_PROBED, maxTicks - totalTicks);
         if (interrupted && !traceFired && getState().phase === "playing") {
           evadeIce("cancel-probe");
-          continue; // retry probe
+          avoidNodeId = target.id;
+          break; // break probe loop → outer loop picks a different node
         }
         dispatchAction("deselect");
       } else {
@@ -424,9 +435,10 @@ export function runBot(network, seed, options = {}) {
           [E.EXPLOIT_SUCCESS, E.EXPLOIT_FAILURE], maxTicks - totalTicks
         );
         if (interrupted && !traceFired && getState().phase === "playing") {
-          // ICE arrived — cancel exploit and hide
+          // ICE arrived — cancel exploit and hide, then switch nodes if possible
           evadeIce("cancel-exploit");
-          continue; // retry the exploit loop (pick card again, re-select, etc.)
+          avoidNodeId = target.id;
+          break; // break exploit loop → outer loop picks a different node
         }
         dispatchAction("deselect");
       } else {
@@ -464,6 +476,9 @@ export function runBot(network, seed, options = {}) {
       if (traceFired) { failReason = "trace"; dispatchAction("jackout"); break; }
       if (getState().phase !== "playing") break;
     }
+
+    // Successfully worked on this node — clear avoidance
+    if (getState().nodes[target.id]?.accessLevel === "owned") avoidNodeId = null;
 
     // Check if mission is complete
     const ms = getState().mission;
