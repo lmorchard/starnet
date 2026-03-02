@@ -17,6 +17,7 @@ import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "./node-lifecycle.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "./action-context.js";
+import { openLevelSelect } from "./level-select.js";
 
 /** Read seed/time/money from URL search params. Returns null if any are missing. */
 function getNetworkParams() {
@@ -65,6 +66,9 @@ function init() {
     if (document.hidden) pauseTimers();
     else resumeTimers();
   });
+
+  // Wire new run button
+  document.getElementById("new-run-btn").addEventListener("click", openLevelSelect);
 
   // Wire HUD pause button
   let _userPaused = false;

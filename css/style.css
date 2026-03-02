@@ -1079,6 +1079,112 @@ html, body {
   background: rgba(0, 255, 255, 0.08);
 }
 
+/* ── Level select modal ───────────────────────────────────── */
+
+#level-select-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.level-select-box {
+  background: var(--bg);
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 24px rgba(0, 200, 255, 0.15);
+  width: min(92%, 340px);
+  font-family: var(--font-mono);
+  display: flex;
+  flex-direction: column;
+}
+
+.level-select-header {
+  color: var(--cyan);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--cyan-dim);
+}
+
+.level-select-form {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.level-select-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: var(--green);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+}
+
+.level-select-hint {
+  color: var(--cyan-dim);
+  font-size: 0.55rem;
+  letter-spacing: 0.05em;
+}
+
+.level-select-input,
+.level-select-select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--cyan-dim);
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+}
+
+.level-select-input:focus,
+.level-select-select:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 6px rgba(0, 200, 255, 0.2);
+}
+
+.level-select-select option {
+  background: var(--bg);
+  color: var(--green);
+}
+
+.level-select-actions {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--cyan-dim);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.level-select-btn {
+  background: none;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+}
+
+.level-select-btn:hover {
+  background: rgba(0, 255, 255, 0.08);
+}
+
+.level-select-go {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.level-select-go:hover {
+  background: rgba(0, 255, 0, 0.08);
+}
+
 /* Exploit zap laser lines — instant attack, slow decay */
 .exploit-zap {
   transition: stroke-opacity 180ms ease-out;
