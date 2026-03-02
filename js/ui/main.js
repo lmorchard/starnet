@@ -17,6 +17,7 @@ import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "../core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
+import { openDarknetsStore } from "./store.js";
 import { openLevelSelect } from "./level-select.js";
 
 /** Read seed/time/money from URL search params. Returns null if any are missing. */
@@ -104,7 +105,7 @@ function init() {
     e.target.value = ""; // reset so the same file can be loaded again
   });
 
-  const ctx = buildActionContext();
+  const ctx = buildActionContext(openDarknetsStore);
   initActionDispatcher(ctx);
 
   on(TIMER.ICE_MOVE,     () => handleIceTick());

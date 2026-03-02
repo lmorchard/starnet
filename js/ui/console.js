@@ -792,9 +792,38 @@ function cmdJackout() {
 }
 
 function cmdCheat(args) {
-  // Forwarded to cheats module — loaded lazily to keep cheat code isolated
+  const sub = args[0]?.toLowerCase();
+
+  // Browser-specific cheats handled here, not in core/cheats.js
+  if (sub === "relayout") {
+    const name = args[1]?.toLowerCase();
+    import("./graph.js").then(({ relayout, getLayoutNames }) => {
+      const used = relayout(name);
+      if (name && used !== name) {
+        addLogEntry(`[CHEAT] Unknown layout "${name}". Options: ${getLayoutNames().join(", ")}`, "error");
+      } else {
+        addLogEntry(`[CHEAT] Graph re-laid out (${used}).`, "success");
+      }
+    });
+    return;
+  }
+
+  if (sub === "restore") {
+    // Programmatic click — may not work in all browsers without a user gesture
+    const input = /** @type {HTMLElement|null} */ (document.getElementById("load-file-input"));
+    if (input) input.click();
+    return;
+  }
+
+  // Everything else forwarded to cheats module — loaded lazily to keep cheat code isolated
   import("../core/cheats.js").then(({ handleCheatCommand }) => {
-    handleCheatCommand(args);
+    if (sub === "snapshot") {
+      import("./save-load.js").then(({ saveGame }) => {
+        handleCheatCommand(args, { saveGame });
+      });
+    } else {
+      handleCheatCommand(args);
+    }
   });
 }
 

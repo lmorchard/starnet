@@ -8,7 +8,6 @@
 // Any use of a cheat command sets state.isCheating = true for the run.
 
 import { getState, revealNeighbors, accessNeighbors } from "./state.js";
-import { saveGame, restoreFromFile } from "../ui/save-load.js";
 import { setNodeAccessLevel, setNodeAlertState, setNodeVisible } from "./state/node.js";
 import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
 import { setCheating } from "./state/game.js";
@@ -21,8 +20,12 @@ import { generateExploit, generateExploitForVuln } from "./exploits.js";
 const VALID_RARITIES = ["common", "uncommon", "rare"];
 const VALID_ALERTS   = ["green", "yellow", "red", "trace"];
 
-// Returns true if the command was handled (valid cheat verb), false if unknown.
-export function handleCheatCommand(args) {
+/**
+ * Returns true if the command was handled (valid cheat verb), false if unknown.
+ * @param {string[]} args
+ * @param {{ saveGame?: (() => void) | null }} [opts] Browser-side callbacks; omit in headless contexts.
+ */
+export function handleCheatCommand(args, { saveGame = null } = {}) {
   const sub = args[0]?.toLowerCase();
 
   if (sub === "give") {
@@ -39,12 +42,13 @@ export function handleCheatCommand(args) {
     return cheatSummonIce(args.slice(1));
   } else if (sub === "ice-state") {
     return cheatIceState();
-  } else if (sub === "relayout") {
-    return cheatRelayout(args.slice(1));
   } else if (sub === "snapshot") {
-    return cheatSnapshot();
-  } else if (sub === "restore") {
-    return cheatRestore();
+    if (saveGame) {
+      saveGame();
+    } else {
+      addLogEntry("[CHEAT] snapshot: not available in this context.", "error");
+    }
+    return true;
   } else if (sub === "help") {
     return cheatHelp();
   } else {
@@ -282,35 +286,6 @@ function cheatHelp() {
     "  cheat restore               Load game state from file.",
   ];
   lines.forEach((line) => addLogEntry(line, "meta"));
-  return true;
-}
-
-// CHEAT: snapshot — save game state to file
-function cheatSnapshot() {
-  saveGame();
-  return true;
-}
-
-// CHEAT: restore — trigger file picker for load
-function cheatRestore() {
-  // The label click approach won't work from a cheat command (no user gesture).
-  // Fall back to programmatic click — may not work in all browsers.
-  const input = document.getElementById("load-file-input");
-  if (input) input.click();
-  return true;
-}
-
-// CHEAT: relayout [algorithm] — re-run graph layout
-function cheatRelayout(args) {
-  const name = args[0]?.toLowerCase();
-  import("../ui/graph.js").then(({ relayout, getLayoutNames }) => {
-    const used = relayout(name);
-    if (name && used !== name) {
-      addLogEntry(`[CHEAT] Unknown layout "${name}". Options: ${getLayoutNames().join(", ")}`, "error");
-    } else {
-      addLogEntry(`[CHEAT] Graph re-laid out (${used}).`, "success");
-    }
-  });
   return true;
 }
 
