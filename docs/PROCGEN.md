@@ -11,8 +11,8 @@ When a run starts, the game needs a LAN — a graph of nodes and edges represent
 corporate network the player will infiltrate. Rather than hand-crafting every network,
 the generator takes two inputs and produces a network that is appropriate for them:
 
-- **`timeCost`** — how dangerous the network is (ICE grade, depth, gate count)
-- **`moneyCost`** — how valuable the network is (node grades, high-value targets)
+- **`timeCost`** — how much player time the network demands (ICE grade, depth, gate count)
+- **`moneyCost`** — how much player money the network demands (node grades, exploit card expenditure)
 
 Both are expressed as grade letters (`F` through `S`). The same seed with the same grades
 always produces identical output, which is important for save/load and for regression
@@ -44,7 +44,7 @@ parameters via two lookup tables.
 instead of one. `gateCount` controls whether firewalls spawn. These values feed directly
 into the layer behavior atoms (see below).
 
-**`MONEY_BUDGET`** (indexed by `moneyCost`) drives node value and target depth:
+**`MONEY_BUDGET`** (indexed by `moneyCost`) drives node difficulty and target depth:
 
 | Grade | pathGradeMin | pathGradeMax | targetDepth |
 |-------|-------------|-------------|------------|
@@ -84,7 +84,7 @@ A bundle has five parts:
 }
 ```
 
-The corporate biome lives in `js/biomes/corporate/`. Its four source files are assembled
+The corporate biome lives in `js/biomes/corporate/`. Its three source files are assembled
 in `index.js`:
 
 - **`gen-rules.js`** — `ROLES`, `NODE_RULES`, `LAYERS`
@@ -145,10 +145,12 @@ describing one "wave" of node spawning:
 }
 ```
 
-**`count`** and **`depth`** may be plain numbers or functions receiving `{ tc, mc, state }`,
-where `tc`/`mc` are the budget objects and `state` is `spawnedByRole` — a live map of
-`role → [nodeId, ...]` accumulated as each layer runs. This lets later layers ask "how
-many routers exist?" or "does a gate exist?".
+**`count`**, **`depth`**, and **`connectTo`** may be plain values or functions receiving
+`{ tc, mc, state }`, where `tc`/`mc` are the budget objects and `state` is
+`spawnedByRole` — a live map of `role → [nodeId, ...]` accumulated as each layer runs.
+This lets later layers ask "how many routers exist?" or "does a gate exist?". The target
+layer uses a `connectTo` function to route through the gate when one exists and the target
+is deep enough, falling back to routing otherwise.
 
 For each node spawned in a layer, the engine may create edges using four mechanisms:
 
@@ -185,8 +187,10 @@ Only `"path"` consumes RNG. The ordering of `"path"` layers in `LAYERS` is there
 load-bearing for snapshot determinism — changing which layer runs first will shift every
 subsequent `randomGrade` call.
 
-The corporate LAYERS have exactly three `"path"` assignments (routing nodes, then target),
-in that order. All other grade assignments are deterministic arithmetic on the budget
+The corporate LAYERS have two `"path"` layer definitions (routing, then target). Routing
+spawns 1–2 nodes depending on `depthBudget`, so the total number of `randomGrade` calls
+is 2–3 per generation (plus one more if a set piece fires, since `baseGrade` is resolved
+as `"path"`). All other grade assignments are deterministic arithmetic on the budget
 parameters.
 
 ---
@@ -256,9 +260,12 @@ regardless of which exploit cards were drawn during play.
 RNG consumption within the generator is intentionally minimal. The only calls are:
 
 1. Label pool shuffles (one per type with labels, at the start)
-2. `randomGrade` for `"path"` layers (at most a handful)
+2. `randomGrade` for `"path"` layers (2–3 calls, plus 1 if a set piece fires)
 3. `pick()` for `connectTo` when multiple candidates exist (typically just filler→routing)
-4. Set piece `probability` rolls and external attachment picks
+4. `pick()` for `connectsTo` when multiple candidates exist (currently no corporate layer
+   triggers this — sensor→monitor has a singleton target — but the engine path exists)
+5. Set piece `probability` rolls and external attachment picks (attachment picks only
+   consume RNG when there are multiple candidates of the target type)
 
 The `pick(rng, arr)` helper skips the RNG call entirely when `arr.length === 1`. This
 is not an optimization — it's a correctness requirement. Consuming RNG for a
@@ -273,8 +280,7 @@ directory and implementing the same five-part shape (`roles`, `nodeRules`, `laye
 `validators`, `setPieces`). The only engine constraint is that `layers` must be ordered
 so that:
 
-- `alsoConnectFrom` references refer to already-spawned roles
-- `connectTo` references refer to already-spawned roles
+- `connectTo`, `connectsTo`, and `alsoConnectFrom` references refer to already-spawned roles
 - `"path"` grade assignments appear in the correct position relative to other RNG calls
 
 A residential network might have roles like `modem`, `router`, `nas`, `smart-device`,

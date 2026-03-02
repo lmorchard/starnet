@@ -3,8 +3,6 @@
 // Absorbs data/node-type-rules.js and adds gradeRole, fixedGrade, labels, minMoneyGrade.
 // Pure data — no runtime logic.
 
-import { GRADE_INDEX } from "../../grades.js";
-
 // ── Role map ──────────────────────────────────────────────────────────────────
 
 /** Maps role names to node type strings for the corporate biome. */

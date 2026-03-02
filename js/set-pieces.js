@@ -64,11 +64,15 @@ export function applySetPiece(piece, network, rng, baseGrade, nextLabel, makeId)
     network.edges.push({ source: idMap[source], target: idMap[target] });
   }
 
-  // External attachments — find a main-graph node of the given type, add an edge
+  // External attachments — find a main-graph node of the given type, add an edge.
+  // Only consume rng when there are multiple candidates (matches pick() invariant
+  // in network-gen.js — single-candidate picks must not advance the rng sequence).
   for (const { attachTo, localId } of piece.externalAttachments) {
     const candidates = network.nodes.filter((n) => /** @type {any} */(n).type === attachTo);
     if (candidates.length === 0) continue;
-    const host = /** @type {any} */ (candidates[Math.floor(rng() * candidates.length)]);
+    const host = /** @type {any} */ (candidates.length === 1
+      ? candidates[0]
+      : candidates[Math.floor(rng() * candidates.length)]);
     network.edges.push({ source: host.id, target: idMap[localId] });
   }
 }
