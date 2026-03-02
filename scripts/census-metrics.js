@@ -1,12 +1,21 @@
 // @ts-check
 // Census metrics — pure analysis functions for generated network objects.
-// No game state dependencies. Operates on the { nodes, edges, startNode, ice }
-// shape returned by generateNetwork().
-//
-// NOTE: Resource estimation constants (GRADE_MODIFIER, card qualities, budgets)
-// are inlined here rather than imported from game modules. This keeps the census
-// tool self-contained. If combat math changes, these values need manual sync.
-// See plan.md for rationale.
+// Operates on the { nodes, edges, startNode, ice } shape returned by generateNetwork().
+
+import { GRADE_MODIFIER, MATCH_BONUS, SUCCESS_CAP } from "../js/combat.js";
+import { QUALITY_RANGES, USES_BY_RARITY } from "../js/exploits.js";
+import { HAND_BUDGET, CASH_BUDGET } from "../js/network-gen.js";
+
+/** Successful exploits needed: locked → compromised → owned. */
+const EXPLOITS_TO_OWN = 2;
+
+/** Average quality by card rarity (midpoint of QUALITY_RANGES). */
+const AVG_QUALITY = Object.fromEntries(
+  Object.entries(QUALITY_RANGES).map(([r, [lo, hi]]) => [r, (lo + hi) / 2])
+);
+
+/** Darknet store card prices by rarity (from js/exploits.js getStoreCatalog). */
+const STORE_PRICES = { common: 100, uncommon: 250, rare: 500 };
 
 // ── Topology Analysis ────────────────────────────────────────────────────────
 
@@ -26,44 +35,6 @@ function buildAdjacency(edges) {
   }
   return adj;
 }
-
-// ── Inlined game constants (from js/combat.js, js/exploits.js, js/network-gen.js)
-
-/** Success chance modifier by node security grade. Source: js/combat.js */
-const GRADE_MODIFIER = { S: 0.05, A: 0.15, B: 0.30, C: 0.50, D: 0.70, F: 0.90 };
-
-/** Flat bonus when exploit targets a known vulnerability. Source: js/combat.js */
-const MATCH_BONUS = 0.40;
-
-/** Hard cap on success probability. Source: js/combat.js */
-const SUCCESS_CAP = 0.95;
-
-/** Successful exploits needed: locked → compromised → owned. */
-const EXPLOITS_TO_OWN = 2;
-
-/** Average quality by card rarity. Source: js/exploits.js quality ranges. */
-const AVG_QUALITY = { common: 0.375, uncommon: 0.60, rare: 0.825 };
-
-/** Initial uses per card rarity. Source: js/exploits.js */
-const CARD_USES = { common: 3, uncommon: 5, rare: 8 };
-
-/** Starting hand composition by moneyCost grade. Source: js/network-gen.js */
-const HAND_BUDGET = {
-  F: ["common", "common", "uncommon", "uncommon", "uncommon", "rare"],
-  D: ["common", "common", "uncommon", "uncommon", "uncommon", "rare"],
-  C: ["common", "common", "uncommon", "uncommon", "uncommon", "rare", "rare"],
-  B: ["common", "uncommon", "uncommon", "uncommon", "uncommon", "rare", "rare"],
-  A: ["uncommon", "uncommon", "uncommon", "uncommon", "uncommon", "rare", "rare", "rare"],
-  S: ["uncommon", "uncommon", "uncommon", "uncommon", "uncommon", "rare", "rare", "rare"],
-};
-
-/** Starting cash by moneyCost grade. Source: js/network-gen.js */
-const CASH_BUDGET = { F: 1000, D: 1000, C: 1250, B: 1500, A: 2000, S: 2500 };
-
-/** Darknet store card prices by rarity. Source: js/exploits.js */
-const STORE_PRICES = { common: 100, uncommon: 250, rare: 500 };
-
-// ── Topology Analysis ────────────────────────────────────────────────────────
 
 /** Node types that are lootable targets. */
 const LOOTABLE_TYPES = new Set(["fileserver", "cryptovault"]);
@@ -220,7 +191,7 @@ export function estimateResources(topology, moneyCost) {
   const totalExpectedUses = perNode.reduce((s, n) => s + n.expectedUses, 0);
 
   // Starting hand total uses
-  const startingUses = hand.reduce((s, r) => s + (CARD_USES[r] ?? 0), 0);
+  const startingUses = hand.reduce((s, r) => s + (USES_BY_RARITY[r] ?? 0), 0);
 
   const cardDeficit = Math.max(0, totalExpectedUses - startingUses);
 
@@ -228,7 +199,7 @@ export function estimateResources(topology, moneyCost) {
   // (uncommon is the most common purchase — good quality/price ratio)
   const avgStorePrice = STORE_PRICES["uncommon"];
   const cardsNeeded = cardDeficit > 0
-    ? Math.ceil(cardDeficit / CARD_USES["uncommon"])
+    ? Math.ceil(cardDeficit / USES_BY_RARITY["uncommon"])
     : 0;
   const estDarknetCost = cardsNeeded * avgStorePrice;
 
