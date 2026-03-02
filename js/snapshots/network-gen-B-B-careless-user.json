@@ -11,7 +11,7 @@
     {
       "id": "gateway-2",
       "type": "gateway",
-      "label": "INET-GW-02",
+      "label": "INET-GW-01",
       "grade": "D",
       "x": 400,
       "y": 50
@@ -19,7 +19,7 @@
     {
       "id": "security-monitor-3",
       "type": "security-monitor",
-      "label": "SEC-MON-01",
+      "label": "MON-CORE",
       "grade": "A",
       "x": 300,
       "y": 470
@@ -27,7 +27,7 @@
     {
       "id": "ids-4",
       "type": "ids",
-      "label": "IDS-01",
+      "label": "IDS-02",
       "grade": "B",
       "x": -200,
       "y": 330
@@ -35,7 +35,7 @@
     {
       "id": "router-5",
       "type": "router",
-      "label": "RTR-A",
+      "label": "RTR-01",
       "grade": "C",
       "x": 100,
       "y": 190
@@ -44,7 +44,7 @@
       "id": "router-6",
       "type": "router",
       "label": "RTR-02",
-      "grade": "B",
+      "grade": "A",
       "x": 300,
       "y": 190
     },
@@ -59,24 +59,24 @@
     {
       "id": "router-8",
       "type": "router",
-      "label": "RTR-01",
-      "grade": "C",
+      "label": "RTR-A",
+      "grade": "A",
       "x": 0,
       "y": 330
     },
     {
       "id": "router-9",
       "type": "router",
-      "label": "RTR-B",
-      "grade": "B",
+      "label": "RTR-EDGE",
+      "grade": "A",
       "x": 200,
       "y": 330
     },
     {
       "id": "fileserver-10",
       "type": "fileserver",
-      "label": "FS-ARCHIVE",
-      "grade": "C",
+      "label": "FS-VAULT",
+      "grade": "B",
       "x": 400,
       "y": 610
     },
@@ -91,7 +91,7 @@
     {
       "id": "workstation-12",
       "type": "workstation",
-      "label": "WS-BETA",
+      "label": "WS-02",
       "grade": "D",
       "x": 400,
       "y": 330
@@ -99,7 +99,7 @@
     {
       "id": "workstation-13",
       "type": "workstation",
-      "label": "WS-01",
+      "label": "WS-GAMMA",
       "grade": "D",
       "x": 600,
       "y": 330
@@ -107,7 +107,7 @@
     {
       "id": "workstation-14",
       "type": "workstation",
-      "label": "WS-GAMMA",
+      "label": "WS-DELTA",
       "grade": "D",
       "x": 800,
       "y": 330
@@ -115,7 +115,7 @@
     {
       "id": "fileserver-15",
       "type": "fileserver",
-      "label": "FS-02",
+      "label": "FS-01",
       "grade": "C",
       "x": 1000,
       "y": 330
@@ -171,11 +171,11 @@
       "target": "cryptovault-11"
     },
     {
-      "source": "router-6",
+      "source": "router-5",
       "target": "workstation-12"
     },
     {
-      "source": "router-5",
+      "source": "router-6",
       "target": "workstation-13"
     },
     {
@@ -187,7 +187,7 @@
       "target": "fileserver-15"
     },
     {
-      "source": "router-9",
+      "source": "router-8",
       "target": "workstation-14"
     },
     {

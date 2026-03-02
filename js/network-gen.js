@@ -38,7 +38,7 @@ const TIME_BUDGET = {
  * moneyCost grade → starting hand composition (array of rarity strings).
  * Harder LANs have tougher node vulns, so the player needs more and better cards.
  */
-const HAND_BUDGET = {
+export const HAND_BUDGET = {
   F: ["common", "common", "uncommon", "uncommon", "uncommon", "rare"],
   D: ["common", "common", "uncommon", "uncommon", "uncommon", "rare"],
   C: ["common", "common", "uncommon", "uncommon", "uncommon", "rare", "rare"],
@@ -50,7 +50,7 @@ const HAND_BUDGET = {
 /**
  * moneyCost grade → suggested starting cash.
  */
-const CASH_BUDGET = {
+export const CASH_BUDGET = {
   F: 1000,
   D: 1000,
   C: 1250,

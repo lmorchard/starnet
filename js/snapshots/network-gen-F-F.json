@@ -29,7 +29,7 @@
       "type": "ids",
       "label": "IDS-01",
       "grade": "D",
-      "x": 200,
+      "x": 100,
       "y": 330
     },
     {
@@ -37,7 +37,7 @@
       "type": "router",
       "label": "RTR-A",
       "grade": "F",
-      "x": 200,
+      "x": 300,
       "y": 190
     },
     {
@@ -45,7 +45,7 @@
       "type": "router",
       "label": "RTR-02",
       "grade": "F",
-      "x": 400,
+      "x": 500,
       "y": 190
     },
     {
@@ -53,15 +53,15 @@
       "type": "fileserver",
       "label": "FS-ARCHIVE",
       "grade": "F",
-      "x": 600,
-      "y": 190
+      "x": 300,
+      "y": 330
     },
     {
       "id": "workstation-8",
       "type": "workstation",
       "label": "WS-BETA",
       "grade": "F",
-      "x": 400,
+      "x": 500,
       "y": 330
     },
     {
@@ -69,7 +69,7 @@
       "type": "workstation",
       "label": "WS-01",
       "grade": "F",
-      "x": 600,
+      "x": 700,
       "y": 330
     }
   ],

@@ -18,7 +18,7 @@ import { getGateAccess } from "./node-types.js";
 import { resolveNode } from "./node-types.js";
 
 // Success chance modifier by node security grade
-const GRADE_MODIFIER = {
+export const GRADE_MODIFIER = {
   S: 0.05,
   A: 0.15,
   B: 0.30,
@@ -26,6 +26,12 @@ const GRADE_MODIFIER = {
   D: 0.70,
   F: 0.90,
 };
+
+/** Flat bonus when exploit targets a known vulnerability on the node. */
+export const MATCH_BONUS = 0.4;
+
+/** Hard cap on exploit success probability. */
+export const SUCCESS_CAP = 0.95;
 
 // Disclosure chance on failure by grade (higher grade = more likely to detect and disclose)
 const DISCLOSURE_CHANCE = {
@@ -62,8 +68,8 @@ export function resolveExploit(exploit, node) {
   const gradeModifier    = (resolved.combatConfig?.gradeModifier    ?? GRADE_MODIFIER)[node.grade]    ?? 0.3;
   const disclosureChance = (resolved.combatConfig?.disclosureChance ?? DISCLOSURE_CHANCE)[node.grade] ?? 0.3;
 
-  const matchBonus = matchingVulns.length > 0 ? 0.4 : 0;
-  const successChance = Math.min(0.95, exploit.quality * gradeModifier + matchBonus);
+  const matchBonus = matchingVulns.length > 0 ? MATCH_BONUS : 0;
+  const successChance = Math.min(SUCCESS_CAP, exploit.quality * gradeModifier + matchBonus);
 
   const roll = random(RNG.COMBAT);
   const success = roll <= successChance;

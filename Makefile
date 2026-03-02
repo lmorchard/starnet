@@ -1,4 +1,4 @@
-.PHONY: serve lint test check
+.PHONY: serve lint test check census
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -16,9 +16,13 @@ lint:
 		js/rng.js js/probe-exec.js js/read-exec.js js/loot-exec.js js/navigation.js \
 		js/node-actions.js js/global-actions.js js/action-context.js js/node-orchestration.js
 
-# Run unit + integration tests (js/*.test.js for top-level, js/**/*.test.js for subdirs)
+# Run unit + integration tests
 test:
-	node --test tests/*.test.js js/*.test.js js/**/*.test.js
+	node --test tests/*.test.js js/*.test.js js/**/*.test.js scripts/*.test.js
 
 # Full check: lint + test
 check: lint test
+
+# Run network census report across all difficulty combos
+census:
+	node scripts/network-census.js

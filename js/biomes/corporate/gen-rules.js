@@ -3,8 +3,6 @@
 // Absorbs data/node-type-rules.js and adds gradeRole, fixedGrade, labels, minMoneyGrade.
 // Pure data — no runtime logic.
 
-import { GRADE_INDEX } from "../../grades.js";
-
 // ── Role map ──────────────────────────────────────────────────────────────────
 
 /** Maps role names to node type strings for the corporate biome. */
@@ -15,6 +13,7 @@ export const ROLES = {
   sensor:  "ids",
   gate:    "firewall",
   routing: "router",
+  relay:   "router",       // intermediate routers extending the critical path
   target:  "fileserver",
   premium: "cryptovault",
   filler:  "workstation",
@@ -222,12 +221,35 @@ export const LAYERS = [
     connectTo: "gateway",
   },
   {
+    // Relay routers extend the critical path between gateway-adjacent nodes
+    // and the target. Count = max(0, effectiveDepth - 1) where effectiveDepth
+    // is min(targetDepth, depthBudget). Chaining: first relay connects to gate
+    // (if exists) or routing; subsequent relays chain to previous relays.
+    role:      "relay",
+    count:     ({ tc, mc }) => {
+      const effectiveDepth = Math.min(mc.targetDepth, tc.depthBudget);
+      return Math.max(0, effectiveDepth - 1);
+    },
+    depth:     2,
+    gradeRole: "path",                 // consumes rng — on the critical path
+    connectTo: ({ state }) => {
+      // length > 1: current node is already in state.relay, so >1 means a
+      // previous relay exists to chain to (avoids self-loop)
+      if ((state.relay?.length ?? 0) > 1) return "relay";    // chain to previous
+      if ((state.gate?.length ?? 0) > 0) return "gate";      // first relay behind gate
+      return "routing";                                       // first relay behind router
+    },
+  },
+  {
     role:      "target",
     count:     1,
-    depth:     ({ tc, mc }) => Math.min(mc.targetDepth, tc.depthBudget),
-    gradeRole: "path",                 // consumes rng — matches original order
-    connectTo: ({ state, mc }) =>
-      (state.gate?.length ?? 0) > 0 && mc.targetDepth >= 2 ? "gate" : "routing",
+    depth:     ({ tc, mc }) => Math.min(mc.targetDepth, tc.depthBudget) + 1,
+    gradeRole: "path",                 // consumes rng
+    connectTo: ({ state }) => {
+      if ((state.relay?.length ?? 0) > 0) return "relay";    // behind relay chain
+      if ((state.gate?.length ?? 0) > 0) return "gate";      // behind gate (no relays)
+      return "routing";                                       // direct to router
+    },
   },
   {
     role:      "premium",
@@ -235,11 +257,15 @@ export const LAYERS = [
       (state.gate?.length ?? 0) > 0 && mc.targetDepth >= 3 ? 1 : 0,
     depth:     ({ tc }) => tc.depthBudget,
     gradeRole: "hard",                 // no rng
-    connectTo: "gate",
+    connectTo: ({ state }) => {
+      // Premium sits at the end of the relay chain (deepest protected node)
+      if ((state.relay?.length ?? 0) > 0) return "relay";
+      return "gate";
+    },
   },
   {
     role:      "filler",
-    count:     ({ state }) => state.routing?.length ?? 1,
+    count:     ({ state }) => Math.max(2, state.routing?.length ?? 1),
     depth:     2,
     gradeRole: "soft",                 // no rng; pick(rng, targets) fires in engine
     connectTo: "routing",
