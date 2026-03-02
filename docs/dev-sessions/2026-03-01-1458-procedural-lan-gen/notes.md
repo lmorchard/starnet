@@ -106,11 +106,110 @@ No module-level state in `js/set-pieces.js`.
 
 ---
 
-## Session Retro Summary
+## Retrospective
 
-**Completed:** All 9 planned phases.
-**Worked well:** The four-layer architecture, snapshot tests, harness flags, URL params.
-**Deferred:** Multiple set pieces (workstation array, lucky break, security theater),
-biome system, ICE grade scaling with difficulty.
-**Bugs found:** None blocking. Minor: `status full` shows "N node(s) revealed" summary
-rather than listing each node's ID — makes harness-guided play slightly awkward.
+### Recap
+
+Built a full procedural LAN generator from scratch across 9 planned phases:
+
+- `js/grades.js` — grade utilities (GRADES, shiftGrade, randomGrade, etc.)
+- `data/node-type-rules.js` — topology rule data (singleton, depth, connectsTo, etc.)
+- `js/network-gen.js` — core generator with budget tables, label pools, layout
+- Validator predicates with retry loop
+- `js/set-pieces.js` — set piece system + `careless-user` piece
+- Harness integration (`--time`, `--money`, `--force-piece` flags)
+- Browser URL param integration (`?seed=&time=&money=`)
+- Snapshot + structural tests (276 passing)
+- Headless playtesting with balance notes
+
+Post-plan additions driven by playtesting: `status full` showing revealed node IDs,
+F depthBudget bump, `startCash`/`startHandSpec` scaling tables, `forcePieces` option.
+
+Late-session RNG consolidation (not in original plan): extracted `makeSeededRng` and
+`shuffleWith` into `js/rng.js`, eliminating duplicate Mulberry32/djb2 code from the
+generator. **This work is uncommitted at session close** — needs to land before the
+branch is merged.
+
+### Divergences from plan
+
+- **Phase 3** originally called for local `djb2`/`makeMulberry32` in the generator.
+  These were later consolidated into `js/rng.js` as `makeSeededRng`/`shuffleWith`.
+  Plan was correct at the time; the refactor emerged naturally once the pattern was
+  repeated a third time (shuffle).
+
+- **Phase 8** snapshots were written to `js/snapshots/` (colocated) rather than
+  `tests/snapshots/` as originally planned. Aligns with the colocated-tests convention
+  established for grades.
+
+- **Post-plan balance tweaks** (cash scaling, hand scaling, F depth, revealed node
+  listing) were added after playtesting. These were genuinely discovered through play
+  and couldn't have been specified upfront — the process worked as intended.
+
+- **`data/node-type-rules.js` is not imported by the generator.** The rules file was
+  created in Phase 2 but `buildNetwork` never adopted it — grade assignments, label
+  pools, and type strings remain hardcoded in the generator. This is the primary
+  technical debt handed off to the biome-bundles session.
+
+### Insights
+
+- **The four-layer architecture held up.** Rules / algorithm / validators / set pieces
+  is a clean separation. The validator retry loop is an elegant escape valve — the
+  algorithm doesn't need to be perfect, just usually correct.
+
+- **Snapshot tests are invaluable for generators.** They caught two regressions during
+  the session (after adding startCash/startHandSpec, and after depthBudget change).
+  Worth the upfront cost of writing them.
+
+- **`data/node-type-rules.js` was created prematurely.** It was designed to be read by
+  the generator but that step was never taken. The rules data and the generator algorithm
+  are effectively in separate universes. This was the seed of the biome-bundles idea —
+  the right fix is to bundle them together, not just import one from the other.
+
+- **Balance can't be designed upfront at this level of fidelity.** Playtesting produced
+  three concrete tweaks that improved the game feel significantly. Iterating after seeing
+  numbers is faster than pre-specifying difficulty curves.
+
+- **The `forcePieces` option was a good mid-session addition.** User spotted the
+  opportunity while the set piece code was being written. Cost: ~15 minutes. Value:
+  makes set pieces testable without seed-hunting. Good instinct to interrupt and add it.
+
+### What data/node-type-rules.js was supposed to be
+
+The rules file was designed with good intentions — decouple topology facts from
+the algorithm — but it became a data orphan. The biome-bundles session should absorb
+it entirely. The lesson: data without a consumer isn't architecture, it's wishful
+thinking. Next time, wire the data file in before moving on.
+
+### Efficiency
+
+- Phases 1–5 went smoothly — the plan was tight and implementation was mostly mechanical.
+- Phases 6–7 (harness/browser integration) required careful coordination between two
+  parallel entry points (`scripts/playtest.js` and `js/main.js`).
+- Phase 9 (playtesting) produced valuable signal quickly. The harness is fast enough
+  that manual play through `tick` and `exploit` commands is genuinely fun.
+- The RNG consolidation at end of session was unplanned but fast (~20 min) and clean.
+  Leaving it uncommitted was a mistake — should have committed immediately.
+
+### Process improvements
+
+- **Commit more frequently.** The RNG consolidation was left uncommitted at session end.
+  Rule: commit before switching contexts.
+- **Wire data files to their consumers in the same phase they're created.** Creating
+  `node-type-rules.js` without reading it in the generator created false confidence
+  that the architecture was sound.
+- **Note the "UNCOMMITTED" status of any work that doesn't land in a commit** before
+  the retro, so it's visible and doesn't get lost across sessions.
+
+### Conversation turns
+
+Approximately 30–35 exchanges across two context windows (session continued from
+a prior summarized conversation).
+
+### Other highlights
+
+- The biome-bundles session was conceived during the retro conversation. Good sign:
+  the current session did enough to surface the right next problem.
+- The `forcePieces` interrupt pattern was a good example of a mid-execution spec
+  change that was worth taking. Small scope, high leverage.
+- 276 tests at session close. Starting count: 224 (before network-gen tests).
+  52 new tests added.
