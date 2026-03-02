@@ -33,6 +33,19 @@ tier. A full overhaul will be needed to support:
   dispatch system. This is a significant architectural change — defer until the single-ICE
   prototype is fully playtested and the design is stable.
 
+### ICE Resident Node Relocation
+Currently ICE starts at the security monitor. The fiction would be cleaner if
+ICE started at a node on the far side of the IDS — patrolling the working
+network, reporting back through the IDS chain. Benefits:
+- ICE patrols where the player operates (routing/workstation layer)
+- Detection reports travel through IDS → monitor (severable via reconfigure)
+- Reboot sends ICE to its new resident node, not the monitor
+- Security monitor remains valuable for cancel-trace, but isn't ICE home base
+This is a topology/gen-rules change — the layer processor needs a new role for
+the ICE resident node, and `iceResident` behavior needs to move from
+security-monitor to the new node type.
+_Identified during bot census session (2026-03-01)._
+
 ### Adversarial / ICE
 - **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
 - **`cheat ice-move <node>`** — cheat command to teleport ICE directly to a node for testing detection scenarios without waiting for ticks
