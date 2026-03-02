@@ -102,6 +102,21 @@ export function randomPick(stream, arr) {
 }
 
 /**
+ * In-place Fisher-Yates shuffle using a raw RNG function. Returns the array.
+ * @template T
+ * @param {() => number} rngFn
+ * @param {T[]} arr
+ * @returns {T[]}
+ */
+export function shuffleWith(rngFn, arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rngFn() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
  * In-place Fisher-Yates shuffle using the named stream. Returns the array.
  * @template T
  * @param {string} stream
@@ -109,11 +124,7 @@ export function randomPick(stream, arr) {
  * @returns {T[]}
  */
 export function shuffle(stream, arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(random(stream) * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+  return shuffleWith(() => random(stream), arr);
 }
 
 /**
@@ -158,6 +169,23 @@ export function deserializeRng(data) {
     streams[name].state = data.streams[name] ?? 0;
     streams[name].forced = [];
   }
+}
+
+// ── Standalone factory ───────────────────────────────────
+
+/**
+ * Create an independent Mulberry32 RNG seeded from a string.
+ * Does NOT touch any named gameplay stream — safe to use in generators.
+ * @param {string} seedString
+ * @returns {() => number}
+ */
+export function makeSeededRng(seedString) {
+  let state = hashString(seedString);
+  return function rng() {
+    const { next, value } = advance(state);
+    state = next;
+    return value;
+  };
 }
 
 // ── Test helpers (prefixed with _ to signal test-only) ───
