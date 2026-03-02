@@ -2,9 +2,9 @@
 // Census metrics — pure analysis functions for generated network objects.
 // Operates on the { nodes, edges, startNode, ice } shape returned by generateNetwork().
 
-import { GRADE_MODIFIER, MATCH_BONUS, SUCCESS_CAP } from "../js/combat.js";
-import { QUALITY_RANGES, USES_BY_RARITY } from "../js/exploits.js";
-import { HAND_BUDGET, CASH_BUDGET } from "../js/network-gen.js";
+import { GRADE_MODIFIER, MATCH_BONUS, SUCCESS_CAP } from "../js/core/combat.js";
+import { QUALITY_RANGES, USES_BY_RARITY } from "../js/core/exploits.js";
+import { HAND_BUDGET, CASH_BUDGET } from "../js/core/network/network-gen.js";
 
 /** Successful exploits needed: locked → compromised → owned. */
 const EXPLOITS_TO_OWN = 2;

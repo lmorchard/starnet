@@ -5,15 +5,15 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { NETWORK } from "../data/network.js";
-import { initState, getState } from "../js/state.js";
-import { clearAll } from "../js/timers.js";
-import { getGateAccess } from "../js/node-types.js";
-import { launchExploit } from "../js/combat.js";
-import { handleProbeScanTimer } from "../js/probe-exec.js";
-import { setNodeAccessLevel, setNodeVisible } from "../js/state/node.js";
-import { initNodeLifecycle } from "../js/node-lifecycle.js";
-import { on, off, E } from "../js/events.js";
-import { RNG, _forceNext } from "../js/rng.js";
+import { initState, getState } from "../js/core/state.js";
+import { clearAll } from "../js/core/timers.js";
+import { getGateAccess } from "../js/core/actions/node-types.js";
+import { launchExploit } from "../js/core/combat.js";
+import { handleProbeScanTimer } from "../js/core/actions/probe-exec.js";
+import { setNodeAccessLevel, setNodeVisible } from "../js/core/state/node.js";
+import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
+import { on, off, E } from "../js/core/events.js";
+import { RNG, _forceNext } from "../js/core/rng.js";
 
 initNodeLifecycle();
 

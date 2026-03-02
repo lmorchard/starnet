@@ -9,14 +9,14 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "fs";
 
-import { deserializeState, getState } from "../js/state.js";
-import { tick, clearAll, TIMER } from "../js/timers.js";
-import { on, off, E } from "../js/events.js";
+import { deserializeState, getState } from "../js/core/state.js";
+import { tick, clearAll, TIMER } from "../js/core/timers.js";
+import { on, off, E } from "../js/core/events.js";
 // Import alert.js to register its event listeners
-import "../js/alert.js";
-import { handleIceTick, handleIceDetect } from "../js/ice.js";
-import { handleTraceTick } from "../js/alert.js";
-import { initNodeLifecycle } from "../js/node-lifecycle.js";
+import "../js/core/alert.js";
+import { handleIceTick, handleIceDetect } from "../js/core/ice.js";
+import { handleTraceTick } from "../js/core/alert.js";
+import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 
 initNodeLifecycle();
 

@@ -3,20 +3,20 @@
 // Plays a single game from init to jackout and returns stats.
 // No DOM dependencies. Uses the same action context as playtest.js.
 
-import { initState, getState, getVersion } from "../js/state.js";
-import { startIce, handleIceTick, handleIceDetect } from "../js/ice.js";
-import { handleTraceTick } from "../js/alert.js";
-import { completeReboot } from "../js/node-orchestration.js";
-import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/exploit-exec.js";
-import { handleProbeScanTimer } from "../js/probe-exec.js";
-import { handleReadScanTimer } from "../js/read-exec.js";
-import { handleLootExtractTimer } from "../js/loot-exec.js";
-import { on, off, emitEvent, E } from "../js/events.js";
-import { tick, TIMER } from "../js/timers.js";
-import { initLog } from "../js/log.js";
-import { initNodeLifecycle } from "../js/node-lifecycle.js";
-import { buildActionContext, initActionDispatcher } from "../js/action-context.js";
-import { buyFromStore } from "../js/store-logic.js";
+import { initState, getState, getVersion } from "../js/core/state.js";
+import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
+import { handleTraceTick } from "../js/core/alert.js";
+import { completeReboot } from "../js/core/node-orchestration.js";
+import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/core/actions/exploit-exec.js";
+import { handleProbeScanTimer } from "../js/core/actions/probe-exec.js";
+import { handleReadScanTimer } from "../js/core/actions/read-exec.js";
+import { handleLootExtractTimer } from "../js/core/actions/loot-exec.js";
+import { on, off, emitEvent, E } from "../js/core/events.js";
+import { tick, TIMER } from "../js/core/timers.js";
+import { initLog } from "../js/core/log.js";
+import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
+import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
+import { buyFromStore } from "../js/core/store-logic.js";
 
 /** Default tick increment for tick-until-event loops. */
 const DEFAULT_TICK_INCREMENT = 1;
