@@ -31,6 +31,8 @@ export function handleCheatCommand(args) {
     return cheatSet(args.slice(1));
   } else if (sub === "own") {
     return cheatOwn(args.slice(1));
+  } else if (sub === "own-all") {
+    return cheatOwnAll();
   } else if (sub === "trace") {
     return cheatTrace(args.slice(1));
   } else if (sub === "summon-ice" || sub === "teleport-ice") {
@@ -169,6 +171,26 @@ function cheatOwn(args) {
   return true;
 }
 
+// CHEAT: own-all — own every node, reveal the entire map
+function cheatOwnAll() {
+  const s = getState();
+  let count = 0;
+  for (const [id, node] of Object.entries(s.nodes)) {
+    if (node.accessLevel === "owned") continue;
+    const prev = node.accessLevel;
+    setNodeAccessLevel(id, "owned");
+    setNodeAlertState(id, "green");
+    setNodeVisible(id, "accessible");
+    emitEvent(E.NODE_ACCESSED, { nodeId: id, label: node.label, prev, next: "owned" });
+    revealNeighbors(id);
+    accessNeighbors(id);
+    count++;
+  }
+  activateCheat();
+  addLogEntry(`[CHEAT] ${count} node(s) set to OWNED. Full map revealed.`, "success");
+  return true;
+}
+
 // CHEAT: summon-ice [nodeId]
 function cheatSummonIce(args) {
   const s = getState();
@@ -250,6 +272,7 @@ function cheatHelp() {
     "  cheat give cash <amount>    Add credits to wallet.",
     "  cheat set alert <level>     Force alert level: green yellow red trace",
     "  cheat own <node>            Set node to owned + reveal neighbors.",
+    "  cheat own-all               Own every node, reveal entire map.",
     "  cheat trace start           Start the 60s trace countdown immediately.",
     "  cheat trace end             Cancel active trace countdown.",
     "  cheat summon-ice [node]     Teleport ICE to node (default: selected). Resets dwell.",
