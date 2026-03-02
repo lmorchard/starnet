@@ -29,9 +29,43 @@ tier. A full overhaul will be needed to support:
   patterns) beyond the current grade-tier model; Defender ICE (reverse-access) would be one type
 - **Per-instance state** — each ICE entity needs its own attention node, detection state, dwell
   timer, and behavioral flags
+- **Per-zone IDS reporting** — each ICE instance reports through the IDS in
+  its zone. Reconfiguring one IDS only blinds the ICE that reports through it.
+  Creates localized security domains the player can selectively subvert.
 - The current `s.ice` singleton and `ice.js` module will need to become a collection + behavior
   dispatch system. This is a significant architectural change — defer until the single-ICE
   prototype is fully playtested and the design is stable.
+
+### Large Network Generation
+Current networks are 9-16 nodes. Larger networks (40-60+ nodes) would support
+longer runs, multiple security domains, and multiple ICE instances. Design
+considerations:
+
+- **Zone/wing topology** — instead of one linear relay chain, the generator
+  would compose multiple branches: research wing, finance department, server
+  farm, executive subnet. Each zone has its own depth, grade profile, and
+  security infrastructure (dedicated IDS + ICE per zone).
+- **Sub-biome composition** — zones could be topology templates composed within
+  a single biome. A corporate biome might have "office floor" zones (many
+  workstations), "server room" zones (fileservers + cryptovault), and
+  "security operations" zones (monitors + IDS). Different compositions per
+  difficulty or seed.
+- **Generator changes** — the layer-processor would need a concept of zone
+  scoping: spawn a set of layers N times, each instance forming an
+  independent sub-graph connected to the backbone. The relay layer already
+  demonstrates chaining; zones would be a higher-level version of the same
+  pattern.
+- **Spatial gameplay** — larger networks make navigation itself a strategic
+  decision. Which zone to enter first? Clear security in one wing before
+  moving to the next? The player's position in the graph matters more when
+  there are multiple ICE entities patrolling different regions.
+- **Bot validation** — the bot census can test large networks immediately.
+  Key question: does the bot's greedy BFS still work at 50 nodes, or does
+  it need zone-aware planning? Performance is not a concern (6.5ms/run at
+  current sizes; even 10x more nodes should be fine).
+- **Layout** — Cytoscape can handle 50-60 nodes, but the depth-layered
+  layout would need zone-aware positioning. Sub-graphs arranged spatially
+  rather than one tall column.
 
 ### ICE Resident Node Relocation
 Currently ICE starts at the security monitor. The fiction would be cleaner if
