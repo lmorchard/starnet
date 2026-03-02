@@ -14,9 +14,7 @@ import { exploitSortKey, getStoreCatalog } from "../core/exploits.js";
 import { getActions } from "../core/actions/node-types.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
 import { buyFromStore } from "../core/store-logic.js";
-
-const VERBS = ["select", "deselect", "probe", "exploit", "eject", "reboot", "read", "loot", "reconfigure", "cancel-probe", "cancel-exploit", "cancel-read", "cancel-loot", "cancel-trace", "jackout", "status", "actions", "store", "buy", "log", "help", "cheat"];
-const STATUS_NOUNS = ["summary", "ice", "hand", "node", "alert", "mission"];
+import { tabComplete } from "../core/tab-complete.js";
 
 let history = [];
 let historyIndex = -1;
@@ -165,13 +163,14 @@ function resolveCard(token) {
   const byId = s.player.hand.find((c) => c.id === token);
   if (byId) return byId;
 
-  // Prefix match on name
+  // Prefix match on name or id
   const matches = s.player.hand.filter(
-    (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(lower)
+    (c) => c.decayState !== "disclosed" &&
+      (c.name.toLowerCase().startsWith(lower) || c.id.toLowerCase().startsWith(lower))
   );
   if (matches.length === 1) return matches[0];
   if (matches.length > 1) {
-    addLogEntry(`Ambiguous card: ${matches.map((c) => c.name).join(", ")}`, "error");
+    addLogEntry(`Ambiguous card: ${matches.map((c) => c.id).join(", ")}`, "error");
     return null;
   }
 
@@ -829,109 +828,8 @@ function cmdCheat(args) {
 
 // ── Tab completion ────────────────────────────────────────
 
-function longestCommonPrefix(strings) {
-  if (strings.length === 0) return "";
-  let prefix = strings[0];
-  for (let i = 1; i < strings.length; i++) {
-    while (!strings[i].startsWith(prefix)) prefix = prefix.slice(0, -1);
-    if (!prefix) return "";
-  }
-  return prefix;
-}
-
 function handleTabComplete(input) {
-  const value = input.value;
-  const tokens = value.split(/\s+/);
-  const s = getState();
-
-  if (tokens.length === 1) {
-    // Complete verb
-    const partial = tokens[0].toLowerCase();
-    const matches = VERBS.filter((v) => v.startsWith(partial));
-    if (matches.length === 1) {
-      input.value = matches[0] + " ";
-    } else if (matches.length > 1) {
-      const lcp = longestCommonPrefix(matches);
-      if (lcp.length > partial.length) input.value = lcp;
-      addLogEntry(matches.join("  "), "meta");
-    }
-    return;
-  }
-
-  const verb = tokens[0].toLowerCase();
-
-  if (tokens.length === 2) {
-    const partial = tokens[1].toLowerCase();
-
-    if (verb === "status") {
-      // Complete status noun
-      const matches = STATUS_NOUNS.filter((n) => n.startsWith(partial));
-      if (matches.length === 1) {
-        input.value = `${tokens[0]} ${matches[0]} `;
-      } else if (matches.length > 1) {
-        const lcp = longestCommonPrefix(matches);
-        if (lcp.length > partial.length) input.value = `${tokens[0]} ${lcp}`;
-        addLogEntry(matches.join("  "), "meta");
-      }
-      return;
-    }
-
-    if (verb === "exploit" && s.selectedNodeId) {
-      // Node already selected — complete card name
-      const candidates = s.player.hand.filter(
-        (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(partial)
-      );
-      if (candidates.length === 1) {
-        input.value = `${tokens[0]} ${candidates[0].name} `;
-      } else if (candidates.length > 1) {
-        const lcp = longestCommonPrefix(candidates.map((c) => c.name.toLowerCase()));
-        if (lcp.length > partial.length) input.value = `${tokens[0]} ${lcp}`;
-        addLogEntry(candidates.map((c) => c.name).join("  "), "meta");
-      }
-    } else if (["select", "probe", "exploit", "read", "loot", "reconfigure"].includes(verb)) {
-      // Complete node
-      const candidates = Object.values(s.nodes)
-        .filter((n) => n.visibility !== "hidden")
-        .filter((n) => n.id.startsWith(partial) || n.label.toLowerCase().startsWith(partial));
-
-      if (candidates.length === 1) {
-        input.value = `${tokens[0]} ${candidates[0].id} `;
-      } else if (candidates.length > 1) {
-        const lcp = longestCommonPrefix(candidates.map((n) => n.id));
-        if (lcp.length > partial.length) input.value = `${tokens[0]} ${lcp}`;
-        addLogEntry(candidates.map((n) => n.id).join("  "), "meta");
-      }
-    }
-    return;
-  }
-
-  if (tokens.length === 3 && verb === "exploit") {
-    // Complete card name (explicit form: exploit <node> <card>)
-    const cardPartial = tokens.slice(2).join(" ").toLowerCase();
-    const candidates = s.player.hand.filter(
-      (c) => c.decayState !== "disclosed" && c.name.toLowerCase().startsWith(cardPartial)
-    );
-    if (candidates.length === 1) {
-      input.value = `${tokens[0]} ${tokens[1]} ${candidates[0].name} `;
-    } else if (candidates.length > 1) {
-      const lcp = longestCommonPrefix(candidates.map((c) => c.name.toLowerCase()));
-      if (lcp.length > cardPartial.length) input.value = `${tokens[0]} ${tokens[1]} ${lcp}`;
-      addLogEntry(candidates.map((c) => c.name).join("  "), "meta");
-    }
-  }
-
-  if (tokens.length === 3 && verb === "status" && tokens[1].toLowerCase() === "node") {
-    // Complete node id for: status node <id>
-    const partial = tokens[2].toLowerCase();
-    const candidates = Object.values(s.nodes)
-      .filter((n) => n.visibility !== "hidden")
-      .filter((n) => n.id.startsWith(partial) || n.label.toLowerCase().startsWith(partial));
-    if (candidates.length === 1) {
-      input.value = `${tokens[0]} ${tokens[1]} ${candidates[0].id} `;
-    } else if (candidates.length > 1) {
-      const lcp = longestCommonPrefix(candidates.map((n) => n.id));
-      if (lcp.length > partial.length) input.value = `${tokens[0]} ${tokens[1]} ${lcp}`;
-      addLogEntry(candidates.map((n) => n.id).join("  "), "meta");
-    }
-  }
+  const result = tabComplete(input.value, getState());
+  if (result.completed !== null) input.value = result.completed;
+  result.suggestions.forEach((s) => addLogEntry(s, "meta"));
 }
