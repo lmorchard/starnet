@@ -1,8 +1,6 @@
 // @ts-check
-// Set piece definitions — named, parameterized prefab subgraphs for the LAN generator.
-// Set pieces are the escape hatch for topologies too complex to express as topology rules.
-// Each piece participates in macro-level topology as a unit ("super-node") and may
-// intentionally violate standard topology rules to represent interesting configurations.
+// Set piece engine function — applies a set piece definition to a network.
+// Set piece definitions (data) live in biome bundles (e.g. js/biomes/corporate/set-pieces.js).
 
 import { shiftGrade } from "./grades.js";
 
@@ -30,38 +28,10 @@ import { shiftGrade } from "./grades.js";
  *   nodes: PieceNodeDef[],
  *   edges: PieceEdgeDef[],
  *   externalAttachments: ExternalAttachment[],
+ *   eligible?: (ctx: object) => boolean,
+ *   probability?: number,
  * }} SetPiece
  */
-
-/** @type {Record<string, SetPiece>} */
-export const SET_PIECES = {
-  /**
-   * careless-user — a workstation inadvertently bridged to a fileserver that is
-   * otherwise behind a firewall. Creates a soft alternate path to a protected node.
-   *
-   * Narrative: the sysadmin connected the departmental workstation to the file store
-   * for convenience, not realising the firewall was supposed to gate that access.
-   *
-   * Topology rule violation: fileserver is accessible both through the firewall
-   * (hard path) and through the workstation (soft path that bypasses the gate).
-   */
-  "careless-user": {
-    id: "careless-user",
-    nodes: [
-      { localId: "ws", type: "workstation", gradeOffset: -1, depth: 2 }, // soft entry
-      { localId: "fs", type: "fileserver",  gradeOffset:  0, depth: 2 }, // base grade
-      { localId: "fw", type: "firewall",    gradeOffset: +1, depth: 1 }, // hardened gate
-    ],
-    edges: [
-      { source: "ws", target: "fs" }, // the exposure — bypasses firewall
-      { source: "fw", target: "fs" }, // firewall still present (hard path)
-    ],
-    externalAttachments: [
-      { attachTo: "router",  localId: "ws" }, // router → workstation (soft entry point)
-      { attachTo: "gateway", localId: "fw" }, // gateway → firewall (hard entry point)
-    ],
-  },
-};
 
 /**
  * Apply a set piece to a network (mutates network.nodes and network.edges in place).
