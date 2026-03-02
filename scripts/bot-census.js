@@ -20,6 +20,7 @@ function parseArgs(argv) {
   let mc = null;
   let seeds = 100;
   let seedPrefix = "bot";
+  let evasion = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--time" && args[i + 1]) {
@@ -31,15 +32,17 @@ function parseArgs(argv) {
       if (isNaN(seeds) || seeds < 1) seeds = 100;
     } else if (args[i] === "--seed-prefix" && args[i + 1]) {
       seedPrefix = args[++i];
+    } else if (args[i] === "--evasion") {
+      evasion = true;
     }
   }
 
   if (!tc || !mc) {
-    console.error("Usage: node scripts/bot-census.js --time <grade> --money <grade> [--seeds N] [--seed-prefix str]");
+    console.error("Usage: node scripts/bot-census.js --time <grade> --money <grade> [--seeds N] [--evasion]");
     process.exit(1);
   }
 
-  return { tc, mc, seeds, seedPrefix };
+  return { tc, mc, seeds, seedPrefix, evasion };
 }
 
 // ── Stats aggregation ────────────────────────────────────────────────────────
@@ -73,7 +76,7 @@ function pct(n, total) {
  * @param {number} seedCount
  * @param {string} seedPrefix
  */
-function printReport(results, tc, mc, seedCount, seedPrefix) {
+function printReport(results, tc, mc, seedCount, seedPrefix, evasionMode = false) {
   const total = results.length;
   const succeeded = results.filter(r => r.missionSuccess);
   const failed = results.filter(r => !r.missionSuccess);
@@ -117,7 +120,7 @@ function printReport(results, tc, mc, seedCount, seedPrefix) {
   const iceStats = stats(results.map(r => r.iceDetections));
 
   // Print
-  console.log(`=== BOT SIMULATION: ${tc}/${mc} ===`);
+  console.log(`=== BOT SIMULATION: ${tc}/${mc}${evasionMode ? " [EVASION]" : ""} ===`);
   console.log(`Seeds: ${seedPrefix}-0 through ${seedPrefix}-${seedCount - 1} (${seedCount} runs)`);
   console.log();
 
@@ -175,7 +178,7 @@ function printReport(results, tc, mc, seedCount, seedPrefix) {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
-const { tc, mc, seeds, seedPrefix } = parseArgs(process.argv);
+const { tc, mc, seeds, seedPrefix, evasion } = parseArgs(process.argv);
 
 /** @type {import('./bot-player.js').BotRunStats[]} */
 const results = [];
@@ -183,8 +186,8 @@ const results = [];
 for (let i = 0; i < seeds; i++) {
   const seed = `${seedPrefix}-${i}`;
   const network = generateNetwork(seed, tc, mc);
-  const stats = runBot(network, seed);
+  const stats = runBot(network, seed, { evasion });
   results.push(stats);
 }
 
-printReport(results, tc, mc, seeds, seedPrefix);
+printReport(results, tc, mc, seeds, seedPrefix, evasion);

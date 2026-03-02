@@ -57,11 +57,11 @@ const SECURITY_TYPES = new Set(["ids", "security-monitor"]);
  * Run one automated game from init to completion.
  * @param {object} network — return value of generateNetwork()
  * @param {string} seed
- * @param {{ tickIncrement?: number, maxTicks?: number }} [options]
+ * @param {{ tickIncrement?: number, maxTicks?: number, evasion?: boolean }} [options]
  * @returns {BotRunStats}
  */
 export function runBot(network, seed, options = {}) {
-  const { tickIncrement = DEFAULT_TICK_INCREMENT, maxTicks = DEFAULT_MAX_TICKS } = options;
+  const { tickIncrement = DEFAULT_TICK_INCREMENT, maxTicks = DEFAULT_MAX_TICKS, evasion = false } = options;
 
   // ── Setup ────────────────────────────────────────────────
   clearHandlers();
@@ -176,10 +176,68 @@ export function runBot(network, seed, options = {}) {
     return spent;
   }
 
+  // ── ICE proximity tracking (for evasion) ────────────────
+  let iceAtPlayerNode = false;
+
+  if (evasion) {
+    on(E.ICE_MOVED, ({ toId }) => {
+      const s = getState();
+      iceAtPlayerNode = (s.selectedNodeId && toId === s.selectedNodeId);
+    });
+    // Also detect when ICE is already at node when we select it
+    on(E.ICE_DETECT_PENDING, () => {
+      iceAtPlayerNode = true;
+    });
+  }
+
+  /**
+   * Tick until one of the given event types fires, ICE arrives (if evading),
+   * or budget exceeded. Returns { spent, interrupted }.
+   * @param {string | string[]} eventTypes
+   * @param {number} budget
+   * @returns {{ spent: number, interrupted: boolean }}
+   */
+  function tickUntilEventOrIce(eventTypes, budget) {
+    const types = Array.isArray(eventTypes) ? eventTypes : [eventTypes];
+    firedEvents = new Set();
+    iceAtPlayerNode = false;
+    const handlers = types.map(t => {
+      const h = onEventFired(t);
+      on(t, h);
+      return { type: t, handler: h };
+    });
+
+    let spent = 0;
+    let interrupted = false;
+    while (spent < budget && !types.some(t => firedEvents.has(t))) {
+      tick(tickIncrement);
+      spent += tickIncrement;
+      totalTicks += tickIncrement;
+      if (traceFired) break;
+      if (getState().phase !== "playing") break;
+      if (evasion && iceAtPlayerNode) { interrupted = true; break; }
+    }
+
+    for (const { type, handler } of handlers) off(type, handler);
+    return { spent, interrupted };
+  }
+
   // ── Action dispatch helpers ──────────────────────────────
 
   function dispatchAction(actionId, payload = {}) {
     emitEvent("starnet:action", { actionId, fromConsole: false, ...payload });
+  }
+
+  /**
+   * Cancel current action, deselect, and wait for ICE to leave.
+   * @param {string} cancelAction — "cancel-exploit", "cancel-probe", etc.
+   */
+  function evadeIce(cancelAction) {
+    dispatchAction(cancelAction);
+    dispatchAction("deselect");
+    // Tick until ICE moves away (ICE_MOVED fires) or budget runs out
+    iceAtPlayerNode = false;
+    tickUntilEvent(E.ICE_MOVED, Math.min(500, maxTicks - totalTicks));
   }
 
   // ── Bot strategy ─────────────────────────────────────────
@@ -320,14 +378,25 @@ export function runBot(network, seed, options = {}) {
     // Navigate to target
     dispatchAction("select", { nodeId: target.id });
 
-    // Probe if needed
-    if (!targetNode.probed) {
+    // Probe if needed (with retry on ICE interruption)
+    while (!getState().nodes[target.id]?.probed && totalTicks < maxTicks) {
+      dispatchAction("select", { nodeId: target.id });
       dispatchAction("probe", { nodeId: target.id });
-      tickUntilEvent(E.NODE_PROBED, maxTicks - totalTicks);
-      if (traceFired || getState().phase !== "playing") {
-        if (traceFired) { failReason = "trace"; dispatchAction("jackout"); }
-        break;
+      if (evasion) {
+        const { interrupted } = tickUntilEventOrIce(E.NODE_PROBED, maxTicks - totalTicks);
+        if (interrupted && !traceFired && getState().phase === "playing") {
+          evadeIce("cancel-probe");
+          continue; // retry probe
+        }
+        dispatchAction("deselect");
+      } else {
+        tickUntilEvent(E.NODE_PROBED, maxTicks - totalTicks);
       }
+      break;
+    }
+    if (traceFired || getState().phase !== "playing") {
+      if (traceFired) { failReason = "trace"; dispatchAction("jackout"); }
+      break;
     }
 
     // Exploit until owned
@@ -347,8 +416,22 @@ export function runBot(network, seed, options = {}) {
         continue;  // retry with new card
       }
 
+      dispatchAction("select", { nodeId: target.id }); // re-select for exploit (may have deselected)
       dispatchAction("exploit", { nodeId: target.id, exploitId: card.id });
-      tickUntilEvent([E.EXPLOIT_SUCCESS, E.EXPLOIT_FAILURE], maxTicks - totalTicks);
+
+      if (evasion) {
+        const { interrupted } = tickUntilEventOrIce(
+          [E.EXPLOIT_SUCCESS, E.EXPLOIT_FAILURE], maxTicks - totalTicks
+        );
+        if (interrupted && !traceFired && getState().phase === "playing") {
+          // ICE arrived — cancel exploit and hide
+          evadeIce("cancel-exploit");
+          continue; // retry the exploit loop (pick card again, re-select, etc.)
+        }
+        dispatchAction("deselect");
+      } else {
+        tickUntilEvent([E.EXPLOIT_SUCCESS, E.EXPLOIT_FAILURE], maxTicks - totalTicks);
+      }
       if (traceFired) { failReason = "trace"; dispatchAction("jackout"); break outer; }
       if (getState().phase !== "playing") break outer;
     }
@@ -363,9 +446,10 @@ export function runBot(network, seed, options = {}) {
     // Read + loot any owned node (macguffins can be on any type, including workstations)
     const ownedNode = getState().nodes[target.id];
     if (ownedNode?.accessLevel === "owned" && !ownedNode.read) {
-      dispatchAction("select", { nodeId: target.id }); // ensure selected for read
+      dispatchAction("select", { nodeId: target.id });
       dispatchAction("read", { nodeId: target.id });
       tickUntilEvent(E.NODE_READ, maxTicks - totalTicks);
+      if (evasion) dispatchAction("deselect");
       if (traceFired) { failReason = "trace"; dispatchAction("jackout"); break; }
       if (getState().phase !== "playing") break;
     }
@@ -373,9 +457,10 @@ export function runBot(network, seed, options = {}) {
     const readNode = getState().nodes[target.id];
     const hasLoot = readNode?.macguffins?.some(m => !m.collected);
     if (readNode?.accessLevel === "owned" && readNode.read && hasLoot && !readNode.looted) {
-      dispatchAction("select", { nodeId: target.id }); // ensure selected for loot
+      dispatchAction("select", { nodeId: target.id });
       dispatchAction("loot", { nodeId: target.id });
       tickUntilEvent(E.NODE_LOOTED, maxTicks - totalTicks);
+      if (evasion) dispatchAction("deselect");
       if (traceFired) { failReason = "trace"; dispatchAction("jackout"); break; }
       if (getState().phase !== "playing") break;
     }
