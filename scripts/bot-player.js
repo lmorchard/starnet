@@ -229,16 +229,24 @@ export function runBot(network, seed, options = {}) {
     emitEvent("starnet:action", { actionId, fromConsole: false, ...payload });
   }
 
+  /** Number of ICE_MOVED events to wait after evading — gives ICE time to
+   *  investigate the disturbance, find nothing, clear the signal, and wander. */
+  const EVASION_PATIENCE = 3;
+
   /**
-   * Cancel current action, deselect, and wait for ICE to leave.
+   * Cancel current action, deselect, and wait for ICE to complete its
+   * investigation cycle. Waits for multiple ICE moves so ICE has time to
+   * arrive at the disturbance, clear it, and wander away.
    * @param {string} cancelAction — "cancel-exploit", "cancel-probe", etc.
    */
   function evadeIce(cancelAction) {
     dispatchAction(cancelAction);
     dispatchAction("deselect");
-    // Tick until ICE moves away (ICE_MOVED fires) or budget runs out
     iceAtPlayerNode = false;
-    tickUntilEvent(E.ICE_MOVED, Math.min(500, maxTicks - totalTicks));
+    // Wait for several ICE moves to let the investigation cycle complete
+    for (let i = 0; i < EVASION_PATIENCE && totalTicks < maxTicks; i++) {
+      tickUntilEvent(E.ICE_MOVED, Math.min(500, maxTicks - totalTicks));
+    }
   }
 
   // ── Bot strategy ─────────────────────────────────────────
