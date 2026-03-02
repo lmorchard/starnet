@@ -1,0 +1,15 @@
+=== TIMELINE COMPARISON ===
+Shows when key events happen (in ticks) to visualize the ICE race condition.
+
+ICE grade vs bot speed (moneyCost=D, 50 seeds each):
+
+Grade  1stOwned  1stDetect  Trace   Mission  Success
+F/D    486       635        1447    986      88%
+D/D    479       511        1583    1203     80%
+C/D    425       363        643     719      8%
+B/D    411       290        532     805      2%
+
+Key finding: at C-grade ICE, first detection (tick 363) happens BEFORE
+the bot owns its first non-gateway node (tick 425). The bot loses the race
+regardless of node difficulty — even at F-grade nodes (C/F: detect at 348,
+first owned at 427, 10% success).

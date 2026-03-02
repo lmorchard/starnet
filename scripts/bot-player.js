@@ -46,6 +46,10 @@ const SECURITY_TYPES = new Set(["ids", "security-monitor"]);
  *   iceDetections: number,
  *   nodesOwned: number,
  *   nodesTotal: number,
+ *   tickFirstNodeOwned: number,
+ *   tickFirstDetection: number,
+ *   tickTraceStarted: number,
+ *   tickMissionComplete: number,
  * }} BotRunStats
  */
 
@@ -93,21 +97,46 @@ export function runBot(network, seed, options = {}) {
   let startingCash = getState().player.cash;
   let storeVisitCount = 0;
 
+  // Timing breakpoints (tick at which event first occurs)
+  let tickFirstNodeOwned = -1;   // first non-gateway node owned
+  let tickFirstDetection = -1;   // first ICE detection
+  let tickTraceStarted = -1;     // trace countdown started
+  let tickMissionComplete = -1;  // mission target looted
+  let gatewayOwnedCount = 0;     // track when we're past gateway
+
   const alertOrder = ["green", "yellow", "red"];
 
   function onAlertRaised({ next }) {
     if (alertOrder.indexOf(next) > alertOrder.indexOf(peakAlert)) peakAlert = next;
   }
-  function onTraceStarted() { traceFired = true; }
-  function onIceDetected() { iceDetections++; }
+  function onTraceStarted() {
+    traceFired = true;
+    if (tickTraceStarted < 0) tickTraceStarted = totalTicks;
+  }
+  function onIceDetected() {
+    iceDetections++;
+    if (tickFirstDetection < 0) tickFirstDetection = totalTicks;
+  }
   function onExploitStarted() { cardUsesConsumed++; }
   function onExploitDisclosed() { cardsBurned++; }
+  function onNodeAccessed({ nodeId }) {
+    const n = getState().nodes[nodeId];
+    if (n?.accessLevel === "owned" && n.type !== "gateway") {
+      gatewayOwnedCount++;
+      if (tickFirstNodeOwned < 0) tickFirstNodeOwned = totalTicks;
+    }
+  }
+  function onMissionComplete() {
+    if (tickMissionComplete < 0) tickMissionComplete = totalTicks;
+  }
 
   on(E.ALERT_GLOBAL_RAISED, onAlertRaised);
   on(E.ALERT_TRACE_STARTED, onTraceStarted);
   on(E.ICE_DETECTED, onIceDetected);
   on(E.EXPLOIT_STARTED, onExploitStarted);
   on(E.EXPLOIT_DISCLOSED, onExploitDisclosed);
+  on(E.NODE_ACCESSED, onNodeAccessed);
+  on(E.MISSION_COMPLETE, onMissionComplete);
 
   // ── Tick-until-event helper ──────────────────────────────
   let totalTicks = 0;
@@ -402,5 +431,9 @@ export function runBot(network, seed, options = {}) {
     iceDetections,
     nodesOwned,
     nodesTotal,
+    tickFirstNodeOwned,
+    tickFirstDetection,
+    tickTraceStarted,
+    tickMissionComplete,
   };
 }

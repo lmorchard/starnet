@@ -158,6 +158,19 @@ function printReport(results, tc, mc, seedCount, seedPrefix) {
   console.log(`Peak alert:   GREEN=${alertCounts.green}  YELLOW=${alertCounts.yellow}  RED=${alertCounts.red}`);
   console.log(`Trace fired:  ${traceFired}/${total}`);
   console.log(`ICE detects:  avg ${fmt(iceStats.avg)}  max ${iceStats.max}`);
+  console.log();
+
+  // Timeline: when key events happen (ticks). -1 means "never happened"
+  const withDetection = results.filter(r => r.tickFirstDetection >= 0);
+  const withTrace     = results.filter(r => r.tickTraceStarted >= 0);
+  const withOwned     = results.filter(r => r.tickFirstNodeOwned >= 0);
+  const withMission   = results.filter(r => r.tickMissionComplete >= 0);
+
+  console.log(`--- TIMELINE (avg tick when event first occurs) ---`);
+  console.log(`First node owned:    ${withOwned.length > 0 ? fmt(stats(withOwned.map(r => r.tickFirstNodeOwned)).avg, 0) : "—"} (${withOwned.length}/${total} runs)`);
+  console.log(`First ICE detection: ${withDetection.length > 0 ? fmt(stats(withDetection.map(r => r.tickFirstDetection)).avg, 0) : "—"} (${withDetection.length}/${total} runs)`);
+  console.log(`Trace started:       ${withTrace.length > 0 ? fmt(stats(withTrace.map(r => r.tickTraceStarted)).avg, 0) : "—"} (${withTrace.length}/${total} runs)`);
+  console.log(`Mission complete:    ${withMission.length > 0 ? fmt(stats(withMission.map(r => r.tickMissionComplete)).avg, 0) : "—"} (${withMission.length}/${total} runs)`);
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
