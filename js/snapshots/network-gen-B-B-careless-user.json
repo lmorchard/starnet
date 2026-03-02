@@ -76,7 +76,7 @@
       "id": "fileserver-10",
       "type": "fileserver",
       "label": "FS-VAULT",
-      "grade": "B",
+      "grade": "A",
       "x": 400,
       "y": 610
     },
@@ -108,7 +108,7 @@
       "id": "workstation-14",
       "type": "workstation",
       "label": "WS-DELTA",
-      "grade": "D",
+      "grade": "C",
       "x": 800,
       "y": 330
     },
@@ -116,7 +116,7 @@
       "id": "fileserver-15",
       "type": "fileserver",
       "label": "FS-01",
-      "grade": "C",
+      "grade": "B",
       "x": 1000,
       "y": 330
     },
@@ -124,7 +124,7 @@
       "id": "firewall-16",
       "type": "firewall",
       "label": "FW-01",
-      "grade": "B",
+      "grade": "A",
       "x": 700,
       "y": 190
     }
@@ -159,11 +159,11 @@
       "target": "router-8"
     },
     {
-      "source": "router-9",
+      "source": "router-8",
       "target": "router-9"
     },
     {
-      "source": "router-9",
+      "source": "router-8",
       "target": "fileserver-10"
     },
     {
@@ -171,11 +171,11 @@
       "target": "cryptovault-11"
     },
     {
-      "source": "router-5",
+      "source": "router-6",
       "target": "workstation-12"
     },
     {
-      "source": "router-6",
+      "source": "router-5",
       "target": "workstation-13"
     },
     {
@@ -187,7 +187,7 @@
       "target": "fileserver-15"
     },
     {
-      "source": "router-8",
+      "source": "router-5",
       "target": "workstation-14"
     },
     {

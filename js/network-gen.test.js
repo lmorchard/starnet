@@ -114,6 +114,43 @@ structural("struct-seed", "C", "C");
 structural("struct-seed", "B", "B");
 structural("struct-seed", "S", "S");
 
+// ── Self-loop and connectivity regression ────────────────────────────────────
+
+describe("generateNetwork: no self-loops or orphans", () => {
+  const GRADES = ["F", "D", "C", "B", "A", "S"];
+
+  it("no self-loops across 10 seeds at S/S", () => {
+    for (let i = 0; i < 10; i++) {
+      const net = generateNetwork(`selfloop-${i}`, "S", "S");
+      const selfLoops = net.edges.filter(e => e.source === e.target);
+      assert.equal(selfLoops.length, 0,
+        `seed selfloop-${i}: self-loop at ${selfLoops[0]?.source}`);
+    }
+  });
+
+  it("all nodes reachable from startNode across 10 seeds at S/S", () => {
+    for (let i = 0; i < 10; i++) {
+      const net = generateNetwork(`orphan-${i}`, "S", "S");
+      const adj = {};
+      for (const e of net.edges) {
+        (adj[e.source] ??= []).push(e.target);
+        (adj[e.target] ??= []).push(e.source);
+      }
+      const visited = new Set([net.startNode]);
+      const queue = [net.startNode];
+      while (queue.length) {
+        const cur = queue.shift();
+        for (const nb of (adj[cur] ?? [])) {
+          if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
+        }
+      }
+      const orphans = net.nodes.filter(n => !visited.has(n.id));
+      assert.equal(orphans.length, 0,
+        `seed orphan-${i}: unreachable nodes: ${orphans.map(n => n.id).join(", ")}`);
+    }
+  });
+});
+
 // ── Snapshot tests ─────────────────────────────────────────────────────────────
 
 const SNAP_DIR = new URL("./snapshots", import.meta.url).pathname;
@@ -156,9 +193,9 @@ describe("generateNetwork: set pieces", () => {
   });
 
   it("careless-user adds expected nodes", () => {
-    // sp-test-1 at B/B does NOT fire the set piece naturally
-    const without = generateNetwork("sp-test-1", "B", "B");
-    const withPiece = generateNetwork("sp-test-1", "B", "B", { forcePieces: ["careless-user"] });
+    // sp-test-0 at B/B does NOT fire the set piece naturally
+    const without = generateNetwork("sp-test-0", "B", "B");
+    const withPiece = generateNetwork("sp-test-0", "B", "B", { forcePieces: ["careless-user"] });
     // careless-user adds 3 nodes: workstation, fileserver, firewall
     assert.ok(withPiece.nodes.length >= without.nodes.length + 3,
       `expected ≥${without.nodes.length + 3} nodes, got ${withPiece.nodes.length}`);

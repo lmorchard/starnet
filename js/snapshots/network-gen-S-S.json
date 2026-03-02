@@ -11,7 +11,7 @@
     {
       "id": "gateway-2",
       "type": "gateway",
-      "label": "GW-EDGE",
+      "label": "INET-GW-02",
       "grade": "B",
       "x": 400,
       "y": 50
@@ -19,7 +19,7 @@
     {
       "id": "security-monitor-3",
       "type": "security-monitor",
-      "label": "MON-CORE",
+      "label": "SEC-MON-01",
       "grade": "S",
       "x": 200,
       "y": 750
@@ -35,7 +35,7 @@
     {
       "id": "router-5",
       "type": "router",
-      "label": "RTR-B",
+      "label": "RTR-A",
       "grade": "A",
       "x": 100,
       "y": 190
@@ -43,7 +43,7 @@
     {
       "id": "router-6",
       "type": "router",
-      "label": "RTR-A",
+      "label": "RTR-02",
       "grade": "A",
       "x": 300,
       "y": 190
@@ -51,7 +51,7 @@
     {
       "id": "firewall-7",
       "type": "firewall",
-      "label": "FW-DMZ",
+      "label": "FW-CORE",
       "grade": "S",
       "x": 500,
       "y": 190
@@ -59,23 +59,23 @@
     {
       "id": "router-8",
       "type": "router",
-      "label": "RTR-EDGE",
-      "grade": "S",
+      "label": "RTR-01",
+      "grade": "A",
       "x": -200,
       "y": 330
     },
     {
       "id": "router-9",
       "type": "router",
-      "label": "RTR-CORE",
-      "grade": "S",
+      "label": "RTR-B",
+      "grade": "A",
       "x": 0,
       "y": 330
     },
     {
       "id": "router-10",
       "type": "router",
-      "label": "RTR-01",
+      "label": "RTR-EDGE",
       "grade": "S",
       "x": 200,
       "y": 330
@@ -83,15 +83,15 @@
     {
       "id": "fileserver-11",
       "type": "fileserver",
-      "label": "FS-02",
-      "grade": "A",
+      "label": "FS-ARCHIVE",
+      "grade": "S",
       "x": 400,
       "y": 750
     },
     {
       "id": "cryptovault-12",
       "type": "cryptovault",
-      "label": "CRYPT-01",
+      "label": "VAULT-S",
       "grade": "S",
       "x": 600,
       "y": 750
@@ -99,7 +99,7 @@
     {
       "id": "workstation-13",
       "type": "workstation",
-      "label": "WS-02",
+      "label": "WS-BETA",
       "grade": "B",
       "x": 400,
       "y": 330
@@ -107,7 +107,7 @@
     {
       "id": "workstation-14",
       "type": "workstation",
-      "label": "WS-BETA",
+      "label": "WS-01",
       "grade": "B",
       "x": 600,
       "y": 330
@@ -115,7 +115,7 @@
     {
       "id": "workstation-15",
       "type": "workstation",
-      "label": "WS-03",
+      "label": "WS-GAMMA",
       "grade": "A",
       "x": 800,
       "y": 330
@@ -123,7 +123,7 @@
     {
       "id": "fileserver-16",
       "type": "fileserver",
-      "label": "FS-DATA",
+      "label": "FS-02",
       "grade": "S",
       "x": 1000,
       "y": 330
@@ -131,7 +131,7 @@
     {
       "id": "firewall-17",
       "type": "firewall",
-      "label": "FW-PERIMETER",
+      "label": "FW-01",
       "grade": "S",
       "x": 700,
       "y": 190
@@ -167,15 +167,15 @@
       "target": "router-8"
     },
     {
-      "source": "router-9",
+      "source": "router-8",
       "target": "router-9"
     },
     {
-      "source": "router-9",
+      "source": "router-8",
       "target": "router-10"
     },
     {
-      "source": "router-8",
+      "source": "router-9",
       "target": "fileserver-11"
     },
     {
@@ -183,7 +183,7 @@
       "target": "cryptovault-12"
     },
     {
-      "source": "router-6",
+      "source": "router-5",
       "target": "workstation-13"
     },
     {
@@ -199,7 +199,7 @@
       "target": "fileserver-16"
     },
     {
-      "source": "router-5",
+      "source": "router-10",
       "target": "workstation-15"
     },
     {

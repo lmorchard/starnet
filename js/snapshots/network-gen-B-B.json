@@ -29,7 +29,7 @@
       "type": "ids",
       "label": "IDS-01",
       "grade": "B",
-      "x": -200,
+      "x": 0,
       "y": 330
     },
     {
@@ -37,7 +37,7 @@
       "type": "router",
       "label": "RTR-A",
       "grade": "C",
-      "x": 100,
+      "x": 200,
       "y": 190
     },
     {
@@ -45,7 +45,7 @@
       "type": "router",
       "label": "RTR-02",
       "grade": "B",
-      "x": 300,
+      "x": 400,
       "y": 190
     },
     {
@@ -53,7 +53,7 @@
       "type": "firewall",
       "label": "FW-CORE",
       "grade": "A",
-      "x": 500,
+      "x": 600,
       "y": 190
     },
     {
@@ -61,7 +61,7 @@
       "type": "router",
       "label": "RTR-01",
       "grade": "C",
-      "x": 0,
+      "x": 200,
       "y": 330
     },
     {
@@ -69,14 +69,14 @@
       "type": "router",
       "label": "RTR-B",
       "grade": "B",
-      "x": 200,
+      "x": 400,
       "y": 330
     },
     {
       "id": "fileserver-10",
       "type": "fileserver",
       "label": "FS-ARCHIVE",
-      "grade": "C",
+      "grade": "A",
       "x": 400,
       "y": 610
     },
@@ -93,7 +93,7 @@
       "type": "workstation",
       "label": "WS-BETA",
       "grade": "D",
-      "x": 400,
+      "x": 600,
       "y": 330
     },
     {
@@ -101,32 +101,8 @@
       "type": "workstation",
       "label": "WS-01",
       "grade": "D",
-      "x": 600,
-      "y": 330
-    },
-    {
-      "id": "workstation-14",
-      "type": "workstation",
-      "label": "WS-GAMMA",
-      "grade": "D",
       "x": 800,
       "y": 330
-    },
-    {
-      "id": "fileserver-15",
-      "type": "fileserver",
-      "label": "FS-02",
-      "grade": "C",
-      "x": 1000,
-      "y": 330
-    },
-    {
-      "id": "firewall-16",
-      "type": "firewall",
-      "label": "FW-01",
-      "grade": "B",
-      "x": 700,
-      "y": 190
     }
   ],
   "edges": [
@@ -159,11 +135,11 @@
       "target": "router-8"
     },
     {
-      "source": "router-9",
+      "source": "router-8",
       "target": "router-9"
     },
     {
-      "source": "router-9",
+      "source": "router-8",
       "target": "fileserver-10"
     },
     {
@@ -175,24 +151,8 @@
       "target": "workstation-12"
     },
     {
-      "source": "router-5",
+      "source": "router-6",
       "target": "workstation-13"
-    },
-    {
-      "source": "workstation-14",
-      "target": "fileserver-15"
-    },
-    {
-      "source": "firewall-16",
-      "target": "fileserver-15"
-    },
-    {
-      "source": "router-9",
-      "target": "workstation-14"
-    },
-    {
-      "source": "gateway-2",
-      "target": "firewall-16"
     }
   ],
   "startNode": "gateway-2",

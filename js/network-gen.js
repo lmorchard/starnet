@@ -219,7 +219,8 @@ function buildNetwork(rng, tc, mc, forcePieces = [], biome) {
         const targetRole = typeof layer.connectTo === "function"
           ? layer.connectTo({ tc: time, mc: money, state: spawnedByRole })
           : layer.connectTo;
-        const targets = spawnedByRole[targetRole] ?? [];
+        // Exclude self to prevent self-loops (current node is already in spawnedByRole)
+        const targets = (spawnedByRole[targetRole] ?? []).filter(t => t !== id);
         if (targets.length) addEdge(pick(rng, targets), id);
       }
 
