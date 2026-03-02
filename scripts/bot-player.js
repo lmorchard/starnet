@@ -453,15 +453,29 @@ export function runBot(network, seed, options = {}) {
       if (!freshNode || freshNode.accessLevel === "owned") break;
       if (traceFired) { failReason = "trace"; dispatchAction("jackout"); break outer; }
 
-      const card = pickBestCard(freshNode);
+      let card = pickBestCard(freshNode);
       if (!card) {
-        // Try darknet store
+        // No usable cards — try darknet store
         if (!tryBuyCard(freshNode)) {
-          // Can't buy either — try next node, or fail
           failReason = "no-cards";
           break;
         }
-        continue;  // retry with new card
+        card = pickBestCard(freshNode);
+        if (!card) { failReason = "no-cards"; break; }
+      }
+
+      // Proactive store: if our best card doesn't match any known vuln and
+      // the node has been probed, buy a matching card for better success rate
+      if (evasion && freshNode.probed && getState().player.cash >= 100) {
+        const knownVulns = new Set(
+          (freshNode.vulnerabilities ?? []).filter(v => !v.patched && !v.hidden).map(v => v.id)
+        );
+        const hasMatch = card.targetVulnTypes?.some(t => knownVulns.has(t));
+        if (!hasMatch && knownVulns.size > 0) {
+          if (tryBuyCard(freshNode)) {
+            card = pickBestCard(freshNode) ?? card;
+          }
+        }
       }
 
       dispatchAction("select", { nodeId: target.id }); // re-select for exploit (may have deselected)
