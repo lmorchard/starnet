@@ -53,3 +53,29 @@ describe("runBot", () => {
     assert.ok(stats.totalTicks <= 50, `expected ≤50 ticks, got ${stats.totalTicks}`);
   });
 });
+
+// ── Smoke tests: difficulty curve sanity ─────────────────────────────────────
+// These run 20 seeds each and verify the bot's success rate hasn't regressed.
+// Catches broken mechanics (F/F) and ICE balance drift (C/C).
+
+describe("bot smoke: difficulty curve", () => {
+  it("F/F evasion: ≥70% success over 20 seeds", () => {
+    let successes = 0;
+    for (let i = 0; i < 20; i++) {
+      const net = generateNetwork(`smoke-ff-${i}`, "F", "F");
+      const stats = runBot(net, `smoke-ff-${i}`, { evasion: true });
+      if (stats.missionSuccess) successes++;
+    }
+    assert.ok(successes >= 14, `F/F: expected ≥70% success, got ${successes}/20 (${successes * 5}%)`);
+  });
+
+  it("C/C evasion: ≥10% success over 20 seeds", () => {
+    let successes = 0;
+    for (let i = 0; i < 20; i++) {
+      const net = generateNetwork(`smoke-cc-${i}`, "C", "C");
+      const stats = runBot(net, `smoke-cc-${i}`, { evasion: true });
+      if (stats.missionSuccess) successes++;
+    }
+    assert.ok(successes >= 2, `C/C: expected ≥10% success, got ${successes}/20 (${successes * 5}%)`);
+  });
+});
