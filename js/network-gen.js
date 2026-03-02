@@ -2,33 +2,12 @@
 // Procedural LAN generator.
 // generateNetwork(seed, timeCost, moneyCost) → NETWORK-shaped object.
 //
-// Self-contained: uses its own local Mulberry32 RNG seeded from the seed string.
-// Does NOT depend on js/rng.js so it doesn't affect gameplay randomness.
+// Uses makeSeededRng() from js/rng.js — an independent instance that does NOT
+// advance any named gameplay stream, so generation doesn't affect run randomness.
 
 import { GRADES, GRADE_INDEX, parseGrade, shiftGrade, randomGrade, clampGrade } from "./grades.js";
 import { SET_PIECES, applySetPiece } from "./set-pieces.js";
-
-// ── Local RNG ─────────────────────────────────────────────────────────────────
-
-/** djb2 string hash → signed int32. */
-function djb2(str) {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
-  }
-  return hash;
-}
-
-/** Create a self-contained Mulberry32 RNG returning [0,1) floats. */
-function makeMulberry32(seed32) {
-  let s = seed32 | 0;
-  return function rng() {
-    s = (s + 0x6D2B79F5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+import { makeSeededRng, shuffleWith } from "./rng.js";
 
 /** Pick a random element from an array. */
 function pick(rng, arr) {
@@ -161,7 +140,7 @@ export function generateNetwork(seed, timeCost, moneyCost, options = {}) {
   const MAX_ATTEMPTS = 10;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     // Each attempt gets a fresh RNG derived from seed + attempt index.
-    const rng = makeMulberry32(djb2(`${seed}-network-${attempt}`));
+    const rng = makeSeededRng(`${seed}-network-${attempt}`);
     const candidate = buildNetwork(rng, tc, mc, forcePieces);
     const failure = validate(candidate);
     if (!failure) return candidate;
@@ -183,7 +162,7 @@ function buildNetwork(rng, tc, mc, forcePieces = []) {
   const labelPools = {};
   for (const [type, labels] of Object.entries(LABEL_POOLS)) {
     labelPools[type] = [...labels];
-    shuffle(rng, labelPools[type]);
+    shuffleWith(rng, labelPools[type]);
   }
 
   function nextLabel(type) {
@@ -320,13 +299,6 @@ function buildNetwork(rng, tc, mc, forcePieces = []) {
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
-/** Fisher-Yates shuffle (mutates). */
-function shuffle(rng, arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
 
 // ── Validators ────────────────────────────────────────────────────────────────
 
