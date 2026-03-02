@@ -225,6 +225,38 @@ node scripts/playtest.js "status ice"
 
 ---
 
+## Bot Player and Census
+
+`scripts/bot-player.js` is an automated game-playing agent for balance testing.
+`scripts/bot-census.js` runs it across many seeds and produces LLM-readable reports.
+See `docs/BOT-PLAYER.md` for full documentation.
+
+**`scripts/bot-player.js`, `scripts/playtest.js`, and `js/main.js` are three parallel
+entry points** into the same game engine. All three share timer wiring, action dispatch,
+and event handling. When changing game mechanics, check all three.
+
+**Keep the bot working when changing game mechanics.** The bot reads game state directly
+(`accessLevel`, `visibility`, `vulnerabilities`, `macguffins`) and dispatches actions
+via `emitEvent("starnet:action", ...)`. Changes that affect the bot:
+
+- **New action types** → bot won't use them automatically, but shouldn't break. Consider
+  whether the bot should learn the new action (add to strategy) or ignore it (note in
+  `docs/BOT-PLAYER.md` "What the bot does NOT do").
+- **Changed event names or payloads** → bot stat tracking may miss events. Check the
+  `on(E.*)` handlers in `runBot()`.
+- **New node types** → bot may skip or mishandle them. Check `pickNextNode()` and the
+  `SECURITY_TYPES` / `LOOTABLE_TYPES` sets.
+- **New timed actions** → need `tickUntilEvent` support and timer handler wiring in the
+  one-time init block.
+- **Timer handler changes** → the bot's init block must register the same handlers as
+  `playtest.js`. If a new TIMER type is added, add it to both.
+
+**Run `make bot-census` after balance changes** to verify the difficulty curve hasn't
+regressed. A quick smoke test: `node scripts/bot-census.js --time F --money F --seeds 10`
+should show ~80% success.
+
+---
+
 ## Player Manual
 
 `MANUAL.md` is the player-facing documentation for the game and the **canonical reference
