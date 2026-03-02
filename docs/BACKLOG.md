@@ -11,6 +11,11 @@ _Compiled from all dev session notes. Not a prioritized roadmap — just a livin
 - **Persistent inventory between runs** — in the overworld context, exploit loadout carries across LANs; crafting/acquiring a better kit is part of the meta-loop
 - **Balance: starting hand vs. network vulnerability mix** — current hand frequently doesn't match early node vulns; in the overworld context this is solved by pre-run preparation, not hand seeding _(deferred pending overworld design)_
 
+### Reward Scaling with Difficulty
+- **Macguffin value scaling** — higher-difficulty networks cost more to crack (harder nodes, deeper paths, more ICE pressure) but don't contain more valuable loot. Macguffin `cashValue` should scale with `moneyCost` grade so players have incentive to tackle harder networks. This is a game state layer change (`loot.js`), not a generator change.
+- **Risk/reward feedback loop** — the darknet store already costs cash; if harder networks pay more, the player's cash economy becomes meaningful (spend to crack, earn to profit). Currently all cash feels like pure score.
+- _Identified during bot census session (2026-03-01): zero deficit at all difficulties, but no reward differential either._
+
 ### Mission / Objectives
 - **Mission conditions** — secondary objectives like "never exceed yellow alert" or "don't trigger trace"; adds replayability and run variety
 - **Node flavor text** — when you `read` a node, give it cyberpunk lore flavor beyond "X item(s) found"
