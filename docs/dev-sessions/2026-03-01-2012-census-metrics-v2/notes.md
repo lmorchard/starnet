@@ -33,6 +33,14 @@ detection dwell time, creating a danger radius the player must avoid. This
 is a different ICE type entirely (not a grade variant). Good candidate for
 the future multiple-ICE-instance feature.
 
+### Reward scaling with difficulty
+Currently higher-difficulty networks cost more to crack (harder nodes, deeper
+paths, more ICE pressure) but don't contain more valuable loot. Macguffin
+values are set in the game state layer (loot.js), not the generator. Scaling
+rewards with moneyCost would give players incentive to tackle harder networks
+and offset the increased card/cash expenditure. This is a game state change,
+not a generator change — separate session.
+
 ### A/S player tracking removed
 The old A/S behavior (pathfind directly to `selectedNodeId`) was removed
 because it felt like cheating — ICE had perfect knowledge of the player's

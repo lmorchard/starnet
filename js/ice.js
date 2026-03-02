@@ -27,7 +27,8 @@ const MOVE_INTERVALS = { S: 4000, A: 5000, B: 6000, C: 7000, D: 12000, F: 14000 
 
 // Grade → dwell time before detection (ms).
 // S/A get very short dwells — tight but evadable with fast reactions.
-const DWELL_TIMES = { S: 800, A: 1500, B: 3500, C: 4500, D: 9000, F: 10000 };
+// C/B bumped from 4500/3500 to give players a window to complete exploits.
+const DWELL_TIMES = { S: 800, A: 1500, B: 4500, C: 5500, D: 9000, F: 10000 };
 
 // Grade → noise tick at which ICE first responds to an executing exploit.
 // Exploit emits ticks 1–9 at 10%–90% of duration; 10% intervals.
