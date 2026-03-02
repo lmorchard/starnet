@@ -1095,7 +1095,7 @@ html, body {
   background: var(--bg);
   border: 1px solid var(--cyan);
   box-shadow: 0 0 24px rgba(0, 200, 255, 0.15);
-  width: min(92%, 340px);
+  width: min(92%, 420px);
   font-family: var(--font-mono);
   display: flex;
   flex-direction: column;
