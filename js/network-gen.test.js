@@ -146,6 +146,33 @@ describe("generateNetwork: snapshots", () => {
   });
 });
 
+// ── Set piece tests ──────────────────────────────────────────────────────────
+
+describe("generateNetwork: set pieces", () => {
+  it("deterministic with forcePieces careless-user", () => {
+    const a = generateNetwork("sp-test", "B", "B", { forcePieces: ["careless-user"] });
+    const b = generateNetwork("sp-test", "B", "B", { forcePieces: ["careless-user"] });
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(a)), JSON.parse(JSON.stringify(b)));
+  });
+
+  it("careless-user adds expected nodes", () => {
+    // sp-test-1 at B/B does NOT fire the set piece naturally (11 nodes)
+    const without = generateNetwork("sp-test-1", "B", "B");
+    const withPiece = generateNetwork("sp-test-1", "B", "B", { forcePieces: ["careless-user"] });
+    // careless-user adds 3 nodes: workstation, fileserver, firewall
+    assert.ok(withPiece.nodes.length >= without.nodes.length + 3,
+      `expected ≥${without.nodes.length + 3} nodes, got ${withPiece.nodes.length}`);
+    // Should have at least 2 firewalls (1 from gate layer + 1 from set piece)
+    const fwCount = withPiece.nodes.filter(n => n.type === "firewall").length;
+    assert.ok(fwCount >= 2, `expected ≥2 firewalls, got ${fwCount}`);
+  });
+
+  it("snapshot: sp-snap B/B forced careless-user is stable", () => {
+    snapshot("B-B-careless-user",
+      generateNetwork("sp-snap", "B", "B", { forcePieces: ["careless-user"] }));
+  });
+});
+
 // ── Input validation ───────────────────────────────────────────────────────────
 
 describe("generateNetwork: input validation", () => {
