@@ -20,10 +20,10 @@ import { pauseTimers, resumeTimers } from "../timers.js";
 
 /**
  * Build the wired ActionContext — maps abstract ctx methods to concrete state mutators.
- * @param {(state: import('../types.js').GameState) => void} [openStore] Optional browser-side store opener; no-op in headless contexts.
+ * @param {(state: import('../types.js').GameState) => void} [openDarknetsStore] Optional browser-side store opener; no-op in headless contexts.
  * @returns {ActionContext}
  */
-export function buildActionContext(openStore = () => {}) {
+export function buildActionContext(openDarknetsStore = () => {}) {
   return {
     getState,
     selectNode:       (nodeId) => navigateTo(nodeId),
@@ -43,7 +43,7 @@ export function buildActionContext(openStore = () => {}) {
     cancelTrace:      ()       => cancelTraceCountdown(),
     openDarknetsStore: () => {
       pauseTimers();
-      openStore(getState());
+      openDarknetsStore(getState());
     },
   };
 }
