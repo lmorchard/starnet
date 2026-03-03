@@ -1,4 +1,4 @@
-.PHONY: serve lint test check census bot-census
+.PHONY: serve lint test check bundle-vendor census bot-census
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -11,7 +11,7 @@ serve:
 #   fixtures/             (test fixture data)
 lint:
 	npx tsc --noEmit --allowJs --checkJs --target ES2020 --moduleResolution bundler --module ES2020 \
-		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'main.js')
+		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'main.js' ! -name 'vendor.js')
 
 # Run unit + integration tests
 test:
@@ -19,6 +19,10 @@ test:
 
 # Full check: lint + test
 check: lint test
+
+# Bundle vendor dependencies (Cytoscape + layout extensions) into dist/vendor.js
+bundle-vendor:
+	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 
 # Run network census report across all difficulty combos
 census:
