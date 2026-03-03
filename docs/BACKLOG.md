@@ -277,6 +277,18 @@ compromised/owned nodes.
 - Audio (explicitly out of scope until much later)
 
 ### Console / UX
+
+- **Command prefix uniqueness sweep** — several command families share prefixes that
+  make tab completion awkward in the heat of gameplay:
+  - `cancel-probe`, `cancel-exploit`, `cancel-read`, `cancel-loot`, `cancel-trace` — all
+    collapse to `cancel-` on first tab, requiring a second disambiguation
+  - `read`, `reboot`, `reconfigure` — all start with `re`
+  - `select`, `status`, `store` — all start with `s`
+  Consider renaming commands so each has a unique 2–3 character prefix. Approach: audit
+  the full verb inventory, sketch a rename table, check for fiction/consistency (names
+  should still feel diegetic), update commands + MANUAL.md + any tests that reference
+  verb strings.
+
 - **`help` command improvements** — currently exists; could be richer with examples
 - **Alert consequence tuning** — trace countdown length, alert escalation pacing
 - **Playwright test reliability** — `node.emit('tap')` workaround for synthetic events is fragile; document in CLAUDE.md so it doesn't get rediscovered
