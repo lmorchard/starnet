@@ -12,6 +12,20 @@
  *   import { instantiate, SET_PIECES } from './set-pieces.js';
  *   const { nodes, edges, triggers, externalPorts } = instantiate(SET_PIECES.combinationLock, 'v1');
  *   const graph = new NodeGraph({ nodes, edges, triggers });
+ *
+ * ## `destinations` override — appropriate use
+ *
+ * The `destinations` config on relay/debounce atoms hard-wires outgoing message
+ * targets, bypassing edge-based adjacency routing. This is only appropriate for
+ * **internal set-piece routing** where all targeted nodes are part of the same
+ * set-piece and will appear as nodes in the graph.
+ *
+ * Do NOT use `destinations` to create connections that are invisible to the player.
+ * All node-to-node relationships the player needs to reason about must be reflected
+ * in `internalEdges` (and thus visible in the rendered graph). Hidden channels make
+ * the system illegible — they turn puzzles into gotchas.
+ *
+ * If you need directed routing the player can see: use graph edges, not destinations.
  */
 
 /** @typedef {import('./types.js').NodeDef} NodeDef */
@@ -1043,59 +1057,99 @@ export const noisySensor = {
 };
 
 /**
- * Hidden Channel Relay
+ * Tamper Detect
  *
- * Pattern: an IDS node with a relay atom that hard-routes alerts to a covert
- * monitor via a destinations override — NOT via any graph edge. The player
- * sees an IDS with no outgoing connections in the topology, but subverting
- * it still triggers a trace because of the invisible covert channel.
+ * Pattern: reconfiguring the IDS emits a `tamper` message that propagates
+ * through a visible tamper-relay to a tamper-flag node. If the tamper-flag
+ * trips, a trace is initiated. The player must neutralize the tamper-relay
+ * *before* reconfiguring the IDS, or the reconfigure itself starts a trace.
  *
- * The destinations override in the relay atom bypasses the edge-based routing
- * entirely: the monitor is reached even with no edge in internalEdges.
+ * All connections are in the graph (legible). The puzzle is sequencing:
+ * neutralize the tamper circuit → *then* reconfigure the IDS.
  *
- * External ports: ['ids', 'covert-monitor']
+ * Counterintuitive in a fun way: doing the "right thing" (reconfigure) in the
+ * wrong order triggers the alarm. The tamper chain is visible — it's a puzzle
+ * to solve, not a gotcha.
+ *
+ * External ports: ['ids', 'security-monitor', 'tamper-relay', 'tamper-flag']
  * Receives: alert messages at 'ids'.
  *
  * @type {SetPieceDef}
  */
-export const hiddenChannelRelay = {
-  id: "hidden-channel-relay",
-  description: "IDS hard-routes alerts to a covert monitor via destinations override, bypassing visible graph edges.",
+export const tamperDetect = {
+  id: "tamper-detect",
+  description: "Reconfiguring the IDS emits a tamper alert — unless the tamper relay is neutralized first.",
   nodes: [
     {
       id: "ids",
       type: "ids",
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      atoms: [{ name: "relay", filter: "alert", destinations: ["covert-monitor"] }],
+      atoms: [{ name: "relay", filter: "alert" }],
       actions: [
         {
           id: "reconfigure",
           label: "Reconfigure IDS",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [
+            { effect: "set-attr", attr: "forwardingEnabled", value: false },
+            { effect: "emit-message", message: { type: "tamper", payload: {} } },
+          ],
+        },
+      ],
+    },
+    {
+      id: "security-monitor",
+      type: "security-monitor",
+      attributes: { accessLevel: "locked", alerted: false },
+      atoms: [{ name: "flag", on: "alert", attr: "alerted" }],
+      actions: [],
+    },
+    {
+      id: "tamper-relay",
+      type: "tamper-relay",
+      attributes: { accessLevel: "locked", forwardingEnabled: true },
+      atoms: [{ name: "relay", filter: "tamper" }],
+      actions: [
+        {
+          id: "neutralize",
+          label: "Neutralize Tamper Relay",
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
         },
       ],
     },
     {
-      id: "covert-monitor",
-      type: "security-monitor",
-      attributes: { accessLevel: "locked", alerted: false },
-      atoms: [{ name: "flag", on: "alert", attr: "alerted" }],
+      id: "tamper-flag",
+      type: "tamper-detector",
+      attributes: { triggered: false },
+      atoms: [{ name: "flag", on: "tamper", attr: "triggered" }],
       actions: [],
     },
   ],
-  internalEdges: [],  // No visible edges — the connection is in atom destinations config
+  internalEdges: [
+    ["ids", "security-monitor"],
+    ["ids", "tamper-relay"],
+    ["tamper-relay", "tamper-flag"],
+  ],
   triggers: [
     {
-      id: "covert-alert",
-      when: { type: "node-attr", nodeId: "covert-monitor", attr: "alerted", eq: true },
+      id: "alert-reached-monitor",
+      when: { type: "node-attr", nodeId: "security-monitor", attr: "alerted", eq: true },
+      then: [
+        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
+        { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
+      ],
+    },
+    {
+      id: "tamper-detected",
+      when: { type: "node-attr", nodeId: "tamper-flag", attr: "triggered", eq: true },
       then: [
         { effect: "ctx-call", method: "startTrace", args: [] },
-        { effect: "ctx-call", method: "log", args: ["COVERT: Hidden channel alert — trace initiated"] },
+        { effect: "ctx-call", method: "log", args: ["TAMPER: IDS reconfiguration detected — trace initiated"] },
       ],
     },
   ],
-  externalPorts: ["ids", "covert-monitor"],
+  externalPorts: ["ids", "security-monitor", "tamper-relay", "tamper-flag"],
 };
 
 /**
@@ -1114,5 +1168,5 @@ export const SET_PIECES = {
   tripwireGauntlet,
   probeBurstAlarm,
   noisySensor,
-  hiddenChannelRelay,
+  tamperDetect,
 };

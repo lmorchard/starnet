@@ -14,7 +14,7 @@
 import { NodeGraph } from "../js/core/node-graph/runtime.js";
 import { createMessage } from "../js/core/node-graph/message.js";
 import { mockCtx } from "../js/core/node-graph/ctx.js";
-import { instantiate, probeBurstAlarm, noisySensor, hiddenChannelRelay } from "../js/core/node-graph/set-pieces.js";
+import { instantiate, probeBurstAlarm, noisySensor, tamperDetect } from "../js/core/node-graph/set-pieces.js";
 
 const args = process.argv.slice(2);
 const filter = args[0] ?? null;
@@ -451,28 +451,39 @@ scenario("noisy-sensor", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scenario 9: Hidden channel relay (destinations override)
+// Scenario 9: Tamper detect — sequencing puzzle
 // ---------------------------------------------------------------------------
-scenario("hidden-channel-relay", () => {
-  log("Graph: IDS with relay(destinations:['covert-monitor']) — no visible graph edge.");
-  log("Alert reaches covert-monitor via hard-wired atom destination, not edges.");
-  log("Trace fires even though the player sees no edge from IDS.");
+scenario("tamper-detect", () => {
+  log("Graph: IDS → security-monitor + IDS → tamper-relay → tamper-flag.");
+  log("Reconfiguring IDS emits tamper message → trace unless relay is neutralized first.");
 
   const ctx = mockCtx();
-  const inst = instantiate(hiddenChannelRelay, "hc1");
-  log(`Graph edges: ${JSON.stringify(inst.edges)} (empty — no visible connection)`);
+  const inst = instantiate(tamperDetect, "td1");
+  log(`Graph edges: ${JSON.stringify(inst.edges.map(([a,b]) => `${a}→${b}`))}`);
   const graph = new NodeGraph(inst, ctx);
 
-  log("Sending alert to IDS...");
-  graph.sendMessage("hc1/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
-  check("covert-monitor alerted", graph.getNodeState("hc1/covert-monitor").alerted, true);
-  check("trace started", (ctx.calls.startTrace ?? []).length, 1);
+  log("\n--- Wrong order: reconfigure IDS without neutralizing tamper relay ---");
+  graph._nodes.get("td1/ids").attributes.accessLevel = "owned";
+  graph.executeAction("td1/ids", "reconfigure");
+  check("tamper-flag triggered (trace!)", graph.getNodeState("td1/tamper-flag").triggered, true);
+  check("startTrace called", (ctx.calls.startTrace ?? []).length, 1);
 
-  log("\nDisabling forwardingEnabled (player subverts IDS)...");
-  graph._nodes.get("hc1/ids").attributes.forwardingEnabled = false;
-  graph._nodes.get("hc1/covert-monitor").attributes.alerted = false;
-  graph.sendMessage("hc1/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
-  check("covert-monitor NOT alerted (relay blocked)", graph.getNodeState("hc1/covert-monitor").alerted, false);
+  log("\n--- Correct order: neutralize tamper relay first, then reconfigure ---");
+  const ctx2 = mockCtx();
+  const inst2 = instantiate(tamperDetect, "td2");
+  const graph2 = new NodeGraph(inst2, ctx2);
+
+  log("Step 1: neutralize tamper relay...");
+  graph2._nodes.get("td2/tamper-relay").attributes.accessLevel = "owned";
+  graph2.executeAction("td2/tamper-relay", "neutralize");
+  check("tamper-relay neutralized", graph2.getNodeState("td2/tamper-relay").forwardingEnabled, false);
+
+  log("Step 2: reconfigure IDS safely...");
+  graph2._nodes.get("td2/ids").attributes.accessLevel = "owned";
+  graph2.executeAction("td2/ids", "reconfigure");
+  check("tamper-flag NOT triggered", graph2.getNodeState("td2/tamper-flag").triggered, false);
+  check("startTrace NOT called", ctx2.calls.startTrace, undefined);
+  check("IDS forwarding disabled", graph2.getNodeState("td2/ids").forwardingEnabled, false);
 });
 
 // ---------------------------------------------------------------------------

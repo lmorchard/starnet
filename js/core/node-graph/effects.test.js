@@ -33,6 +33,7 @@ function makeStore(initial = {}) {
     setQuality(name, value) { qualities[name] = value; },
     deltaQuality(name, delta) { qualities[name] = (qualities[name] ?? 0) + delta; },
     sendMessage(nodeId, msg) { messages.push({ nodeId, msg }); },
+    emitFrom(nodeId, msg) { messages.push({ nodeId, msg }); },
   };
 }
 
@@ -70,7 +71,7 @@ describe("applyEffect: set-node-attr", () => {
 });
 
 describe("applyEffect: emit-message", () => {
-  it("calls sendMessage with the target node and message descriptor", () => {
+  it("calls emitFrom with the target node and message descriptor", () => {
     const store = makeStore();
     const { ctx } = makeCtx();
     applyEffect({ effect: "emit-message", message: { type: "unlock", payload: {} } }, { ...store, targetNodeId: "N", ctx });

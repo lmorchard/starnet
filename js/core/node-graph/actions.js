@@ -19,6 +19,7 @@ import { applyEffect } from "./effects.js";
  * @property {(name: string, value: number) => void} setQuality
  * @property {(name: string, delta: number) => void} deltaQuality
  * @property {(nodeId: string, message: import('./types.js').MessageDescriptor) => void} sendMessage
+ * @property {(nodeId: string, message: import('./types.js').MessageDescriptor) => void} emitFrom
  * @property {import('./types.js').CtxInterface} ctx
  */
 

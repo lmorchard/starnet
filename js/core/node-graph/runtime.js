@@ -264,6 +264,29 @@ export class NodeGraph {
   }
 
   /**
+   * Emit a message outward from a node, bypassing the source node's own atoms.
+   * Delivers directly to adjacent nodes (or the message's destinations list).
+   * Used by emit-message effects so that action-emitted messages are not
+   * re-filtered by the source node's relay/debounce atoms.
+   * @param {string} sourceNodeId
+   * @param {MessageDescriptor} message
+   */
+  _emitFrom(sourceNodeId, message) {
+    const msg = createMessage({
+      type: message.type,
+      origin: sourceNodeId,
+      payload: message.payload ?? {},
+      destinations: message.destinations,
+    });
+    const targets = msg.destinations ?? this._adjacentNodes(sourceNodeId);
+    // Mark source as visited so back-propagation is still guarded
+    const msgWithPath = { ...msg, path: [sourceNodeId] };
+    for (const targetId of targets) {
+      this._deliver(targetId, msgWithPath);
+    }
+  }
+
+  /**
    * Build mutator object for trigger effects.
    * @returns {import('./triggers.js').TriggerMutators}
    */
@@ -279,6 +302,7 @@ export class NodeGraph {
       setQuality: (name, value) => this._qualities.set(name, value),
       deltaQuality: (name, delta) => this._qualities.delta(name, delta),
       sendMessage: (nodeId, msg) => this.sendMessage(nodeId, msg),
+      emitFrom: (nodeId, msg) => this._emitFrom(nodeId, msg),
       ctx: this._ctx,
     };
   }

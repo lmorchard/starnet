@@ -28,6 +28,7 @@ function makeStore(nodeAttrs = {}, qualityValues = {}) {
     setQuality(name, value) { qualities[name] = value; },
     deltaQuality(name, delta) { qualities[name] = (qualities[name] ?? 0) + delta; },
     sendMessage(nodeId, msg) { sent.push({ nodeId, msg }); },
+    emitFrom(nodeId, msg) { sent.push({ nodeId, msg }); },
   };
 }
 
@@ -95,7 +96,7 @@ describe("executeAction: quality-delta effect", () => {
 });
 
 describe("executeAction: emit-message effect", () => {
-  it("calls sendMessage via the mutators", () => {
+  it("calls emitFrom via the mutators", () => {
     const store = makeStore({ "N": {} });
     const { ctx } = makeCtx();
     const emitDefs = [{

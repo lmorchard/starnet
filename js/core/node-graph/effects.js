@@ -12,6 +12,7 @@
  * @property {(name: string, value: number) => void} setQuality
  * @property {(name: string, delta: number) => void} deltaQuality
  * @property {(nodeId: string, message: MessageDescriptor) => void} sendMessage
+ * @property {(nodeId: string, message: MessageDescriptor) => void} emitFrom  - bypasses source node's own atoms
  * @property {CtxInterface} ctx
  */
 
@@ -22,7 +23,7 @@
  * @param {EffectMutators} mutators
  */
 export function applyEffect(effect, mutators) {
-  const { setNodeAttr, targetNodeId, getNodeAttr, setQuality, deltaQuality, sendMessage, ctx } = mutators;
+  const { setNodeAttr, targetNodeId, getNodeAttr, setQuality, deltaQuality, emitFrom, ctx } = mutators;
 
   switch (effect.effect) {
     case "set-attr":
@@ -43,7 +44,7 @@ export function applyEffect(effect, mutators) {
 
     case "emit-message":
       if (!targetNodeId) throw new Error("emit-message effect requires targetNodeId in mutators");
-      sendMessage(targetNodeId, effect.message);
+      emitFrom(targetNodeId, effect.message);
       break;
 
     case "quality-set":
