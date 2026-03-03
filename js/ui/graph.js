@@ -224,7 +224,7 @@ function buildStylesheet() {
         "border-width": 1,
         "border-color": "#223333",
         "border-style": "dashed",
-        label: "???",
+        label: "data(sigAlias)",
         color: "#224422",
         "font-family": "Courier New, monospace",
         "font-size": 8,
@@ -449,6 +449,11 @@ export function updateNodeStyle(nodeId, nodeState) {
   // Visibility class
   node.removeClass("hidden revealed accessible");
   node.addClass(nodeState.visibility);
+
+  // Assign alias label for revealed (???) nodes so the graph matches the console.
+  if (nodeState.visibility === "revealed") {
+    node.data("sigAlias", nodeState.sigAlias ?? "???");
+  }
 
   if (nodeState.visibility === "accessible") {
     // Access level

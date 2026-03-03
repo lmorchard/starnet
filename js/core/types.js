@@ -92,6 +92,7 @@
  *   looted: boolean,
  *   eventForwardingDisabled?: boolean,
  *   rebooting: boolean,
+ *   sigAlias?: string,
  * }} NodeState
  */
 
