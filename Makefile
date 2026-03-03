@@ -14,7 +14,9 @@ lint:
 		js/core/exploits.js js/core/combat.js js/core/loot.js \
 		js/core/alert.js js/core/timers.js js/core/ice.js js/core/log.js js/core/cheats.js \
 		js/core/node-lifecycle.js js/core/rng.js js/core/navigation.js \
-		js/core/node-orchestration.js js/core/store-logic.js js/core/grades.js js/core/console-commands.js \
+		js/core/node-orchestration.js js/core/store-logic.js js/core/grades.js \
+		js/core/console-commands/index.js js/core/console-commands/registry.js js/core/console-commands/completions.js \
+		js/core/console-commands/resolvers.js js/core/console-commands/cmd-status.js js/core/console-commands/commands.js \
 		js/core/actions/node-types.js js/core/actions/node-actions.js js/core/actions/global-actions.js \
 		js/core/actions/action-context.js js/core/actions/probe-exec.js js/core/actions/read-exec.js \
 		js/core/actions/loot-exec.js js/core/actions/exploit-exec.js \
