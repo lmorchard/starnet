@@ -528,3 +528,32 @@ with tighter timing. A puzzle biome uses complex set-pieces (deadman, cascadeShu
 with more breathing room. The difficulty dial has two independent axes: *circuit
 complexity* and *time pressure* — and interesting runs mix them rather than scaling
 both together.
+
+**ICE as pacing tool, not just threat.** Some LANs have no ICE at all — defense is
+purely structural. Others have simple circuits but aggressive ICE to punish dwell time.
+These are meaningfully different threat models, not just different difficulty levels:
+
+- **Structural-only LANs**: The circuit is the only enemy. It doesn't chase you — it
+  waits for you to trip it. Every risk is self-inflicted, which can feel *more* tense
+  for careful players precisely because there's nothing external to blame. The skill is
+  puzzle-solving and sequencing. Lore fit: abandoned research stations, legacy systems
+  with no active monitoring budget — the structural hardening is automated and outlasts
+  the people who maintained it.
+
+- **ICE-heavy / simple-circuit LANs**: The designer is saying "don't dwell, keep
+  moving." The circuit doesn't need to be complex because the clock IS the complexity.
+  Players make fast, imperfect decisions under pressure rather than solving logic
+  puzzles. The skill is timing, card selection, and knowing when to cut losses. Lore
+  fit: busy corporate exchange hubs — high-traffic systems with commodity security
+  configs but aggressive active monitoring because they can afford the patrols.
+
+- **Mixed LANs**: Both structural complexity and ICE pressure. Hardest. Requires the
+  player to solve circuits *while being chased*. Best reserved for late-game or
+  high-value targets.
+
+**Natural skill asymmetry.** A puzzle-oriented player demolishes structural LANs but
+gets caught by ICE because they spend too long planning. A fast-draw player breezes
+through ICE pressure but trips every wire in a structural LAN. Mixed LANs stress both.
+This creates interesting player expression and challenge variety without explicit
+difficulty settings — the player self-selects what they're good at, and the variety of
+LAN types keeps the game honest about both skills mattering.
