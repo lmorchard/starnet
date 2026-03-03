@@ -244,6 +244,7 @@ These omissions are intentional — they make the bot a pessimistic baseline:
 
 - **Eject ICE** — never pushes ICE to an adjacent node
 - **Reboot nodes** — never forces ICE back to its resident node
+- **pkill ICE** — never owns the ice-host node to terminate the ICE process
 - **Cancel trace** — never owns the security monitor to cancel an active trace
 - **Strategic node ordering** — beyond the greedy BFS priority, no planning
 - **Anticipate ICE movement** — doesn't track ICE position or time actions

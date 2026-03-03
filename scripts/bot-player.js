@@ -28,7 +28,7 @@ const DEFAULT_MAX_TICKS = 5000;
 const LOOTABLE_TYPES = new Set(["fileserver", "cryptovault"]);
 
 /** Node types to skip in exploration (security infrastructure). */
-const SECURITY_TYPES = new Set(["ids", "security-monitor"]);
+const SECURITY_TYPES = new Set(["ids", "security-monitor", "ice-host"]);
 
 /**
  * @typedef {{

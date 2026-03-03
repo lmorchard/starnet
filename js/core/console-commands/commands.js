@@ -97,6 +97,15 @@ export const COMMANDS = [
     },
   },
 
+  { verb: "pkill",
+    complete: completeNodeArg,
+    execute(args) {
+      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
+      if (!node) return;
+      dispatch("pkill", { nodeId: node.id });
+    },
+  },
+
   // ── Cancel commands ────────────────────────────────────────────────────────
 
   { verb: "cancel-probe",
@@ -378,6 +387,7 @@ export const COMMANDS = [
         "  cancel-trace              Abort trace countdown (requires owned security-monitor selected).",
         "  eject                     Push ICE attention to adjacent node.",
         "  reboot [node]             Send ICE home. Node offline briefly.",
+        "  pkill [node]              Terminate ICE process (requires owned ice-host).",
         "  jackout                   Disconnect and end run.",
         "  actions                   List all currently valid actions with context.",
         "  status [noun]             Game state. Nouns: summary ice hand node alert mission",
