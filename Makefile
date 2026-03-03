@@ -1,4 +1,4 @@
-.PHONY: serve lint test check bundle-vendor census bot-census
+.PHONY: serve lint test check bundle-vendor census bot-census ng-playtest
 
 # Start local dev server (open http://localhost:3000)
 serve:
