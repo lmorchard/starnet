@@ -82,6 +82,14 @@ export function setNodeRebooting(nodeId, rebooting) {
   });
 }
 
+/** Sets node.sigAlias (temporary console alias while the node is revealed). */
+export function setNodeSigAlias(nodeId, alias) {
+  mutate((s) => {
+    const node = s.nodes[nodeId];
+    if (node) node.sigAlias = alias;
+  });
+}
+
 /** Sets node.eventForwardingDisabled. */
 export function setNodeEventForwarding(nodeId, disabled) {
   mutate((s) => {

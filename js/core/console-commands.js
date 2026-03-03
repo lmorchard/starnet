@@ -120,20 +120,47 @@ function fromList(candidates, partial) {
 }
 
 /**
- * Node completion: matches by id prefix or label prefix; always inserts id.
- * Hidden nodes are excluded.
+ * Returns the stable alias map for revealed (???) nodes.
+ * Aliases are assigned when a node is first revealed and stored in node.sigAlias.
+ * @param {Object.<string, NodeState>} nodes
+ * @returns {Map<string, string>}  nodeId → alias
+ */
+export function getRevealedAliases(nodes) {
+  const map = new Map();
+  for (const n of Object.values(nodes)) {
+    if (n.visibility === "revealed" && n.sigAlias) map.set(n.id, n.sigAlias);
+  }
+  return map;
+}
+
+/**
+ * Node completion: matches accessible nodes by id/label prefix, revealed nodes by alias.
+ * Hidden nodes and revealed nodes' real identities are excluded.
  * @param {Object.<string, NodeState>} nodes
  * @param {string} partial
  * @returns {{ insertTexts: string[], displayTexts: string[] }}
  */
 function fromNodes(nodes, partial) {
   const lc = partial.toLowerCase();
-  const matches = Object.values(nodes).filter(n =>
-    n.visibility !== "hidden" &&
-    (n.id.toLowerCase().startsWith(lc) || n.label.toLowerCase().startsWith(lc))
-  );
-  const ids = matches.map(n => n.id);
-  return { insertTexts: ids, displayTexts: ids };
+  const revAliases = getRevealedAliases(nodes);
+  const insertTexts = [];
+  const displayTexts = [];
+  for (const n of Object.values(nodes)) {
+    if (n.visibility === "hidden") continue;
+    if (n.visibility === "revealed") {
+      const alias = revAliases.get(n.id) ?? n.id;
+      if (alias.toLowerCase().startsWith(lc)) {
+        insertTexts.push(alias);
+        displayTexts.push(alias);
+      }
+    } else {
+      if (n.id.toLowerCase().startsWith(lc) || n.label.toLowerCase().startsWith(lc)) {
+        insertTexts.push(n.id);
+        displayTexts.push(n.id);
+      }
+    }
+  }
+  return { insertTexts, displayTexts };
 }
 
 /**
@@ -182,16 +209,23 @@ function resolveNode(token) {
   if (!token) return null;
   const lower = token.toLowerCase();
 
+  // Accessible nodes: match by real id or label prefix.
   const byId = s.nodes[token];
-  if (byId && byId.visibility !== "hidden") return byId;
+  if (byId && byId.visibility === "accessible") return byId;
 
-  const matches = Object.values(s.nodes).filter(
-    (n) => n.visibility !== "hidden" && n.label.toLowerCase().startsWith(lower)
+  const labelMatches = Object.values(s.nodes).filter(
+    (n) => n.visibility === "accessible" && n.label.toLowerCase().startsWith(lower)
   );
-  if (matches.length === 1) return matches[0];
-  if (matches.length > 1) {
-    addLogEntry(`Ambiguous node: ${matches.map((n) => n.id).join(", ")}`, "error");
+  if (labelMatches.length === 1) return labelMatches[0];
+  if (labelMatches.length > 1) {
+    addLogEntry(`Ambiguous node: ${labelMatches.map((n) => n.id).join(", ")}`, "error");
     return null;
+  }
+
+  // Revealed nodes: match by alias only (real id/label are hidden).
+  const revAliases = getRevealedAliases(s.nodes);
+  for (const [nodeId, alias] of revAliases) {
+    if (alias.toLowerCase() === lower) return s.nodes[nodeId];
   }
 
   addLogEntry(`Unknown node: ${token}`, "error");
@@ -395,8 +429,9 @@ function cmdStatusFull() {
     }
   });
 
+  const revAliases = getRevealedAliases(s.nodes);
   revealed.forEach((node) => {
-    lines.push(`- ${node.id}  [${node.type}]  revealed`);
+    lines.push(`- ${revAliases.get(node.id) ?? node.id}  [???]  revealed`);
   });
 
   lines.push(`### HAND`);
@@ -715,9 +750,10 @@ const COMMANDS = [
           .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
         const revealed = Object.values(s.nodes)
           .filter((n) => n.visibility === "revealed" && n.id !== s.selectedNodeId);
+        const revAliases = getRevealedAliases(s.nodes);
         const parts = [];
         if (accessible.length > 0) parts.push(`accessible: ${accessible.map((n) => n.id).join(", ")}`);
-        if (revealed.length > 0) parts.push(`traverse: ${revealed.map((n) => n.id).join(", ")}`);
+        if (revealed.length > 0) parts.push(`traverse: ${revealed.map((n) => revAliases.get(n.id) ?? n.id).join(", ")}`);
         lines.push(`  select <nodeId>          — ${parts.join("  |  ")}`);
       }
 

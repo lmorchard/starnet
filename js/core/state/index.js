@@ -30,7 +30,7 @@ import { clearAll as clearAllTimers, serializeTimers, deserializeTimers } from "
 import { emitEvent, E } from "../events.js";
 import { getStateFields, getBehaviors, resolveNode } from "../actions/node-types.js";
 
-import { setNodeVisible } from "./node.js";
+import { setNodeVisible, setNodeSigAlias } from "./node.js";
 import { setIceActive } from "./ice.js";
 import { setPhase, setRunOutcome } from "./game.js";
 import { setCash, addCash, addCardToHand } from "./player.js";
@@ -185,6 +185,10 @@ export function revealNeighbors(nodeId) {
   (state.adjacency[nodeId] || []).forEach((neighborId) => {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "hidden") {
+      const usedAliases = new Set(Object.values(state.nodes).map(n => n.sigAlias).filter(Boolean));
+      let i = 1;
+      while (usedAliases.has(`sig-${i}`)) i++;
+      setNodeSigAlias(neighborId, `sig-${i}`);
       setNodeVisible(neighborId, "revealed");
       emitEvent(E.NODE_REVEALED, { nodeId: neighborId, label: neighbor.label });
     }

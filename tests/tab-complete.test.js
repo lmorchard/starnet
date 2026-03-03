@@ -248,6 +248,52 @@ describe("tabComplete: card completion (exploit, explicit form)", () => {
   });
 });
 
+// ── Revealed node (???) alias completion ─────────────────
+
+describe("tabComplete: revealed node alias completion", () => {
+  // sigAlias is assigned by revealNeighbors in real gameplay; set it directly in tests.
+  function makeRevealed(id, label, sigAlias) {
+    return { ...makeNode(id, label, "revealed"), sigAlias };
+  }
+
+  const state = makeState({
+    nodes: {
+      gateway:    makeNode("gateway",  "INET-GW-01", "accessible"),
+      "router-a": makeRevealed("router-a", "RTR-A",    "sig-2"),
+      "ids-1":    makeRevealed("ids-1",    "IDS-CORE", "sig-1"),
+    },
+  });
+
+  it("revealed nodes complete as sig-N aliases, not real ids", () => {
+    const r = tabComplete("select sig", state);
+    assert.ok(r.suggestions.includes("sig-1") || r.completed?.startsWith("select sig-"));
+    assert.ok(!r.suggestions.includes("ids-1"));
+    assert.ok(!r.suggestions.includes("router-a"));
+  });
+
+  it("sig-1 unambiguously completes to first alias", () => {
+    const r = tabComplete("select sig-1", state);
+    assert.equal(r.completed, "select sig-1 ");
+  });
+
+  it("revealed nodes are not reachable by real id prefix", () => {
+    const r = tabComplete("select id", state);
+    assert.equal(r.completed, null);
+    assert.deepEqual(r.suggestions, []);
+  });
+
+  it("revealed nodes are not reachable by real label prefix", () => {
+    const r = tabComplete("select RTR", state);
+    assert.equal(r.completed, null);
+    assert.deepEqual(r.suggestions, []);
+  });
+
+  it("accessible nodes still complete by id and label as before", () => {
+    const r = tabComplete("select ga", state);
+    assert.equal(r.completed, "select gateway ");
+  });
+});
+
 // ── buy vuln-id completion ────────────────────────────────
 
 describe("tabComplete: buy vuln-id completion", () => {
