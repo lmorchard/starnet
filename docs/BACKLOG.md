@@ -246,8 +246,9 @@ issue (fixed by in-place progress updates) is a concrete example of this frictio
 _Trigger: reach for one of these when the in-place workaround pattern recurs a second or
 third time. One case is a data point; a pattern is a signal._
 
-### Exploit Card IDs
-- **Legible card IDs** — currently `exploit-1`, `exploit-2`, etc.; consider IDs derived from vuln type + suffix (e.g. `ssh-1`, `privesc-3`) for more diegetic log/console references
+### ~~Exploit Card IDs~~ ✓ DONE
+IDs are already derived from vuln type + counter (e.g. `unpatched-ssh-1`, `kernel-exploit-3`).
+Landed in commit `410c18d`.
 
 ---
 
