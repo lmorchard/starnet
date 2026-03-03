@@ -206,6 +206,7 @@
  *   jackOut:          () => void,
  *   reconfigureNode:     (nodeId: string) => void,
  *   cancelTrace:         () => void,
+ *   pkillIce:            () => void,
  *   openDarknetsStore:   () => void,
  * }} ActionContext
  */

@@ -8,7 +8,7 @@ import { getState, getVersion, endRun } from "../state.js";
 import { reconfigureNode, rebootNode } from "../node-orchestration.js";
 import { startLoot, cancelLoot } from "./loot-exec.js";
 import { startRead, cancelRead } from "./read-exec.js";
-import { ejectIce } from "../ice.js";
+import { ejectIce, stopIce, disableIce } from "../ice.js";
 import { addLogEntry } from "../log.js";
 import { startExploit, cancelExploit } from "./exploit-exec.js";
 import { startProbe, cancelProbe } from "./probe-exec.js";
@@ -41,6 +41,7 @@ export function buildActionContext(openDarknetsStore = () => {}) {
     jackOut:          ()       => endRun("success"),
     reconfigureNode:  (nodeId) => reconfigureNode(nodeId),
     cancelTrace:      ()       => cancelTraceCountdown(),
+    pkillIce:         ()       => { stopIce(); disableIce(); },
     openDarknetsStore: () => {
       pauseTimers();
       openDarknetsStore(getState());

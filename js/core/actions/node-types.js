@@ -104,7 +104,7 @@ export const NODE_TYPES = {
 
   "security-monitor": {
     gateAccess: "owned",
-    behaviors: ["monitor", "iceResident"],
+    behaviors: ["monitor"],
     actions: [
       {
         id: "cancel-trace",
@@ -155,6 +155,21 @@ export const NODE_TYPES = {
         available: (_node, state) => state.phase === "playing",
         desc: () => "Access the darknet broker to purchase exploit cards.",
         execute: (_node, _state, ctx) => ctx.openDarknetsStore(),
+      },
+    ],
+  },
+
+  "ice-host": {
+    gateAccess: "owned",
+    behaviors: [],
+    actions: [
+      {
+        id: "pkill",
+        label: "PKILL ICE",
+        available: (node, state) =>
+          node.accessLevel === "owned" && !!(state.ice?.active),
+        desc: () => "Terminate the ICE process.",
+        execute: (_node, _state, ctx) => ctx.pkillIce(),
       },
     ],
   },
