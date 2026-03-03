@@ -79,6 +79,7 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 | **Cryptovault**   | Diamond  | Probe        | High-value encrypted storage. Hardest targets.    |
 | **IDS**           | Hexagon  | Owned        | Intrusion Detection System. Must own to see connections. Can be subverted. |
 | **Security Mon.** | Octagon  | Owned        | Aggregates IDS alerts. Must own to see connections. Can cancel trace. |
+| **ICE Host**      | Octagon  | Owned        | The machine running the ICE process. Own it to unlock **pkill**. |
 
 The **Gate** column shows when a node reveals its connections to neighboring nodes.
 "Probe" means probing the node is enough to see what's connected. "Compromised" or
@@ -415,6 +416,7 @@ Actions depend on the selected node's type and access level:
 | `reconfigure`  | IDS node is compromised or owned               | Severs event forwarding to security monitor |
 | `eject`        | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
+| `pkill`        | Owned ice-host + ICE is active                 | Terminates the ICE process entirely |
 | `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown |
 | `jackout`      | Any time during run                            | End run, collect score |
 
@@ -438,6 +440,7 @@ cancel-loot            Abort an in-progress loot extraction.
 reconfigure [node]     Disable IDS event forwarding.
 eject                  Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
+pkill [node]           Terminate ICE process (requires owned ice-host).
 cancel-trace           Abort trace (requires owned security-monitor).
 jackout                End run.
 
