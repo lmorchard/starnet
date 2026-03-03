@@ -214,8 +214,12 @@ export class NodeGraph {
 
     const incoming = { ...message, path: [...message.path, nodeId] };
 
-    const { attributes, outgoing } = applyAtoms(node.atoms, node.attributes, incoming, this._ctx);
+    const { attributes, outgoing, qualityDeltas } = applyAtoms(node.atoms, node.attributes, incoming, this._ctx);
     node.attributes = attributes;
+
+    for (const { name, delta } of qualityDeltas) {
+      this._qualities.delta(name, delta);
+    }
 
     for (const desc of outgoing) {
       // Resolve destinations: null = all adjacent nodes, array = named nodes

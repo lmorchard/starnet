@@ -134,4 +134,53 @@ describe("TriggerStore", () => {
     ts.reset();
     assert.equal(ts.getFired().size, 0);
   });
+
+  it("repeating trigger fires every evaluation cycle while condition is true", () => {
+    const { ctx, calls } = makeCtx();
+    const store = makeStore({ "A": { active: true } });
+    const ts = new TriggerStore([{
+      id: "repeater",
+      repeating: true,
+      when: { type: "node-attr", nodeId: "A", attr: "active", eq: true },
+      then: [{ effect: "ctx-call", method: "log", args: ["fired"] }],
+    }]);
+
+    const accessors = { getNodeAttr: store.getNodeAttr, getQuality: store.getQuality };
+    const mutators = { ...store, targetNodeId: null, ctx };
+    ts.evaluate(accessors, mutators);
+    ts.evaluate(accessors, mutators);
+    ts.evaluate(accessors, mutators);
+    assert.equal(calls.log?.length, 3);
+  });
+
+  it("repeating trigger is not added to fired set", () => {
+    const { ctx } = makeCtx();
+    const store = makeStore({ "A": { active: true } });
+    const ts = new TriggerStore([{
+      id: "repeater",
+      repeating: true,
+      when: { type: "node-attr", nodeId: "A", attr: "active", eq: true },
+      then: [],
+    }]);
+    ts.evaluate({ getNodeAttr: store.getNodeAttr, getQuality: store.getQuality },
+      { ...store, targetNodeId: null, ctx });
+    assert.equal(ts.getFired().has("repeater"), false);
+  });
+
+  it("one-shot trigger still fires only once even when condition stays true", () => {
+    const { ctx, calls } = makeCtx();
+    const store = makeStore({ "A": { active: true } });
+    const ts = new TriggerStore([{
+      id: "once",
+      when: { type: "node-attr", nodeId: "A", attr: "active", eq: true },
+      then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+    }]);
+
+    const accessors = { getNodeAttr: store.getNodeAttr, getQuality: store.getQuality };
+    const mutators = { ...store, targetNodeId: null, ctx };
+    ts.evaluate(accessors, mutators);
+    ts.evaluate(accessors, mutators);
+    ts.evaluate(accessors, mutators);
+    assert.equal(calls.startTrace?.length, 1);
+  });
 });

@@ -399,4 +399,138 @@ describe("applyAtoms", () => {
     );
     assert.equal(result.outgoing.length, 2);
   });
+
+  it("collects qualityDeltas from tally atoms", () => {
+    const msg = createMessage({ type: "probe-noise", origin: "A" });
+    const result = applyAtoms(
+      [{ name: "tally", quality: "probes-seen", delta: 1 }],
+      {},
+      msg,
+      nullCtx,
+    );
+    assert.equal(result.qualityDeltas.length, 1);
+    assert.equal(result.qualityDeltas[0].name, "probes-seen");
+    assert.equal(result.qualityDeltas[0].delta, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// relay destinations override
+// ---------------------------------------------------------------------------
+describe("relay atom destinations override", () => {
+  it("uses config.destinations when provided instead of message.destinations", () => {
+    const msg = createMessage({ type: "alert", origin: "A", destinations: ["X"] });
+    const result = invoke("relay", { destinations: ["Y", "Z"] }, {}, msg);
+    assert.deepEqual(result.outgoing?.[0].destinations, ["Y", "Z"]);
+  });
+
+  it("uses message.destinations when config has no destinations", () => {
+    const msg = createMessage({ type: "alert", origin: "A", destinations: ["X"] });
+    const result = invoke("relay", {}, {}, msg);
+    assert.deepEqual(result.outgoing?.[0].destinations, ["X"]);
+  });
+
+  it("allows config.destinations: null for broadcast override", () => {
+    const msg = createMessage({ type: "alert", origin: "A", destinations: ["X"] });
+    const result = invoke("relay", { destinations: null }, {}, msg);
+    assert.equal(result.outgoing?.[0].destinations, null);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tally
+// ---------------------------------------------------------------------------
+describe("tally atom", () => {
+  it("returns a qualityDelta on matching message", () => {
+    const msg = createMessage({ type: "probe-noise", origin: "A" });
+    const result = invoke("tally", { quality: "probes", delta: 1 }, {}, msg);
+    assert.equal(result.qualityDeltas?.length, 1);
+    assert.equal(result.qualityDeltas[0].name, "probes");
+    assert.equal(result.qualityDeltas[0].delta, 1);
+  });
+
+  it("uses delta 1 by default", () => {
+    const msg = createMessage({ type: "signal", origin: "A" });
+    const result = invoke("tally", { quality: "events" }, {}, msg);
+    assert.equal(result.qualityDeltas?.[0].delta, 1);
+  });
+
+  it("ignores tick messages", () => {
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    const result = invoke("tally", { quality: "events" }, {}, tick);
+    assert.equal(result.qualityDeltas?.length ?? 0, 0);
+  });
+
+  it("ignores messages that don't match 'on' filter", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const result = invoke("tally", { on: "probe-noise", quality: "events" }, {}, msg);
+    assert.equal(result.qualityDeltas?.length ?? 0, 0);
+  });
+
+  it("counts only messages matching 'on' filter", () => {
+    const msg = createMessage({ type: "probe-noise", origin: "A" });
+    const result = invoke("tally", { on: "probe-noise", quality: "events", delta: 5 }, {}, msg);
+    assert.equal(result.qualityDeltas?.[0].delta, 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// debounce
+// ---------------------------------------------------------------------------
+describe("debounce atom", () => {
+  it("forwards first matching message", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const result = invoke("debounce", { ticks: 3 }, {}, msg);
+    assert.equal(result.outgoing?.length, 1);
+    assert.equal(result.outgoing[0].type, "alert");
+    assert.equal(result.attributes?._debounce_cooldown, 3);
+  });
+
+  it("suppresses subsequent messages during cooldown", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const r1 = invoke("debounce", { ticks: 3 }, {}, msg);
+    const r2 = invoke("debounce", { ticks: 3 }, r1.attributes, msg);
+    assert.equal(r2.outgoing?.length ?? 0, 0);
+    assert.equal(r2.attributes, undefined); // no attribute change (cooldown stays)
+  });
+
+  it("decrements cooldown on tick", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    let attrs = invoke("debounce", { ticks: 3 }, {}, msg).attributes;
+    attrs = { ...attrs, ...invoke("debounce", { ticks: 3 }, attrs, tick).attributes };
+    assert.equal(attrs._debounce_cooldown, 2);
+  });
+
+  it("forwards again after cooldown expires", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    let attrs = invoke("debounce", { ticks: 2 }, {}, msg).attributes;
+    // Tick twice to expire cooldown
+    attrs = { ...attrs, ...invoke("debounce", { ticks: 2 }, attrs, tick).attributes };
+    attrs = { ...attrs, ...invoke("debounce", { ticks: 2 }, attrs, tick).attributes };
+    assert.equal(attrs._debounce_cooldown, 0);
+    // Now forward again
+    const r = invoke("debounce", { ticks: 2 }, attrs, msg);
+    assert.equal(r.outgoing?.length, 1);
+  });
+
+  it("ignores tick messages for output (only decrements cooldown)", () => {
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    const result = invoke("debounce", { ticks: 3 }, { _debounce_cooldown: 2 }, tick);
+    assert.equal(result.outgoing?.length ?? 0, 0);
+    assert.equal(result.attributes?._debounce_cooldown, 1);
+  });
+
+  it("ignores messages that don't match 'on' filter", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const result = invoke("debounce", { on: "probe-noise", ticks: 3 }, {}, msg);
+    assert.equal(result.outgoing?.length ?? 0, 0);
+  });
+
+  it("uses config.destinations override", () => {
+    const msg = createMessage({ type: "alert", origin: "A", destinations: ["X"] });
+    const result = invoke("debounce", { ticks: 1, destinations: ["Y"] }, {}, msg);
+    assert.deepEqual(result.outgoing?.[0].destinations, ["Y"]);
+  });
 });

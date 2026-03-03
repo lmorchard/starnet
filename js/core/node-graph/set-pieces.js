@@ -120,12 +120,22 @@ function rewriteEffect(effect, prefix) {
  */
 export function instantiate(def, prefix) {
   const nodes = def.nodes.map((node) => {
-    // Rewrite atom configs that contain nodeIds (inputs for any-of / all-of)
+    // Rewrite atom configs that contain node IDs or quality names
     const atoms = (node.atoms ?? []).map((cfg) => {
+      let updated = { ...cfg };
+      // Prefix inputs for gate atoms
       if ((cfg.name === "any-of" || cfg.name === "all-of") && cfg.inputs) {
-        return { ...cfg, inputs: cfg.inputs.map((id) => pfx(id, prefix)) };
+        updated = { ...updated, inputs: cfg.inputs.map((id) => pfx(id, prefix)) };
       }
-      return cfg;
+      // Prefix quality name for tally atom
+      if (cfg.name === "tally" && cfg.quality) {
+        updated = { ...updated, quality: pfx(cfg.quality, prefix) };
+      }
+      // Prefix destinations override (any atom can have one)
+      if (cfg.destinations) {
+        updated = { ...updated, destinations: cfg.destinations.map((d) => pfx(d, prefix)) };
+      }
+      return updated;
     });
 
     // Rewrite actions: requires conditions + effects

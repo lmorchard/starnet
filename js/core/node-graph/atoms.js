@@ -8,6 +8,7 @@
  * @typedef {Object} AtomResult
  * @property {Record<string, any>} [attributes]  - partial patch to merge onto node attributes
  * @property {MessageDescriptor[]} [outgoing]    - messages to deliver to connected nodes
+ * @property {{name: string, delta: number}[]} [qualityDeltas] - quality increments to apply
  */
 
 /**
@@ -47,12 +48,14 @@ export function getAtom(name) {
  * @param {Record<string, any>} nodeAttributes
  * @param {Message | null} message
  * @param {CtxInterface} ctx
- * @returns {{ attributes: Record<string, any>, outgoing: MessageDescriptor[] }}
+ * @returns {{ attributes: Record<string, any>, outgoing: MessageDescriptor[], qualityDeltas: {name: string, delta: number}[] }}
  */
 export function applyAtoms(atomConfigs, nodeAttributes, message, ctx) {
   let attrs = { ...nodeAttributes };
   /** @type {MessageDescriptor[]} */
   const outgoing = [];
+  /** @type {{name: string, delta: number}[]} */
+  const qualityDeltas = [];
 
   for (const config of atomConfigs) {
     const fn = getAtom(config.name);
@@ -63,9 +66,12 @@ export function applyAtoms(atomConfigs, nodeAttributes, message, ctx) {
     if (result.outgoing) {
       outgoing.push(...result.outgoing);
     }
+    if (result.qualityDeltas) {
+      qualityDeltas.push(...result.qualityDeltas);
+    }
   }
 
-  return { attributes: attrs, outgoing };
+  return { attributes: attrs, outgoing, qualityDeltas };
 }
 
 // ---------------------------------------------------------------------------
@@ -82,8 +88,9 @@ registerAtom("relay", (config, attrs, message, _ctx) => {
   if (message.type === "tick") return {};
   if (attrs.forwardingEnabled === false) return {};
   if (config.filter && message.type !== config.filter) return {};
+  const destinations = "destinations" in config ? config.destinations : message.destinations;
   return {
-    outgoing: [{ type: message.type, payload: message.payload, destinations: message.destinations }],
+    outgoing: [{ type: message.type, payload: message.payload, destinations }],
   };
 });
 
@@ -271,4 +278,51 @@ registerAtom("watchdog", (config, attrs, message, _ctx) => {
   }
   // Any non-tick message resets the watchdog timer
   return { attributes: { _watchdog_ticks: 0 } };
+});
+
+/**
+ * tally — increment a named quality on each matching message.
+ * config.on: optional message type filter (if omitted, counts any non-tick message).
+ * config.quality: quality name to increment.
+ * config.delta: amount to add per message (default: 1).
+ *
+ * Quality deltas are returned as `qualityDeltas` in the AtomResult and applied
+ * by the runtime (not stored in node attributes). This keeps the atom pure.
+ */
+registerAtom("tally", (config, _attrs, message, _ctx) => {
+  if (!message) return {};
+  if (message.type === "tick") return {};
+  if (config.on && message.type !== config.on) return {};
+  const delta = config.delta ?? 1;
+  return { qualityDeltas: [{ name: config.quality ?? "", delta }] };
+});
+
+/**
+ * debounce — forward first matching message, then suppress for N ticks.
+ * config.on: optional message type filter (if omitted, reacts to any non-tick message).
+ * config.ticks: cooldown period in ticks (default: 1).
+ * config.destinations: optional override for outgoing destinations.
+ *
+ * Useful for rate-limiting: honeypots, noisy sensors, burst attack patterns.
+ */
+registerAtom("debounce", (config, attrs, message, _ctx) => {
+  if (!message) return {};
+  const ticks = config.ticks ?? 1;
+
+  if (message.type === "tick") {
+    const cooldown = attrs._debounce_cooldown ?? 0;
+    if (cooldown > 0) return { attributes: { _debounce_cooldown: cooldown - 1 } };
+    return {};
+  }
+
+  if (config.on && message.type !== config.on) return {};
+
+  const cooldown = attrs._debounce_cooldown ?? 0;
+  if (cooldown > 0) return {}; // Suppressed during cooldown
+
+  const destinations = "destinations" in config ? config.destinations : message.destinations;
+  return {
+    attributes: { _debounce_cooldown: ticks },
+    outgoing: [{ type: message.type, payload: message.payload, destinations }],
+  };
 });

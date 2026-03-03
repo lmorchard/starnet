@@ -23,14 +23,17 @@
  * @property {string} name
  * @property {string} [filter]        - relay/counter: only process messages of this type
  * @property {string[]} [inputs]      - any-of / all-of: list of origin nodeIds to track
+ * @property {string[] | null} [destinations] - relay/debounce: override outgoing destinations (null = broadcast)
  * @property {number} [period]        - clock / watchdog: emit / timeout every N ticks
- * @property {number} [ticks]         - delay: re-emit after N ticks
+ * @property {number} [ticks]         - delay / debounce: re-emit after / suppress for N ticks
  * @property {number} [n]             - counter: emit after N triggers
  * @property {MessageDescriptor} [emits] - counter: message to emit when threshold reached
- * @property {string} [on]            - flag: message type to react to
+ * @property {string} [on]            - flag / tally / debounce: message type to react to
  * @property {Record<string, any>} [when] - flag: payload key=value pairs that must match
  * @property {string} [attr]          - flag: node attribute name to set
  * @property {any} [value]            - flag: value to assign (default: true)
+ * @property {string} [quality]       - tally: quality name to increment
+ * @property {number} [delta]         - tally: amount to add per message (default: 1)
  */
 
 /**
@@ -59,6 +62,7 @@
  * @property {Condition} when
  * @property {Effect[]} then
  * @property {boolean} [fired]
+ * @property {boolean} [repeating]    - if true, fires every evaluation cycle the condition is true (not just once)
  */
 
 /**

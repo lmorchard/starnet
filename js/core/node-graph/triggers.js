@@ -45,7 +45,9 @@ export class TriggerStore {
     for (const def of this._defs) {
       if (this._fired.has(def.id)) continue;
       if (evaluateCondition(def.when, stateAccessors)) {
-        this._fired.add(def.id);
+        if (!def.repeating) {
+          this._fired.add(def.id);
+        }
         for (const effect of def.then) {
           applyEffect(effect, mutators);
         }
