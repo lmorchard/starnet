@@ -323,7 +323,6 @@ export const combinationLock = {
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
-            { effect: "quality-delta", name: "combination-switches-set", delta: 1 },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
           ],
         },
@@ -341,7 +340,6 @@ export const combinationLock = {
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
-            { effect: "quality-delta", name: "combination-switches-set", delta: 1 },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
           ],
         },
@@ -359,7 +357,6 @@ export const combinationLock = {
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
-            { effect: "quality-delta", name: "combination-switches-set", delta: 1 },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
           ],
         },
@@ -375,8 +372,8 @@ export const combinationLock = {
     {
       id: "vault",
       type: "cryptovault",
-      attributes: { visible: false, accessLevel: "locked" },
-      atoms: [],
+      attributes: { visible: false, accessLevel: "locked", opened: false },
+      atoms: [{ name: "flag", on: "signal", when: { active: true }, attr: "opened" }],
       actions: [],
     },
   ],
@@ -389,7 +386,7 @@ export const combinationLock = {
   triggers: [
     {
       id: "vault-reveal",
-      when: { type: "quality-gte", name: "combination-switches-set", value: 3 },
+      when: { type: "node-attr", nodeId: "vault", attr: "opened", eq: true },
       then: [
         { effect: "set-node-attr", nodeId: "vault", attr: "visible", value: true },
         { effect: "set-node-attr", nodeId: "vault", attr: "accessLevel", value: "locked" },
@@ -713,10 +710,11 @@ export const honeyPot = {
  * fires, the key attribute is refreshed to a new value. A watchdog on the
  * vault checks whether the key is still valid when loot is attempted.
  *
- * Simplified circuit: key-gen produces key; every clock period it resets.
- * Loot action on vault requires quality("decryption-key") >= 1. Player
- * must extract key (quality-delta +1) and loot before clock fires
- * (quality-set 0 on clock signal via the alarm-latch reset path).
+ * Circuit: clock(period:5) → key-ready-latch (flag). Repeating trigger watches
+ * the latch: on each clock cycle it resets the latch, sets keyReady:true, and
+ * expires any previously extracted but unspent key (quality-set 0). Player must
+ * extract the key and loot the vault within the same clock window, or the key
+ * expires and they must wait for the next cycle.
  *
  * External ports: ['key-gen', 'vault']
  *
@@ -782,10 +780,13 @@ export const encryptedVault = {
   triggers: [
     {
       id: "key-ready",
+      repeating: true,
       when: { type: "node-attr", nodeId: "key-ready-latch", attr: "latched", eq: true },
       then: [
+        { effect: "set-node-attr", nodeId: "key-ready-latch", attr: "latched", value: false },
         { effect: "set-node-attr", nodeId: "key-gen", attr: "keyReady", value: true },
-        { effect: "ctx-call", method: "log", args: ["Key-gen cycle: decryption key available"] },
+        { effect: "quality-set", name: "decryption-key", value: 0 },
+        { effect: "ctx-call", method: "log", args: ["Key-gen cycle: decryption key refreshed — extract quickly"] },
       ],
     },
   ],
@@ -811,7 +812,7 @@ export const cascadeShutdown = {
       id: "relay-a",
       type: "data-relay",
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
-      atoms: [{ name: "relay", filter: "subvert-ping" }],
+      atoms: [],
       actions: [
         {
           id: "subvert",
@@ -830,7 +831,7 @@ export const cascadeShutdown = {
       id: "relay-b",
       type: "data-relay",
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
-      atoms: [{ name: "relay", filter: "subvert-ping" }],
+      atoms: [],
       actions: [
         {
           id: "subvert",
@@ -849,7 +850,7 @@ export const cascadeShutdown = {
       id: "relay-c",
       type: "data-relay",
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
-      atoms: [{ name: "relay", filter: "subvert-ping" }],
+      atoms: [],
       actions: [
         {
           id: "subvert",

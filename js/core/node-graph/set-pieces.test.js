@@ -374,6 +374,26 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     assert.deepEqual(ctx.calls.giveReward[0], [3000]);
     assert.equal(graph.getQuality("ev1/decryption-key"), 0);
   });
+
+  it("key expires on next clock cycle if not looted in time", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(encryptedVault, "ev1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
+    graph._nodes.get("ev1/vault").attributes.accessLevel = "owned";
+
+    // First clock cycle: extract the key
+    graph.tick(5);
+    graph.executeAction("ev1/key-gen", "extract-key");
+    assert.equal(graph.getQuality("ev1/decryption-key"), 1);
+
+    // Don't loot — let next clock cycle fire and expire the key
+    graph.tick(5);
+    assert.equal(graph.getQuality("ev1/decryption-key"), 0);
+    assert.equal(graph.getNodeState("ev1/key-gen").keyReady, true); // new key ready
+    assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("loot"));
+  });
 });
 
 describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
