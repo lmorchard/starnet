@@ -15,6 +15,18 @@ export const nullCtx = {
   disableNode(_nodeId) {},
   revealNode(_nodeId) {},
   log(_message) {},
+  startProbe(_nodeId) {},
+  cancelProbe() {},
+  startExploit(_nodeId, _exploitId) {},
+  cancelExploit() {},
+  startRead(_nodeId) {},
+  cancelRead() {},
+  startLoot(_nodeId) {},
+  cancelLoot() {},
+  ejectIce() {},
+  rebootNode(_nodeId) {},
+  reconfigureNode(_nodeId) {},
+  openDarknetsStore() {},
 };
 
 /**
@@ -47,6 +59,18 @@ export function mockCtx() {
     disableNode: spy("disableNode"),
     revealNode: spy("revealNode"),
     log: spy("log"),
+    startProbe: spy("startProbe"),
+    cancelProbe: spy("cancelProbe"),
+    startExploit: spy("startExploit"),
+    cancelExploit: spy("cancelExploit"),
+    startRead: spy("startRead"),
+    cancelRead: spy("cancelRead"),
+    startLoot: spy("startLoot"),
+    cancelLoot: spy("cancelLoot"),
+    ejectIce: spy("ejectIce"),
+    rebootNode: spy("rebootNode"),
+    reconfigureNode: spy("reconfigureNode"),
+    openDarknetsStore: spy("openDarknetsStore"),
     calls,
   };
 
