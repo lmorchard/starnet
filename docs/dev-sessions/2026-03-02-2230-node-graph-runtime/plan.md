@@ -85,8 +85,13 @@ Create `js/core/node-graph/atoms.js` exporting:
 - `registerAtom(name, fn)` — registers an atom function by name
 - `getAtom(name)` — returns the registered function or throws
 - `applyAtoms(atomConfigs, nodeAttributes, message, ctx)` — runs each configured
-  atom in order, accumulating attribute mutations and outgoing messages; returns
-  `{ attributes, outgoing }`
+  atom in order, returns `{ attributes, outgoing }`
+
+**Progressive merge:** `applyAtoms` merges each atom's returned attribute patch
+into `nodeAttributes` *before* calling the next atom. Later atoms see earlier
+atoms' mutations. This makes atom ordering meaningful — e.g. a `[latch, relay]`
+node receiving `set` will have `latched: true` visible to the relay atom.
+Outgoing messages are collected (appended) across all atoms.
 
 Each atom function signature: `(config, nodeAttributes, message, ctx) →
 { attributes?, outgoing? }` where `attributes` is a partial patch (merged onto
@@ -98,15 +103,18 @@ Implement and register these core atoms:
 - **`relay`** — if `nodeAttributes.forwardingEnabled !== false`, re-emits the
   incoming message as outgoing (preserving type, payload, destinations). Supports
   optional `filter` config: only relay if `message.type === config.filter`.
-  Skips if message is null.
+  Skips if message is null. **Drops tick messages** (`message.type === 'tick'`)
+  silently — ticks are node-local and never forwarded.
 - **`invert`** — if message type is `signal`, returns outgoing signal with
-  `payload.active` flipped. Skips non-signal messages.
+  `payload.active` flipped. Skips non-signal messages. **Drops tick messages**
+  silently.
 - **`any-of`** — config has `inputs: [nodeId, ...]`. Maintains
   `_anyof_state` attribute map (keyed by origin). On incoming signal message,
-  updates the map entry for `message.origin`. If any entry is true, emits
-  `signal(active:true)`; otherwise emits `signal(active:false)`.
+  **only tracks origins listed in `inputs`** — signals from unlisted origins are
+  ignored. If any tracked entry is true, emits `signal(active:true)`; otherwise
+  emits `signal(active:false)`.
 - **`all-of`** — same structure as `any-of` but emits `signal(active:true)` only
-  when all `inputs` entries are true.
+  when all `inputs` entries are true. **Only tracks listed inputs.**
 - **`latch`** — on `set` message, sets `latched: true`; on `reset` message, sets
   `latched: false`. No outgoing messages.
 - **`clock`** — config has `period` (in ticks). Maintains `_clock_ticks` attribute
@@ -122,8 +130,10 @@ Implement and register these core atoms:
 Create `tests/node-graph/atoms.test.js` with isolated unit tests for each atom.
 Test each by calling the atom function directly with crafted inputs — no runtime
 needed. Cover: relay forwarding and filtering, relay blocked when
-`forwardingEnabled: false`, invert flipping active, any-of and all-of gate
-logic, latch set/reset, clock period counting, delay buffering, counter threshold.
+`forwardingEnabled: false`, **relay drops tick messages**, invert flipping
+active, **invert drops tick messages**, any-of and all-of gate logic,
+**gate atoms ignore signals from unlisted origins**, latch set/reset, clock
+period counting, delay buffering, counter threshold.
 
 ---
 
@@ -157,11 +167,25 @@ applyEffect(effect, { getNodeAttr, setNodeAttr, getQuality, setQuality,
                       deltaQuality, sendMessage, ctx })
 ```
 
+**Mutator signature convention:** `setNodeAttr` always takes 3 args:
+`setNodeAttr(nodeId, attr, value)`. The caller (runtime) is responsible for
+constructing the mutators object with the right binding:
+- For **trigger** mutators: `setNodeAttr` operates on any node by id
+- For **action** mutators: the runtime pre-binds the action's own nodeId, but
+  `applyEffect` still calls `setNodeAttr(nodeId, attr, value)` uniformly
+
+For `set-attr` effects (which target self and have no `nodeId` in the effect
+definition), `applyEffect` passes a `targetNodeId` that the runtime filled
+in when constructing the mutators. See Step 7 for how this is wired.
+
 Supports effect types:
-- `set-attr` — `{ effect, attr, value }` — calls `setNodeAttr(attr, value)`
-- `toggle-attr` — `{ effect, attr }` — flips boolean via `setNodeAttr`
-- `set-node-attr` — `{ effect, nodeId, attr, value }` — sets attr on another
-  node (for trigger effects that target a different node)
+- `set-attr` — `{ effect, attr, value }` — calls
+  `setNodeAttr(targetNodeId, attr, value)` where `targetNodeId` comes from
+  the mutators context (the runtime fills this in)
+- `toggle-attr` — `{ effect, attr }` — same as `set-attr` but flips boolean
+- `set-node-attr` — `{ effect, nodeId, attr, value }` — calls
+  `setNodeAttr(effect.nodeId, attr, value)` with the explicit nodeId from
+  the effect definition
 - `emit-message` — `{ effect, message }` — calls `sendMessage` with the
   partial message descriptor
 - `quality-set` — `{ effect, name, value }` — calls `setQuality`
@@ -223,12 +247,20 @@ same condition/effect vocabulary, so this step is mostly wiring.
 Create `js/core/node-graph/actions.js` exporting:
 
 ```js
-getAvailableActions(actionDefs, stateAccessors)
+getAvailableActions(actionDefs, nodeId, stateAccessors)
 // → ActionDef[] filtered to only those whose requires all pass
 
-executeAction(actionDefs, actionId, mutators, stateAccessors)
+executeAction(actionDefs, actionId, nodeId, mutators, stateAccessors)
 // → applies effects of the named action; throws if action not found or requires fail
 ```
+
+Both functions accept a `nodeId` parameter — the node the action belongs to.
+This is needed because action `requires` use `node-attr` conditions that omit
+`nodeId` (they implicitly target self). Before calling `evaluateCondition`,
+the action evaluator fills in the missing `nodeId` on any `node-attr` condition
+that lacks one. Similarly, before calling `applyEffect` for `set-attr` /
+`toggle-attr` effects, the evaluator sets `mutators.targetNodeId` so effects
+know which node to mutate.
 
 Both functions use `evaluateCondition` (from `conditions.js`) for `requires`
 checking and `applyEffect` (from `effects.js`) for executing effects. The
@@ -286,25 +318,82 @@ Internally:
 - `_evaluateTriggers()`: build stateAccessors and mutators from `this`, call
   `triggerStore.evaluate(stateAccessors, mutators)`
 - stateAccessors: `{ getNodeAttr: (nodeId, attr) => ..., getQuality: name => ... }`
-- mutators for triggers: `{ setNodeAttr: (nodeId, attr, val) => ..., getQuality,
-  setQuality, deltaQuality, sendMessage: (nodeId, msg) => this.sendMessage(...),
-  ctx }`
-- mutators for actions: same but `setNodeAttr` targets the action's own node
-  (no nodeId parameter — actions mutate the node they're on)
+- mutators for triggers: `{ setNodeAttr: (nodeId, attr, val) => ...,
+  targetNodeId: null, getQuality, setQuality, deltaQuality,
+  sendMessage: (nodeId, msg) => this.sendMessage(...), ctx }`
+- mutators for actions: same shape, but `targetNodeId` is set to the action's
+  nodeId. `applyEffect` uses `targetNodeId` when processing `set-attr` and
+  `toggle-attr` effects (which don't carry their own nodeId). `set-node-attr`
+  effects always use their explicit `effect.nodeId` regardless of
+  `targetNodeId`.
+
+Note: `setNodeAttr` always takes `(nodeId, attr, val)` — same signature for
+both trigger and action contexts. The `targetNodeId` field is only for
+`set-attr`/`toggle-attr` effects that target "self."
 
 Import `nullCtx` from `ctx.js` as the default context when none is provided.
 
 Create `js/core/node-graph/ctx.js` exporting:
 - `nullCtx` — an object implementing all ctx methods as no-ops
-- `mockCtx()` — returns a ctx where every method is a `jest.fn()` spy (or a
-  simple call-recording object if jest is not the test runner)
+- `mockCtx()` — returns a ctx where every method is a call-recording spy.
+  Use `node:test`'s `mock.fn()` if available, otherwise a simple
+  call-recording wrapper (the project uses Node.js built-in test runner,
+  not jest)
 
 Create `js/core/node-graph/index.js` re-exporting `NodeGraph`, `createMessage`,
 `QualityStore`, `nullCtx`, `mockCtx`.
 
 ---
 
-## Step 8 — Runtime Integration Tests
+## Step 8 — Serialization (Snapshot / Restore)
+
+**Context:** The runtime works. Now add snapshot/restore so the full runtime
+state can be captured and reconstituted as plain JSON. This is critical for the
+game's save/load contract and for reproducing test scenarios.
+
+**Prompt:**
+
+Add to `NodeGraph` in `runtime.js`:
+
+- `snapshot()` — returns a plain JSON-serializable object containing:
+  - All node states (id, type, attributes — including atom internal state like
+    `_clock_ticks`, `_delay_queue`, `_anyof_state`, `_allof_state`,
+    `_counter_count`, `latched`)
+  - All node definitions (atom configs, action defs) — needed to reconstitute
+    behavior
+  - Edge list
+  - Quality store snapshot
+  - Trigger definitions with their fired status
+- `static fromSnapshot(snapshot, ctx)` — constructs a new `NodeGraph` from a
+  snapshot object, restoring all node attributes, qualities, trigger fired
+  state, and topology. The returned graph must behave identically to the
+  original at the moment of snapshot.
+
+**Serialization constraint:** all atom state must live in node `attributes`.
+No atom may store state in closures, module-level variables, or WeakMaps.
+The `_delay_queue` entries must be plain objects (message descriptors, not
+live Message instances with methods).
+
+Add to `QualityStore`:
+- `restore(data)` — replaces internal state from a plain object
+
+Add to `TriggerStore`:
+- `snapshot()` — returns trigger defs with fired status
+- `restore(data)` — reconstitutes from snapshot (restoring fired set)
+
+Create `tests/node-graph/serialization.test.js` with tests:
+- Snapshot a graph with node attributes, qualities, and a fired trigger;
+  restore it; assert all state matches
+- Snapshot a graph mid-clock-cycle (e.g. `_clock_ticks` at 2 of 3); restore;
+  tick once more; assert clock fires (proving internal atom state survived)
+- Snapshot a graph with a delay queue entry; restore; tick to drain; assert
+  delayed message delivered
+- Snapshot round-trip through `JSON.stringify` / `JSON.parse` succeeds
+  (proves no non-serializable values)
+
+---
+
+## Step 9 — Runtime Integration Tests
 
 **Context:** All modules exist. Write integration tests that exercise the full
 pipeline end-to-end.
@@ -353,7 +442,7 @@ full pipeline:
 
 ---
 
-## Step 9 — Makefile and Test Runner Wiring
+## Step 10 — Makefile and Test Runner Wiring
 
 **Context:** All code and tests exist. Wire into the existing test runner and
 confirm `make test` passes.

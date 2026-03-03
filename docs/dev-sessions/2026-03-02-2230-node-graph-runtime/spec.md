@@ -56,10 +56,10 @@ applied in order.
 
 | Atom | Behavior |
 |---|---|
-| `relay(filter?)` | Forward matching messages to all connected nodes (or filtered by type); checks own `forwardingEnabled` attribute |
-| `invert` | Flip `signal.active` on incoming signal messages before forwarding |
-| `any-of(inputs)` | OR gate: emit `signal(active:true)` when any named input has sent an active signal |
-| `all-of(inputs)` | AND gate: emit `signal(active:true)` only when all named inputs have sent active signals |
+| `relay(filter?)` | Forward matching messages to all connected nodes (or filtered by type); checks own `forwardingEnabled` attribute. Drops `tick` messages silently — ticks are node-local and never forwarded. |
+| `invert` | Flip `signal.active` on incoming signal messages before forwarding. Drops `tick` messages silently. |
+| `any-of(inputs)` | OR gate: emit `signal(active:true)` when any named input has sent an active signal. Only tracks signals whose `origin` is listed in `inputs`; signals from unlisted origins are ignored. |
+| `all-of(inputs)` | AND gate: emit `signal(active:true)` only when all named inputs have sent active signals. Only tracks signals whose `origin` is listed in `inputs`; signals from unlisted origins are ignored. |
 | `latch` | `set`/`reset` messages toggle a persistent `latched` attribute |
 | `clock(period)` | Source atom: emit `signal(active:true)` every N ticks (no incoming trigger needed) |
 | `delay(ticks)` | Buffer an incoming message and re-emit it after N ticks |
@@ -208,7 +208,25 @@ graph.getNodeState(nodeId);            // → node attributes snapshot
 graph.getQuality(name);               // → number
 graph.setQuality(name, value);
 graph.deltaQuality(name, delta);
+graph.snapshot();                      // → plain JSON-serializable object of full runtime state
+graph.restore(snapshot);               // → reconstitute runtime from a previous snapshot
 ```
+
+### Serialization
+
+All runtime state must be JSON-serializable at any instant. This includes node
+attributes (including atom internal state like `_clock_ticks`, `_delay_queue`,
+gate tracking maps), qualities, trigger fired status, and graph topology.
+
+`graph.snapshot()` returns a plain object suitable for `JSON.stringify()`.
+`NodeGraph.fromSnapshot(snapshot, ctx)` (or `graph.restore(snapshot)`)
+reconstitutes the full runtime from that object. A snapshot → restore round-trip
+must produce identical behavior: same messages delivered, same triggers fire,
+same actions available.
+
+This is critical for the game's save/load contract and for reproducing
+scenarios in testing. Atom implementations must not store state outside of
+node attributes — closures, WeakMaps, or module-level variables are forbidden.
 
 Internally, each `sendMessage` call:
 1. Delivers the message to the target node
@@ -238,9 +256,10 @@ js/core/node-graph/
 Tests under `tests/node-graph/`:
 ```
 tests/node-graph/
-  atoms.test.js     — unit tests for each atom in isolation
-  actions.test.js   — unit tests for requires evaluation and effects execution
-  runtime.test.js   — integration tests: relay chain, gate logic, triggers firing, actions
+  atoms.test.js          — unit tests for each atom in isolation
+  actions.test.js        — unit tests for requires evaluation and effects execution
+  serialization.test.js  — snapshot/restore round-trip tests
+  runtime.test.js        — integration tests: relay chain, gate logic, triggers firing, actions
 ```
 
 ---
@@ -268,7 +287,12 @@ The session is done when:
     - `quality-delta` effect updates the quality store
     - `emit-message` effect feeds into the atom/trigger pipeline
     - An action with a failing `requires` condition is not returned by `getAvailableActions`
-11. `make test` passes with no failures
+11. Serialization round-trip:
+    - `graph.snapshot()` returns a JSON-serializable plain object
+    - `NodeGraph.fromSnapshot(snapshot, ctx)` reconstitutes the runtime
+    - A snapshot → restore → re-run produces identical results
+    - Atom internal state (`_clock_ticks`, `_delay_queue`, gate maps) survives the round-trip
+12. `make test` passes with no failures
 
 ## Out of Scope (This Session)
 
@@ -276,4 +300,6 @@ The session is done when:
 - Set-piece PCBs (prefab subgraph authoring)
 - Integration with the existing game (`js/core/ice.js`, `state/`, etc.)
 - Visual signal propagation in the graph UI
+- `exactly-one-of` (XOR gate) atom — listed in backlog, deferred to a future session
 - `counter` atom (nice to have, cut if time is short)
+- BFS message dispatch (current design uses DFS recursion — see notes.md for trade-off analysis)
