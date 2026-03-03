@@ -160,6 +160,226 @@ From session-5 design discussion — reframe log verbosity as something the play
 
 ---
 
+## Node System Overhaul (Major Future Direction)
+
+### Reactive Node Graph Runtime
+
+The current node implementation is a mix of hardcoded type behaviors, bespoke
+per-feature logic (IDS → monitor alert chain, ICE resident, etc.), and scattered
+`if (node.type === 'X')` special cases. The long-term direction is to replace
+this with a data-driven, composable system: nodes as attribute bags, behavior as
+named composable atoms, state propagation via typed message-passing. Nothing in
+the world should require bespoke engine code — all behavior expressible as data
+compositions of registered primitives.
+
+#### Design Precedents
+
+Three games are direct inspirations:
+
+- **Rocky's Boots (1982, The Learning Company)** — players build logic circuits by
+  navigating a world of connectable gates. The key insights: signals should be
+  *visually legible as they propagate* (rendered as "liquid orange fire through
+  transparent pipes"); the player is *inside* the circuit, not an external operator
+  (your actions *are* signals injected into the network); the game world and the
+  reactive system are the same object, with no separate editor mode. Early stages
+  teach gates one at a time before opening free composition.
+- **Caves of Qud** — component/data composition. Entities are XML definitions that
+  compose named components; component logic is code, composition is data. Nothing
+  in the world needs special-case engine code. The atom system uses the same pattern.
+- **Sunless Sea / Fallen London (StoryNexus)** — Qualities as the lingua franca for
+  game state. Named counters aggregate signals from many sources; triggers fire when
+  counters reach thresholds. This decouples individual event emitters from
+  multi-source conditions — the "arrange switches just-so" pattern without cross-node
+  wiring.
+
+#### The Primitives
+
+**Nodes as attribute bags.** Each node is schema-validated typed attributes: `grade`,
+`accessLevel`, `alertState`, plus arbitrary extras (`rewardAmount`, `passwordHash`,
+etc.). The node *type* is a human-readable shorthand for an atom bundle — behavior
+comes entirely from the attached atoms, not the type name.
+
+**Behavioral atoms.** Named, self-contained reactive functions that compose onto nodes.
+Atoms in JS, composition in data (ECS-style: functions registered by name; node
+definitions list atom names + configs). Core atoms:
+
+- `relay(filter?)` — forward matching incoming messages to connected nodes; this is
+  the entirety of what an IDS does
+- `invert` — flip `signal.active` before forwarding (NOT gate)
+- `any-of(inputs)` / `all-of(inputs)` / `exactly-one-of(inputs)` — OR / AND / XOR
+  gate atoms; emit when condition over named inputs is satisfied
+- `latch` — `set` / `reset` messages toggle persistent state (flip-flop)
+- `clock(period)` — source atom; emits periodic pulses without an incoming trigger
+- `delay(ticks)` — buffers a message and re-emits after N ticks (repeater)
+- `counter(n, emits)` — after N incoming triggers, emits a different message
+- `ice-resident` — spawn ICE here on init and after reboot
+- `reward-on-loot(amount)` — call `ctx.giveReward(amount)` when looted
+
+**Message-passing edges.** Connections are dumb pipes — no behavior, state, or
+filtering logic. All routing, filtering, and rewriting lives in nodes. Every message
+carries an envelope:
+
+```
+{ type, origin, path: [nodeId, ...], destinations: null | [nodeId, ...], payload }
+```
+
+- `origin` — first emitter; preserved through relays
+- `path` — forwarding history; used for cycle detection and audit tracing
+- `destinations` — null = broadcast; `[id,...]` = multicast or unicast
+
+Because messages carry `origin`, gates can be source-selective — `all-of` can
+require signals from specific named nodes, not just any input; strictly more
+expressive than Redstone.
+
+Core message vocabulary: `probe-noise`, `exploit-noise`, `alert`, `owned`, `unlock`,
+`heartbeat` (periodic keep-alive; absence triggers deadman conditions), `signal`
+(generic on/off for gate use).
+
+**Qualities.** Named integer counters in a network-scoped namespace. Atoms and
+player actions can read and write them. `quality("X") >= N` is a first-class
+predicate. From Fallen London: individual events increment a shared counter; a
+trigger fires at a threshold. Neither the emitter nor the target needs to know
+about the other. Examples: `routing-panels-aligned` (inc/dec by switch actions),
+`auth-tokens-collected` (inc on loot), `security-compromised` (flag on IDS
+subversion).
+
+**Triggers.** Named condition + effects pairs, evaluated after every state change,
+firing once when condition transitions false → true:
+
+```
+{ when: all-of [ node("A").accessLevel == "owned",
+                 node("B").accessLevel == "owned" ],
+  then: [ reveal-node("hidden-vault"), place-macguffin("vault", "corp-secrets") ] }
+
+{ when: quality("routing-panels-aligned") >= 3,
+  then: [ enable-node("deep-subnet"), log("Routing path established.") ] }
+```
+
+**Player actions as data.** Actions are data definitions with preconditions and
+effects, not bespoke handlers — a generalization of what `node-types.js` already
+does:
+
+```
+{ id: "flip-route", label: "Reroute",
+  requires: { accessLevel: "owned" },
+  effects: [ toggle-attr("aligned"), emit-message("route-changed"),
+             quality-delta("routing-panels-aligned", +1 if aligned else -1) ] }
+```
+
+**Game API context.** The boundary between node graph and engine — the finite,
+auditable surface of what atoms can affect: `ctx.startTrace()`,
+`ctx.cancelTrace()`, `ctx.giveReward(amount)`, `ctx.spawnICE(nodeId)`,
+`ctx.setGlobalAlert(level)`, `ctx.enableNode(nodeId)`, `ctx.disableNode(nodeId)`,
+`ctx.revealNode(nodeId)`.
+
+#### Expressive Power
+
+The gate atoms are equivalent to digital logic — if the system can express
+Redstone-equivalent circuits, it can express essentially any cause-and-effect
+puzzle without new engine code. The security monitor is already an OR gate
+(`any-of` IDS inputs → high-alert).
+
+| Redstone | Atom |
+|---|---|
+| Wire / repeater | `relay` / `delay(ticks)` |
+| NOT | `invert` |
+| OR / AND / XOR | `any-of` / `all-of` / `exactly-one-of` |
+| Latch / flip-flop | `latch` |
+| Clock | `clock(period)` |
+| Comparator | `compare(threshold)` |
+
+Gate state lives in the attribute bag (`all-of` tracks per-source signal state).
+Timing requires explicit `delay` atoms rather than emerging from propagation
+distance — less implicit, more intentional.
+
+Puzzle patterns enabled, roughly ordered by complexity:
+
+- **Tripwire** — hidden node; trigger fires `ctx.startTrace()` when node A is owned
+- **Decoy** — lootable node with low reward and `raises-alert-on-loot`; corporate bait
+- **Deadman circuit** — `clock → NOT(heartbeat) → trace-start`; blocking the
+  heartbeat relay fires trace rather than silencing it
+- **ICE visibility tradeoff** — subverting the relay that carries `owned` messages
+  lets you own nodes silently, but if it also carries your log feedback the zone
+  goes dark both ways
+- **N-th access alarm** — `counter(3, emits:alert)`; probing 3 times starts trace
+  regardless of per-probe outcomes
+- **Password gate** — own node A (readable password) to send `unlock` to node B
+- **Progressive unlock chain** — each node's `owned` transition is a trigger
+  condition for the next becoming accessible
+- **Switch arrangement** — switch actions write a quality; trigger reveals hidden
+  subnet when quality reaches target value
+- **Multi-key vault** — loot requires `quality("auth-tokens") >= 2`; tokens from
+  two separate nodes
+- **Combination lock** — `all-of([switch-A, switch-B, switch-C])`; only the correct
+  simultaneous state produces the output signal
+- **Ordered sequence lock** — chain of latches; only correct activation order
+  produces the final signal
+- **Automated defense** — `clock AND compromised-flag → ICE-spawn`; ICE spawns
+  periodically only during active intrusion
+- **Self-resetting trap** — `tripwire → latch → delay(30) → latch-reset`
+
+#### Composition Levels: Atoms, ICs, and Set-Piece PCBs
+
+Three levels of composition, from primitive to prefab:
+
+**Complex ICs** are nodes that encapsulate an internal circuit but present a simple
+external interface — inputs, outputs, a few configurable parameters. A hardened
+firewall might internally combine a grade-threshold comparator, an IDS relay, and
+a latch, but from outside it looks like one node with one configurable behavior.
+The IC abstraction enables **black-box puzzle mechanics**: you can observe what a
+node *does* (external message interface, available actions) without knowing *how*
+(internal atom wiring) until you probe and exploit it deeply. Higher-grade ICs hide
+their internals better — internal structure revealed progressively as access level
+rises, mapping onto the existing probe → exploit → read loop.
+
+**Set-piece PCBs** are prefab subgraphs: a cluster of nodes with predefined
+topology, wiring, and atom configurations, placed into a network as a unit by the
+generator. Examples:
+
+- *Security operations center* — monitor + two IDS nodes + ice-host, pre-wired;
+  the generator places one set-piece rather than four individual nodes
+- *Combination vault* — vault node + three switch nodes + `all-of` gate, pre-wired;
+  author configures reward and combination, drops it in
+- *Deadman perimeter* — clock node + heartbeat relay + NOT gate + trace trigger;
+  a self-contained alarm system the player must carefully disarm
+
+Set-pieces are the authoring unit for puzzle content. The atom/IC layers provide
+the vocabulary; set-pieces are the sentences. The network generator's biome
+templates become catalogs of available set-pieces to compose.
+
+#### Relation to Existing Architecture
+
+`node-types.js` action composition is already a partial step. The full overhaul
+replaces the hardcoded IDS → monitor alert chain, `ice-host`/`iceResident` special
+cases, and scattered type checks in `ice.js` and `combat.js`. Node type becomes a
+named shorthand for an atom bundle; biome templates become atom-palette definitions.
+
+Migration path: current node types re-expressed as atom bundles incrementally — no
+flag-day rewrite. The IDS → monitor alert chain is the natural first pilot.
+
+#### Design Risks / Open Questions
+
+- **Debugging**: minimum tooling needed — a message trace log (type, origin, path,
+  atoms fired) inspectable via console command. The `path` field helps here.
+- **Cycle detection**: a relay that sees its own ID in `path` drops the message.
+- **Atom expressiveness ceiling**: atoms should be pure functions of (node state,
+  incoming message, context) → (mutations, outgoing messages, ctx calls). No loops
+  or closures. Whether this covers all current node types without escaping into
+  bespoke JS is the key question — IDS and ICE resident are the litmus tests.
+- **Quality scope**: global (per-run) is simpler; per-node enables isolated puzzle
+  domains but needs namespacing to avoid collisions.
+- **Trigger evaluation cost**: acceptable for small networks; large networks (40–60
+  nodes) may need a dependency graph to avoid re-evaluating all triggers on every
+  mutation.
+- **Testing**: atoms are individually testable in isolation; triggers as condition +
+  state snapshot pairs.
+
+This is a significant architectural investment that directly enables the large-network
+/ multiple-ICE / zone design and puzzle-heavy dungeon content. Defer until the
+single-ICE prototype is fully playtested and the design is stable.
+
+---
+
 ## Technical / Architecture
 
 ### ~~Seeded RNG~~ ✓ DONE
