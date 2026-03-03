@@ -4,7 +4,7 @@
 
 import { GRADE_INDEX } from "../../../grades.js";
 
-/** @type {Record<string, import('../../../set-pieces.js').SetPiece & { eligible?: Function, probability?: number }>} */
+/** @type {Record<string, import('../../set-pieces.js').SetPiece & { eligible?: Function, probability?: number }>} */
 export const SET_PIECES = {
   /**
    * careless-user — a workstation inadvertently bridged to a fileserver that is
