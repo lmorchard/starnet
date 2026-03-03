@@ -232,14 +232,14 @@ function buildStylesheet() {
         "text-margin-y": 5,
       },
     },
-    // Accessible nodes — base (locked = dark/absent fill, quiet border)
+    // Accessible nodes — base (locked = dark fill, readable against bg #0a0a0f)
     {
       selector: "node.accessible",
       style: {
         display: "element",
         width: 46,
         height: 46,
-        "background-color": "#080810",
+        "background-color": "#14141f",
         "border-width": 1,
         "border-color": "#1a3333",
         label: "data(id)",
