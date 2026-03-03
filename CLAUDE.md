@@ -8,20 +8,38 @@ See `docs/SPEC.md` for the full game design document.
 
 ## Tech Stack
 
-- **Vanilla HTML/CSS/JS** — no framework, no build tooling
-- **Cytoscape.js** (CDN) — network graph rendering and interaction
-- ES modules via `<script type="module">`
-- No bundler — open `index.html` directly via a local static server
+- **Vanilla HTML/CSS/JS** — no framework
+- **Cytoscape.js + layout extensions** — bundled locally via esbuild (see below)
+- ES modules via `<script type="module">` for game code — no bundler for `js/`
 - **JSDoc `@ts-check`** — type annotations without a build step; see `js/types.js`
 
 ## Makefile
 
 ```
-make serve   — start local dev server at http://localhost:3000
-make lint    — run tsc type checker (JSDoc annotations, no emit)
-make test    — run unit + integration tests
-make check   — lint + test (run both)
+make serve         — start local dev server at http://localhost:3000
+make lint          — run tsc type checker (JSDoc annotations, no emit)
+make test          — run unit + integration tests
+make check         — lint + test (run both)
+make bundle-vendor — build dist/vendor.js (Cytoscape + layout extensions)
 ```
+
+**`dist/vendor.js` must be built before opening the game in a browser.** It is
+gitignored (build artifact). Run `make bundle-vendor` after cloning or after
+updating vendor dependencies in `package.json`.
+
+The GitHub Pages deploy workflow runs `make bundle-vendor` automatically.
+
+### Bundling philosophy
+
+- **Vendor code (`js/vendor.js` → `dist/vendor.js`)** — bundled with esbuild.
+  Cytoscape and its layout extensions are npm packages loaded as a single IIFE
+  that sets `window.cytoscape`. Bundling eliminates CDN round-trips, pins
+  versions, and reduces requests from 13 to 1.
+
+- **Game code (`js/`)** — **not bundled.** The game is plain ES modules with no
+  npm dependencies. The browser handles a few dozen small files fine over HTTP/2,
+  and keeping them unbundled means no build step during development — just edit
+  and reload. Revisit if game code ever gains npm dependencies.
 
 Run `make check` after any changes to state shapes, event payloads, or data types in `js/types.js`.
 
@@ -32,7 +50,7 @@ When you notice a command being run frequently during development, consider addi
 ### File Structure
 
 ```
-index.html              — entry point, layout, loads Cytoscape.js + main.js
+index.html              — entry point, layout, loads dist/vendor.js + main.js
 css/style.css           — all styles (cyberpunk vector phosphene aesthetic)
 js/
   types.js              — JSDoc @typedef definitions (no runtime code)
