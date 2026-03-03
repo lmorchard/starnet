@@ -7,7 +7,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { tabComplete, VERBS } from "../js/core/tab-complete.js";
+import { tabComplete, VERBS } from "../js/core/console-commands.js";
 
 // ── Minimal state builders ────────────────────────────────
 
