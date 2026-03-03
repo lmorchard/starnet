@@ -276,7 +276,7 @@ trusting that "the tests pass." Fixes:
 - **`noisySensor`** — debounce: first probe per 4-tick window raises alert, subsequent
   probes suppressed. Gives player a "quiet window" after first contact.
 - **`hiddenChannelRelay`** — destinations override: relay hard-routes to a covert monitor
-  with NO visible graph edge. Player can't see the connection but still triggers trace.
+  with NO visible graph edge. *(Removed in next session — see below.)*
 
 ### Bugs hit
 
@@ -287,10 +287,62 @@ trusting that "the tests pass." Fixes:
 - `debounce` test for "forwards probe again after cooldown expires" failed for the same
   `flag` vs `latch` reason — the alarm-latch wasn't responding to probe-noise.
 
+---
+
+## Session Continuation (2026-03-03, part 2): Design Revision + Bug Fix
+
+### Graph legibility principle — hidden channels removed
+
+User feedback: "I want connections to be legible to the player so they can figure out how
+to manipulate the system." `hiddenChannelRelay` used `destinations` override to create a
+connection invisible in the graph — the player could trigger a trace without any visible
+signal path. That's a gotcha, not a puzzle.
+
+Decision: **`destinations` override is internal-only.** It's documented in `set-pieces.js`
+with an explicit warning: don't use it to create connections invisible to the player. All
+node-to-node relationships the player needs to reason about must appear as `internalEdges`.
+
+**`hiddenChannelRelay` removed. `tamperDetect` added in its place.**
+
+`tamperDetect` is a sequencing puzzle using only visible edges:
+- IDS → security-monitor (alert relay, same as idsRelayChain)
+- IDS → tamper-relay → tamper-flag (tamper circuit, all visible)
+- Reconfiguring IDS emits a `tamper` message that propagates the tamper circuit
+- Player must neutralize the tamper relay *before* reconfiguring the IDS, or the
+  reconfigure itself triggers a trace
+- Counterintuitive in a satisfying way: doing the right thing in the wrong order loses.
+  But the circuit is legible — the player can figure it out.
+
+### `emit-message` fundamental bug — fixed
+
+Root cause discovered while testing `tamperDetect`: `emit-message` was calling
+`sendMessage(nodeId, msg)` → `_deliver(nodeId, msg)`, which re-enters the source node's
+own atoms. The IDS has `relay(filter:"alert")` — the `tamper` message emitted by the
+reconfigure action was filtered out at the source before it could reach `tamper-relay`.
+
+Fix: added `_emitFrom(sourceNodeId, message)` to `NodeGraph`. It bypasses the source
+node's atoms entirely and delivers directly to adjacent nodes, with the source already
+in the path for cycle-guard purposes. `emit-message` in `applyEffect` now calls
+`emitFrom` from the mutators object (not `sendMessage`).
+
+`ActionMutators`, `TriggerMutators`, and `EffectMutators` typedefs all updated to
+include `emitFrom`. Test helpers in `effects.test.js` and `actions.test.js` updated.
+
+**Semantic clarification:** `emit-message` = emit *outward* from a node to neighbors.
+`sendMessage` = inject a message *at* a node, which enters that node's atoms first.
+
+### Redundant playtest script removed
+
+`scripts/node-graph-playtest.js` was a verbose human-readable version of the same 9
+scenarios covered by `set-pieces.test.js`. Removed it and the `ng-playtest` Makefile
+target. Once the node graph integrates into the game engine, `scripts/playtest.js`
+serves the human-readable trace use case.
+
 ### Final state
 
 - 566 unit/integration tests, 0 failures
-- 9 playtest scenarios, 9/9 pass
-- 10 set-pieces in catalog covering: relay chains, counters, combination locks, deadman
-  circuits, switch arrangements, multi-key vaults, honeypots, encrypted vaults, cascade
-  shutdowns, tripwire gauntlets, probe burst alarms, noisy sensors, hidden channels
+- 13 set-pieces in catalog: idsRelayChain, nthAlarm, combinationLock, deadmanCircuit,
+  switchArrangement, multiKeyVault, honeyPot, encryptedVault, cascadeShutdown,
+  tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect
+- `scripts/node-graph-playtest.js` removed (redundant with test suite)
+- Node graph runtime is complete and ready for integration into the game engine
