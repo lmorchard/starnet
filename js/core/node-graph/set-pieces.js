@@ -953,6 +953,152 @@ export const tripwireGauntlet = {
 };
 
 /**
+ * Probe Burst Alarm
+ *
+ * Pattern: tally atom counts probe-noise messages into a quality; repeating
+ * trigger fires spawnICE every N probes and resets the counter. Unlike
+ * nthAlarm (one-shot counter), this escalates *indefinitely* — each burst
+ * of N probes spawns another ICE.
+ *
+ * The repeating trigger fires, applies quality-set 0 to reset the counter,
+ * then the next N probes trigger it again.
+ *
+ * External ports: ['scanner']
+ * Receives: probe-noise at 'scanner'.
+ *
+ * @type {SetPieceDef}
+ */
+export const probeBurstAlarm = {
+  id: "probe-burst-alarm",
+  description: "Spawns ICE for every burst of 3 probe-noise events. Repeats indefinitely.",
+  nodes: [
+    {
+      id: "scanner",
+      type: "traffic-scanner",
+      attributes: { accessLevel: "locked" },
+      atoms: [{ name: "tally", on: "probe-noise", quality: "probe-bursts", delta: 1 }],
+      actions: [],
+    },
+  ],
+  internalEdges: [],
+  triggers: [
+    {
+      id: "burst-detected",
+      repeating: true,
+      when: { type: "quality-gte", name: "probe-bursts", value: 3 },
+      then: [
+        { effect: "quality-set", name: "probe-bursts", value: 0 },
+        { effect: "ctx-call", method: "spawnICE", args: [] },
+        { effect: "ctx-call", method: "log", args: ["BURST: Probe cluster detected — ICE dispatched"] },
+      ],
+    },
+  ],
+  externalPorts: ["scanner"],
+};
+
+/**
+ * Noisy Sensor
+ *
+ * Pattern: debounce atom on the sensor ensures only the *first* probe-noise
+ * per N ticks reaches the downstream alarm. The player can exploit the quiet
+ * window after first contact to probe repeatedly without each probe chaining
+ * an alarm — but the first touch in each window still costs them.
+ *
+ * External ports: ['sensor']
+ * Receives: probe-noise at 'sensor'.
+ *
+ * @type {SetPieceDef}
+ */
+export const noisySensor = {
+  id: "noisy-sensor",
+  description: "Debounced sensor: only the first probe-noise per 4 ticks reaches the monitor.",
+  nodes: [
+    {
+      id: "sensor",
+      type: "traffic-sensor",
+      attributes: { accessLevel: "locked" },
+      atoms: [{ name: "debounce", on: "probe-noise", ticks: 4 }],
+      actions: [],
+    },
+    {
+      id: "alarm-flag",
+      type: "alarm-flag",
+      attributes: { triggered: false },
+      atoms: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
+      actions: [],
+    },
+  ],
+  internalEdges: [["sensor", "alarm-flag"]],
+  triggers: [
+    {
+      id: "sensor-alarmed",
+      when: { type: "node-attr", nodeId: "alarm-flag", attr: "triggered", eq: true },
+      then: [
+        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
+        { effect: "ctx-call", method: "log", args: ["SENSOR: First probe in window — alert raised"] },
+      ],
+    },
+  ],
+  externalPorts: ["sensor"],
+};
+
+/**
+ * Hidden Channel Relay
+ *
+ * Pattern: an IDS node with a relay atom that hard-routes alerts to a covert
+ * monitor via a destinations override — NOT via any graph edge. The player
+ * sees an IDS with no outgoing connections in the topology, but subverting
+ * it still triggers a trace because of the invisible covert channel.
+ *
+ * The destinations override in the relay atom bypasses the edge-based routing
+ * entirely: the monitor is reached even with no edge in internalEdges.
+ *
+ * External ports: ['ids', 'covert-monitor']
+ * Receives: alert messages at 'ids'.
+ *
+ * @type {SetPieceDef}
+ */
+export const hiddenChannelRelay = {
+  id: "hidden-channel-relay",
+  description: "IDS hard-routes alerts to a covert monitor via destinations override, bypassing visible graph edges.",
+  nodes: [
+    {
+      id: "ids",
+      type: "ids",
+      attributes: { accessLevel: "locked", forwardingEnabled: true },
+      atoms: [{ name: "relay", filter: "alert", destinations: ["covert-monitor"] }],
+      actions: [
+        {
+          id: "reconfigure",
+          label: "Reconfigure IDS",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
+        },
+      ],
+    },
+    {
+      id: "covert-monitor",
+      type: "security-monitor",
+      attributes: { accessLevel: "locked", alerted: false },
+      atoms: [{ name: "flag", on: "alert", attr: "alerted" }],
+      actions: [],
+    },
+  ],
+  internalEdges: [],  // No visible edges — the connection is in atom destinations config
+  triggers: [
+    {
+      id: "covert-alert",
+      when: { type: "node-attr", nodeId: "covert-monitor", attr: "alerted", eq: true },
+      then: [
+        { effect: "ctx-call", method: "startTrace", args: [] },
+        { effect: "ctx-call", method: "log", args: ["COVERT: Hidden channel alert — trace initiated"] },
+      ],
+    },
+  ],
+  externalPorts: ["ids", "covert-monitor"],
+};
+
+/**
  * Convenience catalog of all set-pieces.
  */
 export const SET_PIECES = {
@@ -966,4 +1112,7 @@ export const SET_PIECES = {
   encryptedVault,
   cascadeShutdown,
   tripwireGauntlet,
+  probeBurstAlarm,
+  noisySensor,
+  hiddenChannelRelay,
 };

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { instantiate, SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet } from "./set-pieces.js";
+import { instantiate, SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, hiddenChannelRelay } from "./set-pieces.js";
 import { NodeGraph } from "./runtime.js";
 import { mockCtx } from "./ctx.js";
 import { createMessage } from "./message.js";
@@ -461,5 +461,152 @@ describe("tripwire-gauntlet: 6-tick delay from probe to alarm", () => {
     graph.tick(6);
     assert.equal(graph.getNodeState("tg1/alarm").triggered, true);
     assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// probe-burst-alarm: tally atom + repeating trigger
+// ---------------------------------------------------------------------------
+describe("probe-burst-alarm: spawns ICE every 3rd probe via tally + repeating trigger", () => {
+  it("does not spawn ICE before 3 probes", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(probeBurstAlarm, "pb1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("pb1/scanner", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    graph.sendMessage("pb1/scanner", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    assert.equal(ctx.calls.spawnICE, undefined);
+    assert.equal(graph.getQuality("pb1/probe-bursts"), 2);
+  });
+
+  it("spawns ICE and resets counter at probe 3", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(probeBurstAlarm, "pb1");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (let i = 0; i < 3; i++) {
+      graph.sendMessage("pb1/scanner", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    }
+    assert.equal(ctx.calls.spawnICE?.length, 1);
+    assert.equal(graph.getQuality("pb1/probe-bursts"), 0); // reset by trigger effects
+  });
+
+  it("spawns ICE again after another burst of 3 probes (repeating)", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(probeBurstAlarm, "pb1");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (let i = 0; i < 6; i++) {
+      graph.sendMessage("pb1/scanner", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    }
+    assert.equal(ctx.calls.spawnICE?.length, 2);
+  });
+
+  it("instantiate prefixes quality name for isolation", () => {
+    const ctx = mockCtx();
+    const inst1 = instantiate(probeBurstAlarm, "a");
+    const inst2 = instantiate(probeBurstAlarm, "b");
+    const graph = new NodeGraph({
+      nodes: [...inst1.nodes, ...inst2.nodes],
+      edges: [...inst1.edges, ...inst2.edges],
+      triggers: [...inst1.triggers, ...inst2.triggers],
+    }, ctx);
+
+    // Send 3 probes to instance a only
+    for (let i = 0; i < 3; i++) {
+      graph.sendMessage("a/scanner", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    }
+    // Only a's ICE spawned, b's counter is still 0
+    assert.equal(graph.getQuality("a/probe-bursts"), 0); // reset after trigger
+    assert.equal(graph.getQuality("b/probe-bursts"), 0); // untouched
+    assert.equal(ctx.calls.spawnICE?.length, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// noisy-sensor: debounce atom
+// ---------------------------------------------------------------------------
+describe("noisy-sensor: first probe per window raises alert, subsequent suppressed", () => {
+  it("raises alert on first probe-noise", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(noisySensor, "ns1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    assert.equal(graph.getNodeState("ns1/alarm-flag").triggered, true);
+    assert.equal(ctx.calls.setGlobalAlert?.length, 1);
+  });
+
+  it("suppresses second probe during cooldown", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(noisySensor, "ns1");
+    const graph = new NodeGraph(inst, ctx);
+
+    // First probe triggers alarm-flag
+    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    // Manually reset flag to test suppression behavior
+    graph._nodes.get("ns1/alarm-flag").attributes.triggered = false;
+
+    // Second probe within cooldown — sensor suppresses it
+    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    assert.equal(graph.getNodeState("ns1/alarm-flag").triggered, false);
+  });
+
+  it("forwards probe again after cooldown expires (4 ticks)", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(noisySensor, "ns1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    graph._nodes.get("ns1/alarm-flag").attributes.triggered = false;
+
+    graph.tick(4); // expire the 4-tick cooldown
+    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    assert.equal(graph.getNodeState("ns1/alarm-flag").triggered, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hidden-channel-relay: destinations override (no graph edges)
+// ---------------------------------------------------------------------------
+describe("hidden-channel-relay: covert destination bypasses visible graph topology", () => {
+  it("alert reaches covert-monitor via destinations override even with no graph edge", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(hiddenChannelRelay, "hc1");
+    // Confirm no graph edges in set-piece
+    assert.equal(inst.edges.length, 0);
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("hc1/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
+    assert.equal(graph.getNodeState("hc1/covert-monitor").alerted, true);
+    assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+
+  it("trace fires even though player sees no visible edge from IDS", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(hiddenChannelRelay, "hc1");
+    const graph = new NodeGraph(inst, ctx);
+
+    // No external edges added — IDS appears isolated to the player
+    graph.sendMessage("hc1/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
+    assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+
+  it("disabling forwardingEnabled on IDS severs the covert channel", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(hiddenChannelRelay, "hc1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("hc1/ids").attributes.forwardingEnabled = false;
+    graph.sendMessage("hc1/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
+    assert.equal(graph.getNodeState("hc1/covert-monitor").alerted, false);
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+
+  it("instantiate prefixes destinations in the relay atom config", () => {
+    const inst = instantiate(hiddenChannelRelay, "hc1");
+    const idsNode = inst.nodes.find((n) => n.id === "hc1/ids");
+    const relayAtom = idsNode?.atoms.find((a) => a.name === "relay");
+    assert.deepEqual(relayAtom?.destinations, ["hc1/covert-monitor"]);
   });
 });
