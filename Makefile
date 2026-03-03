@@ -1,4 +1,4 @@
-.PHONY: serve lint test check bundle-vendor census bot-census
+.PHONY: serve lint test check bundle-vendor census bot-census ng-playtest
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -27,6 +27,11 @@ bundle-vendor:
 # Run network census report across all difficulty combos
 census:
 	node scripts/network-census.js
+
+# Run headless node-graph playtest scenarios (pass SCENARIO=name to filter)
+SCENARIO ?=
+ng-playtest:
+	node scripts/node-graph-playtest.js $(SCENARIO)
 
 # Run bot simulation at B/B (override with: make bot-census TC=S MC=S SEEDS=50)
 TC ?= B
