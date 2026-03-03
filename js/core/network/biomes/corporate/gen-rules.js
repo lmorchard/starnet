@@ -9,7 +9,8 @@
 export const ROLES = {
   wan:     "wan",
   gateway: "gateway",
-  monitor: "security-monitor",
+  monitor:   "security-monitor",
+  "ice-host": "ice-host",
   sensor:  "ids",
   gate:    "firewall",
   routing: "router",
@@ -138,14 +139,24 @@ export const NODE_RULES = {
   },
 
   "security-monitor": {
+    singleton:  true,
+    security:   true,
+    depth:      3,
+    connectsTo: [],
+    leaf:       false,  // ice-host connects to it
+    gradeRole:  "hard",
+    labels:     ["SEC-MON", "SEC-MON-01", "MON-CORE"],
+  },
+
+  "ice-host": {
     singleton:   true,
     security:    true,
     iceResident: true,
-    depth:       3,
+    depth:       4,
     connectsTo:  [],
     leaf:        true,
     gradeRole:   "hard",
-    labels:      ["SEC-MON", "SEC-MON-01", "MON-CORE"],
+    labels:      ["ICE-HOST", "ICE-PROC", "ICE-DAEMON"],
   },
 };
 
@@ -197,6 +208,13 @@ export const LAYERS = [
     depth:     ({ tc }) => tc.depthBudget,
     gradeRole: "hard",
     connectTo: null,
+  },
+  {
+    role:      "ice-host",
+    count:     1,
+    depth:     ({ tc }) => tc.depthBudget + 1,
+    gradeRole: "hard",
+    connectTo: "monitor",    // ice-host ← edge → security-monitor
   },
   {
     role:       "sensor",

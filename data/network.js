@@ -111,6 +111,14 @@ export const NETWORK = {
       x: 680,
       y: 460,
     },
+    {
+      id: "ice-host",
+      type: "ice-host",
+      label: "ICE-HOST",
+      grade: "A",
+      x: 680,
+      y: 600,
+    },
   ],
 
   edges: [
@@ -125,6 +133,7 @@ export const NETWORK = {
     { source: "firewall", target: "cryptovault" },
     { source: "router-b", target: "ids" },
     { source: "ids", target: "security-monitor" },
+    { source: "security-monitor", target: "ice-host" },
     { source: "workstation-b", target: "cryptovault" },
   ],
 
@@ -132,6 +141,6 @@ export const NETWORK = {
 
   ice: {
     grade: "C",          // D/F=random walk, C/B=disturbance-tracking, A/S=player-seeking
-    startNode: "security-monitor",  // far end of the network; 3 hops from gateway
+    startNode: "ice-host",  // far end of the network; adjacent to security-monitor
   },
 };

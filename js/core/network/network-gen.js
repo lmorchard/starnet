@@ -269,7 +269,7 @@ function buildNetwork(rng, tc, mc, forcePieces = [], biome) {
     moneyCost:     mc,
     ice: {
       grade:     time.iceGrade,
-      startNode: spawnedByRole.monitor[0],
+      startNode: spawnedByRole["ice-host"][0],
     },
   };
 }
