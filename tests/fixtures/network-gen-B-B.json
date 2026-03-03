@@ -166,6 +166,7 @@
     "rare",
     "rare"
   ],
+  "moneyCost": "B",
   "ice": {
     "grade": "B",
     "startNode": "security-monitor-3"

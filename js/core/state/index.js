@@ -104,6 +104,7 @@ export function initState(networkData, seedString) {
 
   state = {
     seed: getSeed(),
+    moneyCost: networkData.moneyCost ?? "F",
     nodes,
     adjacency,
     player: { cash: networkData.startCash ?? 1000, hand: generateStartingHand(networkData.startHandSpec) },
@@ -124,9 +125,10 @@ export function initState(networkData, seedString) {
   };
 
   // Dispatch onInit to behavior atoms — lootable assigns macguffins here
+  const moneyCostGrade = state.moneyCost;
   Object.values(nodes).forEach((node) => {
     const typeDef = resolveNode(node);
-    const ctx = { typeDef, generateMacguffin };
+    const ctx = { typeDef, generateMacguffin: () => generateMacguffin(moneyCostGrade) };
     getBehaviors(node).forEach((atom) => atom.onInit?.(node, state, ctx));
   });
 

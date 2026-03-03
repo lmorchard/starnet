@@ -69,9 +69,19 @@ const MACGUFFIN_TYPES = [
 
 import { RNG, randomInt, randomPick, randomId } from "./rng.js";
 
-export function generateMacguffin() {
+/**
+ * Value multiplier per moneyCost grade.
+ * F/D = baseline, scaling up to ~4× at S so harder networks pay meaningfully more.
+ */
+const VALUE_MULT = { F: 1, D: 1.5, C: 2, B: 3, A: 4, S: 5 };
+
+/**
+ * @param {string} [moneyCost] - Grade letter; defaults to "F" (baseline).
+ */
+export function generateMacguffin(moneyCost = "F") {
+  const mult = VALUE_MULT[moneyCost] ?? 1;
   const type = randomPick(RNG.LOOT, MACGUFFIN_TYPES);
-  const value = randomInt(RNG.LOOT, type.cashRange[0], type.cashRange[1]);
+  const value = Math.round(randomInt(RNG.LOOT, type.cashRange[0], type.cashRange[1]) * mult);
   return {
     id: `${type.id}-${randomId(RNG.LOOT)}`,
     typeId: type.id,

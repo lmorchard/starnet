@@ -117,6 +117,7 @@
     "uncommon",
     "rare"
   ],
+  "moneyCost": "F",
   "ice": {
     "grade": "F",
     "startNode": "security-monitor-3"

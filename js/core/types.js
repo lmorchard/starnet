@@ -268,6 +268,7 @@
  * Never mutate directly — always use exported state mutation functions.
  * @typedef {{
  *   seed: string,
+ *   moneyCost: Grade,
  *   nodes: Object.<string, NodeState>,
  *   adjacency: Object.<string, string[]>,
  *   player: PlayerState,

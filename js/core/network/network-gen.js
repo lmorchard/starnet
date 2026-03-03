@@ -266,6 +266,7 @@ function buildNetwork(rng, tc, mc, forcePieces = [], biome) {
     startNode:     spawnedByRole.gateway[0],
     startCash:     CASH_BUDGET[mc],
     startHandSpec: HAND_BUDGET[mc],
+    moneyCost:     mc,
     ice: {
       grade:     time.iceGrade,
       startNode: spawnedByRole.monitor[0],
