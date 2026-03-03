@@ -482,3 +482,49 @@ move between them ("from `compromised`, you can `reconfigure` to disable forward
 or `exploit` again to reach `owned`") makes the puzzle legible. This is the most
 ambitious idea — essentially Stately's editor embedded in the game's node inspector —
 but it's the logical endpoint of taking statechart concepts seriously as a UI pattern.
+
+---
+
+## Design note: Zachtronics adjacency + fast vs. slow play
+
+The set-piece catalog has visible Zachtronics DNA. The deadman circuit is the clearest
+example: the insight that *blocking* the heartbeat relay *causes* the alarm is exactly
+the counterintuitive "aha" moment Zachtronics builds toward. Cascade shutdown's
+race-against-watchdog tension and tamperDetect's ordering puzzle read like Zachtronics
+levels.
+
+**The key inversion:** Zachtronics players *build* circuits. Starnet players *subvert*
+pre-built ones. That's a compelling asymmetry — instead of "wire this up to solve the
+puzzle," it's "figure out how this is wired and work around it." The underlying skill
+(circuit literacy) is the same; the player role is different. Closer to Thief or Deus
+Ex than SpaceChem, but demanding the same logical reading of systems.
+
+**The risk:** if circuits get too complex, the logic puzzle competes with dungeon-crawl
+tension rather than feeding it. Zachtronics is a pure puzzle sandbox with no ICE
+chasing you. Starnet has economy, time pressure, and threat escalation layered on top.
+
+**The opportunity — fast vs. slow play as a design axis:**
+
+The most interesting direction is using the *LAN or mission type* to dial between two
+modes of engagement:
+
+- **Slow / thinking mode**: LANs with elaborate circuit puzzles (combination locks,
+  deadman perimeters, cascade shutdowns). Low time pressure, high cognitive demand.
+  The player has time to inspect nodes, read the circuit, plan the sequence. Rewards
+  literacy — understanding the system pays off. Feels like Zachtronics.
+
+- **Fast / improvisation mode**: LANs under hard time pressure (active trace, noisy
+  sensors, watchdogs already counting). The player can't stop to read every node —
+  they make fast calls on partial information, accept some risk, adapt when things go
+  wrong. Circuit literacy still helps but improvisation and risk tolerance matter more.
+
+A corporate research lab might be slow-mode: heavily guarded, complex circuits, but
+you have time if you're careful. A hot extraction under active trace is fast-mode: same
+node types, but the clock is running and you're making snap decisions.
+
+**Procgen implication:** biome palettes should encode the intended play mode alongside
+the set-piece catalog. A high-pressure biome uses simpler set-pieces (tripwire, nth-alarm)
+with tighter timing. A puzzle biome uses complex set-pieces (deadman, cascadeShutdown)
+with more breathing room. The difficulty dial has two independent axes: *circuit
+complexity* and *time pressure* — and interesting runs mix them rather than scaling
+both together.
