@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { instantiate, SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain } from "./set-pieces.js";
+import { instantiate, SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet } from "./set-pieces.js";
 import { NodeGraph } from "./runtime.js";
 import { mockCtx } from "./ctx.js";
 import { createMessage } from "./message.js";
@@ -74,6 +74,28 @@ describe("instantiate: two instances have independent IDs", () => {
     for (const id of ids2) {
       assert.ok(!ids1.has(id), `Collision: ${id}`);
     }
+  });
+
+  it("activating one instance does not trigger the other", () => {
+    const ctx = mockCtx();
+    const inst1 = instantiate(combinationLock, "v1");
+    const inst2 = instantiate(combinationLock, "v2");
+    const graph = new NodeGraph({
+      nodes: [...inst1.nodes, ...inst2.nodes],
+      edges: [...inst1.edges, ...inst2.edges],
+      triggers: [...inst1.triggers, ...inst2.triggers],
+    }, ctx);
+
+    for (const sw of ["v1/switch-a", "v1/switch-b", "v1/switch-c"]) {
+      graph._nodes.get(sw).attributes.accessLevel = "owned";
+    }
+    graph.executeAction("v1/switch-a", "activate");
+    graph.executeAction("v1/switch-b", "activate");
+    graph.executeAction("v1/switch-c", "activate");
+
+    assert.equal(graph.getNodeState("v1/vault").visible, true);
+    assert.equal(graph.getNodeState("v2/vault").visible, false);
+    assert.equal(ctx.calls.giveReward?.length, 1);
   });
 });
 
@@ -236,7 +258,7 @@ describe("multi-key-vault: requires two tokens before looting", () => {
 
     graph.executeAction("mk1/key-server-1", "extract-token");
     graph.executeAction("mk1/key-server-2", "extract-token");
-    assert.equal(graph.getQuality("auth-tokens"), 2);
+    assert.equal(graph.getQuality("mk1/auth-tokens"), 2);
 
     const available = graph.getAvailableActions("mk1/vault-node").map((a) => a.id);
     assert.ok(available.includes("loot"));
@@ -271,6 +293,173 @@ describe("nth-alarm: trace fires after N probe-noise messages", () => {
       graph.sendMessage("t1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
     }
     assert.equal(graph.getNodeState("t1/alarm-latch").latched, true);
+    assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+});
+
+describe("honey-pot: exploit attempt fires counter-trace", () => {
+  it("no trace before any exploit message", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(honeyPot, "hp1");
+    const graph = new NodeGraph(inst, ctx);
+
+    assert.equal(graph.getNodeState("hp1/honey-pot").poisoned, false);
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+
+  it("exploit message on honey-pot fires startTrace immediately", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(honeyPot, "hp1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("hp1/honey-pot", createMessage({ type: "exploit", origin: "player", payload: {} }));
+    assert.equal(graph.getNodeState("hp1/honey-pot").poisoned, true);
+    assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+
+  it("non-exploit messages don't trigger the trap", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(honeyPot, "hp1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("hp1/honey-pot", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    assert.equal(graph.getNodeState("hp1/honey-pot").poisoned, false);
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+});
+
+describe("encrypted-vault: key expiry forces timing pressure", () => {
+  it("extract-key unavailable before clock fires", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(encryptedVault, "ev1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
+    const actions = graph.getAvailableActions("ev1/key-gen").map((a) => a.id);
+    assert.ok(!actions.includes("extract-key"), "key not ready before clock fires");
+  });
+
+  it("clock fires → key becomes ready → extract-key available", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(encryptedVault, "ev1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
+    graph.tick(5); // clock period is 5
+    const actions = graph.getAvailableActions("ev1/key-gen").map((a) => a.id);
+    assert.ok(actions.includes("extract-key"), "key ready after clock fires");
+  });
+
+  it("loot unavailable without extracted key; available after extraction", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(encryptedVault, "ev1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
+    graph._nodes.get("ev1/vault").attributes.accessLevel = "owned";
+
+    // Before clock: no key → loot unavailable
+    assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("loot"));
+
+    // Fire clock, extract key, then loot
+    graph.tick(5);
+    graph.executeAction("ev1/key-gen", "extract-key");
+    assert.equal(graph.getQuality("ev1/decryption-key"), 1);
+
+    const available = graph.getAvailableActions("ev1/vault").map((a) => a.id);
+    assert.ok(available.includes("loot"));
+
+    graph.executeAction("ev1/vault", "loot");
+    assert.equal(ctx.calls.giveReward?.length, 1);
+    assert.deepEqual(ctx.calls.giveReward[0], [3000]);
+    assert.equal(graph.getQuality("ev1/decryption-key"), 0);
+  });
+});
+
+describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
+  it("reward not given if fewer than 3 relays subverted", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(cascadeShutdown, "cs1");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (const r of ["cs1/relay-a", "cs1/relay-b"]) {
+      graph._nodes.get(r).attributes.accessLevel = "owned";
+    }
+    graph.executeAction("cs1/relay-a", "subvert");
+    graph.executeAction("cs1/relay-b", "subvert");
+
+    assert.equal(ctx.calls.giveReward, undefined);
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+
+  it("subverting all 3 before watchdog fires gives reward, no trace", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(cascadeShutdown, "cs1");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (const r of ["cs1/relay-a", "cs1/relay-b", "cs1/relay-c"]) {
+      graph._nodes.get(r).attributes.accessLevel = "owned";
+    }
+    // Subvert all 3 without advancing time
+    graph.executeAction("cs1/relay-a", "subvert");
+    graph.executeAction("cs1/relay-b", "subvert");
+    graph.executeAction("cs1/relay-c", "subvert");
+
+    assert.equal(ctx.calls.giveReward?.length, 1);
+    assert.deepEqual(ctx.calls.giveReward[0], [2000]);
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+
+  it("watchdog fires trace if not all relays subverted in time", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(cascadeShutdown, "cs1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("cs1/relay-a").attributes.accessLevel = "owned";
+    // Subvert only relay-a, then let watchdog expire (period: 4)
+    // Subverting relay-a sends subvert-ping → relay-a relays it... but
+    // relay-a's relay atom is now forwardingEnabled:false. Actually the
+    // relay forwards BEFORE forwardingEnabled is set (action effects run after).
+    // The subvert-ping from the action's emit-message propagates to watchdog,
+    // resetting the timer. So we need 4 more ticks after the last message.
+    graph.executeAction("cs1/relay-a", "subvert");
+    graph.tick(4); // watchdog period elapses without further messages
+
+    assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+});
+
+describe("tripwire-gauntlet: 6-tick delay from probe to alarm", () => {
+  it("sensor flags triggered immediately on probe-noise", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(tripwireGauntlet, "tg1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("tg1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    assert.equal(graph.getNodeState("tg1/sensor").triggered, true);
+    assert.equal(graph.getNodeState("tg1/alarm").triggered, false);
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+
+  it("alarm does not fire before 6 ticks", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(tripwireGauntlet, "tg1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("tg1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    graph.tick(5); // one tick short of the full 6-tick chain
+    assert.equal(graph.getNodeState("tg1/alarm").triggered, false);
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+
+  it("alarm fires and trace starts on tick 6", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(tripwireGauntlet, "tg1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("tg1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    graph.tick(6);
+    assert.equal(graph.getNodeState("tg1/alarm").triggered, true);
     assert.equal(ctx.calls.startTrace?.length, 1);
   });
 });

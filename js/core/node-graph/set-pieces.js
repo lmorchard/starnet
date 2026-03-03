@@ -64,6 +64,9 @@ function rewriteCondition(cond, prefix) {
   switch (cond.type) {
     case "node-attr":
       return cond.nodeId ? { ...cond, nodeId: pfx(cond.nodeId, prefix) } : cond;
+    case "quality-gte":
+    case "quality-eq":
+      return { ...cond, name: pfx(cond.name, prefix) };
     case "all-of":
     case "any-of":
       return { ...cond, conditions: cond.conditions.map((c) => rewriteCondition(c, prefix)) };
@@ -98,6 +101,9 @@ function rewriteEffect(effect, prefix) {
       return { ...effect, nodeId: pfx(effect.nodeId, prefix) };
     case "emit-message":
       return { ...effect, message: rewriteMessage(effect.message, prefix) };
+    case "quality-delta":
+    case "quality-set":
+      return { ...effect, name: pfx(effect.name, prefix) };
     default:
       return effect;
   }
@@ -632,6 +638,311 @@ export const multiKeyVault = {
 };
 
 /**
+ * Honey Pot
+ *
+ * Pattern: flag(on:exploit) → alarm-latch — the node looks like a target
+ * but any exploit attempt arms the latch and fires a counter-trace trigger.
+ *
+ * The "bait" design: the honey-pot node has fake reward attributes that look
+ * attractive (accessLevel: owned, contents: "corp-secrets"), but probing or
+ * exploiting it immediately arms the alarm. The player has no way to safely
+ * interact with it once the latch fires.
+ *
+ * External ports: ['honey-pot', 'alarm-latch']
+ * Player "owns" honey-pot by default (bait) — any action triggers the trap.
+ *
+ * @type {SetPieceDef}
+ */
+export const honeyPot = {
+  id: "honey-pot",
+  description: "Fake target that fires a counter-trace on first exploit attempt.",
+  nodes: [
+    {
+      id: "honey-pot",
+      type: "honey-pot",
+      attributes: { accessLevel: "owned", contents: "corp-secrets", poisoned: false },
+      atoms: [{ name: "flag", on: "exploit", attr: "poisoned" }],
+      actions: [],
+    },
+    {
+      id: "alarm-latch",
+      type: "alarm-latch",
+      attributes: { latched: false },
+      atoms: [{ name: "latch" }],
+      actions: [],
+    },
+  ],
+  internalEdges: [],
+  triggers: [
+    {
+      id: "honey-pot-triggered",
+      when: { type: "node-attr", nodeId: "honey-pot", attr: "poisoned", eq: true },
+      then: [
+        { effect: "ctx-call", method: "startTrace", args: [] },
+        { effect: "ctx-call", method: "log", args: ["HONEYPOT: Counter-intrusion trace initiated"] },
+      ],
+    },
+  ],
+  externalPorts: ["honey-pot"],
+};
+
+/**
+ * Encrypted Vault
+ *
+ * Pattern: key-gen generates a timed key (clock(period:5)); player must
+ * extract the key and loot the vault before the clock resets the key.
+ *
+ * The key-gen node uses a clock atom and a flag atom: each time the clock
+ * fires, the key attribute is refreshed to a new value. A watchdog on the
+ * vault checks whether the key is still valid when loot is attempted.
+ *
+ * Simplified circuit: key-gen produces key; every clock period it resets.
+ * Loot action on vault requires quality("decryption-key") >= 1. Player
+ * must extract key (quality-delta +1) and loot before clock fires
+ * (quality-set 0 on clock signal via the alarm-latch reset path).
+ *
+ * External ports: ['key-gen', 'vault']
+ *
+ * @type {SetPieceDef}
+ */
+export const encryptedVault = {
+  id: "encrypted-vault",
+  description: "Decryption key expires every clock period; player must loot before key resets.",
+  nodes: [
+    {
+      id: "key-gen",
+      type: "key-gen",
+      attributes: { accessLevel: "locked", keyReady: false },
+      atoms: [{ name: "clock", period: 5 }],
+      actions: [
+        {
+          id: "extract-key",
+          label: "Extract Decryption Key",
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "keyReady", eq: true },
+          ],
+          effects: [
+            { effect: "set-attr", attr: "keyReady", value: false },
+            { effect: "quality-delta", name: "decryption-key", delta: 1 },
+            { effect: "ctx-call", method: "log", args: ["Decryption key extracted"] },
+          ],
+        },
+      ],
+    },
+    {
+      id: "key-ready-latch",
+      type: "signal-latch",
+      attributes: { latched: false },
+      atoms: [{ name: "flag", on: "signal", when: { active: true }, attr: "latched" }],
+      actions: [],
+    },
+    {
+      id: "vault",
+      type: "cryptovault",
+      attributes: { accessLevel: "locked", contents: "classified-data" },
+      atoms: [],
+      actions: [
+        {
+          id: "loot",
+          label: "Loot Vault",
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "quality-gte", name: "decryption-key", value: 1 },
+          ],
+          effects: [
+            { effect: "quality-set", name: "decryption-key", value: 0 },
+            { effect: "ctx-call", method: "giveReward", args: [3000] },
+            { effect: "ctx-call", method: "log", args: ["Vault decrypted and looted — 3000cr"] },
+          ],
+        },
+      ],
+    },
+  ],
+  internalEdges: [
+    ["key-gen", "key-ready-latch"],
+  ],
+  triggers: [
+    {
+      id: "key-ready",
+      when: { type: "node-attr", nodeId: "key-ready-latch", attr: "latched", eq: true },
+      then: [
+        { effect: "set-node-attr", nodeId: "key-gen", attr: "keyReady", value: true },
+        { effect: "ctx-call", method: "log", args: ["Key-gen cycle: decryption key available"] },
+      ],
+    },
+  ],
+  externalPorts: ["key-gen", "vault"],
+};
+
+/**
+ * Cascade Shutdown
+ *
+ * Pattern: three relay nodes form a chain; subverting any one starts a
+ * watchdog countdown. Player must subvert all three before the watchdog
+ * fires — otherwise the alarm triggers and the nodes lock down.
+ *
+ * External ports: ['relay-a', 'relay-b', 'relay-c']
+ *
+ * @type {SetPieceDef}
+ */
+export const cascadeShutdown = {
+  id: "cascade-shutdown",
+  description: "Subvert all three relay nodes before the watchdog expires or the network locks down.",
+  nodes: [
+    {
+      id: "relay-a",
+      type: "data-relay",
+      attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
+      atoms: [{ name: "relay", filter: "subvert-ping" }],
+      actions: [
+        {
+          id: "subvert",
+          label: "Subvert Relay A",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [
+            { effect: "set-attr", attr: "subverted", value: true },
+            { effect: "set-attr", attr: "forwardingEnabled", value: false },
+            { effect: "quality-delta", name: "relays-subverted", delta: 1 },
+            { effect: "emit-message", message: { type: "subvert-ping", payload: {} } },
+          ],
+        },
+      ],
+    },
+    {
+      id: "relay-b",
+      type: "data-relay",
+      attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
+      atoms: [{ name: "relay", filter: "subvert-ping" }],
+      actions: [
+        {
+          id: "subvert",
+          label: "Subvert Relay B",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [
+            { effect: "set-attr", attr: "subverted", value: true },
+            { effect: "set-attr", attr: "forwardingEnabled", value: false },
+            { effect: "quality-delta", name: "relays-subverted", delta: 1 },
+            { effect: "emit-message", message: { type: "subvert-ping", payload: {} } },
+          ],
+        },
+      ],
+    },
+    {
+      id: "relay-c",
+      type: "data-relay",
+      attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
+      atoms: [{ name: "relay", filter: "subvert-ping" }],
+      actions: [
+        {
+          id: "subvert",
+          label: "Subvert Relay C",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [
+            { effect: "set-attr", attr: "subverted", value: true },
+            { effect: "set-attr", attr: "forwardingEnabled", value: false },
+            { effect: "quality-delta", name: "relays-subverted", delta: 1 },
+            { effect: "emit-message", message: { type: "subvert-ping", payload: {} } },
+          ],
+        },
+      ],
+    },
+    {
+      id: "watchdog",
+      type: "watchdog-daemon",
+      attributes: {},
+      atoms: [{ name: "watchdog", period: 4 }],
+      actions: [],
+    },
+    {
+      id: "alarm-latch",
+      type: "alarm-latch",
+      attributes: { latched: false },
+      atoms: [{ name: "latch" }],
+      actions: [],
+    },
+  ],
+  internalEdges: [
+    ["relay-a", "watchdog"],
+    ["relay-b", "watchdog"],
+    ["relay-c", "watchdog"],
+    ["watchdog", "alarm-latch"],
+  ],
+  triggers: [
+    {
+      id: "cascade-complete",
+      when: { type: "quality-gte", name: "relays-subverted", value: 3 },
+      then: [
+        { effect: "ctx-call", method: "giveReward", args: [2000] },
+        { effect: "ctx-call", method: "log", args: ["Cascade shutdown complete — network silenced"] },
+      ],
+    },
+    {
+      id: "cascade-failed",
+      when: { type: "node-attr", nodeId: "alarm-latch", attr: "latched", eq: true },
+      then: [
+        { effect: "ctx-call", method: "startTrace", args: [] },
+        { effect: "ctx-call", method: "log", args: ["ALARM: Cascade shutdown detected — trace initiated"] },
+      ],
+    },
+  ],
+  externalPorts: ["relay-a", "relay-b", "relay-c"],
+};
+
+/**
+ * Tripwire Gauntlet
+ *
+ * Pattern: probe arms sensor; alarm fires 6 ticks later. Gives the player
+ * a narrow window to complete an objective before the alarm arrives.
+ *
+ * The sensor delays the probe-noise message by 6 ticks before forwarding
+ * it to the alarm node. The sensor itself flags immediately (so the player
+ * knows they're on the clock), but the alarm doesn't fire until tick 6.
+ *
+ * Note: chained delay nodes with undirected edges cause backwards
+ * propagation — use a single delay node for reliable timing.
+ *
+ * External ports: ['sensor', 'alarm']
+ *
+ * @type {SetPieceDef}
+ */
+export const tripwireGauntlet = {
+  id: "tripwire-gauntlet",
+  description: "Probe arms sensor immediately; alarm fires 6 ticks later. Race to complete objective.",
+  nodes: [
+    {
+      id: "sensor",
+      type: "tripwire-sensor",
+      attributes: { triggered: false },
+      atoms: [
+        { name: "flag", on: "probe-noise", attr: "triggered" },
+        { name: "delay", ticks: 6 },
+      ],
+      actions: [],
+    },
+    {
+      id: "alarm",
+      type: "alarm",
+      attributes: { triggered: false },
+      atoms: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
+      actions: [],
+    },
+  ],
+  internalEdges: [["sensor", "alarm"]],
+  triggers: [
+    {
+      id: "gauntlet-alarm",
+      when: { type: "node-attr", nodeId: "alarm", attr: "triggered", eq: true },
+      then: [
+        { effect: "ctx-call", method: "startTrace", args: [] },
+        { effect: "ctx-call", method: "log", args: ["TRIPWIRE: Delayed alarm reached — trace initiated"] },
+      ],
+    },
+  ],
+  externalPorts: ["sensor", "alarm"],
+};
+
+/**
  * Convenience catalog of all set-pieces.
  */
 export const SET_PIECES = {
@@ -641,4 +952,8 @@ export const SET_PIECES = {
   deadmanCircuit,
   switchArrangement,
   multiKeyVault,
+  honeyPot,
+  encryptedVault,
+  cascadeShutdown,
+  tripwireGauntlet,
 };
