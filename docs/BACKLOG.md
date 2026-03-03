@@ -213,6 +213,21 @@ This reframes game speed as a resource the player manages, not a UI preference.
 ### Module Refactoring
 - ~~**`state.js` is large**~~ — Done. Split into `state/` directory with submodules (2026-02-28 emit-coalesce session).
 
+### Vendor Bundle Size
+
+The Cytoscape vendor bundle (`dist/vendor.js`) is ~1.3mb minified (~300-400kb gzipped).
+The two biggest contributors after cytoscape core (~1mb) are:
+
+- **klayjs** — 485kb for the klay layout engine
+- **cytoscape-fcose + cytoscape-cose-bilkent** — each brings its own incompatible version
+  of `layout-base` and `cose-base`, so those packages are duplicated (~260kb extra)
+
+To reduce bundle size, consider auditing which layout algorithms are actually used in play
+and dropping unused ones from both `js/vendor.js` and the `LAYOUTS` map in `js/ui/graph.js`.
+Dropping `klay` alone would save ~485kb (~35% of unminified input). The `cose-base`/`layout-base`
+duplication can't be resolved without aligning `cytoscape-cose-bilkent` and `cytoscape-fcose`
+to the same major version, which may require upstream changes.
+
 ### Surgical DOM Rendering
 The current pattern of full `innerHTML` replacement in `visual-renderer.js` is simple but
 causes bugs when animated or interactive elements (event listeners, CSS animations) need to
