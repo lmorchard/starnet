@@ -28,11 +28,6 @@ bundle-vendor:
 census:
 	node scripts/network-census.js
 
-# Run headless node-graph playtest scenarios (pass SCENARIO=name to filter)
-SCENARIO ?=
-ng-playtest:
-	node scripts/node-graph-playtest.js $(SCENARIO)
-
 # Run bot simulation at B/B (override with: make bot-census TC=S MC=S SEEDS=50)
 TC ?= B
 MC ?= B
