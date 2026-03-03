@@ -228,3 +228,69 @@ port wiring, behavior comes from atoms pre-wired in each piece. It's a
 from-scratch system that may borrow some heuristics (depth-based difficulty
 scaling, connectivity constraints) but the core generation logic is
 fundamentally different.
+
+---
+
+## Session Continuation (2026-03-03): New Capabilities + Set-Pieces
+
+### Cheating patterns eliminated
+
+Before this continuation, several set-pieces and playtest scenarios were "cheating" —
+manually calling `setQuality()` to fire triggers that the circuit didn't actually wire
+to. The problem was found by tracing through the actual message flow rather than
+trusting that "the tests pass." Fixes:
+- `counter` atom now has a `filter` config to count only matching message types
+- `flag` atom added: sets a node attribute on matching message type, with optional `on:`,
+  `when:` (payload filter), `attr:`, `value:` config
+- `watchdog` atom added: resets on any non-tick message, fires `set` after N silent ticks
+- `nthAlarm` redesigned: counter(filter: "probe-noise") emits "set" → alarm-latch
+- `deadmanCircuit` redesigned: uses watchdog atom directly (old design with clock arming
+  latch via DFS couldn't be suppressed by heartbeat within the same tick)
+- `idsRelayChain` redesigned: monitor uses flag(on:"alert") atom; trigger watches node-attr
+- Quality isolation bug fixed: two instances of same set-piece shared quality names;
+  `instantiate()` now prefixes quality names in conditions and effects
+
+### Four new system capabilities added
+
+1. **`tally` atom** — quality-delta on message receive. Returns `qualityDeltas` from
+   `applyAtoms`; runtime `_deliver` applies them to the quality store. Config: `on:`,
+   `quality:`, `delta:`.
+
+2. **Repeating triggers** — `TriggerDef.repeating: true` skips `_fired` tracking, so
+   the trigger fires every evaluation cycle while its condition is true. The trigger's
+   effects can reset the condition (e.g. `quality-set 0`) to create burst-counting patterns.
+
+3. **Atom destinations override** — any atom can specify `config.destinations` to hard-wire
+   outgoing message targets, bypassing edge-based routing. `relay` and `debounce` use
+   `config.destinations ?? message.destinations`. `instantiate()` prefixes destinations
+   arrays alongside inputs/quality. Enables "hidden channel" circuits.
+
+4. **`debounce` atom** — forward first matching message, suppress for N ticks. Config:
+   `on:`, `ticks:`, `destinations:`. Internal state: `_debounce_cooldown`. Useful for
+   rate-limited sensors, noisy channels, burst suppression.
+
+### New set-pieces demonstrating the capabilities
+
+- **`probeBurstAlarm`** — tally + repeating trigger: spawns ICE every 3rd probe, resets
+  counter. Escalates indefinitely unlike `nthAlarm`.
+- **`noisySensor`** — debounce: first probe per 4-tick window raises alert, subsequent
+  probes suppressed. Gives player a "quiet window" after first contact.
+- **`hiddenChannelRelay`** — destinations override: relay hard-routes to a covert monitor
+  with NO visible graph edge. Player can't see the connection but still triggers trace.
+
+### Bugs hit
+
+- `noisySensor` alarm node used `latch` atom (responds to "set"/"reset" only), but
+  received "probe-noise" from debounce. Fixed by using `flag(on: "probe-noise")` instead.
+- TSC complained about `qualityDeltas` not in return type of `applyAtoms` — fixed by
+  updating the `@returns` JSDoc annotation.
+- `debounce` test for "forwards probe again after cooldown expires" failed for the same
+  `flag` vs `latch` reason — the alarm-latch wasn't responding to probe-noise.
+
+### Final state
+
+- 566 unit/integration tests, 0 failures
+- 9 playtest scenarios, 9/9 pass
+- 10 set-pieces in catalog covering: relay chains, counters, combination locks, deadman
+  circuits, switch arrangements, multi-key vaults, honeypots, encrypted vaults, cascade
+  shutdowns, tripwire gauntlets, probe burst alarms, noisy sensors, hidden channels
