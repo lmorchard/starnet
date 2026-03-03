@@ -688,13 +688,6 @@ export const honeyPot = {
       atoms: [{ name: "flag", on: "exploit", attr: "poisoned" }],
       actions: [],
     },
-    {
-      id: "alarm-latch",
-      type: "alarm-latch",
-      attributes: { latched: false },
-      atoms: [{ name: "latch" }],
-      actions: [],
-    },
   ],
   internalEdges: [],
   triggers: [
