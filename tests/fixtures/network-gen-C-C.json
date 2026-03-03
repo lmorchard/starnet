@@ -25,7 +25,15 @@
       "y": 470
     },
     {
-      "id": "ids-4",
+      "id": "ice-host-4",
+      "type": "ice-host",
+      "label": "ICE-HOST",
+      "grade": "B",
+      "x": 400,
+      "y": 610
+    },
+    {
+      "id": "ids-5",
       "type": "ids",
       "label": "IDS-01",
       "grade": "C",
@@ -33,7 +41,7 @@
       "y": 330
     },
     {
-      "id": "router-5",
+      "id": "router-6",
       "type": "router",
       "label": "RTR-A",
       "grade": "D",
@@ -41,7 +49,7 @@
       "y": 190
     },
     {
-      "id": "router-6",
+      "id": "router-7",
       "type": "router",
       "label": "RTR-02",
       "grade": "C",
@@ -49,7 +57,7 @@
       "y": 190
     },
     {
-      "id": "firewall-7",
+      "id": "firewall-8",
       "type": "firewall",
       "label": "FW-CORE",
       "grade": "B",
@@ -57,23 +65,23 @@
       "y": 190
     },
     {
-      "id": "router-8",
+      "id": "router-9",
       "type": "router",
       "label": "RTR-01",
-      "grade": "D",
+      "grade": "B",
       "x": 300,
       "y": 330
     },
     {
-      "id": "fileserver-9",
+      "id": "fileserver-10",
       "type": "fileserver",
       "label": "FS-ARCHIVE",
-      "grade": "C",
+      "grade": "D",
       "x": 500,
       "y": 470
     },
     {
-      "id": "workstation-10",
+      "id": "workstation-11",
       "type": "workstation",
       "label": "WS-BETA",
       "grade": "F",
@@ -81,7 +89,7 @@
       "y": 330
     },
     {
-      "id": "workstation-11",
+      "id": "workstation-12",
       "type": "workstation",
       "label": "WS-01",
       "grade": "F",
@@ -95,40 +103,44 @@
       "target": "gateway-2"
     },
     {
-      "source": "ids-4",
-      "target": "security-monitor-3"
+      "source": "security-monitor-3",
+      "target": "ice-host-4"
     },
     {
-      "source": "gateway-2",
-      "target": "router-5"
+      "source": "ids-5",
+      "target": "security-monitor-3"
     },
     {
       "source": "gateway-2",
       "target": "router-6"
     },
     {
-      "source": "router-5",
-      "target": "ids-4"
-    },
-    {
       "source": "gateway-2",
-      "target": "firewall-7"
-    },
-    {
-      "source": "firewall-7",
-      "target": "router-8"
-    },
-    {
-      "source": "router-8",
-      "target": "fileserver-9"
+      "target": "router-7"
     },
     {
       "source": "router-6",
-      "target": "workstation-10"
+      "target": "ids-5"
     },
     {
-      "source": "router-5",
+      "source": "gateway-2",
+      "target": "firewall-8"
+    },
+    {
+      "source": "firewall-8",
+      "target": "router-9"
+    },
+    {
+      "source": "router-9",
+      "target": "fileserver-10"
+    },
+    {
+      "source": "router-7",
       "target": "workstation-11"
+    },
+    {
+      "source": "router-7",
+      "target": "workstation-12"
     }
   ],
   "startNode": "gateway-2",
@@ -145,6 +157,6 @@
   "moneyCost": "C",
   "ice": {
     "grade": "C",
-    "startNode": "security-monitor-3"
+    "startNode": "ice-host-4"
   }
 }

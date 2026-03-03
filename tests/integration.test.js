@@ -75,9 +75,9 @@ describe("Node initialization", () => {
   });
 });
 
-// ── Lifecycle: iceResident ────────────────────────────────────────────────────
+// ── Lifecycle: ICE resident — owning security-monitor does NOT stop ICE ───────
 
-describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
+describe("Lifecycle: owning security-monitor does NOT stop ICE", () => {
   beforeEach(() => {
     clearAll();
     initState(NETWORK);
@@ -88,20 +88,11 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
     assert.ok(getState().ice?.active);
   });
 
-  it("owning security-monitor sets ice.active to false", () => {
+  it("owning security-monitor leaves ICE active", () => {
     const s = getState();
     s.nodes["security-monitor"].accessLevel = "owned";
     emitEvent(E.NODE_ACCESSED, { nodeId: "security-monitor", label: "SEC-MON", prev: "locked", next: "owned" });
-    assert.equal(getState().ice?.active, false);
-  });
-
-  it("owning security-monitor emits ICE_DISABLED", () => {
-    const s = getState();
-    const fired = withEvents(E.ICE_DISABLED, () => {
-      s.nodes["security-monitor"].accessLevel = "owned";
-      emitEvent(E.NODE_ACCESSED, { nodeId: "security-monitor", label: "SEC-MON", prev: "locked", next: "owned" });
-    });
-    assert.equal(fired.length, 1);
+    assert.ok(getState().ice?.active, "ICE should remain active after owning security-monitor");
   });
 
   it("owning a non-resident node does not stop ICE", () => {

@@ -25,7 +25,15 @@
       "y": 470
     },
     {
-      "id": "ids-4",
+      "id": "ice-host-4",
+      "type": "ice-host",
+      "label": "ICE-HOST",
+      "grade": "D",
+      "x": 400,
+      "y": 610
+    },
+    {
+      "id": "ids-5",
       "type": "ids",
       "label": "IDS-01",
       "grade": "D",
@@ -33,7 +41,7 @@
       "y": 330
     },
     {
-      "id": "router-5",
+      "id": "router-6",
       "type": "router",
       "label": "RTR-A",
       "grade": "F",
@@ -41,7 +49,7 @@
       "y": 190
     },
     {
-      "id": "router-6",
+      "id": "router-7",
       "type": "router",
       "label": "RTR-02",
       "grade": "F",
@@ -49,15 +57,15 @@
       "y": 190
     },
     {
-      "id": "fileserver-7",
+      "id": "fileserver-8",
       "type": "fileserver",
       "label": "FS-ARCHIVE",
-      "grade": "F",
+      "grade": "D",
       "x": 300,
       "y": 330
     },
     {
-      "id": "workstation-8",
+      "id": "workstation-9",
       "type": "workstation",
       "label": "WS-BETA",
       "grade": "F",
@@ -65,7 +73,7 @@
       "y": 330
     },
     {
-      "id": "workstation-9",
+      "id": "workstation-10",
       "type": "workstation",
       "label": "WS-01",
       "grade": "F",
@@ -79,32 +87,36 @@
       "target": "gateway-2"
     },
     {
-      "source": "ids-4",
-      "target": "security-monitor-3"
+      "source": "security-monitor-3",
+      "target": "ice-host-4"
     },
     {
-      "source": "gateway-2",
-      "target": "router-5"
+      "source": "ids-5",
+      "target": "security-monitor-3"
     },
     {
       "source": "gateway-2",
       "target": "router-6"
     },
     {
-      "source": "router-5",
-      "target": "ids-4"
-    },
-    {
-      "source": "router-5",
-      "target": "fileserver-7"
+      "source": "gateway-2",
+      "target": "router-7"
     },
     {
       "source": "router-6",
-      "target": "workstation-8"
+      "target": "ids-5"
     },
     {
-      "source": "router-5",
+      "source": "router-6",
+      "target": "fileserver-8"
+    },
+    {
+      "source": "router-7",
       "target": "workstation-9"
+    },
+    {
+      "source": "router-7",
+      "target": "workstation-10"
     }
   ],
   "startNode": "gateway-2",
@@ -120,6 +132,6 @@
   "moneyCost": "F",
   "ice": {
     "grade": "F",
-    "startNode": "security-monitor-3"
+    "startNode": "ice-host-4"
   }
 }

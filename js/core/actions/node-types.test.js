@@ -101,8 +101,8 @@ describe("hasBehavior", () => {
     assert.ok(hasBehavior(mockNode("security-monitor"), "monitor"));
   });
 
-  it("returns true for iceResident on security-monitor", () => {
-    assert.ok(hasBehavior(mockNode("security-monitor"), "iceResident"));
+  it("returns false for iceResident on security-monitor (ice-host owns that now)", () => {
+    assert.ok(!hasBehavior(mockNode("security-monitor"), "iceResident"));
   });
 
   it("returns true for lootable on fileserver", () => {
@@ -181,6 +181,37 @@ describe("getActions", () => {
     const node = mockNode("security-monitor", "A", { accessLevel: "locked" });
     const actions = getActions(node, mockState(30));
     assert.ok(!actions.find((a) => a.id === "cancel-trace"));
+  });
+
+  it("returns pkill for owned ice-host when ICE is active", () => {
+    const node = mockNode("ice-host", "A", { accessLevel: "owned" });
+    const state = { ...mockState(), ice: { active: true, residentNodeId: "ice-host", attentionNodeId: "ice-host", detectedAtNode: null, detectionCount: 0, dwellTimerId: null, grade: "A" } };
+    const actions = getActions(node, state);
+    assert.ok(actions.find((a) => a.id === "pkill"));
+  });
+
+  it("does not return pkill for ice-host when ICE is inactive", () => {
+    const node = mockNode("ice-host", "A", { accessLevel: "owned" });
+    const state = { ...mockState(), ice: { active: false, residentNodeId: "ice-host", attentionNodeId: "ice-host", detectedAtNode: null, detectionCount: 0, dwellTimerId: null, grade: "A" } };
+    const actions = getActions(node, state);
+    assert.ok(!actions.find((a) => a.id === "pkill"));
+  });
+
+  it("does not return pkill for ice-host when not owned", () => {
+    const node = mockNode("ice-host", "A", { accessLevel: "locked" });
+    const state = { ...mockState(), ice: { active: true, residentNodeId: "ice-host", attentionNodeId: "ice-host", detectedAtNode: null, detectionCount: 0, dwellTimerId: null, grade: "A" } };
+    const actions = getActions(node, state);
+    assert.ok(!actions.find((a) => a.id === "pkill"));
+  });
+
+  it("pkill execute calls ctx.pkillIce()", () => {
+    const node = mockNode("ice-host", "A", { accessLevel: "owned" });
+    const state = { ...mockState(), ice: { active: true, residentNodeId: "ice-host", attentionNodeId: "ice-host", detectedAtNode: null, detectionCount: 0, dwellTimerId: null, grade: "A" } };
+    const actions = getActions(node, state);
+    const pkill = actions.find((a) => a.id === "pkill");
+    let called = false;
+    pkill.execute(node, state, { pkillIce: () => { called = true; } });
+    assert.ok(called);
   });
 
   it("returns empty array for gateway", () => {
