@@ -137,6 +137,19 @@ describe("ids-relay-chain: alert forwarding and subversion", () => {
     graph.executeAction("east/ids", "reconfigure");
     assert.equal(graph.getNodeState("east/ids").forwardingEnabled, false);
   });
+
+  it("reconfigure severs the chain — alert no longer reaches monitor", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(idsRelayChain, "east");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("east/ids").attributes.accessLevel = "owned";
+    graph.executeAction("east/ids", "reconfigure");
+
+    graph.sendMessage("east/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
+    assert.equal(graph.getNodeState("east/monitor").alerted, false);
+    assert.equal(ctx.calls.setGlobalAlert, undefined);
+  });
 });
 
 describe("combination-lock: all three switches must activate", () => {
@@ -553,36 +566,34 @@ describe("noisy-sensor: first probe per window raises alert, subsequent suppress
     const graph = new NodeGraph(inst, ctx);
 
     graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    assert.equal(graph.getNodeState("ns1/alarm-flag").triggered, true);
+    assert.equal(ctx.calls.setGlobalAlert?.length, 1);
+    assert.deepEqual(ctx.calls.setGlobalAlert[0], ["yellow"]);
+  });
+
+  it("suppresses second probe during cooldown — no additional alert", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(noisySensor, "ns1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
+    assert.equal(ctx.calls.setGlobalAlert?.length, 1);
+
+    // Second probe within cooldown — debounce suppresses it, no second alert
+    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
     assert.equal(ctx.calls.setGlobalAlert?.length, 1);
   });
 
-  it("suppresses second probe during cooldown", () => {
-    const ctx = mockCtx();
-    const inst = instantiate(noisySensor, "ns1");
-    const graph = new NodeGraph(inst, ctx);
-
-    // First probe triggers alarm-flag
-    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    // Manually reset flag to test suppression behavior
-    graph._nodes.get("ns1/alarm-flag").attributes.triggered = false;
-
-    // Second probe within cooldown — sensor suppresses it
-    graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    assert.equal(graph.getNodeState("ns1/alarm-flag").triggered, false);
-  });
-
-  it("forwards probe again after cooldown expires (4 ticks)", () => {
+  it("raises alert again after cooldown expires (4 ticks)", () => {
     const ctx = mockCtx();
     const inst = instantiate(noisySensor, "ns1");
     const graph = new NodeGraph(inst, ctx);
 
     graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    graph._nodes.get("ns1/alarm-flag").attributes.triggered = false;
+    assert.equal(ctx.calls.setGlobalAlert?.length, 1);
 
     graph.tick(4); // expire the 4-tick cooldown
     graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    assert.equal(graph.getNodeState("ns1/alarm-flag").triggered, true);
+    assert.equal(ctx.calls.setGlobalAlert?.length, 2); // second window, second alert
   });
 });
 

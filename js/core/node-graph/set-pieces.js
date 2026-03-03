@@ -661,16 +661,15 @@ export const multiKeyVault = {
 /**
  * Honey Pot
  *
- * Pattern: flag(on:exploit) → alarm-latch — the node looks like a target
- * but any exploit attempt arms the latch and fires a counter-trace trigger.
+ * Pattern: flag(on:exploit) — the node looks like a target but any exploit
+ * attempt fires a counter-trace trigger immediately.
  *
  * The "bait" design: the honey-pot node has fake reward attributes that look
- * attractive (accessLevel: owned, contents: "corp-secrets"), but probing or
- * exploiting it immediately arms the alarm. The player has no way to safely
- * interact with it once the latch fires.
+ * attractive (accessLevel: owned, contents: "corp-secrets"), but exploiting it
+ * immediately sets poisoned:true and fires the trace.
  *
- * External ports: ['honey-pot', 'alarm-latch']
- * Player "owns" honey-pot by default (bait) — any action triggers the trap.
+ * External ports: ['honey-pot']
+ * Player "owns" honey-pot by default (bait) — any exploit triggers the trap.
  *
  * @type {SetPieceDef}
  */
@@ -1040,8 +1039,10 @@ export const noisySensor = {
   triggers: [
     {
       id: "sensor-alarmed",
+      repeating: true,
       when: { type: "node-attr", nodeId: "alarm-flag", attr: "triggered", eq: true },
       then: [
+        { effect: "set-node-attr", nodeId: "alarm-flag", attr: "triggered", value: false },
         { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
         { effect: "ctx-call", method: "log", args: ["SENSOR: First probe in window — alert raised"] },
       ],
