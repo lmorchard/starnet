@@ -5,11 +5,11 @@ import { mockCtx } from "./ctx.js";
 import { createMessage } from "./message.js";
 
 function clockNode(id = "clk") {
-  return { id, type: "clock-source", attributes: {}, atoms: [{ name: "clock", period: 3 }] };
+  return { id, type: "clock-source", attributes: {}, operators: [{ name: "clock", period: 3 }] };
 }
 
 function relayNode(id = "relay") {
-  return { id, type: "relay", attributes: {}, atoms: [{ name: "relay" }] };
+  return { id, type: "relay", attributes: {}, operators: [{ name: "relay" }] };
 }
 
 describe("serialization: basic round-trip", () => {
@@ -17,8 +17,8 @@ describe("serialization: basic round-trip", () => {
     const ctx = mockCtx();
     const graph = new NodeGraph({
       nodes: [
-        { id: "A", type: "t", attributes: { accessLevel: "owned", score: 42 }, atoms: [] },
-        { id: "B", type: "t", attributes: { active: true }, atoms: [] },
+        { id: "A", type: "t", attributes: { accessLevel: "owned", score: 42 }, operators: [] },
+        { id: "B", type: "t", attributes: { active: true }, operators: [] },
       ],
       edges: [["A", "B"]],
       triggers: [{
@@ -76,8 +76,8 @@ describe("serialization: delay queue", () => {
     const ctx = mockCtx();
     const graph = new NodeGraph({
       nodes: [
-        { id: "src", type: "t", attributes: {}, atoms: [{ name: "delay", ticks: 2 }] },
-        { id: "dst", type: "t", attributes: {}, atoms: [{ name: "relay" }] },
+        { id: "src", type: "t", attributes: {}, operators: [{ name: "delay", ticks: 2 }] },
+        { id: "dst", type: "t", attributes: {}, operators: [{ name: "relay" }] },
       ],
       edges: [["src", "dst"]],
     }, ctx);
@@ -106,7 +106,7 @@ describe("serialization: JSON stringify round-trip", () => {
   it("snapshot survives JSON.stringify/parse with no loss", () => {
     const graph = new NodeGraph({
       nodes: [
-        { id: "A", type: "t", attributes: { x: 1, arr: [1, 2] }, atoms: [{ name: "clock", period: 5 }] },
+        { id: "A", type: "t", attributes: { x: 1, arr: [1, 2] }, operators: [{ name: "clock", period: 5 }] },
       ],
       edges: [],
       triggers: [{ id: "t1", when: { type: "quality-eq", name: "q", value: 0 }, then: [] }],

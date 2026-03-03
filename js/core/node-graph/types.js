@@ -12,14 +12,14 @@
  * @property {string} id
  * @property {string} type
  * @property {Record<string, any>} attributes
- * @property {AtomConfig[]} [atoms]
+ * @property {OperatorConfig[]} [operators]
  * @property {ActionDef[]} [actions]
  */
 
 /**
- * Configuration for a single atom on a node.
- * The `name` field selects the registered atom; remaining fields are atom-specific config.
- * @typedef {Object} AtomConfig
+ * Configuration for a single operator on a node.
+ * The `name` field selects the registered operator; remaining fields are operator-specific config.
+ * @typedef {Object} OperatorConfig
  * @property {string} name
  * @property {string} [filter]        - relay/counter: only process messages of this type
  * @property {string[]} [inputs]      - any-of / all-of: list of origin nodeIds to track
@@ -47,7 +47,7 @@
  */
 
 /**
- * Partial message descriptor used when emitting outgoing messages from atoms.
+ * Partial message descriptor used when emitting outgoing messages from operators.
  * The runtime fills in `origin` and `path` before forwarding.
  * @typedef {Object} MessageDescriptor
  * @property {string} type

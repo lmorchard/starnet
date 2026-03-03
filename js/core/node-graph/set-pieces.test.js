@@ -49,12 +49,12 @@ describe("instantiate: trigger IDs and nodeIds are prefixed", () => {
   });
 });
 
-describe("instantiate: all-of atom inputs are prefixed", () => {
-  it("rewrites inputs in all-of atom configs", () => {
+describe("instantiate: all-of operator inputs are prefixed", () => {
+  it("rewrites inputs in all-of operator configs", () => {
     const inst = instantiate(combinationLock, "v1");
     const gate = inst.nodes.find((n) => n.id === "v1/gate");
-    const allOfAtom = gate?.atoms?.[0];
-    assert.deepEqual(allOfAtom?.inputs, ["v1/switch-a", "v1/switch-b", "v1/switch-c"]);
+    const allOfOperator = gate?.operators?.[0];
+    assert.deepEqual(allOfOperator?.inputs, ["v1/switch-a", "v1/switch-b", "v1/switch-c"]);
   });
 });
 
@@ -100,7 +100,7 @@ describe("instantiate: two instances have independent IDs", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Behavioral tests: instantiated set-pieces run correctly in NodeGraph
+// Functional tests: instantiated set-pieces run correctly in NodeGraph
 // ---------------------------------------------------------------------------
 
 describe("ids-relay-chain: alert forwarding and subversion", () => {
@@ -449,12 +449,9 @@ describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
     const graph = new NodeGraph(inst, ctx);
 
     graph._nodes.get("cs1/relay-a").attributes.accessLevel = "owned";
-    // Subvert only relay-a, then let watchdog expire (period: 4)
-    // Subverting relay-a sends subvert-ping → relay-a relays it... but
-    // relay-a's relay atom is now forwardingEnabled:false. Actually the
-    // relay forwards BEFORE forwardingEnabled is set (action effects run after).
-    // The subvert-ping from the action's emit-message propagates to watchdog,
-    // resetting the timer. So we need 4 more ticks after the last message.
+    // Subvert only relay-a — the subvert action uses emit-message to send
+    // subvert-ping directly to watchdog (bypassing relay-a's own operators),
+    // which resets the watchdog timer. Need 4 more ticks for it to expire.
     graph.executeAction("cs1/relay-a", "subvert");
     graph.tick(4); // watchdog period elapses without further messages
 
@@ -498,7 +495,7 @@ describe("tripwire-gauntlet: 6-tick delay from probe to alarm", () => {
 });
 
 // ---------------------------------------------------------------------------
-// probe-burst-alarm: tally atom + repeating trigger
+// probe-burst-alarm: tally operator + repeating trigger
 // ---------------------------------------------------------------------------
 describe("probe-burst-alarm: spawns ICE every 3rd probe via tally + repeating trigger", () => {
   it("does not spawn ICE before 3 probes", () => {
@@ -557,7 +554,7 @@ describe("probe-burst-alarm: spawns ICE every 3rd probe via tally + repeating tr
 });
 
 // ---------------------------------------------------------------------------
-// noisy-sensor: debounce atom
+// noisy-sensor: debounce operator
 // ---------------------------------------------------------------------------
 describe("noisy-sensor: first probe per window raises alert, subsequent suppressed", () => {
   it("raises alert on first probe-noise", () => {

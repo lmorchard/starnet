@@ -338,7 +338,7 @@ scenarios covered by `set-pieces.test.js`. Removed it and the `ng-playtest` Make
 target. Once the node graph integrates into the game engine, `scripts/playtest.js`
 serves the human-readable trace use case.
 
-### Final state
+### Final state (part 2)
 
 - 566 unit/integration tests, 0 failures
 - 13 set-pieces in catalog: idsRelayChain, nthAlarm, combinationLock, deadmanCircuit,
@@ -346,3 +346,139 @@ serves the human-readable trace use case.
   tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect
 - `scripts/node-graph-playtest.js` removed (redundant with test suite)
 - Node graph runtime is complete and ready for integration into the game engine
+
+---
+
+## Session Continuation (2026-03-03, part 3): Pre-merge cleanup + research
+
+### Further set-piece test review
+
+Third full pass over `set-pieces.test.js` with fresh eyes. One stale comment found
+in `cascadeShutdown` test 3 — referenced `relay-a`'s relay operator (removed in part 2)
+as the reason subvert-ping reaches the watchdog. Updated to correctly describe the
+mechanism: the `subvert` action uses `emit-message` → `_emitFrom`, which sends
+`subvert-ping` directly to watchdog via graph edges, bypassing relay-a's operators
+entirely.
+
+Added a "Node graph / set-piece test honesty" subsection to `CLAUDE.md` with six rules
+distilled from the bugs found across this session:
+
+1. Trace the full signal path before calling a test honest
+2. Assert the observable consequence (ctx call count), not intermediate atom state
+3. No manual state resets between steps of the same scenario
+4. One-shot triggers on repeating behaviors are almost always bugs
+5. Every node in a set-piece must be on an active signal path
+6. `destinations` override is internal-only
+
+### Concept renamed: atom → behavior → operator
+
+"Atom" was too ambiguous given existing use of the concept elsewhere in the codebase.
+"Behavior" was tried but judged equally generic (too broad for game dev contexts).
+Settled on **"operator"** — congruent with reactive programming terminology (RxJS),
+where operators are the pipeline processing steps that transform/filter/route signals.
+Reads naturally: "relay operator", "watchdog operator".
+
+Mechanical rename across all files in `js/core/node-graph/`:
+- `atoms.js` → `behaviors.js` → `operators.js`
+- `atoms.test.js` → `behaviors.test.js` → `operators.test.js`
+- `AtomConfig` → `BehaviorConfig` → `OperatorConfig`
+- `applyAtoms/Behaviors` → `applyOperators`
+- `registerAtom/Behavior` → `registerOperator`
+- `getAtom/Behavior` → `getOperator`
+- `atoms:/behaviors:` node property → `operators:`
+
+Two pre-existing TSC warnings surfaced in `operators.js` during the rename:
+- `config.attr` typed as `string | undefined` rejected as computed property key → added
+  `if (!config.attr) return {}` guard before the computed property expression
+- Unused `attrs` parameter renamed to `_attrs`
+
+### Final state (part 3)
+
+- 568 unit/integration tests, 0 failures
+
+---
+
+## Research for integration session: Statechart concepts
+
+Context: reviewed XState actor model and statechart documentation
+(https://stately.ai/docs/actor-model, https://stately.ai/docs/state-machines-and-statecharts)
+to assess applicability to the node graph system and its future GUI representation.
+
+### What's already congruent
+
+The node-graph is already actor-model-shaped. Each node has private state (attributes),
+communicates only via messages, can't directly mutate neighbors. Operators are what
+XState calls "actions" — effects that fire during transitions. `requires` conditions
+on actions are guards. Triggers are "eventless transitions" that fire when a condition
+becomes true rather than on a specific event. The design arrived at the same place
+independently.
+
+XState itself cannot be used directly: its operator state lives in closures and is
+not serializable, which violates the game's save/load contract. The virtual tick
+system (`tick(N)` advancing N steps instantaneously) is also incompatible with
+XState's real-time scheduling. The concepts transfer; the library doesn't.
+
+### The key gap: named states vs attribute bags
+
+The biggest statechart concept absent from the current system is **explicit named
+states with guarded transitions**. Currently `accessLevel: "owned"` is a string in
+an attribute bag — nothing enforces that `owned` is a valid value, nothing prevents
+jumping directly from `locked` to `owned`, and conditions must spell out
+`node-attr: accessLevel eq "owned"` rather than `in-state: owned`.
+
+A statechart formulation would declare valid states and legal transitions up front:
+
+```js
+states: ["locked", "compromised", "owned"],
+initial: "locked",
+transitions: [
+  { from: "locked",      event: "exploit", to: "compromised" },
+  { from: "compromised", event: "exploit", to: "owned" },
+]
+```
+
+**Entry/exit actions** are a related concept: automatically fire an effect when
+entering a state. "When a node is compromised, emit an alert" currently requires an
+explicit trigger. Entry actions would reduce that boilerplate.
+
+Note: several operators are already informal state machines — `latch` (latched/
+unlatched), `clock` (cycling), `counter` (counting to N), `watchdog` (armed/quiet).
+They'd be cleaner expressed as formal state machines, but this is a refinement for
+a future session, not a blocker.
+
+### GUI implications for the integration session
+
+**Make state transitions first-class events on the event bus.** Rather than the
+renderer watching for attribute changes and inferring meaning, emit explicit
+`{ type: 'node-state-changed', nodeId, from, to }` events. The renderer subscribes
+and knows exactly what to animate without diffing.
+
+**Transitions as animation hooks.** "Node transitioned `locked → compromised`" is a
+clean, semantic trigger for a purposeful animation (e.g., the "gained access" sweep),
+as opposed to a generic "something changed" pulse. The renderer maps transition names
+to animations directly.
+
+**Message flow as edge animations.** The `path` field on every message already tracks
+exactly which edges were traversed. This is free data for animating signal propagation
+in Cytoscape — flash each edge in the path sequence as the message hops. BFS dispatch
+(if ever adopted) would produce a more legible "wavefront" animation than DFS.
+
+**Operator state as node HUD.** Operators like `clock`, `watchdog`, and `debounce`
+have internal timer state that's currently invisible. A watchdog halfway through its
+period is building tension the player could feel — a countdown ring, a pulsing
+indicator. The statechart framing helps: "the node is in the `armed` phase of its
+watchdog cycle" is a renderable fact, not just `_watchdog_ticks: 2` in an attribute
+bag.
+
+**Parallel state regions.** Nodes are simultaneously in multiple orthogonal state
+spaces: `accessLevel`, `forwardingEnabled`, `triggered`. Statecharts call these
+*regions*. The renderer can represent them as distinct visual layers — base color for
+access level, border indicator for forwarding state, glow for triggered state — so
+the player reads all three at a glance without conflation.
+
+**The player-facing statechart as puzzle UI.** The node's statechart *is* the puzzle
+description. When a player inspects a node, showing the valid states and which actions
+move between them ("from `compromised`, you can `reconfigure` to disable forwarding,
+or `exploit` again to reach `owned`") makes the puzzle legible. This is the most
+ambitious idea — essentially Stately's editor embedded in the game's node inspector —
+but it's the logical endpoint of taking statechart concepts seriously as a UI pattern.

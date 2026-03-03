@@ -310,6 +310,36 @@ either in gameplay or in the manual. Both are worth filing and fixing.
   Integration tests live in `tests/integration.test.js`. Keep new test suites focused: describe the
   scenario, set up state directly, emit the triggering event, assert the outcome.
 
+### Node graph / set-piece test honesty
+
+These rules exist because it's easy to write set-piece tests that pass while the circuit is
+partially or completely broken. A test that sets intermediate state manually and then checks
+it is set is not testing the circuit — it's testing that assignment works.
+
+- **Trace the full signal path before calling a test honest.** Follow each input message through
+  atoms → edges → receiving nodes → triggers → effects → ctx calls. If any link in that chain
+  is absent or broken, the test may pass for the wrong reason.
+
+- **Assert the observable consequence, not intermediate state.** Prefer checking
+  `ctx.calls.setGlobalAlert?.length` over `alarm-flag.triggered === true`. An intermediate
+  attribute can be set correctly even when the downstream circuit is broken.
+
+- **No manual state resets between steps of the same scenario.** If you reset an atom attribute
+  mid-test (e.g. `node.triggered = false`) to enable a second assertion, the trigger isn't
+  cycling correctly — fix the atom/trigger, don't paper over it.
+
+- **One-shot triggers on repeating behaviors are almost always bugs.** If a set-piece claims
+  "fires every time X happens," the trigger must be `repeating: true` with an effect that resets
+  the watch condition. A one-shot trigger fires exactly once, no matter how many times X happens.
+
+- **Every node in a set-piece must be on an active signal path.** If a node's atoms produce no
+  outputs reaching a trigger or external port, it is dead code — it looks like a puzzle element
+  to the player but does nothing. Remove it or wire it up.
+
+- **`destinations` override is internal-only.** Never use `config.destinations` to create a
+  connection invisible to the player. All node-to-node relationships the player needs to reason
+  about must appear as `internalEdges`.
+
 ---
 
 ## Design Principles

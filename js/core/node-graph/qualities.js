@@ -1,7 +1,7 @@
 // @ts-check
 
 /**
- * Named integer counter store used by atoms, triggers, and actions.
+ * Named integer counter store used by operators, triggers, and actions.
  */
 export class QualityStore {
   /** @param {Record<string, number>} [initial] */

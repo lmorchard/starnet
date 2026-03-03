@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { getAtom, applyAtoms } from "./atoms.js";
+import { getOperator, applyOperators } from "./operators.js";
 import { createMessage } from "./message.js";
 
 /** @type {import('./types.js').CtxInterface} */
@@ -9,15 +9,15 @@ const nullCtx = {
   setGlobalAlert() {}, enableNode() {}, disableNode() {}, revealNode() {}, log() {},
 };
 
-// Helper: invoke an atom by name with given inputs
+// Helper: invoke an operator by name with given inputs
 function invoke(name, config, attrs, message) {
-  return getAtom(name)(config, attrs, message, nullCtx);
+  return getOperator(name)(config, attrs, message, nullCtx);
 }
 
 // ---------------------------------------------------------------------------
 // relay
 // ---------------------------------------------------------------------------
-describe("relay atom", () => {
+describe("relay operator", () => {
   it("forwards a message when forwardingEnabled is not false", () => {
     const msg = createMessage({ type: "alert", origin: "A" });
     const result = invoke("relay", {}, {}, msg);
@@ -55,7 +55,7 @@ describe("relay atom", () => {
 // ---------------------------------------------------------------------------
 // invert
 // ---------------------------------------------------------------------------
-describe("invert atom", () => {
+describe("invert operator", () => {
   it("flips signal active from true to false", () => {
     const msg = createMessage({ type: "signal", origin: "A", payload: { active: true } });
     const result = invoke("invert", {}, {}, msg);
@@ -84,7 +84,7 @@ describe("invert atom", () => {
 // ---------------------------------------------------------------------------
 // any-of
 // ---------------------------------------------------------------------------
-describe("any-of atom", () => {
+describe("any-of operator", () => {
   it("emits active:true when any listed input sends active signal", () => {
     const msg = createMessage({ type: "signal", origin: "A", payload: { active: true } });
     const result = invoke("any-of", { inputs: ["A", "B"] }, {}, msg);
@@ -117,7 +117,7 @@ describe("any-of atom", () => {
 // ---------------------------------------------------------------------------
 // all-of
 // ---------------------------------------------------------------------------
-describe("all-of atom", () => {
+describe("all-of operator", () => {
   it("emits active:false when not all inputs are active", () => {
     const msg = createMessage({ type: "signal", origin: "A", payload: { active: true } });
     const result = invoke("all-of", { inputs: ["A", "B"] }, {}, msg);
@@ -154,7 +154,7 @@ describe("all-of atom", () => {
 // ---------------------------------------------------------------------------
 // latch
 // ---------------------------------------------------------------------------
-describe("latch atom", () => {
+describe("latch operator", () => {
   it("sets latched:true on set message", () => {
     const msg = createMessage({ type: "set", origin: "A" });
     const result = invoke("latch", {}, {}, msg);
@@ -178,7 +178,7 @@ describe("latch atom", () => {
 // ---------------------------------------------------------------------------
 // clock
 // ---------------------------------------------------------------------------
-describe("clock atom", () => {
+describe("clock operator", () => {
   it("increments counter on tick without emitting until period", () => {
     const tick = createMessage({ type: "tick", origin: "__system__" });
     const r1 = invoke("clock", { period: 3 }, {}, tick);
@@ -211,7 +211,7 @@ describe("clock atom", () => {
 // ---------------------------------------------------------------------------
 // delay
 // ---------------------------------------------------------------------------
-describe("delay atom", () => {
+describe("delay operator", () => {
   it("enqueues message on non-tick input", () => {
     const msg = createMessage({ type: "alert", origin: "A", payload: { level: 2 } });
     const result = invoke("delay", { ticks: 2 }, {}, msg);
@@ -238,7 +238,7 @@ describe("delay atom", () => {
 // ---------------------------------------------------------------------------
 // counter
 // ---------------------------------------------------------------------------
-describe("counter atom", () => {
+describe("counter operator", () => {
   it("does not emit until threshold reached", () => {
     const msg = createMessage({ type: "signal", origin: "A" });
     const r1 = invoke("counter", { n: 3, emits: { type: "unlock", payload: {} } }, {}, msg);
@@ -282,7 +282,7 @@ describe("counter atom", () => {
 // ---------------------------------------------------------------------------
 // flag
 // ---------------------------------------------------------------------------
-describe("flag atom", () => {
+describe("flag operator", () => {
   it("sets attribute to true on any non-tick message when no 'on' filter set", () => {
     const msg = createMessage({ type: "alert", origin: "A" });
     const result = invoke("flag", { attr: "alerted" }, {}, msg);
@@ -321,7 +321,7 @@ describe("flag atom", () => {
 // ---------------------------------------------------------------------------
 // watchdog
 // ---------------------------------------------------------------------------
-describe("watchdog atom", () => {
+describe("watchdog operator", () => {
   it("increments counter on tick without firing before period", () => {
     const tick = createMessage({ type: "tick", origin: "__system__" });
     const r1 = invoke("watchdog", { period: 3 }, {}, tick);
@@ -371,13 +371,13 @@ describe("watchdog atom", () => {
 });
 
 // ---------------------------------------------------------------------------
-// applyAtoms progressive merge
+// applyOperators progressive merge
 // ---------------------------------------------------------------------------
-describe("applyAtoms", () => {
-  it("merges attribute patches progressively across atoms", () => {
+describe("applyOperators", () => {
+  it("merges attribute patches progressively across operators", () => {
     // latch then relay: relay should see the latched:true attribute the latch just set
     const msg = createMessage({ type: "set", origin: "A" });
-    const result = applyAtoms(
+    const result = applyOperators(
       [{ name: "latch" }, { name: "relay" }],
       {},
       msg,
@@ -388,10 +388,10 @@ describe("applyAtoms", () => {
     assert.equal(result.outgoing.length, 1);
   });
 
-  it("collects outgoing messages from all atoms", () => {
-    // Two relay atoms on the same node — both forward
+  it("collects outgoing messages from all operators", () => {
+    // Two relay operators on the same node — both forward
     const msg = createMessage({ type: "signal", origin: "A", payload: { active: true } });
-    const result = applyAtoms(
+    const result = applyOperators(
       [{ name: "relay" }, { name: "relay" }],
       {},
       msg,
@@ -400,9 +400,9 @@ describe("applyAtoms", () => {
     assert.equal(result.outgoing.length, 2);
   });
 
-  it("collects qualityDeltas from tally atoms", () => {
+  it("collects qualityDeltas from tally operators", () => {
     const msg = createMessage({ type: "probe-noise", origin: "A" });
-    const result = applyAtoms(
+    const result = applyOperators(
       [{ name: "tally", quality: "probes-seen", delta: 1 }],
       {},
       msg,
@@ -417,7 +417,7 @@ describe("applyAtoms", () => {
 // ---------------------------------------------------------------------------
 // relay destinations override
 // ---------------------------------------------------------------------------
-describe("relay atom destinations override", () => {
+describe("relay operator destinations override", () => {
   it("uses config.destinations when provided instead of message.destinations", () => {
     const msg = createMessage({ type: "alert", origin: "A", destinations: ["X"] });
     const result = invoke("relay", { destinations: ["Y", "Z"] }, {}, msg);
@@ -440,7 +440,7 @@ describe("relay atom destinations override", () => {
 // ---------------------------------------------------------------------------
 // tally
 // ---------------------------------------------------------------------------
-describe("tally atom", () => {
+describe("tally operator", () => {
   it("returns a qualityDelta on matching message", () => {
     const msg = createMessage({ type: "probe-noise", origin: "A" });
     const result = invoke("tally", { quality: "probes", delta: 1 }, {}, msg);
@@ -477,7 +477,7 @@ describe("tally atom", () => {
 // ---------------------------------------------------------------------------
 // debounce
 // ---------------------------------------------------------------------------
-describe("debounce atom", () => {
+describe("debounce operator", () => {
   it("forwards first matching message", () => {
     const msg = createMessage({ type: "alert", origin: "A" });
     const result = invoke("debounce", { ticks: 3 }, {}, msg);

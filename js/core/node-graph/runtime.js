@@ -7,7 +7,7 @@
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
 import { createMessage, hasCycle } from "./message.js";
-import { applyAtoms } from "./atoms.js";
+import { applyOperators } from "./operators.js";
 import { QualityStore } from "./qualities.js";
 import { TriggerStore } from "./triggers.js";
 import { getAvailableActions, executeAction } from "./actions.js";
@@ -26,13 +26,13 @@ import { nullCtx } from "./ctx.js";
  * @property {string} id
  * @property {string} type
  * @property {Record<string, any>} attributes
- * @property {import('./types.js').AtomConfig[]} atoms
+ * @property {import('./types.js').OperatorConfig[]} operators
  * @property {ActionDef[]} actions
  */
 
 /**
  * The reactive node graph runtime. Headless and self-contained.
- * No DOM, no Cytoscape — just message-passing, atoms, triggers, and actions.
+ * No DOM, no Cytoscape — just message-passing, operators, triggers, and actions.
  */
 export class NodeGraph {
   /**
@@ -50,7 +50,7 @@ export class NodeGraph {
         id: n.id,
         type: n.type,
         attributes: { ...n.attributes },
-        atoms: n.atoms ?? [],
+        operators: n.operators ?? [],
         actions: n.actions ?? [],
       });
     }
@@ -156,7 +156,7 @@ export class NodeGraph {
         id: node.id,
         type: node.type,
         attributes: JSON.parse(JSON.stringify(node.attributes)),
-        atoms: node.atoms,
+        operators: node.operators,
         actions: node.actions,
       });
     }
@@ -202,7 +202,7 @@ export class NodeGraph {
   }
 
   /**
-   * Deliver a message to a node, run its atoms, and recursively deliver outgoing messages.
+   * Deliver a message to a node, run its operators, and recursively deliver outgoing messages.
    * Cycle guard: if nodeId already in message path, drop silently.
    * @param {string} nodeId
    * @param {Message} message
@@ -214,7 +214,7 @@ export class NodeGraph {
 
     const incoming = { ...message, path: [...message.path, nodeId] };
 
-    const { attributes, outgoing, qualityDeltas } = applyAtoms(node.atoms, node.attributes, incoming, this._ctx);
+    const { attributes, outgoing, qualityDeltas } = applyOperators(node.operators, node.attributes, incoming, this._ctx);
     node.attributes = attributes;
 
     for (const { name, delta } of qualityDeltas) {
@@ -264,10 +264,10 @@ export class NodeGraph {
   }
 
   /**
-   * Emit a message outward from a node, bypassing the source node's own atoms.
+   * Emit a message outward from a node, bypassing the source node's own operators.
    * Delivers directly to adjacent nodes (or the message's destinations list).
    * Used by emit-message effects so that action-emitted messages are not
-   * re-filtered by the source node's relay/debounce atoms.
+   * re-filtered by the source node's relay/debounce operators.
    * @param {string} sourceNodeId
    * @param {MessageDescriptor} message
    */

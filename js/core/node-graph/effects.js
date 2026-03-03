@@ -12,7 +12,7 @@
  * @property {(name: string, value: number) => void} setQuality
  * @property {(name: string, delta: number) => void} deltaQuality
  * @property {(nodeId: string, message: MessageDescriptor) => void} sendMessage
- * @property {(nodeId: string, message: MessageDescriptor) => void} emitFrom  - bypasses source node's own atoms
+ * @property {(nodeId: string, message: MessageDescriptor) => void} emitFrom  - bypasses source node's own operators
  * @property {CtxInterface} ctx
  */
 

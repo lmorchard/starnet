@@ -1,64 +1,64 @@
 // @ts-check
-/** @typedef {import('./types.js').AtomConfig} AtomConfig */
+/** @typedef {import('./types.js').OperatorConfig} OperatorConfig */
 /** @typedef {import('./types.js').Message} Message */
 /** @typedef {import('./types.js').MessageDescriptor} MessageDescriptor */
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
 /**
- * @typedef {Object} AtomResult
+ * @typedef {Object} OperatorResult
  * @property {Record<string, any>} [attributes]  - partial patch to merge onto node attributes
  * @property {MessageDescriptor[]} [outgoing]    - messages to deliver to connected nodes
  * @property {{name: string, delta: number}[]} [qualityDeltas] - quality increments to apply
  */
 
 /**
- * An atom function: pure reactive function registered by name.
- * @typedef {(config: AtomConfig, nodeAttributes: Record<string, any>, message: Message | null, ctx: CtxInterface) => AtomResult} AtomFn
+ * An operator function: pure reactive function registered by name.
+ * @typedef {(config: OperatorConfig, nodeAttributes: Record<string, any>, message: Message | null, ctx: CtxInterface) => OperatorResult} OperatorFn
  */
 
-/** @type {Map<string, AtomFn>} */
+/** @type {Map<string, OperatorFn>} */
 const _registry = new Map();
 
 /**
- * Register an atom function by name.
+ * Register an operator function by name.
  * @param {string} name
- * @param {AtomFn} fn
+ * @param {OperatorFn} fn
  */
-export function registerAtom(name, fn) {
+export function registerOperator(name, fn) {
   _registry.set(name, fn);
 }
 
 /**
- * Return a registered atom function by name; throws if not found.
+ * Return a registered operator function by name; throws if not found.
  * @param {string} name
- * @returns {AtomFn}
+ * @returns {OperatorFn}
  */
-export function getAtom(name) {
+export function getOperator(name) {
   const fn = _registry.get(name);
-  if (!fn) throw new Error(`Unknown atom: "${name}"`);
+  if (!fn) throw new Error(`Unknown operator: "${name}"`);
   return fn;
 }
 
 /**
- * Apply a list of atom configs to a node in order. Each atom's attribute patch is
- * merged into nodeAttributes before calling the next atom (progressive merge).
- * Outgoing messages are collected across all atoms.
+ * Apply a list of operator configs to a node in order. Each operator's attribute patch is
+ * merged into nodeAttributes before calling the next operator (progressive merge).
+ * Outgoing messages are collected across all operators.
  *
- * @param {AtomConfig[]} atomConfigs
+ * @param {OperatorConfig[]} operatorConfigs
  * @param {Record<string, any>} nodeAttributes
  * @param {Message | null} message
  * @param {CtxInterface} ctx
  * @returns {{ attributes: Record<string, any>, outgoing: MessageDescriptor[], qualityDeltas: {name: string, delta: number}[] }}
  */
-export function applyAtoms(atomConfigs, nodeAttributes, message, ctx) {
+export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
   let attrs = { ...nodeAttributes };
   /** @type {MessageDescriptor[]} */
   const outgoing = [];
   /** @type {{name: string, delta: number}[]} */
   const qualityDeltas = [];
 
-  for (const config of atomConfigs) {
-    const fn = getAtom(config.name);
+  for (const config of operatorConfigs) {
+    const fn = getOperator(config.name);
     const result = fn(config, attrs, message, ctx);
     if (result.attributes) {
       attrs = { ...attrs, ...result.attributes };
@@ -75,7 +75,7 @@ export function applyAtoms(atomConfigs, nodeAttributes, message, ctx) {
 }
 
 // ---------------------------------------------------------------------------
-// Core atom implementations
+// Core operator implementations
 // ---------------------------------------------------------------------------
 
 /**
@@ -83,7 +83,7 @@ export function applyAtoms(atomConfigs, nodeAttributes, message, ctx) {
  * Supports optional `filter` config (only relay if message.type === filter).
  * Checks forwardingEnabled attribute; drops tick messages silently.
  */
-registerAtom("relay", (config, attrs, message, _ctx) => {
+registerOperator("relay", (config, attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "tick") return {};
   if (attrs.forwardingEnabled === false) return {};
@@ -98,7 +98,7 @@ registerAtom("relay", (config, attrs, message, _ctx) => {
  * invert — flip signal.active on incoming signal messages before forwarding.
  * Drops non-signal and tick messages silently.
  */
-registerAtom("invert", (_config, _attrs, message, _ctx) => {
+registerOperator("invert", (_config, _attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "tick") return {};
   if (message.type !== "signal") return {};
@@ -112,7 +112,7 @@ registerAtom("invert", (_config, _attrs, message, _ctx) => {
  * Tracks _anyof_state map keyed by origin. Only tracks listed inputs.
  * Emits signal(active:true) when any tracked entry is true.
  */
-registerAtom("any-of", (config, attrs, message, _ctx) => {
+registerOperator("any-of", (config, attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type !== "signal") return {};
   const inputs = config.inputs ?? [];
@@ -132,7 +132,7 @@ registerAtom("any-of", (config, attrs, message, _ctx) => {
  * Tracks _allof_state map keyed by origin. Only tracks listed inputs.
  * Emits signal(active:true) only when all entries are true.
  */
-registerAtom("all-of", (config, attrs, message, _ctx) => {
+registerOperator("all-of", (config, attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type !== "signal") return {};
   const inputs = config.inputs ?? [];
@@ -151,7 +151,7 @@ registerAtom("all-of", (config, attrs, message, _ctx) => {
  * latch — set/reset messages toggle persistent `latched` attribute.
  * No outgoing messages.
  */
-registerAtom("latch", (_config, _attrs, message, _ctx) => {
+registerOperator("latch", (_config, _attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "set") return { attributes: { latched: true } };
   if (message.type === "reset") return { attributes: { latched: false } };
@@ -159,11 +159,11 @@ registerAtom("latch", (_config, _attrs, message, _ctx) => {
 });
 
 /**
- * clock — source atom. config.period (in ticks).
+ * clock — source operator. config.period (in ticks).
  * Maintains _clock_ticks counter. On tick, increments; when counter reaches period,
  * emits signal(active:true) and resets counter.
  */
-registerAtom("clock", (config, attrs, message, _ctx) => {
+registerOperator("clock", (config, attrs, message, _ctx) => {
   if (!message || message.type !== "tick") return {};
   const period = config.period ?? 1;
   const ticks = (attrs._clock_ticks ?? 0) + 1;
@@ -183,7 +183,7 @@ registerAtom("clock", (config, attrs, message, _ctx) => {
  * On tick: decrement all; emit those that reach 0.
  * On other messages: enqueue with remaining = config.ticks.
  */
-registerAtom("delay", (config, attrs, message, _ctx) => {
+registerOperator("delay", (config, attrs, message, _ctx) => {
   if (!message) return {};
 
   const delayTicks = config.ticks ?? 1;
@@ -221,7 +221,7 @@ registerAtom("delay", (config, attrs, message, _ctx) => {
  * config.filter: optional message type to count (if omitted, counts any non-tick message).
  * Maintains _counter_count. Increments on matching messages; resets on emit.
  */
-registerAtom("counter", (config, attrs, message, _ctx) => {
+registerOperator("counter", (config, attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "tick") return {};
   if (config.filter && message.type !== config.filter) return {};
@@ -243,7 +243,7 @@ registerAtom("counter", (config, attrs, message, _ctx) => {
  * config.attr: attribute name to set on the node.
  * config.value: value to set (default: true).
  */
-registerAtom("flag", (config, attrs, message, _ctx) => {
+registerOperator("flag", (config, _attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "tick") return {};
   if (config.on && message.type !== config.on) return {};
@@ -252,18 +252,19 @@ registerAtom("flag", (config, attrs, message, _ctx) => {
       if (message.payload[k] !== v) return {};
     }
   }
+  if (!config.attr) return {};
   const value = config.value !== undefined ? config.value : true;
   return { attributes: { [config.attr]: value } };
 });
 
 /**
- * watchdog — periodic timeout atom. config.period (in ticks).
+ * watchdog — periodic timeout operator. config.period (in ticks).
  * Any non-tick message resets the internal timer.
  * When period ticks pass without a message, emits a "set" message downstream.
  * Useful for deadman-switch patterns: heartbeat suppresses alarm,
  * silence arms it.
  */
-registerAtom("watchdog", (config, attrs, message, _ctx) => {
+registerOperator("watchdog", (config, attrs, message, _ctx) => {
   if (!message) return {};
   const period = config.period ?? 5;
   if (message.type === "tick") {
@@ -286,10 +287,10 @@ registerAtom("watchdog", (config, attrs, message, _ctx) => {
  * config.quality: quality name to increment.
  * config.delta: amount to add per message (default: 1).
  *
- * Quality deltas are returned as `qualityDeltas` in the AtomResult and applied
- * by the runtime (not stored in node attributes). This keeps the atom pure.
+ * Quality deltas are returned as `qualityDeltas` in the OperatorResult and applied
+ * by the runtime (not stored in node attributes). This keeps the operator pure.
  */
-registerAtom("tally", (config, _attrs, message, _ctx) => {
+registerOperator("tally", (config, _attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "tick") return {};
   if (config.on && message.type !== config.on) return {};
@@ -305,7 +306,7 @@ registerAtom("tally", (config, _attrs, message, _ctx) => {
  *
  * Useful for rate-limiting: honeypots, noisy sensors, burst attack patterns.
  */
-registerAtom("debounce", (config, attrs, message, _ctx) => {
+registerOperator("debounce", (config, attrs, message, _ctx) => {
   if (!message) return {};
   const ticks = config.ticks ?? 1;
 

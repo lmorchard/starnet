@@ -2,7 +2,7 @@
 /**
  * Set-piece library for the reactive node graph runtime.
  *
- * A set-piece is a self-contained, pre-wired subgraph: nodes with atoms,
+ * A set-piece is a self-contained, pre-wired subgraph: nodes with operators,
  * internal edges, triggers, actions, and named external ports. It is the
  * authoring unit for puzzle content. The generator picks set-pieces from a
  * biome palette, instantiates them with a unique prefix, and wires their
@@ -15,7 +15,7 @@
  *
  * ## `destinations` override — appropriate use
  *
- * The `destinations` config on relay/debounce atoms hard-wires outgoing message
+ * The `destinations` config on relay/debounce operators hard-wires outgoing message
  * targets, bypassing edge-based adjacency routing. This is only appropriate for
  * **internal set-piece routing** where all targeted nodes are part of the same
  * set-piece and will appear as nodes in the graph.
@@ -134,18 +134,18 @@ function rewriteEffect(effect, prefix) {
  */
 export function instantiate(def, prefix) {
   const nodes = def.nodes.map((node) => {
-    // Rewrite atom configs that contain node IDs or quality names
-    const atoms = (node.atoms ?? []).map((cfg) => {
+    // Rewrite operator configs that contain node IDs or quality names
+    const operators = (node.operators ?? []).map((cfg) => {
       let updated = { ...cfg };
-      // Prefix inputs for gate atoms
+      // Prefix inputs for gate operators
       if ((cfg.name === "any-of" || cfg.name === "all-of") && cfg.inputs) {
         updated = { ...updated, inputs: cfg.inputs.map((id) => pfx(id, prefix)) };
       }
-      // Prefix quality name for tally atom
+      // Prefix quality name for tally operator
       if (cfg.name === "tally" && cfg.quality) {
         updated = { ...updated, quality: pfx(cfg.quality, prefix) };
       }
-      // Prefix destinations override (any atom can have one)
+      // Prefix destinations override (any operator can have one)
       if (cfg.destinations) {
         updated = { ...updated, destinations: cfg.destinations.map((d) => pfx(d, prefix)) };
       }
@@ -162,7 +162,7 @@ export function instantiate(def, prefix) {
     return {
       ...node,
       id: pfx(node.id, prefix),
-      atoms,
+      operators,
       actions,
     };
   });
@@ -209,7 +209,7 @@ export const idsRelayChain = {
       id: "ids",
       type: "ids",
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      atoms: [{ name: "relay", filter: "alert" }],
+      operators: [{ name: "relay", filter: "alert" }],
       actions: [
         {
           id: "reconfigure",
@@ -223,7 +223,7 @@ export const idsRelayChain = {
       id: "monitor",
       type: "security-monitor",
       attributes: { accessLevel: "locked", alerted: false },
-      atoms: [{ name: "flag", on: "alert", attr: "alerted", value: true }],
+      operators: [{ name: "flag", on: "alert", attr: "alerted", value: true }],
       actions: [],
     },
   ],
@@ -261,7 +261,7 @@ export const nthAlarm = {
       id: "sensor",
       type: "tripwire-sensor",
       attributes: { accessLevel: "locked", threshold: 3 },
-      atoms: [
+      operators: [
         {
           name: "counter",
           n: 3,
@@ -275,7 +275,7 @@ export const nthAlarm = {
       id: "alarm-latch",
       type: "alarm-latch",
       attributes: { latched: false },
-      atoms: [{ name: "latch" }],
+      operators: [{ name: "latch" }],
       actions: [],
     },
   ],
@@ -315,7 +315,7 @@ export const combinationLock = {
       id: "switch-a",
       type: "routing-switch",
       attributes: { accessLevel: "locked", activated: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "activate",
@@ -332,7 +332,7 @@ export const combinationLock = {
       id: "switch-b",
       type: "routing-switch",
       attributes: { accessLevel: "locked", activated: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "activate",
@@ -349,7 +349,7 @@ export const combinationLock = {
       id: "switch-c",
       type: "routing-switch",
       attributes: { accessLevel: "locked", activated: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "activate",
@@ -366,14 +366,14 @@ export const combinationLock = {
       id: "gate",
       type: "logic-gate",
       attributes: {},
-      atoms: [{ name: "all-of", inputs: ["switch-a", "switch-b", "switch-c"] }],
+      operators: [{ name: "all-of", inputs: ["switch-a", "switch-b", "switch-c"] }],
       actions: [],
     },
     {
       id: "vault",
       type: "cryptovault",
       attributes: { visible: false, accessLevel: "locked", opened: false },
-      atoms: [{ name: "flag", on: "signal", when: { active: true }, attr: "opened" }],
+      operators: [{ name: "flag", on: "signal", when: { active: true }, attr: "opened" }],
       actions: [],
     },
   ],
@@ -424,7 +424,7 @@ export const deadmanCircuit = {
       id: "heartbeat-relay",
       type: "heartbeat-monitor",
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      atoms: [{ name: "relay", filter: "heartbeat" }],
+      operators: [{ name: "relay", filter: "heartbeat" }],
       actions: [
         {
           id: "subvert",
@@ -438,14 +438,14 @@ export const deadmanCircuit = {
       id: "watchdog",
       type: "watchdog-daemon",
       attributes: {},
-      atoms: [{ name: "watchdog", period: 5 }],
+      operators: [{ name: "watchdog", period: 5 }],
       actions: [],
     },
     {
       id: "alarm-latch",
       type: "alarm-latch",
       attributes: { latched: false },
-      atoms: [{ name: "latch" }],
+      operators: [{ name: "latch" }],
       actions: [],
     },
   ],
@@ -488,7 +488,7 @@ export const switchArrangement = {
       id: "panel-alpha",
       type: "routing-panel",
       attributes: { accessLevel: "locked", aligned: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "align",
@@ -508,7 +508,7 @@ export const switchArrangement = {
       id: "panel-beta",
       type: "routing-panel",
       attributes: { accessLevel: "locked", aligned: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "align",
@@ -528,7 +528,7 @@ export const switchArrangement = {
       id: "panel-gamma",
       type: "routing-panel",
       attributes: { accessLevel: "locked", aligned: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "align",
@@ -548,7 +548,7 @@ export const switchArrangement = {
       id: "hidden-subnet",
       type: "hidden-server",
       attributes: { visible: false, accessLevel: "locked" },
-      atoms: [],
+      operators: [],
       actions: [],
     },
   ],
@@ -590,7 +590,7 @@ export const multiKeyVault = {
       id: "key-server-1",
       type: "key-server",
       attributes: { accessLevel: "locked", tokenExtracted: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "extract-token",
@@ -611,7 +611,7 @@ export const multiKeyVault = {
       id: "key-server-2",
       type: "key-server",
       attributes: { accessLevel: "locked", tokenExtracted: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "extract-token",
@@ -632,7 +632,7 @@ export const multiKeyVault = {
       id: "vault-node",
       type: "cryptovault",
       attributes: { accessLevel: "owned", contents: "corp-secrets" },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "loot",
@@ -681,7 +681,7 @@ export const honeyPot = {
       id: "honey-pot",
       type: "honey-pot",
       attributes: { accessLevel: "owned", contents: "corp-secrets", poisoned: false },
-      atoms: [{ name: "flag", on: "exploit", attr: "poisoned" }],
+      operators: [{ name: "flag", on: "exploit", attr: "poisoned" }],
       actions: [],
     },
   ],
@@ -705,7 +705,7 @@ export const honeyPot = {
  * Pattern: key-gen generates a timed key (clock(period:5)); player must
  * extract the key and loot the vault before the clock resets the key.
  *
- * The key-gen node uses a clock atom and a flag atom: each time the clock
+ * The key-gen node uses a clock operator and a flag operator: each time the clock
  * fires, the key attribute is refreshed to a new value. A watchdog on the
  * vault checks whether the key is still valid when loot is attempted.
  *
@@ -727,7 +727,7 @@ export const encryptedVault = {
       id: "key-gen",
       type: "key-gen",
       attributes: { accessLevel: "locked", keyReady: false },
-      atoms: [{ name: "clock", period: 5 }],
+      operators: [{ name: "clock", period: 5 }],
       actions: [
         {
           id: "extract-key",
@@ -748,14 +748,14 @@ export const encryptedVault = {
       id: "key-ready-latch",
       type: "signal-latch",
       attributes: { latched: false },
-      atoms: [{ name: "flag", on: "signal", when: { active: true }, attr: "latched" }],
+      operators: [{ name: "flag", on: "signal", when: { active: true }, attr: "latched" }],
       actions: [],
     },
     {
       id: "vault",
       type: "cryptovault",
       attributes: { accessLevel: "locked", contents: "classified-data" },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "loot",
@@ -811,7 +811,7 @@ export const cascadeShutdown = {
       id: "relay-a",
       type: "data-relay",
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "subvert",
@@ -830,7 +830,7 @@ export const cascadeShutdown = {
       id: "relay-b",
       type: "data-relay",
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "subvert",
@@ -849,7 +849,7 @@ export const cascadeShutdown = {
       id: "relay-c",
       type: "data-relay",
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
-      atoms: [],
+      operators: [],
       actions: [
         {
           id: "subvert",
@@ -868,14 +868,14 @@ export const cascadeShutdown = {
       id: "watchdog",
       type: "watchdog-daemon",
       attributes: {},
-      atoms: [{ name: "watchdog", period: 4 }],
+      operators: [{ name: "watchdog", period: 4 }],
       actions: [],
     },
     {
       id: "alarm-latch",
       type: "alarm-latch",
       attributes: { latched: false },
-      atoms: [{ name: "latch" }],
+      operators: [{ name: "latch" }],
       actions: [],
     },
   ],
@@ -931,7 +931,7 @@ export const tripwireGauntlet = {
       id: "sensor",
       type: "tripwire-sensor",
       attributes: { triggered: false },
-      atoms: [
+      operators: [
         { name: "flag", on: "probe-noise", attr: "triggered" },
         { name: "delay", ticks: 6 },
       ],
@@ -941,7 +941,7 @@ export const tripwireGauntlet = {
       id: "alarm",
       type: "alarm",
       attributes: { triggered: false },
-      atoms: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
+      operators: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
       actions: [],
     },
   ],
@@ -962,7 +962,7 @@ export const tripwireGauntlet = {
 /**
  * Probe Burst Alarm
  *
- * Pattern: tally atom counts probe-noise messages into a quality; repeating
+ * Pattern: tally operator counts probe-noise messages into a quality; repeating
  * trigger fires spawnICE every N probes and resets the counter. Unlike
  * nthAlarm (one-shot counter), this escalates *indefinitely* — each burst
  * of N probes spawns another ICE.
@@ -983,7 +983,7 @@ export const probeBurstAlarm = {
       id: "scanner",
       type: "traffic-scanner",
       attributes: { accessLevel: "locked" },
-      atoms: [{ name: "tally", on: "probe-noise", quality: "probe-bursts", delta: 1 }],
+      operators: [{ name: "tally", on: "probe-noise", quality: "probe-bursts", delta: 1 }],
       actions: [],
     },
   ],
@@ -1006,7 +1006,7 @@ export const probeBurstAlarm = {
 /**
  * Noisy Sensor
  *
- * Pattern: debounce atom on the sensor ensures only the *first* probe-noise
+ * Pattern: debounce operator on the sensor ensures only the *first* probe-noise
  * per N ticks reaches the downstream alarm. The player can exploit the quiet
  * window after first contact to probe repeatedly without each probe chaining
  * an alarm — but the first touch in each window still costs them.
@@ -1024,14 +1024,14 @@ export const noisySensor = {
       id: "sensor",
       type: "traffic-sensor",
       attributes: { accessLevel: "locked" },
-      atoms: [{ name: "debounce", on: "probe-noise", ticks: 4 }],
+      operators: [{ name: "debounce", on: "probe-noise", ticks: 4 }],
       actions: [],
     },
     {
       id: "alarm-flag",
       type: "alarm-flag",
       attributes: { triggered: false },
-      atoms: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
+      operators: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
       actions: [],
     },
   ],
@@ -1079,7 +1079,7 @@ export const tamperDetect = {
       id: "ids",
       type: "ids",
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      atoms: [{ name: "relay", filter: "alert" }],
+      operators: [{ name: "relay", filter: "alert" }],
       actions: [
         {
           id: "reconfigure",
@@ -1096,14 +1096,14 @@ export const tamperDetect = {
       id: "security-monitor",
       type: "security-monitor",
       attributes: { accessLevel: "locked", alerted: false },
-      atoms: [{ name: "flag", on: "alert", attr: "alerted" }],
+      operators: [{ name: "flag", on: "alert", attr: "alerted" }],
       actions: [],
     },
     {
       id: "tamper-relay",
       type: "tamper-relay",
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      atoms: [{ name: "relay", filter: "tamper" }],
+      operators: [{ name: "relay", filter: "tamper" }],
       actions: [
         {
           id: "neutralize",
@@ -1117,7 +1117,7 @@ export const tamperDetect = {
       id: "tamper-flag",
       type: "tamper-detector",
       attributes: { triggered: false },
-      atoms: [{ name: "flag", on: "tamper", attr: "triggered" }],
+      operators: [{ name: "flag", on: "tamper", attr: "triggered" }],
       actions: [],
     },
   ],
