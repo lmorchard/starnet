@@ -11,7 +11,7 @@
 import { getState } from "../core/state.js";
 import { addLogEntry } from "../core/log.js";
 import { emitEvent, on, E } from "../core/events.js";
-import { registerCommand, getCommand, tabComplete } from "../core/console-commands.js";
+import { registerCommand, getCommand, tabComplete } from "../core/console-commands/index.js";
 
 // ── Browser cheat extension ───────────────────────────────────────────────────
 // Override the headless cheat entry with one that handles the two browser-only

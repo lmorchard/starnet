@@ -16,15 +16,15 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { NETWORK } from "../data/network.js";
-import { initState, getState } from "../js/core/state.js";
-import { navigateTo } from "../js/core/navigation.js";
-import { addCardToHand } from "../js/core/state/player.js";
-import { setNodeAccessLevel } from "../js/core/state/node.js";
-import { generateExploit, exploitSortKey } from "../js/core/exploits.js";
-import { clearAll } from "../js/core/timers.js";
-import { on, off, E } from "../js/core/events.js";
-import { getCommand, registerCommand } from "../js/core/console-commands.js";
+import { NETWORK } from "../../../data/network.js";
+import { initState, getState } from "../state.js";
+import { navigateTo } from "../navigation.js";
+import { addCardToHand } from "../state/player.js";
+import { setNodeAccessLevel } from "../state/node.js";
+import { generateExploit, exploitSortKey } from "../exploits.js";
+import { clearAll } from "../timers.js";
+import { on, off, E } from "../events.js";
+import { getCommand, registerCommand } from "./index.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
