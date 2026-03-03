@@ -557,3 +557,37 @@ through ICE pressure but trips every wire in a structural LAN. Mixed LANs stress
 This creates interesting player expression and challenge variety without explicit
 difficulty settings — the player self-selects what they're good at, and the variety of
 LAN types keeps the game honest about both skills mattering.
+
+---
+
+## Design note: Qualities as cross-set-piece channels
+
+The flat global quality store is a feature, not a limitation. Because qualities are just
+named counters with no structural binding to a node, two set-pieces can share a quality
+without a graph edge between them. This enables **cross-set-piece key/lock patterns**:
+
+A cryptovault near the LAN entry teases the player but requires `access-key >= 1` to
+loot. The key is generated deep in the graph — behind a deadman circuit, say — earned
+by subverting that set-piece. The player sees the vault early, can't open it, explores
+deeper, earns the quality, backtracks. That's a dungeon design loop created entirely
+by matching quality names, no direct wiring needed.
+
+**Procgen implication:** set-piece metadata should declare quality dependencies
+alongside `externalPorts`:
+
+```js
+provides: [{ quality: 'access-key' }],   // key-server set-piece
+requires: [{ quality: 'access-key' }],   // cryptovault set-piece
+```
+
+The generator matches providers to consumers, assigns a shared prefixed quality name,
+and places the vault shallow and the provider deep. The runtime needs no changes — this
+is purely a procgen assembly concern.
+
+**Future: separate player quality store.** At some point the player will need a quality
+store that persists across LANs — carrying loot, reputation, or keys out of a dungeon.
+The clean partition is: anything prefixed with a LAN instance ID lives in the graph
+store (torn down at jack-out), player-level qualities live in a separate persistent
+store. The flat named-counter design makes this straightforward to add at integration
+time with no structural changes to the runtime — just a routing decision about which
+store a given quality name resolves against.
