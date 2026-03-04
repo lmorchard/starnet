@@ -193,6 +193,19 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
 }
 
 /**
+ * Add all initially visible nodes to the graph after initGame.
+ * Call once after initGame populates state.nodes.
+ * @param {Object<string, { id: string, visibility: string }>} nodes
+ */
+export function syncInitialNodes(nodes) {
+  for (const node of Object.values(nodes)) {
+    if (node.visibility !== "hidden") {
+      ensureNodeInGraph(node.id, node.visibility);
+    }
+  }
+}
+
+/**
  * Add a node to the Cytoscape graph when it becomes visible.
  * Also adds edges to any already-present neighbors.
  * @param {string} nodeId

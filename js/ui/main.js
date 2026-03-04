@@ -1,5 +1,5 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
-import { initGraph, getCy, addIceNode, fitGraph } from "./graph.js";
+import { initGraph, getCy, addIceNode, fitGraph, syncInitialNodes } from "./graph.js";
 import { initGame, getState } from "../core/state.js";
 import { completeReboot } from "../core/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../core/actions/exploit-exec.js";
@@ -72,6 +72,7 @@ function init() {
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
   initGame(() => networkResult, undefined, { openDarknetsStore });
   initGraphBridge();
+  syncInitialNodes(getState().nodes);
   fitGraph(cy);
   addIceNode();  // after layout — ICE polygon shape crashes cola bounding box calc
   startIce();
