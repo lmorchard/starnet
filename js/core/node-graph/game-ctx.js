@@ -15,7 +15,10 @@
 
 import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
 import { addCash, setMissionComplete } from "../state/player.js";
-import { startIce, ejectIce } from "../ice.js";
+import { startIce, ejectIce, rebootIce } from "../ice.js";
+import { setSelectedNode } from "../state/game.js";
+import { setNodeRebooting } from "../state/node.js";
+import { RNG, random } from "../rng.js";
 import { setGlobalAlert } from "../state/alert.js";
 import { emitEvent, E } from "../events.js";
 // Exploit duration formula: higher quality = longer execution (more complex payload).
@@ -23,7 +26,7 @@ import { emitEvent, E } from "../events.js";
 function exploitDuration(quality) {
   return Math.round((2 + quality * 5) * 1000); // ms
 }
-import { rebootNode, reconfigureNode } from "../node-orchestration.js";
+import { reconfigureNode } from "../node-orchestration.js";
 import { endRun, ALERT_ORDER, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
@@ -106,8 +109,41 @@ export function buildGameCtx(opts = {}) {
     startLoot: (_nodeId) => { /* now handled by timed-action operator */ },
     cancelLoot: () => { /* now handled by cancel-loot action effects */ },
     ejectIce: () => ejectIce(),
-    rebootNode: (nodeId) => rebootNode(nodeId),
+    rebootNode: (nodeId) => {
+      // Legacy stub — reboot now handled by startReboot + timed-action operator
+    },
     reconfigureNode: (nodeId) => reconfigureNode(nodeId),
+
+    startReboot: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.rebooting) return;
+
+      // Send ICE home if on this node
+      if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
+        rebootIce();
+        emitEvent(E.ICE_REBOOTED, {
+          residentNodeId: s.ice.residentNodeId,
+          residentLabel: s.nodes[s.ice.residentNodeId]?.label ?? s.ice.residentNodeId,
+        });
+      }
+
+      // Deselect
+      if (s.selectedNodeId === nodeId) {
+        setSelectedNode(null);
+      }
+
+      // Set rebooting + random duration (1-3s = 10-30 ticks)
+      const durationTicks = 10 + Math.round(random(RNG.WORLD) * 20);
+      if (ctx._graph) {
+        ctx._graph.setNodeAttr(nodeId, "rebooting", true);
+        ctx._graph.setNodeAttr(nodeId, "_ta_reboot_progress", 0);
+        ctx._graph.setNodeAttr(nodeId, "_ta_reboot_duration", durationTicks);
+      }
+
+      emitEvent(E.NODE_REBOOTING, { nodeId, label: node.label, durationMs: durationTicks * 100 });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "reboot", phase: "start", progress: 0, durationTicks });
+    },
     openDarknetsStore: () => {
       pauseTimers();
       openStore(getState());
@@ -181,7 +217,17 @@ export function buildGameCtx(opts = {}) {
       }
     },
 
-    resolveReboot: (nodeId) => rebootNode(nodeId),
+    resolveReboot: (nodeId) => {
+      // Legacy alias
+    },
+
+    completeReboot: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node) return;
+      setNodeRebooting(nodeId, false);
+      emitEvent(E.NODE_REBOOTED, { nodeId, label: node.label });
+    },
 
     emitActionFeedback: (nodeId, action, phase, progress, result) => {
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action, phase, progress, result });

@@ -208,7 +208,15 @@ registerTrait("lootable", {
 
 registerTrait("rebootable", {
   attributes: { rebooting: false },
-  operators: [], // timed-action operator added in Phase 5
+  operators: [
+    {
+      name: "timed-action",
+      action: "reboot",
+      activeAttr: "rebooting",
+      // No durationTable — ctx.startReboot sets random duration (1-3s)
+      onComplete: [{ effect: "ctx-call", method: "completeReboot", args: ["$nodeId"] }],
+    },
+  ],
   actions: [
     ACTION_TEMPLATES.EJECT,
     ACTION_TEMPLATES.REBOOT,

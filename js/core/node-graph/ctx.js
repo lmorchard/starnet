@@ -32,6 +32,8 @@ export const nullCtx = {
   resolveRead(_nodeId) {},
   resolveLoot(_nodeId) {},
   resolveReboot(_nodeId) {},
+  startReboot(_nodeId) {},
+  completeReboot(_nodeId) {},
   emitActionFeedback(_nodeId, _action, _phase, _progress, _result) {},
 };
 
@@ -82,6 +84,8 @@ export function mockCtx() {
     resolveRead: spy("resolveRead"),
     resolveLoot: spy("resolveLoot"),
     resolveReboot: spy("resolveReboot"),
+    startReboot: spy("startReboot"),
+    completeReboot: spy("completeReboot"),
     emitActionFeedback: spy("emitActionFeedback"),
     calls,
   };

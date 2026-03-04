@@ -232,6 +232,8 @@
  * @property {(nodeId: string) => void} [resolveRead]
  * @property {(nodeId: string) => void} [resolveLoot]
  * @property {(nodeId: string) => void} [resolveReboot]
+ * @property {(nodeId: string) => void} [startReboot]
+ * @property {(nodeId: string) => void} [completeReboot]
  * @property {(nodeId: string, action: string, phase: string, progress: number, result?: any) => void} [emitActionFeedback]
  */
 

@@ -1,7 +1,6 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { initGraph, getCy, addIceNode, fitGraph, syncInitialNodes } from "./graph.js";
 import { initGame, getState } from "../core/state.js";
-import { completeReboot } from "../core/node-orchestration.js";
 import { startIce, handleIceTick, handleIceDetect } from "../core/ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "../core/events.js";
@@ -136,11 +135,7 @@ function init() {
   on(TIMER.ICE_MOVE,     () => handleIceTick());
   on(TIMER.ICE_DETECT,   (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK,   () => handleTraceTick());
-  // Probe, exploit, read, loot timers removed — timed-action operator drives these
-
-  on(TIMER.REBOOT_COMPLETE, (payload) => {
-    completeReboot(payload.nodeId);
-  });
+  // Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
   on("starnet:action:run-again", () => {
     initGame(() => buildNetworkFn(), undefined, { openDarknetsStore });

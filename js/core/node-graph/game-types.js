@@ -179,7 +179,8 @@ const REBOOT_ACTION = {
     { type: "node-attr", attr: "rebooting", eq: false },
   ],
   effects: [
-    { effect: "ctx-call", method: "rebootNode", args: ["$nodeId"] },
+    // startReboot handles ICE eviction + deselect + setting rebooting + duration
+    { effect: "ctx-call", method: "startReboot", args: ["$nodeId"] },
   ],
 };
 

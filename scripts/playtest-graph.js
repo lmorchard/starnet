@@ -4,7 +4,6 @@
 // Usage: node scripts/playtest-graph.js [--network name] [--seed seed]
 
 import { initGame, getState } from "../js/core/state.js";
-import { completeReboot } from "../js/core/node-orchestration.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
 import { on, emitEvent, E } from "../js/core/events.js";
 import { tick, TIMER } from "../js/core/timers.js";
@@ -27,8 +26,7 @@ initLog();
 on(TIMER.ICE_MOVE,        ()        => handleIceTick());
 on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
-on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
-// Probe, exploit, read, loot timers removed — timed-action operator drives these
+// Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
 // Action dispatcher
 const ctx = buildActionContext();

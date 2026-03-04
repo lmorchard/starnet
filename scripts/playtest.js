@@ -17,7 +17,6 @@ import { initGame, getState, serializeState, deserializeState } from "../js/core
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
-import { completeReboot } from "../js/core/node-orchestration.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
 import { on, E } from "../js/core/events.js";
 import { tick, TIMER } from "../js/core/timers.js";
@@ -86,8 +85,7 @@ if (!cmdStr) {
 on(TIMER.ICE_MOVE,        ()        => handleIceTick());
 on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
-on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
-// Probe, exploit, read, loot timers removed — timed-action operator drives these
+// Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
 // ── Action dispatcher ──────────────────────────────────────
 // Same path as the browser: starnet:action → getAvailableActions guard → ActionDef.execute()
