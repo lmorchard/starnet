@@ -141,6 +141,7 @@ registerTrait("hackable", {
     vulnerabilities: [],
     probing: false,
     exploiting: false,
+    rebooting: false,
     alertState: "green",
   },
   operators: [], // timed-action operators added in Phase 5
@@ -157,6 +158,7 @@ registerTrait("lootable", {
     read: false,
     looted: false,
     macguffins: [],
+    lootCount: [1, 2],
     reading: false,
     looting: false,
   },

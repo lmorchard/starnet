@@ -53,7 +53,7 @@ describe("state/node — node mutations", () => {
   it("collectMacguffins returns items and total", () => {
     // Find a node that has macguffins (fileserver type should have some)
     const s = getState();
-    const lootableNode = Object.values(s.nodes).find((n) => n.macguffins.length > 0);
+    const lootableNode = Object.values(s.nodes).find((n) => n.macguffins?.length > 0);
     if (!lootableNode) return; // skip if no macguffins in this random seed
 
     const v = getVersion();

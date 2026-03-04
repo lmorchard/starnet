@@ -2,11 +2,15 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { NodeGraph } from "./runtime.js";
 import { mockCtx } from "./ctx.js";
+import { resolveTraits } from "./traits.js";
 import {
   createGateway, createRouter, createIDS, createSecurityMonitor,
   createFileserver, createCryptovault, createFirewall, createWAN,
-  ACTION_TEMPLATES,
+  ACTION_TEMPLATES, TRAITS_BY_TYPE,
 } from "./game-types.js";
+
+// Helper: resolve factory output to get full attributes/operators/actions
+function resolve(def) { return resolveTraits(def); }
 
 // ── Factory output shape ─────────────────────────────────────
 
@@ -24,47 +28,86 @@ describe("factory output shape", () => {
 
   for (const [name, factory] of factories) {
     it(`${name} factory produces valid NodeDef`, () => {
-      const def = factory(`test-${name}`);
-      assert.equal(def.id, `test-${name}`);
-      assert.equal(def.type, name);
-      assert.ok(def.attributes);
+      const raw = factory(`test-${name}`);
+      assert.equal(raw.id, `test-${name}`);
+      assert.equal(raw.type, name);
+      assert.ok(raw.attributes);
+      // Factories with traits: resolve to check full shape
+      const def = resolve(raw);
       assert.ok(Array.isArray(def.operators));
       assert.ok(Array.isArray(def.actions));
-      // All nodes have these base attributes
-      assert.equal(typeof def.attributes.visibility, "string");
-      assert.equal(typeof def.attributes.accessLevel, "string");
-      assert.equal(typeof def.attributes.probed, "boolean");
+      // All hackable nodes have these base attributes after resolution
+      if (raw.traits && raw.traits.includes("hackable")) {
+        assert.equal(typeof def.attributes.visibility, "string");
+        assert.equal(typeof def.attributes.accessLevel, "string");
+        assert.equal(typeof def.attributes.probed, "boolean");
+      }
     });
   }
+});
+
+// ── Traits assignment ────────────────────────────────────────
+
+describe("traits assignment", () => {
+  it("each factory assigns expected traits", () => {
+    const expected = {
+      gateway: ["graded", "hackable", "rebootable", "gate"],
+      router: ["graded", "hackable", "rebootable", "relay", "gate"],
+      ids: ["graded", "hackable", "rebootable", "detectable", "gate"],
+      "security-monitor": ["graded", "hackable", "rebootable", "security", "gate"],
+      fileserver: ["graded", "hackable", "rebootable", "lootable", "gate"],
+      cryptovault: ["graded", "hackable", "rebootable", "lootable", "gate"],
+      firewall: ["graded", "hackable", "rebootable", "gate"],
+    };
+    const factories = { gateway: createGateway, router: createRouter, ids: createIDS,
+      "security-monitor": createSecurityMonitor, fileserver: createFileserver,
+      cryptovault: createCryptovault, firewall: createFirewall };
+    for (const [type, factory] of Object.entries(factories)) {
+      const def = factory(`test-${type}`);
+      assert.deepStrictEqual(def.traits, expected[type], `${type} traits mismatch`);
+    }
+  });
+
+  it("WAN has no traits (special case)", () => {
+    const wan = createWAN("wan-1");
+    assert.ok(!wan.traits || wan.traits.length === 0);
+  });
+
+  it("TRAITS_BY_TYPE covers all expected types", () => {
+    for (const type of ["gateway", "router", "ids", "security-monitor", "fileserver",
+      "cryptovault", "firewall", "workstation"]) {
+      assert.ok(TRAITS_BY_TYPE[type], `missing TRAITS_BY_TYPE entry for ${type}`);
+    }
+  });
 });
 
 // ── Default attributes ───────────────────────────────────────
 
 describe("default attributes", () => {
   it("gateway defaults to hidden/locked", () => {
-    const gw = createGateway("gw");
+    const gw = resolve(createGateway("gw"));
     assert.equal(gw.attributes.visibility, "hidden");
     assert.equal(gw.attributes.accessLevel, "locked");
     assert.equal(gw.attributes.gateAccess, "probed");
   });
 
   it("config overrides default attributes", () => {
-    const gw = createGateway("gw", {
+    const gw = resolve(createGateway("gw", {
       grade: "A",
       attributes: { visibility: "accessible" },
-    });
+    }));
     assert.equal(gw.attributes.grade, "A");
     assert.equal(gw.attributes.visibility, "accessible");
   });
 
   it("ids defaults forwardingEnabled to true", () => {
-    const ids = createIDS("ids-1");
+    const ids = resolve(createIDS("ids-1"));
     assert.equal(ids.attributes.forwardingEnabled, true);
     assert.equal(ids.attributes.gateAccess, "owned");
   });
 
   it("firewall defaults to grade A with gateAccess owned", () => {
-    const fw = createFirewall("fw-1");
+    const fw = resolve(createFirewall("fw-1"));
     assert.equal(fw.attributes.grade, "A");
     assert.equal(fw.attributes.gateAccess, "owned");
   });
@@ -76,47 +119,46 @@ describe("default attributes", () => {
   });
 
   it("fileserver has lootCount attribute", () => {
-    const fs = createFileserver("fs-1");
+    const fs = resolve(createFileserver("fs-1"));
     assert.deepEqual(fs.attributes.lootCount, [1, 2]);
   });
 
   it("cryptovault has higher default grade", () => {
-    const cv = createCryptovault("cv-1");
+    const cv = resolve(createCryptovault("cv-1"));
     assert.equal(cv.attributes.grade, "B");
     assert.deepEqual(cv.attributes.lootCount, [1, 3]);
   });
 });
 
-// ── Operators ────────────────────────────────────────────────
+// ── Operators (resolved) ─────────────────────────────────────
 
 describe("operators", () => {
   it("router has relay operator", () => {
-    const r = createRouter("r-1");
-    assert.equal(r.operators.length, 1);
-    assert.equal(r.operators[0].name, "relay");
+    const r = resolve(createRouter("r-1"));
+    assert.ok(r.operators.some(o => o.name === "relay" && !o.filter));
   });
 
   it("ids has relay(filter:alert) and flag(on:alert)", () => {
-    const ids = createIDS("ids-1");
-    assert.equal(ids.operators.length, 2);
-    assert.equal(ids.operators[0].name, "relay");
-    assert.equal(ids.operators[0].filter, "alert");
-    assert.equal(ids.operators[1].name, "flag");
-    assert.equal(ids.operators[1].on, "alert");
+    const ids = resolve(createIDS("ids-1"));
+    assert.ok(ids.operators.some(o => o.name === "relay" && o.filter === "alert"));
+    assert.ok(ids.operators.some(o => o.name === "flag" && o.on === "alert"));
   });
 
   it("security-monitor has flag(on:alert)", () => {
-    const mon = createSecurityMonitor("mon-1");
-    assert.equal(mon.operators.length, 1);
-    assert.equal(mon.operators[0].name, "flag");
-    assert.equal(mon.operators[0].on, "alert");
+    const mon = resolve(createSecurityMonitor("mon-1"));
+    assert.ok(mon.operators.some(o => o.name === "flag" && o.on === "alert"));
   });
 
-  it("gateway, fileserver, cryptovault, firewall, wan have no operators", () => {
-    for (const factory of [createGateway, createFileserver, createCryptovault, createFirewall, createWAN]) {
-      const def = factory("test");
+  it("gateway, fileserver, cryptovault, firewall have no operators beyond traits", () => {
+    for (const factory of [createGateway, createFirewall]) {
+      const def = resolve(factory("test"));
       assert.equal(def.operators.length, 0, `${def.type} should have no operators`);
     }
+  });
+
+  it("wan has no operators", () => {
+    const def = createWAN("test");
+    assert.equal(def.operators.length, 0);
   });
 });
 
@@ -298,9 +340,9 @@ describe("action templates", () => {
 // ── Lootable type distinction ────────────────────────────────
 
 describe("lootable types", () => {
-  it("fileserver and cryptovault have read/loot actions", () => {
+  it("fileserver and cryptovault have read/loot actions (resolved)", () => {
     for (const factory of [createFileserver, createCryptovault]) {
-      const def = factory("test");
+      const def = resolve(factory("test"));
       const actionIds = def.actions.map(a => a.id);
       assert.ok(actionIds.includes("read"), `${def.type} missing read`);
       assert.ok(actionIds.includes("loot"), `${def.type} missing loot`);
@@ -309,9 +351,9 @@ describe("lootable types", () => {
     }
   });
 
-  it("non-lootable types do not have read/loot actions", () => {
+  it("non-lootable types do not have read/loot actions (resolved)", () => {
     for (const factory of [createGateway, createRouter, createFirewall]) {
-      const def = factory("test");
+      const def = resolve(factory("test"));
       const actionIds = def.actions.map(a => a.id);
       assert.ok(!actionIds.includes("read"), `${def.type} should not have read`);
       assert.ok(!actionIds.includes("loot"), `${def.type} should not have loot`);

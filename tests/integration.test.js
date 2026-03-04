@@ -170,8 +170,9 @@ describe("Node initialization", () => {
     assert.ok(fs.macguffins.length >= 1, `expected ≥1 macguffin, got ${fs.macguffins.length}`);
   });
 
-  it("gateway has no macguffins after init", () => {
-    assert.equal(getState().nodes["gateway"].macguffins.length, 0);
+  it("gateway has no macguffins attribute (not lootable)", () => {
+    // Gateways don't have the lootable trait, so no macguffins attribute
+    assert.equal(getState().nodes["gateway"].macguffins, undefined);
   });
 
   it("ids node has forwardingEnabled: true after init", () => {
@@ -180,9 +181,13 @@ describe("Node initialization", () => {
     assert.equal(getState().nodes["ids-1"].forwardingEnabled, true);
   });
 
-  it("gateway has forwardingEnabled: true (default attribute)", () => {
-    // All nodes get forwardingEnabled from defaultAttributes in game-types.js
-    assert.equal(getState().nodes["gateway"].forwardingEnabled, true);
+  it("detectable nodes have forwardingEnabled, non-detectable do not", () => {
+    // forwardingEnabled comes from the detectable trait, not all nodes
+    clearAll();
+    initGame(() => buildAlertLAN());
+    assert.equal(getState().nodes["ids-1"].forwardingEnabled, true);
+    // Gateway doesn't have detectable trait
+    assert.equal(getState().nodes["gateway"].forwardingEnabled, undefined);
   });
 });
 

@@ -16,3 +16,19 @@
 - Traits import action templates from game-types.js ACTION_TEMPLATES
 - 11 new tests for built-in trait definitions + composition
 - All 517 tests pass
+
+## Phase 3: Rewrite Game-Types.js to Use Traits ✓
+
+- Factory functions now produce trait-based NodeDefs (thin wrappers)
+- createGameNode() attaches default traits from TRAITS_BY_TYPE for known types
+- Added TRAITS_BY_TYPE lookup table and ACCESS_DARKNET_ACTION constant
+- Removed defaultAttributes(), BASIC_ACTIONS, LOOTABLE_ACTIONS (traits provide these)
+- Key fix: rebootable trait added to all hackable node types (matching old behavior)
+- Key fix: lootCount default added to lootable trait
+- Key fix: macguffins/forwardingEnabled guards for non-lootable/non-detectable nodes
+- Updated game-types.test.js, networks.test.js, integration.test.js, node.test.js
+- All 521 tests pass
+
+**Divergence from spec:** The spec listed rebootable as only on fileserver/cryptovault,
+but the old system had eject/reboot on all hackable nodes. Kept old behavior —
+rebootable on all hackable types. Can revisit later.

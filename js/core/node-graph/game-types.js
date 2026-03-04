@@ -1,12 +1,11 @@
 // @ts-check
 /**
- * Game node type factories — produce NodeDef objects for each game node type.
- * Uses shared action templates for common player actions (probe, exploit, etc.).
+ * Game node type factories — produce trait-based NodeDef objects for each game
+ * node type. Factories are optional sugar; the canonical authoring surface is
+ * raw NodeDefs with traits lists.
  *
- * These NodeDefs are the bridge between the node-graph runtime and the game engine.
- * Operators express reactive behavior; actions are player-invocable via the dispatcher.
- * Global state checks (one timed action at a time, ICE position) are applied by the
- * dispatcher wrapper, not here.
+ * Traits provide operators, actions, and default attributes. Factories just
+ * select the right trait list and apply config overrides.
  */
 
 /** @typedef {import('./types.js').ActionDef} ActionDef */
@@ -202,53 +201,32 @@ const CANCEL_TRACE_ACTION = {
   ],
 };
 
-// ── Action sets by role ──────────────────────────────────────
+/** @type {ActionDef} */
+const ACCESS_DARKNET_ACTION = {
+  id: "access-darknet",
+  label: "ACCESS DARKNET",
+  desc: "Access the darknet broker to purchase exploit cards.",
+  requires: [],
+  effects: [
+    { effect: "ctx-call", method: "openDarknetsStore", args: [] },
+  ],
+};
 
-const BASIC_ACTIONS = [
-  PROBE_ACTION, CANCEL_PROBE_ACTION,
-  EXPLOIT_ACTION, CANCEL_EXPLOIT_ACTION,
-  EJECT_ACTION, REBOOT_ACTION,
-];
+// ── Default trait lists per node type ────────────────────────────
 
-const LOOTABLE_ACTIONS = [
-  ...BASIC_ACTIONS,
-  READ_ACTION, CANCEL_READ_ACTION,
-  LOOT_ACTION, CANCEL_LOOT_ACTION,
-];
+/** @type {Record<string, string[]>} */
+const TRAITS_BY_TYPE = {
+  "gateway":          ["graded", "hackable", "rebootable", "gate"],
+  "router":           ["graded", "hackable", "rebootable", "relay", "gate"],
+  "ids":              ["graded", "hackable", "rebootable", "detectable", "gate"],
+  "security-monitor": ["graded", "hackable", "rebootable", "security", "gate"],
+  "fileserver":       ["graded", "hackable", "rebootable", "lootable", "gate"],
+  "cryptovault":      ["graded", "hackable", "rebootable", "lootable", "gate"],
+  "firewall":         ["graded", "hackable", "rebootable", "gate"],
+  "workstation":      ["graded", "hackable", "rebootable", "lootable", "gate"],
+};
 
-// ── Common default attributes ────────────────────────────────
-
-/**
- * @param {string} id
- * @param {object} [overrides]
- * @returns {Record<string, any>}
- */
-function defaultAttributes(id, overrides = {}) {
-  return {
-    label: id,
-    grade: "D",
-    visibility: "hidden",
-    accessLevel: "locked",
-    probed: false,
-    read: false,
-    looted: false,
-    rebooting: false,
-    alertState: "green",
-    vulnerabilities: [],
-    macguffins: [],
-    gateAccess: "probed",
-    // Timed action flags (set by ctx callbacks, read by cancel-* actions)
-    probing: false,
-    exploiting: false,
-    reading: false,
-    looting: false,
-    // IDS-specific
-    forwardingEnabled: true,
-    ...overrides,
-  };
-}
-
-// ── Node type factories ──────────────────────────────────────
+// ── Node type factories (optional sugar) ─────────────────────
 
 /**
  * @typedef {Object} NodeConfig
@@ -258,7 +236,7 @@ function defaultAttributes(id, overrides = {}) {
  */
 
 /**
- * Gateway — entry point, no operators.
+ * Gateway — entry point.
  * @param {string} id
  * @param {NodeConfig} [config]
  * @returns {NodeDef}
@@ -267,13 +245,13 @@ export function createGateway(id, config = {}) {
   return {
     id,
     type: "gateway",
-    attributes: defaultAttributes(config.label || id, {
+    traits: ["graded", "hackable", "rebootable", "gate"],
+    attributes: {
+      label: config.label || id,
       grade: config.grade || "D",
       gateAccess: "probed",
       ...config.attributes,
-    }),
-    operators: [],
-    actions: [...BASIC_ACTIONS],
+    },
   };
 }
 
@@ -287,18 +265,18 @@ export function createRouter(id, config = {}) {
   return {
     id,
     type: "router",
-    attributes: defaultAttributes(config.label || id, {
+    traits: ["graded", "hackable", "rebootable", "relay", "gate"],
+    attributes: {
+      label: config.label || id,
       grade: config.grade || "D",
       gateAccess: "compromised",
       ...config.attributes,
-    }),
-    operators: [{ name: "relay" }],
-    actions: [...BASIC_ACTIONS],
+    },
   };
 }
 
 /**
- * IDS — relay(filter:"alert") + flag operator. Reconfigure action disables forwarding.
+ * IDS — alert relay + reconfigure action.
  * @param {string} id
  * @param {NodeConfig} [config]
  * @returns {NodeDef}
@@ -307,23 +285,18 @@ export function createIDS(id, config = {}) {
   return {
     id,
     type: "ids",
-    attributes: defaultAttributes(config.label || id, {
+    traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
+    attributes: {
+      label: config.label || id,
       grade: config.grade || "C",
       gateAccess: "owned",
-      forwardingEnabled: true,
-      alerted: false,
       ...config.attributes,
-    }),
-    operators: [
-      { name: "relay", filter: "alert" },
-      { name: "flag", on: "alert", attr: "alerted", value: true },
-    ],
-    actions: [...BASIC_ACTIONS, RECONFIGURE_ACTION],
+    },
   };
 }
 
 /**
- * Security Monitor — aggregates alerts, ctx alert callback.
+ * Security Monitor — aggregates alerts, cancel-trace action.
  * @param {string} id
  * @param {NodeConfig} [config]
  * @returns {NodeDef}
@@ -332,16 +305,13 @@ export function createSecurityMonitor(id, config = {}) {
   return {
     id,
     type: "security-monitor",
-    attributes: defaultAttributes(config.label || id, {
+    traits: ["graded", "hackable", "rebootable", "security", "gate"],
+    attributes: {
+      label: config.label || id,
       grade: config.grade || "B",
       gateAccess: "owned",
-      alerted: false,
       ...config.attributes,
-    }),
-    operators: [
-      { name: "flag", on: "alert", attr: "alerted", value: true },
-    ],
-    actions: [...BASIC_ACTIONS, CANCEL_TRACE_ACTION],
+    },
   };
 }
 
@@ -355,13 +325,13 @@ export function createFileserver(id, config = {}) {
   return {
     id,
     type: "fileserver",
-    attributes: defaultAttributes(config.label || id, {
+    traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
+    attributes: {
+      label: config.label || id,
       grade: config.grade || "D",
       lootCount: config.lootCount || [1, 2],
       ...config.attributes,
-    }),
-    operators: [],
-    actions: [...LOOTABLE_ACTIONS],
+    },
   };
 }
 
@@ -375,13 +345,13 @@ export function createCryptovault(id, config = {}) {
   return {
     id,
     type: "cryptovault",
-    attributes: defaultAttributes(config.label || id, {
+    traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
+    attributes: {
+      label: config.label || id,
       grade: config.grade || "B",
       lootCount: config.lootCount || [1, 3],
       ...config.attributes,
-    }),
-    operators: [],
-    actions: [...LOOTABLE_ACTIONS],
+    },
   };
 }
 
@@ -395,13 +365,13 @@ export function createFirewall(id, config = {}) {
   return {
     id,
     type: "firewall",
-    attributes: defaultAttributes(config.label || id, {
+    traits: ["graded", "hackable", "rebootable", "gate"],
+    attributes: {
+      label: config.label || id,
       grade: config.grade || "A",
       gateAccess: "owned",
       ...config.attributes,
-    }),
-    operators: [],
-    actions: [...BASIC_ACTIONS],
+    },
   };
 }
 
@@ -412,113 +382,51 @@ export function createFirewall(id, config = {}) {
  * @returns {NodeDef}
  */
 export function createWAN(id, config = {}) {
-  /** @type {ActionDef} */
-  const accessDarknetAction = {
-    id: "access-darknet",
-    label: "ACCESS DARKNET",
-    desc: "Access the darknet broker to purchase exploit cards.",
-    requires: [],
-    effects: [
-      { effect: "ctx-call", method: "openDarknetsStore", args: [] },
-    ],
-  };
-
   return {
     id,
     type: "wan",
-    attributes: defaultAttributes(config.label || id, {
+    attributes: {
+      label: config.label || id,
       grade: "F",
       visibility: "accessible",
       accessLevel: "owned",
       ...config.attributes,
-    }),
+    },
     operators: [],
-    actions: [accessDarknetAction],
+    actions: [ACCESS_DARKNET_ACTION],
   };
 }
 
 // ── Set-piece node composition ───────────────────────────────
 
-/** @type {Record<string, (id: string, config?: NodeConfig) => NodeDef>} */
-const FACTORY_BY_TYPE = {
-  "gateway": createGateway,
-  "router": createRouter,
-  "ids": createIDS,
-  "security-monitor": createSecurityMonitor,
-  "fileserver": createFileserver,
-  "cryptovault": createCryptovault,
-  "firewall": createFirewall,
-  "wan": createWAN,
-  "workstation": createFileserver, // workstations use fileserver factory (lootable, low grade)
-};
-
 /**
  * Create a game-ready node from a set-piece node definition.
  *
- * If the set-piece node's type matches a known game type, creates the node
- * using the appropriate factory (which provides all standard game actions
- * and attributes), then merges in the set-piece's operators and additional
- * actions on top.
+ * If the set-piece node already has traits, pass through (trait resolution
+ * happens in the NodeGraph constructor).
  *
- * If the type is unknown (internal set-piece nodes like "alarm-latch",
- * "watchdog-daemon"), creates a basic game-ready node with standard actions
- * and the set-piece's operators/actions.
+ * If the set-piece node's type matches a known game type, attach the default
+ * trait list for that type. Set-piece operators and actions are preserved as
+ * NodeDef-level extras (appended/merged during trait resolution).
  *
- * This replaces enrichWithGameActions — composition instead of enrichment.
+ * If the type is unknown (internal set-piece nodes like "alarm-latch"),
+ * apply a minimal default trait list.
  *
  * @param {NodeDef} setPieceNode - node from instantiate()
  * @returns {NodeDef}
  */
 export function createGameNode(setPieceNode) {
-  const factory = FACTORY_BY_TYPE[setPieceNode.type];
-
-  if (factory) {
-    // Known game type — create from factory, merge set-piece additions
-    const base = factory(setPieceNode.id, {
-      attributes: setPieceNode.attributes,
-    });
-    // Dedup operators and actions by name/id — set-piece versions win when
-    // they override a factory default (e.g. set-piece reconfigure with
-    // tamper-emit vs factory reconfigure without).
-    const baseOpNames = new Set(base.operators.map(o => o.name + (o.filter || "")));
-    const extraOps = (setPieceNode.operators || []).filter(o =>
-      !baseOpNames.has(o.name + (o.filter || ""))
-    );
-    const baseActionIds = new Set(base.actions.map(a => a.id));
-    const extraActions = (setPieceNode.actions || []).filter(a =>
-      !baseActionIds.has(a.id)
-    );
-    return {
-      ...base,
-      operators: [...base.operators, ...extraOps],
-      actions: [...base.actions, ...extraActions],
-    };
+  // Already has traits — pass through
+  if (setPieceNode.traits && setPieceNode.traits.length > 0) {
+    return setPieceNode;
   }
 
-  // Unknown type (internal set-piece node) — add basic game actions + attributes
-  const defaults = {
-    label: setPieceNode.id,
-    grade: "D",
-    visibility: "hidden",
-    accessLevel: "locked",
-    probed: false,
-    read: false,
-    looted: false,
-    rebooting: false,
-    alertState: "green",
-    vulnerabilities: [],
-    macguffins: [],
-    gateAccess: "probed",
-    probing: false,
-    exploiting: false,
-    reading: false,
-    looting: false,
-    forwardingEnabled: true,
-  };
+  const defaultTraits = TRAITS_BY_TYPE[setPieceNode.type]
+    || ["graded", "hackable", "gate"]; // fallback for unknown types
+
   return {
     ...setPieceNode,
-    attributes: { ...defaults, ...setPieceNode.attributes },
-    actions: [...BASIC_ACTIONS, ...(setPieceNode.actions || [])],
+    traits: defaultTraits,
   };
 }
 
@@ -540,4 +448,7 @@ export const ACTION_TEMPLATES = {
   REBOOT: REBOOT_ACTION,
   RECONFIGURE: RECONFIGURE_ACTION,
   CANCEL_TRACE: CANCEL_TRACE_ACTION,
+  ACCESS_DARKNET: ACCESS_DARKNET_ACTION,
 };
+
+export { TRAITS_BY_TYPE };

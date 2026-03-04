@@ -95,7 +95,7 @@ export function generateMacguffin(moneyCost = "F") {
 // Pick one macguffin at random from all loot nodes, mark it as the mission target,
 // and multiply its cash value by 10. Returns { id, name } for state to record.
 export function flagMissionMacguffin(nodes) {
-  const all = nodes.flatMap((n) => n.macguffins);
+  const all = nodes.flatMap((n) => n.macguffins || []);
   if (all.length === 0) return null;
   const target = randomPick(RNG.LOOT, all);
   target.isMission = true;
