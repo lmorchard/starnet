@@ -424,8 +424,8 @@ export const deadmanCircuit = {
       id: "heartbeat-clock",
       type: "heartbeat-source",
       attributes: {},
-      // Clock sends heartbeat every 3 ticks — must be faster than watchdog period
-      operators: [{ name: "clock", period: 3 }],
+      // Clock sends heartbeat every 30 ticks (3s) — must be faster than watchdog period
+      operators: [{ name: "clock", period: 30 }],
       actions: [],
     },
     {
@@ -450,8 +450,9 @@ export const deadmanCircuit = {
       type: "watchdog-daemon",
       attributes: {},
       // Watchdog resets on any non-tick message. If no message arrives in
-      // 5 ticks, it fires a "set" message to the alarm latch.
-      operators: [{ name: "watchdog", period: 5 }],
+      // 50 ticks (5s), it fires a "set" message to the alarm latch.
+      // Player has ~5s after subverting the relay before the alarm fires.
+      operators: [{ name: "watchdog", period: 50 }],
       actions: [],
     },
     {

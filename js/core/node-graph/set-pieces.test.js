@@ -213,7 +213,7 @@ describe("deadman-circuit: heartbeat suppresses alarm, blocking fires it", () =>
     graph._nodes.get("dm1/heartbeat-relay").attributes.forwardingEnabled = false;
 
     // Tick watchdog period (5) — watchdog fires "set" → latch arms → trace triggers
-    graph.tick(5);
+    graph.tick(100);
     assert.equal(graph.getNodeState("dm1/alarm-latch").latched, true);
     assert.equal(ctx.calls.startTrace?.length, 1);
   });
@@ -359,7 +359,7 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     const graph = new NodeGraph(inst, ctx);
 
     graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
-    graph.tick(5); // clock period is 5
+    graph.tick(100); // clock period is 5
     const actions = graph.getAvailableActions("ev1/key-gen").map((a) => a.id);
     assert.ok(actions.includes("extract-key"), "key ready after clock fires");
   });
@@ -376,7 +376,7 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("loot"));
 
     // Fire clock, extract key, then loot
-    graph.tick(5);
+    graph.tick(100);
     graph.executeAction("ev1/key-gen", "extract-key");
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
@@ -398,12 +398,12 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     graph._nodes.get("ev1/vault").attributes.accessLevel = "owned";
 
     // First clock cycle: extract the key
-    graph.tick(5);
+    graph.tick(100);
     graph.executeAction("ev1/key-gen", "extract-key");
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
     // Don't loot — let next clock cycle fire and expire the key
-    graph.tick(5);
+    graph.tick(100);
     assert.equal(graph.getQuality("ev1/decryption-key"), 0);
     assert.equal(graph.getNodeState("ev1/key-gen").keyReady, true); // new key ready
     assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("loot"));
@@ -478,7 +478,7 @@ describe("tripwire-gauntlet: 6-tick delay from probe to alarm", () => {
     const graph = new NodeGraph(inst, ctx);
 
     graph.sendMessage("tg1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    graph.tick(5); // one tick short of the full 6-tick chain
+    graph.tick(5); // one tick short of the full 6-tick delay
     assert.equal(graph.getNodeState("tg1/alarm").triggered, false);
     assert.equal(ctx.calls.startTrace, undefined);
   });
