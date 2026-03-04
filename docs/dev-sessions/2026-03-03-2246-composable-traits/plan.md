@@ -784,3 +784,85 @@ This file needs attention in two phases:
   actionProgress, etc.). Verify save/load snapshot still works with the new
   attribute set. The timed-action operator should resume correctly from a
   loaded state where an action was in progress.
+
+---
+
+## Audit Findings (post-plan review)
+
+Codebase audit revealed additional items the plan must account for:
+
+### ICE noise detection depends on E.EXPLOIT_NOISE
+
+`js/core/ice.js` (line ~73) subscribes to `E.EXPLOIT_NOISE` to detect active
+exploits and set `lastDisturbedNodeId`. The timed-action operator must emit
+exploit-noise graph messages at progress milestones (every 10%) so ICE detection
+continues to work. These should be graph messages (not game events) so set-pieces
+(nthAlarm, probeBurstAlarm) also react.
+
+The timed-action operator config needs an `onProgressInterval` option:
+```js
+{
+  name: "timed-action", action: "exploit", ...,
+  onProgressInterval: 0.1,  // fire every 10% of duration
+  onProgressEffects: [
+    { effect: "emit-message", type: "exploit-noise", payload: { nodeId: "$nodeId" } }
+  ]
+}
+```
+
+ICE noise detection must then either:
+- Subscribe to `E.ACTION_FEEDBACK` for exploit progress and check thresholds, OR
+- Listen for `exploit-noise` graph messages via the graph bridge (preferred — keeps
+  ICE reacting to graph events, not game events)
+
+### playtest-graph.js is a second entry point
+
+`scripts/playtest-graph.js` has identical executor imports and timer wiring as
+`playtest.js`. Phase 7.5 must update **both** files. Same four timer handler
+imports, same four `on(TIMER.*)` registrations.
+
+### game-ctx.js has executor imports too
+
+`js/core/node-graph/game-ctx.js` imports executor start/cancel functions (same
+as `action-context.js`). Phase 7.4 must update **both** files — not just
+action-context.js.
+
+### Visual renderer reads state fields for progress bars
+
+`visual-renderer.js` checks `state.executingExploit`, `state.activeProbe`,
+`state.activeRead`, `state.activeLoot` in the `TIMERS_UPDATED` handler to drive
+continuous animation. When these state fields are removed (Phase 8.6), the
+renderer must track its own timing state internally — recording start time and
+duration from the `ACTION_FEEDBACK` "start" phase event, then driving animation
+from elapsed time.
+
+This means the Phase 6 renderer rewire must:
+1. Add local timing state (per-action start time + duration)
+2. Set timing state on ACTION_FEEDBACK "start"
+3. Drive animation from ACTION_FEEDBACK "progress" events (preferred) or from
+   TIMERS_UPDATED with local state (fallback if per-tick progress events are
+   sufficient)
+4. Clear timing state on "complete" or "cancel"
+
+### Integration tests assert on removed state fields (~60 assertions)
+
+`tests/integration.test.js` directly asserts on `s.activeProbe`, `s.executingExploit`,
+`s.activeRead`, `s.activeLoot`. These are removed in Phase 8.6. Tests must be
+rewritten to check node attributes instead:
+- `s.activeProbe` → `graph.getNodeState(nodeId).probing === true`
+- `s.executingExploit` → `graph.getNodeState(nodeId).exploiting === true`
+- etc.
+
+This is a significant test rewrite — flag it explicitly in Phase 7.7.
+
+### Save/load compatibility with old saves
+
+Old saves may contain `activeProbe`, `executingExploit`, `activeRead`, `activeLoot`.
+After Phase 8.6 removes these state fields, loading an old save mid-action will
+silently discard the in-progress action. Options:
+- Accept the break (saves are a dev/playtest tool, not production)
+- Add a migration shim in `deserializeState` that strips old fields cleanly
+- If an old save had an action in progress, it was already unresumable (timers
+  don't serialize), so this is not a regression
+
+Go with "accept the break" — document it in release notes if needed.
