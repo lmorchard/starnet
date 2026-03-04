@@ -23,17 +23,19 @@
 /** @typedef {import('../types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('../types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick } from "../rng.js";
+import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt } from "../rng.js";
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
-import { clearAll as clearAllTimers, serializeTimers, deserializeTimers } from "../timers.js";
+import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
 import { emitEvent, E } from "../events.js";
-import { getStateFields, getBehaviors, resolveNode } from "../actions/node-types.js";
 
-import { setNodeVisible, setNodeSigAlias } from "./node.js";
+import { setNodeVisible, setNodeSigAlias, setNodeGraph, isSyncingToGraph } from "./node.js";
 import { setIceActive } from "./ice.js";
 import { setPhase, setRunOutcome } from "./game.js";
 import { setCash, addCash, addCardToHand } from "./player.js";
+
+import { NodeGraph } from "../node-graph/runtime.js";
+import { buildGameCtx } from "../node-graph/game-ctx.js";
 
 // ── State + version counter ──────────────────────────────
 
@@ -61,53 +63,94 @@ export function getVersion() {
 
 // ── Initialization ───────────────────────────────────────
 
-export function initState(networkData, seedString) {
+// ── NodeGraph-based initialization ────────────────────────
+
+/**
+ * Initialize the game from a NodeGraph-based network definition.
+ * Replaces initState() for the new network format.
+ *
+ * @param {() => { graphDef: import('../node-graph/runtime.js').NodeGraphDef, meta: any }} buildNetworkFn
+ * @param {string} [seedString]
+ * @param {{ openDarknetsStore?: (state: any) => void }} [opts]
+ * @returns {GameState}
+ */
+export function initGame(buildNetworkFn, seedString, opts = {}) {
   initRng(seedString);
 
+  const { graphDef, meta } = buildNetworkFn();
+
+  // Build game ctx with late-bound graph reference
+  const ctx = buildGameCtx({ openDarknetsStore: opts.openDarknetsStore });
+
+  // Build the onEvent bridge: graph → state.nodes sync + game event bus
+  const onEvent = (type, payload) => {
+    if (type === "node-state-changed") {
+      // Sync graph attribute changes to state.nodes (skip if change came from a setter)
+      if (!isSyncingToGraph() && state?.nodes[payload.nodeId]) {
+        mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
+      }
+      emitEvent(E.NODE_STATE_CHANGED, payload);
+    } else if (type === "message-delivered") {
+      emitEvent(E.MESSAGE_PROPAGATED, payload);
+    } else if (type === "quality-changed") {
+      emitEvent(E.QUALITY_CHANGED, payload);
+    }
+  };
+
+  // Construct the NodeGraph
+  const graph = new NodeGraph(graphDef, ctx, onEvent);
+  ctx._graph = graph;
+
+  // Run init lifecycle — operators react to { type: 'init' } messages
+  graph.init();
+
+  // Generate vulnerabilities for each node (seeded RNG)
+  for (const nodeId of graph.getNodeIds()) {
+    const nodeData = graph.getNode(nodeId);
+    const vulns = generateVulnerabilities(nodeData.grade, nodeData.type);
+    graph.setNodeAttr(nodeId, "vulnerabilities", vulns);
+  }
+
+  // Generate macguffins for lootable nodes
+  const moneyCostGrade = meta.moneyCost ?? "F";
+  for (const nodeId of graph.getNodeIds()) {
+    const nodeData = graph.getNode(nodeId);
+    const lootCount = nodeData.lootCount;
+    if (lootCount) {
+      const [min, max] = lootCount;
+      const count = randomInt(RNG.LOOT, min, max);
+      const macguffins = [];
+      for (let i = 0; i < count; i++) {
+        macguffins.push(generateMacguffin(moneyCostGrade));
+      }
+      graph.setNodeAttr(nodeId, "macguffins", macguffins);
+    }
+  }
+
+  // Build state.nodes from graph (backward-compat cache)
   /** @type {Object.<string, NodeState>} */
   const nodes = {};
-  networkData.nodes.forEach((n) => {
-    const vulns = generateVulnerabilities(n.grade, n.type);
-    if (n.stagedVulnerabilities) {
-      n.stagedVulnerabilities.forEach((sv) => vulns.push(/** @type {import('../types.js').Vulnerability} */ ({
-        ...sv,
-        patched: false,
-        patchTurn: null,
-        hidden: true,
-      })));
-    }
-    nodes[n.id] = {
-      id: n.id,
-      type: n.type,
-      label: n.label,
-      grade: n.grade,
-      visibility: "hidden",
-      accessLevel: "locked",
-      alertState: "green",
-      probed: false,
-      vulnerabilities: vulns,
-      macguffins: [],
-      read: false,
-      looted: false,
-      rebooting: false,
-      ...getStateFields(n),
-    };
-  });
+  for (const nodeId of graph.getNodeIds()) {
+    nodes[nodeId] = /** @type {NodeState} */ (graph.getNode(nodeId));
+  }
 
+  // Build adjacency from graph edges
   /** @type {Object.<string, string[]>} */
   const adjacency = {};
-  networkData.nodes.forEach((n) => { adjacency[n.id] = []; });
-  networkData.edges.forEach((e) => {
-    adjacency[e.source].push(e.target);
-    adjacency[e.target].push(e.source);
-  });
+  for (const nodeId of graph.getNodeIds()) adjacency[nodeId] = [];
+  for (const [a, b] of graph.getEdges()) {
+    if (adjacency[a]) adjacency[a].push(b);
+    if (adjacency[b]) adjacency[b].push(a);
+  }
 
+  // Create the state object
   state = {
     seed: getSeed(),
-    moneyCost: networkData.moneyCost ?? "F",
+    moneyCost: meta.moneyCost ?? "F",
     nodes,
     adjacency,
-    player: { cash: networkData.startCash ?? 1000, hand: generateStartingHand(networkData.startHandSpec) },
+    nodeGraph: graph,
+    player: { cash: meta.startCash ?? 1000, hand: generateStartingHand(meta.startHand) },
     globalAlert: "green",
     traceSecondsRemaining: null,
     traceTimerId: null,
@@ -124,13 +167,11 @@ export function initState(networkData, seedString) {
     mission: null,
   };
 
-  // Dispatch onInit to behavior atoms — lootable assigns macguffins here
-  const moneyCostGrade = state.moneyCost;
-  Object.values(nodes).forEach((node) => {
-    const typeDef = resolveNode(node);
-    const ctx = { typeDef, generateMacguffin: () => generateMacguffin(moneyCostGrade) };
-    getBehaviors(node).forEach((atom) => atom.onInit?.(node, state, ctx));
-  });
+  // Register graph sync on the node setter module
+  setNodeGraph(graph);
+
+  // Register graph tick in the timer system
+  setGraphForTick(graph);
 
   // Flag one macguffin as the mission target (10x value)
   const missionTarget = flagMissionMacguffin(Object.values(nodes));
@@ -138,22 +179,12 @@ export function initState(networkData, seedString) {
     ? { targetMacguffinId: missionTarget.id, targetName: missionTarget.name, complete: false }
     : null;
 
-  // WAN node is always accessible
-  Object.values(state.nodes).forEach((node) => {
-    if (node.type === "wan") node.visibility = "accessible";
-  });
-
-  // Make start node accessible
-  state.nodes[networkData.startNode].visibility = "accessible";
-  emitEvent(E.NODE_REVEALED, { nodeId: networkData.startNode, label: state.nodes[networkData.startNode].label });
-
-  // Spawn ICE if defined in network data
-  if (networkData.ice) {
+  // Spawn ICE if defined in meta
+  if (meta.ice) {
     const nodeIds = Object.keys(nodes);
-    const residentNodeId = networkData.ice.startNode
-      ?? randomPick(RNG.WORLD, nodeIds);
+    const residentNodeId = meta.ice.startNode ?? randomPick(RNG.WORLD, nodeIds);
     state.ice = {
-      grade: networkData.ice.grade,
+      grade: meta.ice.grade,
       residentNodeId,
       attentionNodeId: residentNodeId,
       active: true,
@@ -255,14 +286,43 @@ export function buyExploit(card, price) {
 // ── Serialization ─────────────────────────────────────────
 
 export function serializeState() {
-  return { ...state, _timers: serializeTimers(), _rng: serializeRng(), _exploitIdCounter };
+  const { nodeGraph, ...rest } = /** @type {any} */ (state);
+  return {
+    ...rest,
+    _timers: serializeTimers(),
+    _rng: serializeRng(),
+    _exploitIdCounter,
+    _nodeGraph: nodeGraph ? nodeGraph.snapshot() : null,
+  };
 }
 
 export function deserializeState(snapshot) {
-  const { _timers, _rng, _exploitIdCounter: exploitId, ...gameState } = snapshot;
+  const { _timers, _rng, _exploitIdCounter: exploitId, _nodeGraph, ...gameState } = snapshot;
   state = gameState;
   deserializeTimers(_timers);
   if (_rng) deserializeRng(_rng);
   else initRng(gameState.seed ?? undefined);
   if (exploitId != null) setExploitIdCounter(exploitId);
+
+  // Restore NodeGraph from snapshot
+  if (_nodeGraph) {
+    const ctx = buildGameCtx();
+    const onEvent = (type, payload) => {
+      if (type === "node-state-changed") {
+        if (!isSyncingToGraph() && state?.nodes[payload.nodeId]) {
+          mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
+        }
+        emitEvent(E.NODE_STATE_CHANGED, payload);
+      } else if (type === "message-delivered") {
+        emitEvent(E.MESSAGE_PROPAGATED, payload);
+      } else if (type === "quality-changed") {
+        emitEvent(E.QUALITY_CHANGED, payload);
+      }
+    };
+    const graph = NodeGraph.fromSnapshot(_nodeGraph, ctx, onEvent);
+    ctx._graph = graph;
+    state.nodeGraph = graph;
+    setNodeGraph(graph);
+    setGraphForTick(graph);
+  }
 }

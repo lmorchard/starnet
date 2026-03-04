@@ -13,9 +13,10 @@
 //   node scripts/playtest.js --state scenario.json "status"
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { NETWORK } from "../data/network.js";
-import { generateNetwork } from "../js/core/network/network-gen.js";
-import { initState, getState, serializeState, deserializeState } from "../js/core/state.js";
+import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
+import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
+import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
+import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { completeReboot } from "../js/core/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/core/actions/exploit-exec.js";
 import { handleProbeScanTimer } from "../js/core/actions/probe-exec.js";
@@ -30,6 +31,8 @@ import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
 import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
+import { initGraphBridge } from "../js/core/graph-bridge.js";
+import { initDynamicActions } from "../js/core/console-commands/dynamic-actions.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
@@ -40,10 +43,7 @@ initNodeLifecycle();
 let stateFile = "scripts/playtest-state.json";
 let cmdStr = null;
 let seedArg = null;
-let timeArg = null;
-let moneyArg = null;
-/** @type {string[]} */
-const forcePiecesArg = [];
+let networkArg = null;
 
 {
   const argv = process.argv.slice(2);
@@ -52,12 +52,8 @@ const forcePiecesArg = [];
       stateFile = argv[++i];
     } else if (argv[i] === "--seed" && argv[i + 1]) {
       seedArg = argv[++i];
-    } else if (argv[i] === "--time" && argv[i + 1]) {
-      timeArg = argv[++i].toUpperCase();
-    } else if (argv[i] === "--money" && argv[i + 1]) {
-      moneyArg = argv[++i].toUpperCase();
-    } else if (argv[i] === "--force-piece" && argv[i + 1]) {
-      forcePiecesArg.push(argv[++i]);
+    } else if (argv[i] === "--network" && argv[i + 1]) {
+      networkArg = argv[++i];
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
@@ -65,10 +61,18 @@ const forcePiecesArg = [];
 }
 
 // ── Network selection ───────────────────────────────────────
-// Use generated network when --time and --money are both present; otherwise static.
-const network = (timeArg && moneyArg)
-  ? generateNetwork(seedArg ?? "default", timeArg, moneyArg, { forcePieces: forcePiecesArg })
-  : NETWORK;
+const GRAPH_NETWORKS = {
+  "corporate-foothold": buildCorporateFoothold,
+  "research-station": buildResearchStation,
+  "corporate-exchange": buildCorporateExchange,
+};
+
+const selectedNetwork = networkArg ?? "corporate-foothold";
+const buildNetworkFn = GRAPH_NETWORKS[selectedNetwork];
+if (!buildNetworkFn) {
+  console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(GRAPH_NETWORKS).join(", ")}`);
+  process.exit(1);
+}
 
 if (!cmdStr) {
   console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] [--force-piece <id>] <command>");
@@ -165,12 +169,13 @@ function runCmd(raw) {
 
   // Harness-only commands
   if (verb === "reset") {
-    initState(network, seedArg ?? undefined);
+    initGame(() => buildNetworkFn(), seedArg ?? undefined);
+    initGraphBridge();
+    initDynamicActions();
     startIce();
-    const genInfo = (timeArg && moneyArg)
-      ? ` (generated: time=${timeArg} money=${moneyArg})`
-      : "";
-    out(`[SYS] Initialized. Seed: "${getState().seed}". Network: ${network.nodes.length} nodes${genInfo}.`);
+    const s = getState();
+    const nodeCount = Object.keys(s.nodes).length;
+    out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes (${selectedNetwork}).`);
     return;
   }
   if (verb === "tick") {
@@ -199,7 +204,8 @@ if (!isReset) {
       deserializeState(JSON.parse(readFileSync(stateFile, "utf8")));
     } catch (e) {
       out(`[SYS] Failed to load ${stateFile}: ${e.message}. Initializing fresh.`);
-      initState(NETWORK, seedArg ?? undefined);
+      initGame(() => buildNetworkFn(), seedArg ?? undefined);
+      initGraphBridge();
       startIce();
     }
   } else {

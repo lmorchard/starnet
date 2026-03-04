@@ -11,8 +11,9 @@
 /** @typedef {import('../core/types.js').NodeAccessedPayload} NodeAccessedPayload */
 
 import { on, emitEvent, E } from "../core/events.js";
+import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep, relayout } from "./graph.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
 
@@ -42,8 +43,24 @@ let lootTotalMs = null;
 let contextMenuNodeId = null;
 
 export function initVisualRenderer() {
+  // ── Event-driven node style updates from NodeGraph ──────
+  // When a node attribute changes via the graph, update just that node's visual.
+  // This is the primary render path when a NodeGraph is active.
+  on(E.NODE_STATE_CHANGED, ({ nodeId }) => {
+    const s = _getState();
+    const node = s?.nodes[nodeId];
+    if (node) updateNodeStyle(nodeId, node);
+  });
+
+  // ── STATE_CHANGED — HUD, selection, ICE, context menu ──
+  // Node styles are driven by NODE_STATE_CHANGED above; this handler covers
+  // everything else. Falls back to full node sync when no graph is present.
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
-    syncGraph(state);
+    // Fallback: full node sync when there's no graph (legacy initState path)
+    if (!state.nodeGraph) {
+      Object.values(state.nodes).forEach((n) => updateNodeStyle(n.id, n));
+    }
+    syncOverlays(state);
     syncHud(state);
     const node = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
     if (node && node.visibility !== "revealed") {
@@ -129,37 +146,45 @@ export function initVisualRenderer() {
   on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { nodeId }) => flashNode(nodeId, "success"));
   on(E.EXPLOIT_FAILURE, (/** @type {ExploitFailurePayload} */ { nodeId }) => flashNode(nodeId, "failure"));
   on(E.NODE_ACCESSED,   (/** @type {NodeAccessedPayload} */   { nodeId }) => flashNode(nodeId, "success"));
+  // Track which nodes existed before this batch of reveals
+  let _preRevealNodeIds = null;
+
   on(E.NODE_REVEALED,   (/** @type {NodeRevealedPayload} */   { nodeId }) => {
     flashNode(nodeId, "reveal");
-    // Debounce fit — batch simultaneous reveals into one viewport adjustment
+    // Snapshot existing node positions before the first reveal in a batch
+    if (!_preRevealNodeIds) {
+      const cy = getCy();
+      if (cy) _preRevealNodeIds = new Set(cy.nodes().map(n => n.id()));
+    }
+    // Debounce incremental layout — lock existing nodes, let new ones settle
     clearTimeout(revealFitTimer);
     revealFitTimer = setTimeout(() => {
       const cy = getCy();
-      if (!cy) return;
-      const visible = cy.nodes(".accessible, .revealed");
-      if (visible.length <= 1) return;
-      const MAX_FIT_ZOOM = 1.5;
-      const pad = 50;
-      const bb = visible.boundingBox();
-      const zoom = Math.min(
-        cy.width() / (bb.w + 2 * pad),
-        cy.height() / (bb.h + 2 * pad),
-        MAX_FIT_ZOOM
-      );
-      const cx = (bb.x1 + bb.x2) / 2;
-      const cy2 = (bb.y1 + bb.y2) / 2;
-      const pan = {
-        x: cy.width() / 2 - zoom * cx,
-        y: cy.height() / 2 - zoom * cy2,
-      };
-      cy.stop();
-      cy.animate({ zoom, pan, duration: 500 });
-    }, 50);
+      if (!cy || cy.nodes().length <= 1) { _preRevealNodeIds = null; return; }
+      const locked = _preRevealNodeIds;
+      _preRevealNodeIds = null;
+      // Run layout with existing nodes locked in place
+      cy.layout({
+        name: "cola",
+        animate: true,
+        randomize: false,
+        fit: true,
+        padding: 50,
+        nodeSpacing: 30,
+        edgeLength: 120,
+        maxSimulationTime: 2000,
+        ungrabifyWhileSimulating: true,
+        lock: (node) => locked.has(node.id()),
+      }).run();
+    }, 200);
   });
 
-  // Keep context menu attached to node on pan/zoom
+  // Keep context menu attached to node on pan/zoom/drag
   const cy = getCy();
-  if (cy) cy.on("pan zoom", () => _positionContextMenu(contextMenuNodeId));
+  if (cy) {
+    cy.on("pan zoom", () => _positionContextMenu(contextMenuNodeId));
+    cy.on("position", "node", () => _positionContextMenu(contextMenuNodeId));
+  }
 }
 
 // ── Context menu ──────────────────────────────────────────
@@ -240,11 +265,9 @@ function clearContextMenu() {
 
 // ── Graph sync ────────────────────────────────────────────
 
-function syncGraph(state) {
+/** Sync selection highlight and ICE position — not per-node styles. */
+function syncOverlays(state) {
   const cy = getCy();
-
-  Object.values(state.nodes).forEach((n) => updateNodeStyle(n.id, n));
-
   if (!cy) return;
 
   syncSelection(state.selectedNodeId);

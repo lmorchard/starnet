@@ -11,10 +11,13 @@ import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCount
 import { setIceDetectedAt, incrementIceDetectionCount } from "./state/ice.js";
 import { emitEvent, on, E } from "./events.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
-import { hasBehavior, getBehaviors } from "./actions/node-types.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
+
+// Node types that act as detectors (IDS) or monitors (security-monitor)
+const DETECTOR_TYPES = new Set(["ids"]);
+const MONITOR_TYPES = new Set(["security-monitor"]);
 
 // Detection thresholds: cumulative detections before trace starts, by ICE grade
 const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
@@ -26,27 +29,30 @@ const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
  * after clearHandlers() (e.g. in the bot census loop).
  */
 export function initAlertHandlers() {
-  // When any node alert raises, propagate if it's a detection node; otherwise
-  // recompute global alert directly. Runs synchronously before STATE_CHANGED fires.
   on(E.NODE_ALERT_RAISED, ({ nodeId }) => {
     const s = getState();
     const node = s.nodes[nodeId];
     if (!node) return;
-    const ctx = { propagateAlertEvent, startTraceCountdown, recomputeGlobalAlert };
-    const handled = getBehaviors(node).some((atom) => {
-      if (atom.onAlertRaised) { atom.onAlertRaised(node, s, ctx); return true; }
-      return false;
-    });
-    if (!handled) recomputeGlobalAlert();
+
+    // When a graph is active, alert propagation is handled by graph operators/triggers.
+    // Just recompute global alert from node states.
+    if (s.nodeGraph) {
+      recomputeGlobalAlert();
+      return;
+    }
+
+    // Legacy path: IDS detection nodes propagate alerts to monitors
+    if (DETECTOR_TYPES.has(node.type)) {
+      propagateAlertEvent(nodeId);
+    }
+    recomputeGlobalAlert();
   });
 
-  // Reconfiguring a node — dispatch onReconfigured atom, then recompute.
   on(E.NODE_RECONFIGURED, ({ nodeId }) => {
     const s = getState();
     const node = s.nodes[nodeId];
     if (!node) return;
-    const ctx = { recomputeGlobalAlert };
-    getBehaviors(node).forEach((atom) => atom.onReconfigured?.(node, s, ctx));
+    recomputeGlobalAlert();
   });
 }
 
@@ -62,7 +68,7 @@ export function propagateAlertEvent(fromNodeId) {
 
   (s.adjacency[fromNodeId] || []).forEach((neighborId) => {
     const neighbor = s.nodes[neighborId];
-    if (neighbor && hasBehavior(neighbor, "monitor")) {
+    if (neighbor && MONITOR_TYPES.has(neighbor.type)) {
       const idx = ALERT_ORDER.indexOf(neighbor.alertState);
       if (idx < ALERT_ORDER.length - 1) {
         setNodeAlertState(neighborId, ALERT_ORDER[idx + 1]);
@@ -80,10 +86,8 @@ export function propagateAlertEvent(fromNodeId) {
 
 function recomputeGlobalAlert() {
   const s = getState();
-  const monitors  = Object.values(s.nodes).filter((n) => hasBehavior(n, "monitor"));
-  const detectors = Object.values(s.nodes).filter(
-    (n) => hasBehavior(n, "detection") || hasBehavior(n, "direct-trace")
-  );
+  const monitors  = Object.values(s.nodes).filter((n) => MONITOR_TYPES.has(n.type));
+  const detectors = Object.values(s.nodes).filter((n) => DETECTOR_TYPES.has(n.type));
 
   const redMonitors    = monitors.filter((n) => n.alertState === "red").length;
   const redDetectors   = detectors.filter((n) => n.alertState === "red"   && !n.eventForwardingDisabled).length;
@@ -172,12 +176,8 @@ export function forceGlobalAlert(level) {
 // ── ICE detection ─────────────────────────────────────────
 
 /**
- * Record an ICE detection event. Instead of directly escalating global alert,
- * ICE reports through the IDS chain: raise alert on all IDS nodes, which then
- * propagate to the security monitor via the normal forwarding path. If the IDS
- * is reconfigured (eventForwardingDisabled), the report goes nowhere.
- *
- * This makes IDS reconfiguration the key counterplay to ICE pressure.
+ * Record an ICE detection event. Raises alert on all IDS nodes, which
+ * propagate to security monitors via the normal forwarding path.
  */
 export function recordIceDetection(nodeId) {
   const s = getState();
@@ -185,11 +185,8 @@ export function recordIceDetection(nodeId) {
   setIceDetectedAt(nodeId);
   incrementIceDetectionCount();
 
-  // Raise alert on all IDS (detection) nodes — they propagate to the monitor.
-  // This replaces the old direct global alert escalation.
-  const detectors = Object.entries(s.nodes).filter(
-    ([, n]) => hasBehavior(n, "detection") || hasBehavior(n, "direct-trace")
-  );
+  // Raise alert on all IDS (detection) nodes
+  const detectors = Object.entries(s.nodes).filter(([, n]) => DETECTOR_TYPES.has(n.type));
   for (const [detId, det] of detectors) {
     const prevAlert = det.alertState;
     const idx = ALERT_ORDER.indexOf(prevAlert);

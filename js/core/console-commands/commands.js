@@ -4,7 +4,6 @@
 import { getState } from "../state.js";
 import { addLogEntry, getRecentLog } from "../log.js";
 import { exploitSortKey, getStoreCatalog } from "../exploits.js";
-import { getActions } from "../actions/node-types.js";
 import { getAvailableActions } from "../actions/node-actions.js";
 import { buyFromStore } from "../store-logic.js";
 import {
@@ -132,7 +131,7 @@ export const COMMANDS = [
       const s = getState();
       const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
       if (!sel) { addLogEntry("No node selected.", "error"); return; }
-      const available = getActions(sel, s).find((a) => a.id === "cancel-trace");
+      const available = getAvailableActions(sel, s).find((a) => a.id === "cancel-trace");
       if (!available) { addLogEntry(`${sel.label}: cancel-trace not available.`, "error"); return; }
       dispatch("cancel-trace", { nodeId: sel.id });
     },
@@ -256,8 +255,15 @@ export const COMMANDS = [
         if (has.has("eject"))  lines.push(`  eject                    — push ICE to adjacent node`);
         if (has.has("reboot")) lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
 
-        getActions(sel, s).forEach((a) => {
-          lines.push(`  ${a.id.padEnd(24)} — ${a.desc(sel, s)}`);
+        // Type-specific actions (reconfigure, cancel-trace, access-darknet)
+        // are now included in getAvailableActions via graph path
+        const typeSpecific = getAvailableActions(sel, s).filter(a =>
+          !["probe", "cancel-probe", "exploit", "cancel-exploit", "read", "cancel-read",
+            "loot", "cancel-loot", "eject", "reboot", "jackout", "select", "deselect"].includes(a.id)
+        );
+        typeSpecific.forEach((a) => {
+          const desc = typeof a.desc === "function" ? a.desc(sel, s) : (a.desc || a.label);
+          lines.push(`  ${a.id.padEnd(24)} — ${desc}`);
         });
 
         if (sel.type === "wan") {

@@ -55,9 +55,11 @@ export function applyEffect(effect, mutators) {
       deltaQuality(effect.name, effect.delta);
       break;
 
-    case "ctx-call":
-      ctx[effect.method](...(effect.args ?? []));
+    case "ctx-call": {
+      const resolvedArgs = (effect.args ?? []).map(a => a === "$nodeId" ? targetNodeId : a);
+      ctx[effect.method](...resolvedArgs);
       break;
+    }
 
     case "log":
       ctx.log(effect.message);

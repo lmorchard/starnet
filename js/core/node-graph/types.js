@@ -70,6 +70,8 @@
  * @typedef {Object} ActionDef
  * @property {string} id
  * @property {string} label
+ * @property {string} [desc]         - human-readable description for UI tooltips
+ * @property {boolean} [noSidebar]   - true if triggered via card click, not sidebar button
  * @property {Condition[]} requires   - implicit all-of; all must pass
  * @property {Effect[]} effects
  */
@@ -189,6 +191,11 @@
 /**
  * The game API context interface. The runtime accepts a ctx object; tests inject a
  * mock; the real game wires up actual implementations later.
+ *
+ * Includes both set-piece-level callbacks (startTrace, giveReward, etc.) and
+ * game action callbacks (startProbe, startExploit, etc.) so that NodeDef actions
+ * can invoke any game function via ctx-call effects.
+ *
  * @typedef {Object} CtxInterface
  * @property {() => void} startTrace
  * @property {() => void} cancelTrace
@@ -199,6 +206,18 @@
  * @property {(nodeId: string) => void} disableNode
  * @property {(nodeId: string) => void} revealNode
  * @property {(message: string) => void} log
+ * @property {(nodeId: string) => void} startProbe
+ * @property {() => void} cancelProbe
+ * @property {(nodeId: string, exploitId?: string) => void} startExploit
+ * @property {() => void} cancelExploit
+ * @property {(nodeId: string) => void} startRead
+ * @property {() => void} cancelRead
+ * @property {(nodeId: string) => void} startLoot
+ * @property {() => void} cancelLoot
+ * @property {() => void} ejectIce
+ * @property {(nodeId: string) => void} rebootNode
+ * @property {(nodeId: string) => void} reconfigureNode
+ * @property {() => void} openDarknetsStore
  */
 
 export {};

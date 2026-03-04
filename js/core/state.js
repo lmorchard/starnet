@@ -4,7 +4,7 @@
 
 export {
   // Core
-  initState, getState, mutate, getVersion,
+  initGame, getState, mutate, getVersion,
   // Graph traversal utilities
   revealNeighbors, accessNeighbors,
   // Alert constants
@@ -22,7 +22,7 @@ export {
 export {
   setNodeVisible, setNodeAccessLevel, setNodeProbed, setNodeAlertState,
   setNodeRead, collectMacguffins, setNodeLooted, setNodeRebooting,
-  setNodeEventForwarding, setNodeVulnHidden,
+  setNodeEventForwarding, setNodeVulnHidden, setNodeGraph,
 } from "./state/node.js";
 
 export {

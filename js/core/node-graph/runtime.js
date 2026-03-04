@@ -38,10 +38,14 @@ export class NodeGraph {
   /**
    * @param {NodeGraphDef} def
    * @param {CtxInterface} [ctx]
+   * @param {(eventType: string, payload: object) => void} [onEvent]
    */
-  constructor({ nodes, edges, triggers = [] }, ctx = nullCtx) {
+  constructor({ nodes, edges, triggers = [] }, ctx = nullCtx, onEvent = () => {}) {
     /** @type {CtxInterface} */
     this._ctx = ctx;
+
+    /** @type {(eventType: string, payload: object) => void} */
+    this._onEvent = onEvent;
 
     /** @type {Map<string, NodeState>} */
     this._nodes = new Map();
@@ -112,12 +116,21 @@ export class NodeGraph {
 
   /** @param {string} name @param {number} value */
   setQuality(name, value) {
+    const previous = this._qualities.get(name);
     this._qualities.set(name, value);
+    if (value !== previous) {
+      this._onEvent("quality-changed", { name, value, previous });
+    }
   }
 
   /** @param {string} name @param {number} delta */
   deltaQuality(name, delta) {
+    const previous = this._qualities.get(name);
     this._qualities.delta(name, delta);
+    const current = this._qualities.get(name);
+    if (current !== previous) {
+      this._onEvent("quality-changed", { name, value: current, previous });
+    }
   }
 
   /**
@@ -139,6 +152,61 @@ export class NodeGraph {
     const node = this._requireNode(nodeId);
     executeAction(node.actions, actionId, nodeId, this._actionMutators(nodeId), this._stateAccessors());
     this._evaluateTriggers();
+  }
+
+  /**
+   * Directly set a node attribute (bypasses operators).
+   * Emits a node-state-changed event if the value actually changed.
+   * @param {string} nodeId
+   * @param {string} attr
+   * @param {any} value
+   */
+  setNodeAttr(nodeId, attr, value) {
+    const node = this._requireNode(nodeId);
+    const previous = node.attributes[attr];
+    node.attributes = { ...node.attributes, [attr]: value };
+    if (value !== previous) {
+      this._onEvent("node-state-changed", { nodeId, attr, value, previous });
+    }
+  }
+
+  /**
+   * Dispatch an init message to every node, then evaluate triggers.
+   * Call once after construction, before any tick or action.
+   */
+  init() {
+    const initMsg = createMessage({ type: "init", origin: "__system__" });
+    for (const nodeId of this._nodes.keys()) {
+      this._deliver(nodeId, initMsg);
+    }
+    this._evaluateTriggers();
+  }
+
+  /**
+   * Return a node's full data: id, type, and all attributes.
+   * Useful for populating game state objects.
+   * @param {string} nodeId
+   * @returns {{ id: string, type: string } & Record<string, any>}
+   */
+  getNode(nodeId) {
+    const node = this._requireNode(nodeId);
+    return { id: node.id, type: node.type, ...node.attributes };
+  }
+
+  /**
+   * Return all node IDs in the graph.
+   * @returns {string[]}
+   */
+  getNodeIds() {
+    return [...this._nodes.keys()];
+  }
+
+  /**
+   * Return the edge list.
+   * @returns {[string, string][]}
+   */
+  getEdges() {
+    return this._edges;
   }
 
   // ---------------------------------------------------------------------------
@@ -172,11 +240,12 @@ export class NodeGraph {
    * Construct a NodeGraph from a snapshot.
    * @param {ReturnType<NodeGraph['snapshot']>} snapshot
    * @param {CtxInterface} [ctx]
+   * @param {(eventType: string, payload: object) => void} [onEvent]
    * @returns {NodeGraph}
    */
-  static fromSnapshot(snapshot, ctx = nullCtx) {
+  static fromSnapshot(snapshot, ctx = nullCtx, onEvent = () => {}) {
     const { nodes, edges, triggers, qualities } = /** @type {any} */ (snapshot);
-    const graph = new NodeGraph({ nodes, edges, triggers: [] }, ctx);
+    const graph = new NodeGraph({ nodes, edges, triggers: [] }, ctx, onEvent);
     graph._qualities.restore(qualities);
     graph._triggers.restore(triggers);
     // Restore node attributes from snapshot (overwrite what constructor set)
@@ -214,11 +283,26 @@ export class NodeGraph {
 
     const incoming = { ...message, path: [...message.path, nodeId] };
 
+    this._onEvent("message-delivered", { nodeId, message: incoming });
+
+    const oldAttrs = node.attributes;
     const { attributes, outgoing, qualityDeltas } = applyOperators(node.operators, node.attributes, incoming, this._ctx);
     node.attributes = attributes;
 
+    // Emit per-attribute change events for operator mutations
+    for (const key of Object.keys(attributes)) {
+      if (attributes[key] !== oldAttrs[key]) {
+        this._onEvent("node-state-changed", { nodeId, attr: key, value: attributes[key], previous: oldAttrs[key] });
+      }
+    }
+
     for (const { name, delta } of qualityDeltas) {
+      const previous = this._qualities.get(name);
       this._qualities.delta(name, delta);
+      const value = this._qualities.get(name);
+      if (value !== previous) {
+        this._onEvent("quality-changed", { name, value, previous });
+      }
     }
 
     for (const desc of outgoing) {
@@ -294,13 +378,31 @@ export class NodeGraph {
     return {
       setNodeAttr: (nodeId, attr, value) => {
         const node = this._nodes.get(nodeId);
-        if (node) node.attributes = { ...node.attributes, [attr]: value };
+        if (!node) return;
+        const previous = node.attributes[attr];
+        node.attributes = { ...node.attributes, [attr]: value };
+        if (value !== previous) {
+          this._onEvent("node-state-changed", { nodeId, attr, value, previous });
+        }
       },
       targetNodeId: null,
       getNodeAttr: (nodeId, attr) => this._nodes.get(nodeId)?.attributes[attr],
       getQuality: (name) => this._qualities.get(name),
-      setQuality: (name, value) => this._qualities.set(name, value),
-      deltaQuality: (name, delta) => this._qualities.delta(name, delta),
+      setQuality: (name, value) => {
+        const previous = this._qualities.get(name);
+        this._qualities.set(name, value);
+        if (value !== previous) {
+          this._onEvent("quality-changed", { name, value, previous });
+        }
+      },
+      deltaQuality: (name, delta) => {
+        const previous = this._qualities.get(name);
+        this._qualities.delta(name, delta);
+        const current = this._qualities.get(name);
+        if (current !== previous) {
+          this._onEvent("quality-changed", { name, value: current, previous });
+        }
+      },
       sendMessage: (nodeId, msg) => this.sendMessage(nodeId, msg),
       emitFrom: (nodeId, msg) => this._emitFrom(nodeId, msg),
       ctx: this._ctx,

@@ -4,8 +4,9 @@
 import { isIceVisible } from "../core/state.js";
 
 // Still playing with what might be the best default here
-const DEFAULT_LAYOUT_ALGO = "cola";
+// const DEFAULT_LAYOUT_ALGO = "breadthfirst";
 // const DEFAULT_LAYOUT_ALGO = "dagre";
+const DEFAULT_LAYOUT_ALGO = "cola";
 
 // Node type → shape mapping
 const NODE_SHAPES = {
@@ -131,16 +132,26 @@ function runRebootPulse(node) {
   );
 }
 
-export function initGraph(networkData, onNodeClick, onBackgroundTap) {
-  const elements = buildElements(networkData);
+// Full network topology — stored for deferred node addition.
+// Nodes are only added to Cytoscape when they become visible.
+let _networkNodes = new Map();  // id → { id, label, type, grade }
+let _networkEdges = [];         // [{ source, target }]
 
-  // HACK: Cytoscape warns about wheelSensitivity being non-default; suppress that one specific warning.
+export function initGraph(networkData, onNodeClick, onBackgroundTap) {
+  // Store full topology for deferred node addition
+  _networkNodes = new Map();
+  for (const n of networkData.nodes) {
+    _networkNodes.set(n.id, { id: n.id, label: n.label, type: n.type, grade: n.grade });
+  }
+  _networkEdges = networkData.edges;
+
+  // Start empty — nodes are added as they become visible
   const _warn = console.warn;
   console.warn = (...args) => { if (!String(args[0]).includes("wheel sensitivity")) _warn(...args); };
   cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
-    elements,
-    layout: LAYOUTS[currentLayout](false),
+    elements: [],
+    layout: { name: "preset" },
     style: buildStylesheet(),
     userZoomingEnabled: true,
     userPanningEnabled: true,
@@ -162,6 +173,12 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     if (evt.target === cy && onBackgroundTap) onBackgroundTap();
   });
 
+  // Reposition overlays when nodes are dragged
+  cy.on("position", "node", () => {
+    _repositionIceOverlay();
+    syncReticle();
+  });
+
   const graphContainer = document.getElementById("graph-container");
   const onPanZoom = () => {
     syncReticle();
@@ -175,6 +192,8 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     const size = 40 * zoom;
     graphContainer.style.backgroundSize = `${size}px ${size}px`;
     graphContainer.style.backgroundPosition = `${pan.x}px ${pan.y}px`;
+    // Reposition ICE overlay on pan/zoom
+    _repositionIceOverlay();
   };
   cy.on("pan zoom", onPanZoom);
   onPanZoom();
@@ -182,36 +201,78 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   return cy;
 }
 
-function buildElements(networkData) {
-  const nodes = networkData.nodes.map((n) => ({
-    data: {
-      id: n.id,
-      label: n.label,
-      type: n.type,
-      grade: n.grade,
-    },
-    classes: ["hidden"],
-  }));
+/**
+ * Add all initially visible nodes to the graph after initGame,
+ * then apply full styling so edges and visual classes are correct.
+ * @param {Object<string, { id: string, visibility: string }>} nodes
+ */
+export function syncInitialNodes(nodes) {
+  for (const node of Object.values(nodes)) {
+    if (node.visibility !== "hidden") {
+      ensureNodeInGraph(node.id, node.visibility);
+    }
+  }
+  // Apply full styling now that all initial nodes + edges are present
+  for (const node of Object.values(nodes)) {
+    if (node.visibility !== "hidden") {
+      updateNodeStyle(node.id, node);
+    }
+  }
+}
 
-  const edges = networkData.edges.map((e, i) => ({
-    data: {
-      id: `edge-${i}`,
-      source: e.source,
-      target: e.target,
-    },
-    classes: ["hidden"],
-  }));
+/**
+ * Add a node to the Cytoscape graph when it becomes visible.
+ * Also adds edges to any already-present neighbors.
+ * @param {string} nodeId
+ * @param {string} visibilityClass - "revealed" or "accessible"
+ */
+export function ensureNodeInGraph(nodeId, visibilityClass) {
+  if (!cy) return;
+  // Already in graph?
+  if (cy.getElementById(nodeId).length > 0) return;
+  // Known node?
+  const ndata = _networkNodes.get(nodeId);
+  if (!ndata) return;
 
-  return [...nodes, ...edges];
+  // Find an already-present neighbor to spawn near
+  let spawnPos = { x: cy.width() / 2, y: cy.height() / 2 };
+  for (const e of _networkEdges) {
+    const neighborId = e.source === nodeId ? e.target : e.target === nodeId ? e.source : null;
+    if (!neighborId) continue;
+    const neighborCy = cy.getElementById(neighborId);
+    if (neighborCy.length > 0) {
+      const np = neighborCy.position();
+      // Offset slightly with jitter so overlapping reveals don't pile up
+      spawnPos = { x: np.x + (Math.random() - 0.5) * 60, y: np.y + 50 + Math.random() * 30 };
+      break;
+    }
+  }
+
+  // Add the node near its neighbor
+  cy.add({
+    data: { id: ndata.id, label: ndata.label, type: ndata.type, grade: ndata.grade },
+    position: spawnPos,
+    classes: [visibilityClass],
+  });
+
+  // Add edges to any already-present neighbors
+  _networkEdges.forEach((e, i) => {
+    const src = e.source;
+    const tgt = e.target;
+    const edgeId = `edge-${src}-${tgt}`;
+    if (cy.getElementById(edgeId).length > 0) return; // already added
+    if ((src === nodeId && cy.getElementById(tgt).length > 0) ||
+        (tgt === nodeId && cy.getElementById(src).length > 0)) {
+      cy.add({
+        data: { id: edgeId, source: src, target: tgt },
+        classes: ["visible"],
+      });
+    }
+  });
 }
 
 function buildStylesheet() {
   return [
-    // Default hidden state
-    {
-      selector: "node.hidden",
-      style: { display: "none" },
-    },
     // Revealed but not accessible
     {
       selector: "node.revealed",
@@ -284,76 +345,7 @@ function buildStylesheet() {
         "border-width": 2,
       },
     },
-    // ICE entity node — ominous eye shape
-    {
-      selector: "node.ice",
-      style: {
-        shape: "polygon",
-        "shape-polygon-points": [
-          // 20-point eye outline: pointed canthus at ±x, smooth arcs top and bottom
-          -1, 0,
-          -0.8, -0.22,
-          -0.6, -0.42,
-          -0.4, -0.55,
-          -0.2, -0.63,
-          0, -0.65,
-          0.2, -0.63,
-          0.4, -0.55,
-          0.6, -0.42,
-          0.8, -0.22,
-          1, 0,
-          0.8, 0.22,
-          0.6, 0.42,
-          0.4, 0.55,
-          0.2, 0.63,
-          0, 0.65,
-          -0.2, 0.63,
-          -0.4, 0.55,
-          -0.6, 0.42,
-          -0.8, 0.22,
-        ].join(" "),
-        width: 36,
-        height: 24,
-        "background-color": "#1a0010",
-        "border-color": "#ff00aa",
-        "border-width": 2,
-        "background-image": "data:image/svg+xml," + encodeURIComponent(
-          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-          // Iris
-          '<circle cx="50" cy="50" r="53" fill="#ff00aa" opacity="0.8"/>' +
-          // Limbal ring
-          '<circle cx="50" cy="50" r="53" fill="none" stroke="#880044" stroke-width="5"/>' +
-          // Radial iris lines (covered at center by pupil, visible at iris edge)
-          '<line x1="50" y1="4" x2="50" y2="96" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          '<line x1="9" y1="23" x2="91" y2="77" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          '<line x1="91" y1="23" x2="9" y2="77" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          '<line x1="4" y1="50" x2="96" y2="50" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          // Vertical slit pupil
-          '<ellipse cx="50" cy="50" rx="10" ry="26" fill="#0d0008"/>' +
-          // Highlight glint
-          '<circle cx="64" cy="36" r="6" fill="#ffffff" opacity="0.35"/>' +
-          '</svg>'
-        ),
-        "background-width": "65%",
-        "background-height": "100%",
-        label: "ICE",
-        color: "#ff00aa",
-        "font-family": "Courier New, monospace",
-        "font-size": 7,
-        "font-weight": "bold",
-        "text-valign": "bottom",
-        "text-margin-y": 4,
-        "z-index": 10,
-      },
-    },
-    // ICE pulsing when docked on player's selected node
-    {
-      selector: "node.ice.docked",
-      style: {
-        "border-color": "#ff2020",
-        "border-width": 1,
-      },
-    },
+    // (ICE is now an HTML overlay, not a Cytoscape node)
     // Trace-back waypoint nodes (hidden nodes revealed as part of ICE trace)
     {
       selector: "node.ice-traced",
@@ -362,8 +354,8 @@ function buildStylesheet() {
         shape: "ellipse",
         width: 20,
         height: 20,
-        "background-color": "#150010",
-        "border-color": "#660033",
+        "background-color": "#1a0010",
+        "border-color": "#aa0066",
         "border-width": 1,
         "border-style": "dashed",
         label: "???",
@@ -390,10 +382,16 @@ function buildStylesheet() {
         "border-style": "dashed",
       },
     },
-    // Edges hidden
+    // Edges between revealed-only nodes — very dim
     {
       selector: "edge.hidden",
-      style: { display: "none" },
+      style: {
+        "line-color": "#112222",
+        "target-arrow-shape": "none",
+        "curve-style": "bezier",
+        width: 1,
+        opacity: 0.2,
+      },
     },
     // Edges visible
     {
@@ -421,11 +419,11 @@ function buildStylesheet() {
       selector: "edge.ice-trace",
       style: {
         display: "element",
-        "line-color": "#440033",
+        "line-color": "#cc0077",
         "line-style": "dashed",
         "target-arrow-shape": "none",
-        width: 1,
-        opacity: 0.6,
+        width: 1.5,
+        opacity: 0.8,
       },
     },
   ];
@@ -434,8 +432,14 @@ function buildStylesheet() {
 // Update a single node's visual classes based on its state
 export function updateNodeStyle(nodeId, nodeState) {
   if (!cy) return;
+
+  // If the node just became visible, add it to the Cytoscape graph
+  if (nodeState.visibility !== "hidden") {
+    ensureNodeInGraph(nodeId, nodeState.visibility);
+  }
+
   const node = cy.getElementById(nodeId);
-  if (!node) return;
+  if (!node || node.length === 0) return;
 
   // Rebooting state
   if (nodeState.rebooting) {
@@ -491,18 +495,16 @@ export function updateNodeStyle(nodeId, nodeState) {
 }
 
 function updateEdgeVisibility() {
+  if (!cy) return;
   cy.edges().forEach((edge) => {
     const src = cy.getElementById(edge.data("source"));
     const tgt = cy.getElementById(edge.data("target"));
-    const srcVisible = !src.hasClass("hidden");
-    const tgtVisible = !tgt.hasClass("hidden");
-    // Require at least one accessible endpoint — don't reveal edges between two ??? nodes
+    if (src.length === 0 || tgt.length === 0) return;
     const srcAccessible = src.hasClass("accessible");
     const tgtAccessible = tgt.hasClass("accessible");
-
-    if (srcVisible && tgtVisible && (srcAccessible || tgtAccessible)) {
+    // Only show edge if at least one endpoint is accessible
+    if (srcAccessible || tgtAccessible) {
       edge.removeClass("hidden").addClass("visible");
-      // Highlight path between two owned nodes
       if (src.hasClass("owned") && tgt.hasClass("owned")) {
         edge.addClass("owned-path");
       } else {
@@ -570,32 +572,62 @@ function syncReticle() {
   svg.style.opacity = "1";
 }
 
+/** @type {HTMLElement|null} */
+let _iceOverlay = null;
+
+/** Reposition and scale ICE overlay to track its attention node (no animation). */
+function _repositionIceOverlay() {
+  if (!_iceOverlay || !cy || !prevIceNodeId) return;
+  if (_iceOverlay.style.opacity === "0") return;
+  const node = cy.getElementById(prevIceNodeId);
+  if (node.length === 0) return;
+  const rp = node.renderedPosition();
+  _iceOverlay.style.left = `${rp.x}px`;
+  _iceOverlay.style.top = `${rp.y}px`;
+  _iceOverlay.style.transform = `scale(${cy.zoom()})`;
+}
+
+/**
+ * ICE is rendered as an HTML overlay positioned over the Cytoscape canvas.
+ * Not a Cytoscape node — avoids layout interference and shape rendering bugs.
+ */
 export function addIceNode() {
-  if (!cy) return;
   prevIceNodeId = null;
-  if (cy.getElementById("ice-0").length > 0) return; // already added
-  cy.add({
-    data: { id: "ice-0", label: "ICE" },
-    position: { x: 0, y: 0 },
-    classes: ["ice"],
-  });
-  // ICE node should not respond to clicks like network nodes
-  cy.getElementById("ice-0").ungrabify();
+  if (_iceOverlay) return;
+
+  const container = document.getElementById("cy");
+  if (!container) return;
+
+  const el = document.createElement("div");
+  el.id = "ice-overlay";
+  el.style.cssText = `
+    position: absolute; pointer-events: none; z-index: 10;
+    width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
+    border: 2px solid #ff00aa; border-radius: 50%;
+    background: radial-gradient(circle, #ff00aa33 0%, transparent 70%);
+    box-shadow: 0 0 12px #ff00aa88, inset 0 0 8px #ff00aa44;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Courier New", monospace; font-size: 7px; font-weight: bold;
+    color: #ff00aa; letter-spacing: 1px;
+  `;
+  el.textContent = "ICE";
+  container.style.position = "relative";
+  container.appendChild(el);
+  _iceOverlay = el;
 }
 
 export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
-  if (!cy || !iceState) return;
-  const iceNode = cy.getElementById("ice-0");
-  if (!iceNode || iceNode.length === 0) return;
+  if (!cy || !iceState || !_iceOverlay) return;
 
   if (!iceState.active) {
-    iceNode.style("display", "none");
+    _iceOverlay.style.opacity = "0";
     clearIceTrace();
     prevIceNodeId = null;
     return;
   }
 
-  // Detect movement before updating prevIceNodeId
   const moved = prevIceNodeId !== null && prevIceNodeId !== iceState.attentionNodeId;
   const fromId = prevIceNodeId;
   prevIceNodeId = iceState.attentionNodeId;
@@ -606,38 +638,33 @@ export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
   if (isVisible) {
     const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
     if (attentionCyNode && attentionCyNode.length > 0) {
-      iceNode.style("display", "element");
+      const rp = attentionCyNode.renderedPosition();
+      const zoom = cy.zoom();
       if (moved) {
-        const fromAccess = fromId ? nodeStates[fromId]?.accessLevel : null;
-        const fromWasVisible = (fromId && fromId === selectedNodeId) ||
-          fromAccess === "compromised" || fromAccess === "owned";
-        if (fromWasVisible) {
-          iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
-        } else {
-          // Arriving from invisible territory — snap to avoid animating from a stale position
-          iceNode.stop().position(attentionCyNode.position());
-        }
+        // Animate movement between nodes
+        _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease, transform 0.1s ease";
+        _iceOverlay.style.left = `${rp.x}px`;
+        _iceOverlay.style.top = `${rp.y}px`;
+        _iceOverlay.style.transform = `scale(${zoom})`;
+        // Remove position transition after animation completes
+        setTimeout(() => {
+          if (_iceOverlay) _iceOverlay.style.transition = "opacity 0.3s ease";
+        }, 450);
+      } else {
+        // Snap (initial placement or reposition)
+        _iceOverlay.style.left = `${rp.x}px`;
+        _iceOverlay.style.top = `${rp.y}px`;
+        _iceOverlay.style.transform = `scale(${zoom})`;
       }
+      _iceOverlay.style.opacity = "1";
     }
   } else {
-    iceNode.style("display", "none");
+    _iceOverlay.style.opacity = "0";
   }
 
-  // Flash movement path along edges (staggered, fog-of-war respecting)
+  // Flash movement path along edges
   if (moved && fromId) {
     flashIcePath(fromId, iceState.attentionNodeId);
-    // Pulse the ICE node on arrival — especially visible when materializing from dark territory
-    if (isVisible) {
-      setTimeout(() => {
-        iceNode.animate(
-          { style: { width: 50, height: 34, "border-width": 5 } },
-          { duration: 120, complete: () => iceNode.animate(
-            { style: { width: 36, height: 24, "border-width": 2 } },
-            { duration: 300, complete: () => iceNode.removeStyle("width height border-width") }
-          )}
-        );
-      }, 100); // slight delay so position animation starts first
-    }
   }
 
   // Trace-back path: only when attention is on an owned node
@@ -1282,7 +1309,9 @@ let currentLayout = DEFAULT_LAYOUT_ALGO;
 export function relayout(name) {
   if (!cy) return;
   if (name && LAYOUTS[name]) currentLayout = name;
-  cy.layout(LAYOUTS[currentLayout](true)).run();
+  if (cy.nodes().length > 0) {
+    cy.layout(LAYOUTS[currentLayout](true)).run();
+  }
   return currentLayout;
 }
 
@@ -1291,16 +1320,23 @@ export function getLayoutNames() {
   return Object.keys(LAYOUTS);
 }
 
-export function fitGraph(cy) {
-  const visible = cy.nodes(".accessible, .revealed");
+export function fitGraph(theCy) {
+  if (!theCy) return;
+  // All nodes in the graph are visible (hidden nodes aren't added).
+  // Run layout on everything.
+  if (theCy.nodes().length > 0) {
+    theCy.layout(LAYOUTS[currentLayout](false)).run();
+  }
+
+  const visible = theCy.nodes();
   if (visible.length === 0) return;
-  cy.fit(visible, 50);
-  if (cy.zoom() > MAX_FIT_ZOOM) {
+  theCy.fit(visible, 50);
+  if (theCy.zoom() > MAX_FIT_ZOOM) {
     // Clamp zoom then re-center on visible nodes so they don't drift off-screen
     const bb = visible.boundingBox();
     const cx = (bb.x1 + bb.x2) / 2;
     const cy2 = (bb.y1 + bb.y2) / 2;
-    cy.zoom({ level: MAX_FIT_ZOOM, position: { x: cx, y: cy2 } });
+    theCy.zoom({ level: MAX_FIT_ZOOM, position: { x: cx, y: cy2 } });
   }
 }
 

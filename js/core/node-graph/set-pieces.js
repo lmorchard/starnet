@@ -418,17 +418,28 @@ export const combinationLock = {
  */
 export const deadmanCircuit = {
   id: "deadman-circuit",
-  description: "Watchdog arms alarm if no heartbeat arrives within the period. Blocking the relay fires the trace.",
+  description: "Heartbeat clock keeps watchdog alive via relay. Subverting the relay stops heartbeats and fires the trace.",
   nodes: [
+    {
+      id: "heartbeat-clock",
+      type: "heartbeat-source",
+      attributes: {},
+      // Clock sends heartbeat every 30 ticks (3s) — must be faster than watchdog period
+      operators: [{ name: "clock", period: 30 }],
+      actions: [],
+    },
     {
       id: "heartbeat-relay",
       type: "heartbeat-monitor",
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      operators: [{ name: "relay", filter: "heartbeat" }],
+      // Relay forwards heartbeat messages (clock signal arrives as "signal",
+      // relay forwards all non-tick messages including signals)
+      operators: [{ name: "relay" }],
       actions: [
         {
           id: "subvert",
           label: "Subvert Relay",
+          desc: "Block heartbeat signals. WARNING: may trigger deadman alarm.",
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
         },
@@ -438,7 +449,10 @@ export const deadmanCircuit = {
       id: "watchdog",
       type: "watchdog-daemon",
       attributes: {},
-      operators: [{ name: "watchdog", period: 5 }],
+      // Watchdog resets on any non-tick message. If no message arrives in
+      // 50 ticks (5s), it fires a "set" message to the alarm latch.
+      // Player has ~5s after subverting the relay before the alarm fires.
+      operators: [{ name: "watchdog", period: 50 }],
       actions: [],
     },
     {
@@ -450,6 +464,7 @@ export const deadmanCircuit = {
     },
   ],
   internalEdges: [
+    ["heartbeat-clock", "heartbeat-relay"],
     ["heartbeat-relay", "watchdog"],
     ["watchdog", "alarm-latch"],
   ],
@@ -631,20 +646,23 @@ export const multiKeyVault = {
     {
       id: "vault-node",
       type: "cryptovault",
-      attributes: { accessLevel: "owned", contents: "corp-secrets" },
+      attributes: { accessLevel: "locked", contents: "corp-secrets", vaultUnlocked: false },
       operators: [],
       actions: [
         {
-          id: "loot",
-          label: "Loot Vault",
+          id: "unlock-vault",
+          label: "Unlock Vault",
+          desc: "Use auth tokens to decrypt the vault contents.",
           requires: [
             { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "vaultUnlocked", eq: false },
             { type: "quality-gte", name: "auth-tokens", value: 2 },
           ],
           effects: [
+            { effect: "set-attr", attr: "vaultUnlocked", value: true },
             { effect: "quality-set", name: "auth-tokens", value: 0 },
             { effect: "ctx-call", method: "giveReward", args: [5000] },
-            { effect: "ctx-call", method: "log", args: ["Vault looted — 5000cr transferred"] },
+            { effect: "ctx-call", method: "log", args: ["Vault decrypted — 5000cr bonus transferred"] },
           ],
         },
       ],
@@ -727,7 +745,7 @@ export const encryptedVault = {
       id: "key-gen",
       type: "key-gen",
       attributes: { accessLevel: "locked", keyReady: false },
-      operators: [{ name: "clock", period: 5 }],
+      operators: [{ name: "clock", period: 100 }],  // 10s cycle at 100ms/tick
       actions: [
         {
           id: "extract-key",
@@ -785,7 +803,6 @@ export const encryptedVault = {
         { effect: "set-node-attr", nodeId: "key-ready-latch", attr: "latched", value: false },
         { effect: "set-node-attr", nodeId: "key-gen", attr: "keyReady", value: true },
         { effect: "quality-set", name: "decryption-key", value: 0 },
-        { effect: "ctx-call", method: "log", args: ["Key-gen cycle: decryption key refreshed — extract quickly"] },
       ],
     },
   ],
@@ -1148,6 +1165,105 @@ export const tamperDetect = {
 };
 
 /**
+ * Server Bank
+ *
+ * Pattern: a cluster of plain fileserver nodes connected to a common hub.
+ * No puzzles, no defenses — just straightforward loot. The hub routes
+ * traffic between the servers and the rest of the network.
+ *
+ * External ports: ['hub', 'server-1', 'server-2', 'server-3']
+ * The hub is the entry point; servers are lootable.
+ *
+ * @type {SetPieceDef}
+ */
+export const serverBank = {
+  id: "server-bank",
+  description: "Cluster of three lootable fileservers connected to a hub.",
+  nodes: [
+    {
+      id: "hub",
+      type: "router",
+      attributes: { accessLevel: "locked" },
+      operators: [{ name: "relay" }],
+      actions: [],
+    },
+    {
+      id: "server-1",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "server-2",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "server-3",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [
+    ["hub", "server-1"],
+    ["hub", "server-2"],
+    ["hub", "server-3"],
+  ],
+  triggers: [],
+  externalPorts: ["hub", "server-1", "server-2", "server-3"],
+};
+
+/**
+ * Office Cluster
+ *
+ * Pattern: a few workstations connected to a fileserver. Exploration filler.
+ * Workstations might hold small loot; the fileserver is the main prize.
+ * No defenses, no puzzles — just territory to map and harvest.
+ *
+ * External ports: ['fileserver', 'workstation-1', 'workstation-2']
+ *
+ * @type {SetPieceDef}
+ */
+export const officeCluster = {
+  id: "office-cluster",
+  description: "Workstations connected to a fileserver. Exploration filler with light loot.",
+  nodes: [
+    {
+      id: "fileserver",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "workstation-1",
+      type: "workstation",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "workstation-2",
+      type: "workstation",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [
+    ["fileserver", "workstation-1"],
+    ["fileserver", "workstation-2"],
+  ],
+  triggers: [],
+  externalPorts: ["fileserver", "workstation-1", "workstation-2"],
+};
+
+/**
  * Convenience catalog of all set-pieces.
  */
 export const SET_PIECES = {
@@ -1164,4 +1280,6 @@ export const SET_PIECES = {
   probeBurstAlarm,
   noisySensor,
   tamperDetect,
+  serverBank,
+  officeCluster,
 };

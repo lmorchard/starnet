@@ -93,6 +93,9 @@
  *   eventForwardingDisabled?: boolean,
  *   rebooting: boolean,
  *   sigAlias?: string,
+ *   gateAccess?: string,
+ *   forwardingEnabled?: boolean,
+ *   lootCount?: number[],
  * }} NodeState
  */
 
@@ -286,6 +289,7 @@
  *   activeProbe: ActiveProbe|null,
  *   activeRead: ActiveRead|null,
  *   activeLoot: ActiveLoot|null,
+ *   nodeGraph?: any,
  * }} GameState
  */
 

@@ -3,12 +3,26 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { buyFromStore } from "./store-logic.js";
 import { getStoreCatalog } from "./exploits.js";
-import { initState, getState } from "./state.js";
-import { NETWORK } from "../../data/network.js";
+import { initGame, getState } from "./state.js";
+import { createGateway, createRouter } from "./node-graph/game-types.js";
+
+function buildStoreLAN() {
+  return {
+    graphDef: {
+      nodes: [
+        createGateway("gateway", { attributes: { visibility: "accessible" } }),
+        createRouter("router-a"),
+      ],
+      edges: [["gateway", "router-a"]],
+      triggers: [],
+    },
+    meta: { startNode: "gateway", startCash: 5000, moneyCost: "C", ice: null },
+  };
+}
 
 describe("buyFromStore", () => {
   beforeEach(() => {
-    initState(NETWORK);
+    initGame(() => buildStoreLAN());
   });
 
   it("buys by catalog index (1-based)", () => {
