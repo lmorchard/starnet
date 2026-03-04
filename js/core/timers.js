@@ -13,12 +13,7 @@ export const TIMER = {
   ICE_MOVE:        "starnet:timer:ice-move",
   ICE_DETECT:      "starnet:timer:ice-detect",
   TRACE_TICK:      "starnet:timer:trace-tick",
-  REBOOT_COMPLETE: "starnet:timer:reboot-complete",
-  EXPLOIT_EXEC:    "starnet:timer:exploit-exec",
-  EXPLOIT_NOISE:   "starnet:timer:exploit-noise",
-  PROBE_SCAN:      "starnet:timer:probe-scan",
-  READ_SCAN:       "starnet:timer:read-scan",
-  LOOT_EXTRACT:    "starnet:timer:loot-extract",
+  // Probe, exploit, read, loot, reboot timers removed — timed-action operator handles these
 };
 
 let currentTick = 0;

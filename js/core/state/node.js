@@ -94,7 +94,7 @@ export function collectMacguffins(nodeId) {
   let total = 0;
   mutate((s) => {
     const node = s.nodes[nodeId];
-    if (!node) return;
+    if (!node || !node.macguffins) return;
     node.macguffins.forEach((m) => {
       if (!m.collected) {
         m.collected = true;

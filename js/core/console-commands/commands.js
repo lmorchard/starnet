@@ -47,95 +47,9 @@ export const COMMANDS = [
     execute() { dispatch("deselect"); },
   },
 
-  { verb: "probe",
-    complete: completeNodeArg,
-    execute(args) {
-      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
-      if (!node) return;
-      dispatch("probe", { nodeId: node.id });
-    },
-  },
-
-  { verb: "read",
-    complete: completeNodeArg,
-    execute(args) {
-      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
-      if (!node) return;
-      dispatch("read", { nodeId: node.id });
-    },
-  },
-
-  { verb: "loot",
-    complete: completeNodeArg,
-    execute(args) {
-      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
-      if (!node) return;
-      dispatch("loot", { nodeId: node.id });
-    },
-  },
-
-  { verb: "reconfigure",
-    complete: completeNodeArg,
-    execute(args) {
-      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
-      if (!node) return;
-      dispatch("reconfigure", { nodeId: node.id });
-    },
-  },
-
-  { verb: "reboot",
-    complete: completeNodeArg,
-    execute(args) {
-      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
-      if (!node) return;
-      if (node.accessLevel !== "owned") {
-        addLogEntry(`${node.label}: must be owned to reboot.`, "error");
-        return;
-      }
-      dispatch("reboot", { nodeId: node.id });
-    },
-  },
-
-  // ── Cancel commands ────────────────────────────────────────────────────────
-
-  { verb: "cancel-probe",
-    execute() {
-      if (!getState().activeProbe) { addLogEntry("No probe scan in progress.", "error"); return; }
-      dispatch("cancel-probe");
-    },
-  },
-
-  { verb: "cancel-exploit",
-    execute() {
-      if (!getState().executingExploit) { addLogEntry("No exploit execution in progress.", "error"); return; }
-      dispatch("cancel-exploit");
-    },
-  },
-
-  { verb: "cancel-read",
-    execute() {
-      if (!getState().activeRead) { addLogEntry("No read scan in progress.", "error"); return; }
-      dispatch("cancel-read");
-    },
-  },
-
-  { verb: "cancel-loot",
-    execute() {
-      if (!getState().activeLoot) { addLogEntry("No loot extraction in progress.", "error"); return; }
-      dispatch("cancel-loot");
-    },
-  },
-
-  { verb: "cancel-trace",
-    execute() {
-      const s = getState();
-      const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
-      if (!sel) { addLogEntry("No node selected.", "error"); return; }
-      const available = getAvailableActions(sel, s).find((a) => a.id === "cancel-trace");
-      if (!available) { addLogEntry(`${sel.label}: cancel-trace not available.`, "error"); return; }
-      dispatch("cancel-trace", { nodeId: sel.id });
-    },
-  },
+  // probe, read, loot, reconfigure, reboot, cancel-*, eject, cancel-trace,
+  // access-darknet — all dynamically discovered from graph available actions.
+  // See dynamic-actions.js.
 
   // ── exploit ────────────────────────────────────────────────────────────────
 
@@ -166,18 +80,7 @@ export const COMMANDS = [
     },
   },
 
-  // ── eject ──────────────────────────────────────────────────────────────────
-
-  { verb: "eject",
-    execute() {
-      const s = getState();
-      if (!s.ice?.active || s.ice.attentionNodeId !== s.selectedNodeId) {
-        addLogEntry("No ICE present at selected node.", "error");
-        return;
-      }
-      dispatch("eject", { nodeId: s.selectedNodeId });
-    },
-  },
+  // eject — dynamically discovered from graph available actions
 
   // ── jackout ────────────────────────────────────────────────────────────────
 
@@ -221,7 +124,7 @@ export const COMMANDS = [
         }
 
         if (has.has("cancel-exploit")) {
-          const execCard = s.player.hand.find((c) => c.id === s.executingExploit?.exploitId);
+          const execCard = s.player.hand.find((c) => c.id === /** @type {any} */ (sel)?.activeExploitId);
           lines.push(`  cancel-exploit           — abort ${execCard?.name ?? "exploit"} execution`);
         } else if (has.has("exploit")) {
           const sorted = [...s.player.hand].sort(

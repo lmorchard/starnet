@@ -160,17 +160,28 @@ From session-5 design discussion — reframe log verbosity as something the play
 
 ---
 
-## Node System Overhaul (Major Future Direction)
+## ~~Node System Overhaul~~ ✓ SUBSTANTIALLY DONE
 
-### Reactive Node Graph Runtime
+### ~~Reactive Node Graph Runtime~~ ✓ DONE (2026-03-03)
 
-The current node implementation is a mix of hardcoded type behaviors, bespoke
+Integrated in the node-graph-integration session (63 commits, 86 files, +10,763/-4,342).
+The NodeGraph runtime is now the authoritative source of node state and behavior.
+NodeDef-based definitions with operators, actions, triggers, and set-piece circuits
+are live. See `js/core/node-graph/` for the runtime and `data/networks/` for network
+definitions.
+
+**Remaining work from this design (now separate backlog items):**
+- Composable traits system — see below
+- Core mechanics migration into node-graph — see below
+- Qualities system — deferred until traits are stable
+
+The original design document below is retained for reference.
+
+The original node implementation was a mix of hardcoded type behaviors, bespoke
 per-feature logic (IDS → monitor alert chain, ICE resident, etc.), and scattered
-`if (node.type === 'X')` special cases. The long-term direction is to replace
+`if (node.type === 'X')` special cases. The node-graph runtime replaced
 this with a data-driven, composable system: nodes as attribute bags, behavior as
-named composable atoms, state propagation via typed message-passing. Nothing in
-the world should require bespoke engine code — all behavior expressible as data
-compositions of registered primitives.
+named composable atoms, state propagation via typed message-passing.
 
 #### Design Precedents
 
@@ -380,7 +391,54 @@ single-ICE prototype is fully playtested and the design is stable.
 
 ---
 
+## Post-Node-Graph Integration (Deferred from 2026-03-03 session)
+
+### Grade-Scaled Timing for Set-Piece Tick Periods
+Set-piece tick periods (deadman heartbeat, IDS relay, probe burst alarm) use fixed
+values. They should scale with the network's grade profile so harder networks feel
+tighter. Requires defining a grade→period mapping and threading it through set-piece
+construction.
+
+### WAN Commands as Node-Specific Actions
+WAN commands (jack-out, store) are currently global console commands. They should be
+node-specific actions available only when the WAN node is selected, consistent with
+the "all actions are node-contextual" pattern established by the node-graph integration.
+
+### Bot Player Rebuild for Node-Graph System
+The bot player (`scripts/bot-player.js`) was written against the old static network
+and node-type registry. It needs a rebuild to work with the NodeGraph runtime, dynamic
+node addition, and graph-bridge state sync. Priority: needed before any balance tuning.
+
+### MANUAL.md Update (Node-Graph)
+The player manual needs updating to reflect the node-graph integration changes: new
+node types, set-piece behaviors, any changed action semantics. Treat as a checklist
+item before calling the integration "shipped."
+
+### ICE Visual Refinement
+The ICE HTML overlay works but could look better. The overlay is positioned via
+Cytoscape's `renderedPosition()` and tracks pan/zoom, but the visual design is
+minimal. Consider: animation on ICE movement, better detection arc visualization,
+status indicators matching grade-behavior tiers.
+
+### Set-Piece Timing / Difficulty Tuning Sweep
+All set-piece tick periods need a real-world playtesting pass at multiple difficulty
+grades. The deadman circuit, nth alarm, and probe burst alarm all have fixed periods
+that may not feel right across the full grade range.
+
+### Gate-Access Tests for Graph Subsections
+Write tests verifying that graph subsections behind gates (encrypted vaults, password-
+gated nodes) are correctly inaccessible until their conditions are met. Currently
+untested — circuits are validated but access gating is not.
+
+---
+
 ## Technical / Architecture
+
+### Remove `state.js` Re-Export Shim
+`js/core/state.js` is a barrel re-export of `js/core/state/index.js` and submodules.
+It exists so old `import ... from "./state.js"` paths work. ~27 files import from it.
+Low priority — the shim works fine, but consumers could import directly from the
+`state/` submodules for clarity. Touches many files.
 
 ### ~~Seeded RNG~~ ✓ DONE
 Implemented in `js/rng.js` — Mulberry32 PRNG with 5 named streams (exploit, combat,

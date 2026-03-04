@@ -24,41 +24,6 @@ export function addCardToHand(card) {
   });
 }
 
-/** Sets state.executingExploit (pass null to clear). */
-export function setExecutingExploit(data) {
-  mutate((s) => {
-    s.executingExploit = data;
-  });
-}
-
-/** Increments state.executingExploit.noiseTick. No-op if not executing. */
-export function incrementNoiseTick() {
-  mutate((s) => {
-    if (s.executingExploit) s.executingExploit.noiseTick++;
-  });
-}
-
-/** Sets state.activeProbe (pass null to clear). */
-export function setActiveProbe(data) {
-  mutate((s) => {
-    s.activeProbe = data;
-  });
-}
-
-/** Sets state.activeRead (pass null to clear). */
-export function setActiveRead(data) {
-  mutate((s) => {
-    s.activeRead = data;
-  });
-}
-
-/** Sets state.activeLoot (pass null to clear). */
-export function setActiveLoot(data) {
-  mutate((s) => {
-    s.activeLoot = data;
-  });
-}
-
 /** Marks the current mission as complete. */
 export function setMissionComplete() {
   mutate((s) => {

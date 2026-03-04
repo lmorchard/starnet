@@ -54,9 +54,9 @@ beforeEach(() => {
 
 describe("registry", () => {
   it("getCommand returns a CommandDef with execute for a known verb", () => {
-    const cmd = getCommand("probe");
+    const cmd = getCommand("exploit");
     assert.ok(cmd, "expected a CommandDef");
-    assert.equal(cmd.verb, "probe");
+    assert.equal(cmd.verb, "exploit");
     assert.equal(typeof cmd.execute, "function");
   });
 
@@ -128,31 +128,8 @@ describe("deselect", () => {
   });
 });
 
-// ── probe ─────────────────────────────────────────────────────────────────────
-
-describe("probe", () => {
-  it("dispatches probe with an explicit node arg", () => {
-    const evts = actions(() => getCommand("probe").execute(["gateway"]));
-    assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "probe");
-    assert.equal(evts[0].nodeId, "gateway");
-  });
-
-  it("dispatches probe using the implicitly selected node", () => {
-    navigateTo("gateway");
-    const evts = actions(() => getCommand("probe").execute([]));
-    assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "probe");
-    assert.equal(evts[0].nodeId, "gateway");
-  });
-
-  it("logs error and does not dispatch when no node is selected and no arg given", () => {
-    let evts;
-    const ls = logs(() => { evts = actions(() => getCommand("probe").execute([])); });
-    assert.ok(ls.some((l) => l.type === "error"));
-    assert.equal(evts.length, 0);
-  });
-});
+// probe, read, loot, reconfigure, reboot — now dynamically discovered from graph.
+// Static command tests removed.
 
 // ── exploit ───────────────────────────────────────────────────────────────────
 
@@ -206,45 +183,7 @@ describe("exploit", () => {
   });
 });
 
-// ── reboot ────────────────────────────────────────────────────────────────────
-
-describe("reboot", () => {
-  it("logs error when node is not owned", () => {
-    const ls = logs(() => getCommand("reboot").execute(["gateway"]));
-    assert.ok(ls.some((l) => l.type === "error" && l.text.includes("owned")));
-  });
-
-  it("dispatches reboot when node is owned", () => {
-    setNodeAccessLevel("gateway", "owned");
-    const evts = actions(() => getCommand("reboot").execute(["gateway"]));
-    assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "reboot");
-    assert.equal(evts[0].nodeId, "gateway");
-  });
-});
-
-// ── cancel-* guards ───────────────────────────────────────────────────────────
-// Test the "nothing in progress" guard for each cancel command.
-
-describe("cancel commands (nothing in progress)", () => {
-  for (const [verb, expected] of [
-    ["cancel-probe",   "No probe scan in progress"],
-    ["cancel-exploit", "No exploit execution in progress"],
-    ["cancel-read",    "No read scan in progress"],
-    ["cancel-loot",    "No loot extraction in progress"],
-  ]) {
-    it(`${verb} logs error when ${expected.toLowerCase()}`, () => {
-      const ls = logs(() => getCommand(verb).execute([]));
-      assert.ok(ls.some((l) => l.type === "error" && l.text.includes(expected)),
-        `expected error containing "${expected}"`);
-    });
-
-    it(`${verb} does not dispatch an action`, () => {
-      const evts = actions(() => getCommand(verb).execute([]));
-      assert.equal(evts.length, 0);
-    });
-  }
-});
+// reboot, cancel-* — now dynamically discovered from graph. Static tests removed.
 
 // ── jackout ───────────────────────────────────────────────────────────────────
 

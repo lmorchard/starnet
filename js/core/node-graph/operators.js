@@ -9,6 +9,7 @@
  * @property {Record<string, any>} [attributes]  - partial patch to merge onto node attributes
  * @property {MessageDescriptor[]} [outgoing]    - messages to deliver to connected nodes
  * @property {{name: string, delta: number}[]} [qualityDeltas] - quality increments to apply
+ * @property {{type: string, payload: object}[]} [events] - game events to emit via onEvent
  */
 
 /**
@@ -48,7 +49,7 @@ export function getOperator(name) {
  * @param {Record<string, any>} nodeAttributes
  * @param {Message | null} message
  * @param {CtxInterface} ctx
- * @returns {{ attributes: Record<string, any>, outgoing: MessageDescriptor[], qualityDeltas: {name: string, delta: number}[] }}
+ * @returns {{ attributes: Record<string, any>, outgoing: MessageDescriptor[], qualityDeltas: {name: string, delta: number}[], events: {type: string, payload: object}[] }}
  */
 export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
   let attrs = { ...nodeAttributes };
@@ -56,6 +57,8 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
   const outgoing = [];
   /** @type {{name: string, delta: number}[]} */
   const qualityDeltas = [];
+  /** @type {{type: string, payload: object}[]} */
+  const events = [];
 
   for (const config of operatorConfigs) {
     const fn = getOperator(config.name);
@@ -69,9 +72,12 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
     if (result.qualityDeltas) {
       qualityDeltas.push(...result.qualityDeltas);
     }
+    if (result.events) {
+      events.push(...result.events);
+    }
   }
 
-  return { attributes: attrs, outgoing, qualityDeltas };
+  return { attributes: attrs, outgoing, qualityDeltas, events };
 }
 
 // ---------------------------------------------------------------------------
@@ -306,6 +312,115 @@ registerOperator("tally", (config, _attrs, message, _ctx) => {
  *
  * Useful for rate-limiting: honeypots, noisy sensors, burst attack patterns.
  */
+/**
+ * timed-action — generic lifecycle operator for timed game actions.
+ *
+ * Watches for `activeAttr` transitioning to true (action started), then on each
+ * tick increments progress, emits action-feedback events, and fires onComplete
+ * effects when progress reaches duration.
+ *
+ * Config:
+ *   action: string       — action name (e.g. "probe", "exploit")
+ *   activeAttr: string   — boolean attribute for "in progress" (e.g. "probing")
+ *   progressAttr?: string — numeric attribute for elapsed ticks (default: "_ta_{action}_progress")
+ *   durationAttr?: string — numeric attribute for total ticks (default: "_ta_{action}_duration")
+ *   durationTable?: Record<string, number> — grade → ticks lookup
+ *   onComplete?: Effect[] — effects to fire on completion (stored as data, executed by ctx)
+ *   onProgressInterval?: number — fraction (0-1) at which to fire onProgressEffects
+ *   onProgressEffects?: Effect[] — effects to fire at progress milestones (e.g. exploit noise)
+ */
+registerOperator("timed-action", (config, attrs, message, _ctx) => {
+  if (!message || message.type !== "tick") return {};
+
+  const action = config.action ?? "unknown";
+  const activeAttr = config.activeAttr;
+  if (!activeAttr) return {};
+
+  const progressAttr = config.progressAttr ?? `_ta_${action}_progress`;
+  const durationAttr = config.durationAttr ?? `_ta_${action}_duration`;
+
+  const isActive = attrs[activeAttr];
+  const progress = attrs[progressAttr] ?? 0;
+  const duration = attrs[durationAttr] ?? 0;
+
+  if (!isActive) return {};
+
+  // First tick after activation: set duration from grade table if needed
+  if (progress === 0 && duration === 0 && config.durationTable) {
+    const grade = attrs.grade ?? "D";
+    const gradeDuration = config.durationTable[grade] ?? config.durationTable["D"] ?? 20;
+    return {
+      attributes: {
+        [durationAttr]: gradeDuration,
+      },
+      events: [{
+        type: "action-feedback",
+        payload: { nodeId: attrs.label, action, phase: "start", progress: 0, durationTicks: gradeDuration },
+      }],
+    };
+  }
+
+  // Duration not yet set (waiting for ctx to set it, e.g. exploit)
+  if (duration === 0) return {};
+
+  const newProgress = progress + 1;
+
+  // Check progress milestone effects (e.g. exploit noise every 10%)
+  /** @type {MessageDescriptor[]} */
+  const outgoing = [];
+  if (config.onProgressInterval && config.onProgressEffects && duration > 0) {
+    const prevFrac = progress / duration;
+    const newFrac = newProgress / duration;
+    const interval = config.onProgressInterval;
+    const prevStep = Math.floor(prevFrac / interval);
+    const newStep = Math.floor(newFrac / interval);
+    if (newStep > prevStep) {
+      // Fire progress effects as outgoing messages
+      for (const eff of config.onProgressEffects) {
+        if (eff.effect === "emit-message") {
+          outgoing.push(eff.message ?? { type: eff.type ?? "noise", payload: eff.payload ?? {} });
+        }
+      }
+    }
+  }
+
+  if (newProgress >= duration) {
+    // Completed — fire onComplete effects via ctx-call events
+    /** @type {{type: string, payload: object}[]} */
+    const events = [{
+      type: "action-feedback",
+      payload: { nodeId: attrs.label, action, phase: "complete", progress: 1.0 },
+    }];
+
+    // Fire onComplete as ctx-call events (runtime will apply them)
+    const completionCalls = (config.onComplete ?? []).map((/** @type {any} */ eff) => ({
+      type: "operator-effect",
+      payload: eff,
+    }));
+    events.push(...completionCalls);
+
+    return {
+      attributes: {
+        [activeAttr]: false,
+        [progressAttr]: 0,
+        [durationAttr]: 0,
+      },
+      outgoing,
+      events,
+    };
+  }
+
+  // In progress
+  return {
+    attributes: { [progressAttr]: newProgress },
+    outgoing,
+    events: [{
+      type: "action-feedback",
+      payload: { nodeId: attrs.label, action, phase: "progress", progress: newProgress / duration },
+    }],
+  };
+});
+
 registerOperator("debounce", (config, attrs, message, _ctx) => {
   if (!message) return {};
   const ticks = config.ticks ?? 1;

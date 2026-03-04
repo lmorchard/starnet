@@ -205,14 +205,10 @@ export function launchExploit(nodeId, exploitId) {
     // A clean exploit: clear the disturbance so ICE doesn't chase a ghost signal.
     setLastDisturbedNode(null);
 
-    emitEvent(E.EXPLOIT_SUCCESS, {
-      nodeId,
-      label: node.label,
-      exploitName: exploit.name,
-      flavor: result.flavor,
-      roll: result.roll,
-      successChance: result.successChance,
-      matchingVulns: result.matchingVulns,
+    emitEvent(E.ACTION_RESOLVED, {
+      action: "exploit", nodeId, label: node.label, success: true,
+      detail: { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
+        successChance: result.successChance, matchingVulns: result.matchingVulns },
     });
 
     if (result.levelChanged) {
@@ -237,14 +233,10 @@ export function launchExploit(nodeId, exploitId) {
 
     setLastDisturbedNode(nodeId);
 
-    emitEvent(E.EXPLOIT_FAILURE, {
-      nodeId,
-      label: node.label,
-      exploitName: exploit.name,
-      flavor: result.flavor,
-      roll: result.roll,
-      successChance: result.successChance,
-      matchingVulns: result.matchingVulns,
+    emitEvent(E.ACTION_RESOLVED, {
+      action: "exploit", nodeId, label: node.label, success: false,
+      detail: { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
+        successChance: result.successChance, matchingVulns: result.matchingVulns },
     });
 
     if (node.alertState !== prevAlert) {

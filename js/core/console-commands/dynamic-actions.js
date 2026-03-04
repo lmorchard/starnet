@@ -15,16 +15,14 @@
 
 import { getState } from "../state.js";
 import { on, E, emitEvent } from "../events.js";
-import { addLogEntry } from "../log.js";
 import { registry, registerCommand } from "./registry.js";
+import { completeNodeArg } from "./completions.js";
 
-// Action IDs that are already registered as static console commands.
-// These don't need dynamic registration.
+// Action IDs with custom argument handling that stay as static console commands.
+// Everything else is dynamically discovered from the graph's available actions.
 const STATIC_ACTION_IDS = new Set([
-  "probe", "cancel-probe", "exploit", "cancel-exploit",
-  "read", "cancel-read", "loot", "cancel-loot",
-  "eject", "reboot", "jackout", "select", "deselect",
-  "reconfigure", "cancel-trace", "access-darknet",
+  "exploit",  // needs card argument from payload
+  "select", "deselect", "jackout",  // global actions, not node-specific
 ]);
 
 /** Track which dynamic commands we've registered so we can remove them. */
@@ -62,6 +60,7 @@ function syncDynamicActions() {
 
     registerCommand({
       verb: actionId,
+      complete: completeNodeArg,
       execute: () => {
         emitEvent("starnet:action", {
           actionId,

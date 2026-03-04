@@ -41,12 +41,10 @@ describe("tabComplete: verb completion", () => {
   });
 
   it("multi-match verb prefix returns LCP and all suggestions", () => {
-    // "ca" matches cancel-probe, cancel-exploit, cancel-read, cancel-loot, cancel-trace
-    const r = tabComplete("ca", state);
-    assert.ok(r.suggestions.length >= 5);
-    // LCP of cancel-* is "cancel-"
-    assert.ok(r.completed?.startsWith("cancel-"));
-    r.suggestions.forEach(s => assert.ok(s.startsWith("cancel-")));
+    // "st" matches status, store (static commands remaining)
+    const r = tabComplete("st", state);
+    assert.ok(r.suggestions.length >= 2);
+    r.suggestions.forEach(s => assert.ok(s.startsWith("st")));
   });
 
   it("no match returns null completed and empty suggestions", () => {
@@ -61,8 +59,8 @@ describe("tabComplete: verb completion", () => {
   });
 
   it("exact verb match still completes with trailing space", () => {
-    const r = tabComplete("probe", state);
-    assert.equal(r.completed, "probe ");
+    const r = tabComplete("exploit", state);
+    assert.equal(r.completed, "exploit ");
   });
 });
 
@@ -133,12 +131,9 @@ describe("tabComplete: node completion", () => {
     assert.ok(r.suggestions.includes("router-b"));
   });
 
-  it("probe, read, loot, reconfigure, reboot all complete nodes", () => {
-    for (const verb of ["probe", "read", "loot", "reconfigure", "reboot"]) {
-      const r = tabComplete(`${verb} ga`, state);
-      assert.equal(r.completed, `${verb} gateway `);
-    }
-  });
+  // probe, read, loot, reconfigure, reboot are now dynamically discovered
+  // from the graph — no custom tab completion. Node arg completion is a
+  // follow-up enhancement for dynamic commands.
 
   it("status node <id> completes the node id at position 3", () => {
     const r = tabComplete("status node ga", state);

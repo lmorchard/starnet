@@ -6,8 +6,7 @@ import { buildNetwork as buildCorporateFoothold } from "../../../data/networks/c
 import { initGame, getState, getVersion } from "./index.js";
 import { clearAll } from "../timers.js";
 import {
-  addCash, setCash, addCardToHand, setExecutingExploit,
-  incrementNoiseTick, setActiveProbe, setMissionComplete, applyCardDecay,
+  addCash, setCash, addCardToHand, setMissionComplete, applyCardDecay,
 } from "./player.js";
 
 describe("state/player — player mutations", () => {
@@ -34,39 +33,6 @@ describe("state/player — player mutations", () => {
     addCardToHand({ id: "test-card", name: "Test", quality: 0.5 });
     assert.equal(getState().player.hand.length, before + 1);
     assert.equal(getState().player.hand[before].id, "test-card");
-  });
-
-  it("setExecutingExploit sets and clears exploit state", () => {
-    setExecutingExploit({ nodeId: "gw", exploitId: "x", timerId: 1, noiseTimerId: 2, noiseTick: 0 });
-    assert.ok(getState().executingExploit);
-    assert.equal(getState().executingExploit.nodeId, "gw");
-
-    setExecutingExploit(null);
-    assert.equal(getState().executingExploit, null);
-  });
-
-  it("incrementNoiseTick increments noiseTick", () => {
-    setExecutingExploit({ nodeId: "gw", exploitId: "x", timerId: 1, noiseTimerId: 2, noiseTick: 0 });
-    incrementNoiseTick();
-    assert.equal(getState().executingExploit.noiseTick, 1);
-    incrementNoiseTick();
-    assert.equal(getState().executingExploit.noiseTick, 2);
-  });
-
-  it("incrementNoiseTick is no-op when not executing", () => {
-    const v = getVersion();
-    incrementNoiseTick();
-    // Doesn't crash, version still bumps
-    assert.equal(getVersion(), v + 1);
-  });
-
-  it("setActiveProbe sets and clears probe state", () => {
-    setActiveProbe({ nodeId: "gw", timerId: 5 });
-    assert.ok(getState().activeProbe);
-    assert.equal(getState().activeProbe.nodeId, "gw");
-
-    setActiveProbe(null);
-    assert.equal(getState().activeProbe, null);
   });
 
   it("setMissionComplete marks mission as complete", () => {

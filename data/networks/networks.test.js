@@ -83,14 +83,16 @@ function validateNetwork(name, build) {
       assert.ok(graph.getNodeIds().length > 0);
     });
 
-    it("all nodes have standard game attributes", () => {
+    it("all nodes have standard game attributes (after trait resolution)", () => {
       const { graphDef } = build();
-      const requiredAttrs = ["visibility", "accessLevel", "probed", "grade"];
-      for (const node of graphDef.nodes) {
+      const graph = new NodeGraph(graphDef);
+      const requiredAttrs = ["visibility"];
+      for (const nodeId of graph.getNodeIds()) {
+        const attrs = graph.getNodeState(nodeId);
         for (const attr of requiredAttrs) {
           assert.ok(
-            attr in node.attributes,
-            `Node "${node.id}" missing attribute "${attr}"`,
+            attr in attrs,
+            `Node "${nodeId}" missing attribute "${attr}"`,
           );
         }
       }

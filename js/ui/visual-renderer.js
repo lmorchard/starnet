@@ -22,25 +22,14 @@ import { exploitSortKey } from "../core/exploits.js";
 // queue overlapping cy.animate() calls that fight each other.
 let revealFitTimer = null;
 
-// Exploit execution timing — tracked here (not in state) for sub-tick precision.
-// Set when EXPLOIT_STARTED fires; cleared on resolution or cancellation.
+// Exploit execution timing — used for card progress % display fallback.
 let execStartTime = null;
 let execTotalMs = null;
 
-// Probe scan timing — same pattern, drives the sweep overlay in the graph.
-let probeStartTime = null;
-let probeTotalMs = null;
-
-// Read scan timing — same pattern, drives the sector fill overlay.
-let readStartTime = null;
-let readTotalMs = null;
-
-// Loot extract timing — same pattern, drives the ripple ring overlay.
-let lootStartTime = null;
-let lootTotalMs = null;
-
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
+// Cache the last-rendered action ID set to avoid flickering re-renders during timed actions.
+let _lastContextMenuActionIds = "";
 
 export function initVisualRenderer() {
   // ── Event-driven node style updates from NodeGraph ──────
@@ -72,68 +61,94 @@ export function initVisualRenderer() {
 
   on(E.RUN_STARTED, () => clearContextMenu());
 
-  // Track exploit execution start time for sub-tick progress animation precision.
-  on(E.EXPLOIT_STARTED, ({ durationMs }) => { execStartTime = Date.now(); execTotalMs = durationMs; });
-  on(E.EXPLOIT_INTERRUPTED, () => { execStartTime = null; execTotalMs = null; clearExploitBrackets(); });
-  on(E.EXPLOIT_SUCCESS,     () => { execStartTime = null; execTotalMs = null; clearExploitBrackets(); });
-  on(E.EXPLOIT_FAILURE,     () => { execStartTime = null; execTotalMs = null; clearExploitBrackets(); });
-  on(E.RUN_STARTED,         () => clearExploitBrackets());
+  // ── ACTION_FEEDBACK — unified timed action animation dispatch ──
+  // The timed-action operator emits action-feedback events with
+  // { nodeId, action, phase, progress }. We dispatch to per-action
+  // animation handlers. The old per-action events are no longer emitted.
+  //
+  // activeNodeId tracks which node has an active animation so we can
+  // clear overlays correctly on completion/cancel.
+  let activeProbeNodeId = null;
+  let activeExploitNodeId = null;
+  let activeReadNodeId = null;
+  let activeLootNodeId = null;
+
+  on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, progress }) => {
+    if (action === "probe") {
+      if (phase === "start") {
+        activeProbeNodeId = nodeId;
+      } else if (phase === "progress" && activeProbeNodeId) {
+        syncProbeSweep(activeProbeNodeId, progress);
+      } else if (phase === "complete" || phase === "cancel") {
+        clearProbeSweep();
+        activeProbeNodeId = null;
+      }
+    } else if (action === "exploit") {
+      if (phase === "start") {
+        activeExploitNodeId = nodeId;
+        execStartTime = Date.now();
+      } else if (phase === "progress" && activeExploitNodeId) {
+        syncExploitBrackets(activeExploitNodeId, progress);
+        updateExploitProgress(progress);
+      } else if (phase === "complete" || phase === "cancel") {
+        clearExploitBrackets();
+        execStartTime = null; execTotalMs = null;
+        if (phase === "complete") {
+          // Flash success/failure based on exploit result
+          // (EXPLOIT_SUCCESS/FAILURE events are still emitted by resolveExploit → launchExploit)
+        }
+        activeExploitNodeId = null;
+      }
+    } else if (action === "read") {
+      if (phase === "start") {
+        activeReadNodeId = nodeId;
+      } else if (phase === "progress" && activeReadNodeId) {
+        syncReadSectors(activeReadNodeId, progress);
+      } else if (phase === "complete" || phase === "cancel") {
+        clearReadSectors();
+        activeReadNodeId = null;
+      }
+    } else if (action === "loot") {
+      if (phase === "start") {
+        activeLootNodeId = nodeId;
+      } else if (phase === "progress" && activeLootNodeId) {
+        syncLootRings(activeLootNodeId, progress);
+      } else if (phase === "complete" || phase === "cancel") {
+        clearLootRings();
+        activeLootNodeId = null;
+      }
+    }
+  });
+
+  // Exploit result flash — driven by ACTION_RESOLVED
+  on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
+    if (action === "exploit") flashNode(nodeId, success ? "success" : "failure");
+  });
+
+  on(E.RUN_STARTED, () => {
+    clearExploitBrackets(); clearProbeSweep(); clearReadSectors(); clearLootRings();
+    clearIceDetectSweep();
+    activeProbeNodeId = null; activeExploitNodeId = null;
+    activeReadNodeId = null; activeLootNodeId = null;
+    execStartTime = null; execTotalMs = null;
+  });
 
   // ICE detection sweep — clear immediately on any event that ends a detection dwell.
-  // TIMERS_UPDATED only fires when visible timers exist, so we can't rely on it alone.
   on(E.ICE_DETECTED,     () => completeAndClearIceDetectSweep());
   on(E.ICE_MOVED,        () => clearIceDetectSweep());
   on(E.ICE_EJECTED,      () => clearIceDetectSweep());
   on(E.ICE_REBOOTED,     () => clearIceDetectSweep());
   on(E.PLAYER_NAVIGATED, () => clearIceDetectSweep());
-  on(E.RUN_STARTED,      () => clearIceDetectSweep());
 
-  // Track probe scan start time for the radial sweep overlay.
-  on(E.PROBE_SCAN_STARTED,   ({ durationMs }) => { probeStartTime = Date.now(); probeTotalMs = durationMs; });
-  on(E.PROBE_SCAN_CANCELLED, () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
-  on(E.NODE_PROBED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
-  on(E.RUN_STARTED,          () => { probeStartTime = null; probeTotalMs = null; clearProbeSweep(); });
-
-  // Track read scan start time for the sector fill overlay.
-  on(E.READ_SCAN_STARTED,    ({ durationMs }) => { readStartTime = Date.now(); readTotalMs = durationMs; });
-  on(E.READ_SCAN_CANCELLED,  () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
-  on(E.NODE_READ,            () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
-  on(E.RUN_STARTED,          () => { readStartTime = null; readTotalMs = null; clearReadSectors(); });
-
-  // Track loot extract start time for the ripple ring overlay.
-  on(E.LOOT_EXTRACT_STARTED,    ({ durationMs }) => { lootStartTime = Date.now(); lootTotalMs = durationMs; });
-  on(E.LOOT_EXTRACT_CANCELLED,  () => { lootStartTime = null; lootTotalMs = null; clearLootRings(); });
-  on(E.NODE_LOOTED,             () => { lootStartTime = null; lootTotalMs = null; clearLootRings(); });
-  on(E.RUN_STARTED,             () => { lootStartTime = null; lootTotalMs = null; clearLootRings(); });
-
-  // Timer-only tick: update countdowns in-place. Exploit progress is updated
-  // in-place (not a full re-render) so the cancel overlay stays stable in the DOM.
+  // Timer-only tick: update countdowns and ICE detection sweep.
+  // Action progress no longer driven here — ACTION_FEEDBACK handles it.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
     syncIceTimers();
     const countdown = document.getElementById("trace-countdown");
     if (countdown && state.traceSecondsRemaining !== null) {
       countdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
     }
-    if (state.executingExploit && execStartTime !== null && execTotalMs !== null) {
-      updateExploitProgress();
-    }
-    if (state.activeProbe && probeStartTime !== null && probeTotalMs !== null) {
-      const elapsed = Math.min(Date.now() - probeStartTime, probeTotalMs);
-      syncProbeSweep(state.activeProbe.nodeId, elapsed / probeTotalMs);
-    }
-    if (state.activeRead && readStartTime !== null && readTotalMs !== null) {
-      const elapsed = Math.min(Date.now() - readStartTime, readTotalMs);
-      syncReadSectors(state.activeRead.nodeId, elapsed / readTotalMs);
-    }
-    if (state.activeLoot && lootStartTime !== null && lootTotalMs !== null) {
-      const elapsed = Math.min(Date.now() - lootStartTime, lootTotalMs);
-      syncLootRings(state.activeLoot.nodeId, elapsed / lootTotalMs);
-    }
-    if (state.executingExploit && execStartTime !== null && execTotalMs !== null) {
-      const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
-      syncExploitBrackets(state.executingExploit.nodeId, elapsed / execTotalMs);
-    }
-    // ICE detection sweep — driven entirely by timer presence; self-clears when timer is gone
+    // ICE detection sweep — driven by timer presence; self-clears when timer is gone
     const iceDetect = getVisibleTimers().find((t) => t.label === "ICE DETECTION");
     if (iceDetect) {
       syncIceDetectSweep("ice-0", iceDetect.progress);
@@ -143,8 +158,7 @@ export function initVisualRenderer() {
   });
 
   // One-shot flash effects keyed to typed game events
-  on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { nodeId }) => flashNode(nodeId, "success"));
-  on(E.EXPLOIT_FAILURE, (/** @type {ExploitFailurePayload} */ { nodeId }) => flashNode(nodeId, "failure"));
+  // (EXPLOIT_SUCCESS/FAILURE flash handled above in ACTION_FEEDBACK section)
   on(E.NODE_ACCESSED,   (/** @type {NodeAccessedPayload} */   { nodeId }) => flashNode(nodeId, "success"));
   // Track which nodes existed before this batch of reveals
   let _preRevealNodeIds = null;
@@ -236,6 +250,15 @@ function syncContextMenu(node, state) {
     return;
   }
 
+  // Skip innerHTML rebuild if the same actions are already rendered — avoids
+  // destroying hover state during timed-action progress ticks.
+  const actionIdKey = actions.map(a => a.id).join(",");
+  if (actionIdKey === _lastContextMenuActionIds && contextMenuNodeId === node.id) {
+    _positionContextMenu(node.id);
+    return;
+  }
+  _lastContextMenuActionIds = actionIdKey;
+
   menu.innerHTML = actions.map((a) => {
     const desc = a.desc(node, state);
     return `<button class="ctx-item" data-action="${a.id}">
@@ -257,6 +280,7 @@ function syncContextMenu(node, state) {
 
 function clearContextMenu() {
   contextMenuNodeId = null;
+  _lastContextMenuActionIds = "";
   const menu = document.getElementById("node-context-menu");
   if (!menu) return;
   menu.style.opacity = "0";
@@ -472,10 +496,16 @@ function renderSidebarNode(sidebarNode, node, state) {
 
 // ── Hand pane ─────────────────────────────────────────────
 
-function updateExploitProgress() {
-  if (execStartTime === null || execTotalMs === null) return;
-  const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
-  const pct = Math.min(100, Math.round((elapsed / execTotalMs) * 100));
+function updateExploitProgress(progress = null) {
+  let pct;
+  if (progress !== null) {
+    pct = Math.min(100, Math.round(progress * 100));
+  } else if (execStartTime !== null && execTotalMs !== null) {
+    const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
+    pct = Math.min(100, Math.round((elapsed / execTotalMs) * 100));
+  } else {
+    return;
+  }
   const label = document.querySelector(".exploit-card.executing .ec-executing-label");
   if (label) label.textContent = `▶ EXECUTING — ${pct}%`;
 }
@@ -484,9 +514,11 @@ function syncHandPane(state) {
   const el = document.getElementById("hand-strip");
   if (!el) return;
 
-  const executing = state.executingExploit;
-  const isSelecting = !!state.selectedNodeId && !executing;
+  // Check for active exploit via node graph attributes (not old state.executingExploit)
   const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
+  const exploitingId = selectedNode?.exploiting ? selectedNode.activeExploitId : null;
+  const executing = !!exploitingId;
+  const isSelecting = !!state.selectedNodeId && !executing;
   const sortedHand = selectedNode
     ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : state.player.hand;
@@ -499,7 +531,7 @@ function syncHandPane(state) {
       ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
         : sortedHand.map((c, i) => {
-            const isExec = executing?.exploitId === c.id;
+            const isExec = exploitingId === c.id;
             const elapsedMs = (isExec && execStartTime !== null && execTotalMs !== null)
               ? Math.min(Date.now() - execStartTime, execTotalMs)
               : 0;

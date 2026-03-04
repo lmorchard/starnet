@@ -34,29 +34,8 @@ export const E = Object.freeze({
   RUN_ENDED:            "run:ended",
 
   NODE_REVEALED:        "node:revealed",
-  NODE_PROBED:          "node:probed",
   NODE_ACCESSED:        "node:accessed",
   NODE_ALERT_RAISED:    "node:alert-raised",
-  NODE_READ:            "node:read",
-  NODE_LOOTED:          "node:looted",
-  NODE_RECONFIGURED:    "node:reconfigured",
-  NODE_REBOOTING:       "node:rebooting",
-  NODE_REBOOTED:        "node:rebooted",
-
-  PROBE_SCAN_STARTED:   "probe:scan-started",
-  PROBE_SCAN_CANCELLED: "probe:scan-cancelled",
-
-  READ_SCAN_STARTED:    "read:scan-started",
-  READ_SCAN_CANCELLED:  "read:scan-cancelled",
-
-  LOOT_EXTRACT_STARTED:   "loot:extract-started",
-  LOOT_EXTRACT_CANCELLED: "loot:extract-cancelled",
-
-  EXPLOIT_STARTED:      "exploit:started",
-  EXPLOIT_NOISE:        "exploit:noise",
-  EXPLOIT_INTERRUPTED:  "exploit:interrupted",
-  EXPLOIT_SUCCESS:      "exploit:success",
-  EXPLOIT_FAILURE:      "exploit:failure",
   EXPLOIT_DISCLOSED:    "exploit:disclosed",
   EXPLOIT_PARTIAL_BURN: "exploit:partial-burn",
   EXPLOIT_SURFACE:      "exploit:surface-revealed",
@@ -79,6 +58,11 @@ export const E = Object.freeze({
   MISSION_COMPLETE:     "mission:complete",
 
   COMMAND_ISSUED:       "command:issued",
+
+  // Unified action feedback event — replaces per-action start/progress/complete events
+  ACTION_FEEDBACK:      "action:feedback",
+  // Unified action resolution event — replaces per-action NODE_PROBED, NODE_READ, etc.
+  ACTION_RESOLVED:      "action:resolved",
 
   // NodeGraph events — emitted by the onEvent bridge
   NODE_STATE_CHANGED:   "graph:node-state-changed",

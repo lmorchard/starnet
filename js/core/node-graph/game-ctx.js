@@ -14,18 +14,25 @@
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
 import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
-import { addCash } from "../state/player.js";
-import { startIce, ejectIce } from "../ice.js";
+import { addCash, setMissionComplete } from "../state/player.js";
+import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
+import { on } from "../events.js";
+import { setSelectedNode } from "../state/game.js";
+import { setNodeRebooting } from "../state/node.js";
+import { RNG, random } from "../rng.js";
 import { setGlobalAlert } from "../state/alert.js";
 import { emitEvent, E } from "../events.js";
-import { startProbe, cancelProbe } from "../actions/probe-exec.js";
-import { startExploit, cancelExploit } from "../actions/exploit-exec.js";
-import { startRead, cancelRead } from "../actions/read-exec.js";
-import { startLoot, cancelLoot } from "../actions/loot-exec.js";
-import { rebootNode, reconfigureNode } from "../node-orchestration.js";
-import { endRun } from "../state.js";
+// Exploit duration formula: higher quality = longer execution (more complex payload).
+// Range: 2s (quality=0) to 7s (quality=1).
+function exploitDuration(quality) {
+  return Math.round((2 + quality * 5) * 1000); // ms
+}
+import { endRun, ALERT_ORDER, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
+import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted } from "../state/node.js";
+import { setLastDisturbedNode } from "../state/ice.js";
+import { launchExploit } from "../combat.js";
 
 /**
  * Build the real CtxInterface for game integration.
@@ -46,6 +53,8 @@ export function buildGameCtx(opts = {}) {
     cancelTrace: () => cancelTraceCountdown(),
     giveReward: (amount) => addCash(amount),
     spawnICE: (_nodeId) => startIce(),
+    stopIce: () => stopIce(),
+    disableIce: () => { stopIce(); disableIce(); },
     setGlobalAlert: (level) => setGlobalAlert(level),
     enableNode: (nodeId) => {
       if (ctx._graph) ctx._graph.setNodeAttr(nodeId, "visibility", "accessible");
@@ -59,22 +68,215 @@ export function buildGameCtx(opts = {}) {
     log: (message) => emitEvent(E.LOG_ENTRY, { text: message, type: "system" }),
 
     // ── Game action callbacks ───────────────────────────
-    startProbe: (nodeId) => startProbe(nodeId),
-    cancelProbe: () => cancelProbe(),
-    startExploit: (nodeId, exploitId) => startExploit(nodeId, exploitId),
-    cancelExploit: () => cancelExploit(),
-    startRead: (nodeId) => startRead(nodeId),
-    cancelRead: () => cancelRead(),
-    startLoot: (nodeId) => startLoot(nodeId),
-    cancelLoot: () => cancelLoot(),
+    // Probe, read, loot start/cancel now handled by action effects (set-attr)
+    // in the trait-based action system. These stubs remain for backward compat.
+    startProbe: (_nodeId) => { /* now handled by timed-action operator */ },
+    cancelProbe: () => { /* now handled by cancel-probe action effects */ },
+    startExploit: (nodeId, exploitId) => {
+      // Exploit is special: needs exploitId from event payload to compute duration.
+      // Set node attributes so the timed-action operator drives the lifecycle.
+      const s = getState();
+      const node = s.nodes[nodeId];
+      const exploit = s.player.hand.find((c) => c.id === exploitId);
+      if (!node || !exploit || exploit.decayState === "disclosed" || exploit.usesRemaining === 0) return;
+
+      const durationMs = exploitDuration(exploit.quality);
+      const durationTicks = Math.round(durationMs / 100); // 100ms per tick
+      if (ctx._graph) {
+        ctx._graph.setNodeAttr(nodeId, "exploiting", true);
+        ctx._graph.setNodeAttr(nodeId, "activeExploitId", exploitId);
+        ctx._graph.setNodeAttr(nodeId, "_ta_exploit_progress", 0);
+        ctx._graph.setNodeAttr(nodeId, "_ta_exploit_duration", durationTicks);
+      }
+      // Emit start feedback immediately (operator skips start for pre-set durations)
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "exploit", phase: "start", progress: 0, durationTicks });
+      // Alert ICE immediately
+      setLastDisturbedNode(nodeId);
+    },
+    cancelExploit: () => {
+      // Find the node that's exploiting and reset it
+      const s = getState();
+      const exploitingNode = Object.values(s.nodes).find(n => /** @type {any} */ (n).exploiting);
+      if (!exploitingNode) return;
+      if (ctx._graph) {
+        ctx._graph.setNodeAttr(exploitingNode.id, "exploiting", false);
+        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_exploit_progress", 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_exploit_duration", 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, "activeExploitId", null);
+      }
+      emitEvent(E.ACTION_FEEDBACK, { nodeId: exploitingNode.id, action: "exploit", phase: "cancel", progress: 0 });
+    },
+    startRead: (_nodeId) => { /* now handled by timed-action operator */ },
+    cancelRead: () => { /* now handled by cancel-read action effects */ },
+    startLoot: (_nodeId) => { /* now handled by timed-action operator */ },
+    cancelLoot: () => { /* now handled by cancel-loot action effects */ },
     ejectIce: () => ejectIce(),
-    rebootNode: (nodeId) => rebootNode(nodeId),
-    reconfigureNode: (nodeId) => reconfigureNode(nodeId),
+    rebootNode: (nodeId) => {
+      // Legacy stub — reboot now handled by startReboot + timed-action operator
+    },
+    reconfigureNode: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node) return;
+      emitEvent(E.ACTION_RESOLVED, { action: "reconfigure", nodeId, label: node.label });
+    },
+
+    startReboot: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.rebooting) return;
+
+      // Send ICE home if on this node
+      if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
+        rebootIce();
+        emitEvent(E.ICE_REBOOTED, {
+          residentNodeId: s.ice.residentNodeId,
+          residentLabel: s.nodes[s.ice.residentNodeId]?.label ?? s.ice.residentNodeId,
+        });
+      }
+
+      // Deselect
+      if (s.selectedNodeId === nodeId) {
+        setSelectedNode(null);
+      }
+
+      // Set rebooting + random duration (1-3s = 10-30 ticks)
+      const durationTicks = 10 + Math.round(random(RNG.WORLD) * 20);
+      if (ctx._graph) {
+        ctx._graph.setNodeAttr(nodeId, "rebooting", true);
+        ctx._graph.setNodeAttr(nodeId, "_ta_reboot_progress", 0);
+        ctx._graph.setNodeAttr(nodeId, "_ta_reboot_duration", durationTicks);
+      }
+
+      emitEvent(E.ACTION_RESOLVED, { action: "reboot-start", nodeId, label: node.label, detail: { durationMs: durationTicks * 100 } });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "reboot", phase: "start", progress: 0, durationTicks });
+    },
     openDarknetsStore: () => {
       pauseTimers();
       openStore(getState());
+    },
+
+    // ── Resolve methods (called by timed-action operator on completion) ──
+
+    resolveProbe: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.probed) return;
+
+      setNodeProbed(nodeId);
+      setLastDisturbedNode(nodeId);
+
+      if ((node.gateAccess ?? "probed") === "probed") {
+        revealNeighbors(nodeId);
+      }
+
+      const prevAlert = node.alertState ?? "green";
+      const idx = ALERT_ORDER.indexOf(prevAlert);
+      if (idx >= 0 && idx < ALERT_ORDER.length - 1) {
+        setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
+      }
+
+      emitEvent(E.ACTION_RESOLVED, { action: "probe", nodeId, label: node.label });
+      const newAlert = getState().nodes[nodeId]?.alertState;
+      if (newAlert && newAlert !== prevAlert) {
+        emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: newAlert });
+      }
+    },
+
+    resolveExploit: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      const exploitId = /** @type {any} */ (node)?.activeExploitId;
+      if (!exploitId) return;
+      launchExploit(nodeId, exploitId);
+    },
+
+    resolveRead: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.read) return;
+
+      setNodeRead(nodeId);
+      emitEvent(E.ACTION_RESOLVED, { action: "read", nodeId, label: node.label, detail: { macguffinCount: (node.macguffins ?? []).length } });
+    },
+
+    resolveLoot: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.looted) return;
+
+      const { items, total } = collectMacguffins(nodeId);
+      if (items.length === 0) {
+        setNodeLooted(nodeId);
+        return;
+      }
+
+      setNodeLooted(nodeId);
+      addCash(total);
+      emitEvent(E.ACTION_RESOLVED, { action: "loot", nodeId, label: node.label, detail: { items: items.length, total } });
+
+      if (s.mission && !s.mission.complete) {
+        const gotMission = items.some((m) => m.id === s.mission.targetMacguffinId);
+        if (gotMission) {
+          setMissionComplete();
+          emitEvent(E.MISSION_COMPLETE, { targetName: s.mission.targetName });
+        }
+      }
+    },
+
+    resolveReboot: (nodeId) => {
+      // Legacy alias
+    },
+
+    completeReboot: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node) return;
+      setNodeRebooting(nodeId, false);
+      emitEvent(E.ACTION_RESOLVED, { action: "reboot-complete", nodeId, label: node.label });
+    },
+
+    emitActionFeedback: (nodeId, action, phase, progress, result) => {
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action, phase, progress, result });
     },
   };
 
   return ctx;
 }
+
+// ── Cancel timed actions on navigation (module-level, runs once) ──
+// When the player selects a different node or deselects, cancel any in-progress
+// timed action. Critical for evasion gameplay — the player must be able to
+// disengage quickly.
+on(E.PLAYER_NAVIGATED, () => {
+  const s = getState();
+  const graph = s.nodeGraph;
+  if (!graph) return;
+
+  for (const nodeId of graph.getNodeIds()) {
+    const attrs = graph.getNodeState(nodeId);
+    if (attrs.probing) {
+      graph.setNodeAttr(nodeId, "probing", false);
+      graph.setNodeAttr(nodeId, "_ta_probe_progress", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "probe", phase: "cancel", progress: 0 });
+    }
+    if (attrs.exploiting) {
+      graph.setNodeAttr(nodeId, "exploiting", false);
+      graph.setNodeAttr(nodeId, "_ta_exploit_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_exploit_duration", 0);
+      graph.setNodeAttr(nodeId, "activeExploitId", null);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "exploit", phase: "cancel", progress: 0 });
+    }
+    if (attrs.reading) {
+      graph.setNodeAttr(nodeId, "reading", false);
+      graph.setNodeAttr(nodeId, "_ta_read_progress", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "read", phase: "cancel", progress: 0 });
+    }
+    if (attrs.looting) {
+      graph.setNodeAttr(nodeId, "looting", false);
+      graph.setNodeAttr(nodeId, "_ta_loot_progress", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "loot", phase: "cancel", progress: 0 });
+    }
+  }
+});
+

@@ -17,11 +17,6 @@ import { initGame, getState, serializeState, deserializeState } from "../js/core
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
-import { completeReboot } from "../js/core/node-orchestration.js";
-import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/core/actions/exploit-exec.js";
-import { handleProbeScanTimer } from "../js/core/actions/probe-exec.js";
-import { handleReadScanTimer } from "../js/core/actions/read-exec.js";
-import { handleLootExtractTimer } from "../js/core/actions/loot-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
 import { on, E } from "../js/core/events.js";
 import { tick, TIMER } from "../js/core/timers.js";
@@ -29,14 +24,12 @@ import { handleTraceTick } from "../js/core/alert.js";
 import { initLog, addLogEntry } from "../js/core/log.js";
 import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
-import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
 import { initGraphBridge } from "../js/core/graph-bridge.js";
 import { initDynamicActions } from "../js/core/console-commands/dynamic-actions.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
-initNodeLifecycle();
 
 // ── Arg parsing ────────────────────────────────────────────
 
@@ -90,12 +83,7 @@ if (!cmdStr) {
 on(TIMER.ICE_MOVE,        ()        => handleIceTick());
 on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
-on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
-on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
-on(TIMER.EXPLOIT_NOISE,   (payload) => handleExploitNoiseTimer(payload));
-on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
-on(TIMER.READ_SCAN,       (payload) => handleReadScanTimer(payload));
-on(TIMER.LOOT_EXTRACT,    (payload) => handleLootExtractTimer(payload));
+// Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
 // ── Action dispatcher ──────────────────────────────────────
 // Same path as the browser: starnet:action → getAvailableActions guard → ActionDef.execute()
@@ -118,30 +106,33 @@ initLog();
 on(E.LOG_ENTRY, ({ text }) => out(text));
 
 // Game events not covered by log-renderer (which isn't loaded in the harness)
-on(E.NODE_PROBED,          ({ label })                 => out(`[NODE] ${label}: vulnerabilities scanned.`));
 on(E.NODE_ALERT_RAISED,    ({ label, prev, next })     => out(`[NODE] ${label}: alert ${prev} → ${next}.`));
 on(E.NODE_ACCESSED,        ({ label, prev, next })     => out(`[NODE] ${label}: ${prev} → ${next.toUpperCase()}.`));
 on(E.NODE_REVEALED,        ({ label, unlocked })       => { if (unlocked) out(`[NODE] ${label}: node accessible.`); });
-on(E.NODE_READ,            ({ label, macguffinCount }) => out(`[NODE] ${label}: ${macguffinCount} item(s) found.`));
-on(E.NODE_LOOTED,          ({ label, items, total })   => out(`[NODE] ${label}: looted ${items} item(s) — ¥${total.toLocaleString()}.`));
-on(E.NODE_REBOOTING,       ({ label })                 => out(`[NODE] ${label}: rebooting.`));
-on(E.NODE_REBOOTED,        ({ label })                 => out(`[NODE] ${label}: online.`));
-on(E.PROBE_SCAN_STARTED,   ({ label, durationMs }) =>
-  out(`[PROBE] ${label}: scanning (${Math.round(durationMs / 1000)}s)...`));
-on(E.PROBE_SCAN_CANCELLED, ({ label }) => out(`[PROBE] ${label}: scan cancelled.`));
-on(E.READ_SCAN_STARTED,    ({ label, durationMs }) =>
-  out(`[READ] ${label}: extracting data (${Math.round(durationMs / 1000)}s)...`));
-on(E.READ_SCAN_CANCELLED,  ({ label }) => out(`[READ] ${label}: extraction cancelled.`));
-on(E.LOOT_EXTRACT_STARTED,    ({ label, durationMs }) =>
-  out(`[LOOT] ${label}: extracting loot (${Math.round(durationMs / 1000)}s)...`));
-on(E.LOOT_EXTRACT_CANCELLED,  ({ label }) => out(`[LOOT] ${label}: extraction cancelled.`));
-on(E.EXPLOIT_STARTED,      ({ label, exploitName, durationMs }) =>
-  out(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`));
-on(E.EXPLOIT_INTERRUPTED,  ({ exploitName }) => out(`[EXPLOIT] ${exploitName}: interrupted.`));
-on(E.EXPLOIT_SUCCESS,      ({ label, exploitName, roll, successChance }) =>
-  out(`[EXPLOIT] ${label} — ${exploitName}: SUCCESS (roll ${roll} vs ${successChance}%)`));
-on(E.EXPLOIT_FAILURE,      ({ label, exploitName, roll, successChance }) =>
-  out(`[EXPLOIT] ${label} — ${exploitName}: FAIL (roll ${roll} vs ${successChance}%)`));
+// Timed action lifecycle
+on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
+  const s = getState();
+  const label = s.nodes[nodeId]?.label ?? nodeId;
+  if (phase === "start") {
+    const secs = Math.round((durationTicks ?? 0) / 10);
+    out(`[${action.toUpperCase()}] ${label}: ${action === "exploit" ? "executing" : "running"} (${secs}s)...`);
+  } else if (phase === "cancel") {
+    out(`[${action.toUpperCase()}] ${label}: cancelled.`);
+  }
+});
+// Action resolutions
+on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
+  if (action === "probe") out(`[NODE] ${label}: vulnerabilities scanned.`);
+  else if (action === "exploit") {
+    const d = detail ?? {};
+    out(`[EXPLOIT] ${label} — ${d.exploitName}: ${success ? "SUCCESS" : "FAIL"} (roll ${d.roll} vs ${d.successChance}%)`);
+  }
+  else if (action === "read") out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
+  else if (action === "loot") out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
+  else if (action === "reconfigure") out(`[NODE] ${label}: event forwarding disabled.`);
+  else if (action === "reboot-start") out(`[NODE] ${label}: rebooting.`);
+  else if (action === "reboot-complete") out(`[NODE] ${label}: online.`);
+});
 on(E.EXPLOIT_DISCLOSED,    ({ exploitName })           => out(`[EXPLOIT] ${exploitName}: disclosed.`));
 on(E.EXPLOIT_PARTIAL_BURN, ({ exploitName, usesRemaining }) =>
   out(`[EXPLOIT] ${exploitName}: partial burn (${usesRemaining} uses left).`));

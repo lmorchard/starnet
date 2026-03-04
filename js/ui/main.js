@@ -1,11 +1,6 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
 import { initGraph, getCy, addIceNode, fitGraph, syncInitialNodes } from "./graph.js";
 import { initGame, getState } from "../core/state.js";
-import { completeReboot } from "../core/node-orchestration.js";
-import { handleExploitExecTimer, handleExploitNoiseTimer } from "../core/actions/exploit-exec.js";
-import { handleProbeScanTimer } from "../core/actions/probe-exec.js";
-import { handleReadScanTimer } from "../core/actions/read-exec.js";
-import { handleLootExtractTimer } from "../core/actions/loot-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "../core/ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "../core/events.js";
@@ -13,7 +8,6 @@ import { tick, TICK_MS, TIMER, getVisibleTimers, pauseTimers, resumeTimers } fro
 import { handleTraceTick } from "../core/alert.js";
 import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
-import { initNodeLifecycle } from "../core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
 import { openDarknetsStore } from "./store.js";
 import { initGraphBridge } from "../core/graph-bridge.js";
@@ -140,15 +134,7 @@ function init() {
   on(TIMER.ICE_MOVE,     () => handleIceTick());
   on(TIMER.ICE_DETECT,   (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK,   () => handleTraceTick());
-  on(TIMER.EXPLOIT_EXEC,   (payload) => handleExploitExecTimer(payload));
-  on(TIMER.EXPLOIT_NOISE,  (payload) => handleExploitNoiseTimer(payload));
-  on(TIMER.PROBE_SCAN,   (payload) => handleProbeScanTimer(payload));
-  on(TIMER.READ_SCAN,    (payload) => handleReadScanTimer(payload));
-  on(TIMER.LOOT_EXTRACT, (payload) => handleLootExtractTimer(payload));
-
-  on(TIMER.REBOOT_COMPLETE, (payload) => {
-    completeReboot(payload.nodeId);
-  });
+  // Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
   on("starnet:action:run-again", () => {
     initGame(() => buildNetworkFn(), undefined, { openDarknetsStore });

@@ -76,26 +76,15 @@
 // ── Composite shapes ──────────────────────────────────────
 
 /**
- * Per-node game state. All fields are managed exclusively through state.js mutations.
+ * Per-node game state. Core fields are listed here; trait-provided attributes
+ * (probing, exploiting, reading, looting, activeExploitId, etc.) are dynamic
+ * and accessed via index signature.
  * @typedef {{
  *   id: string,
  *   type: string,
  *   label: string,
- *   grade: Grade,
- *   visibility: Visibility,
- *   accessLevel: AccessLevel,
- *   alertState: NodeAlertLevel,
- *   probed: boolean,
- *   vulnerabilities: Vulnerability[],
- *   macguffins: Macguffin[],
- *   read: boolean,
- *   looted: boolean,
- *   eventForwardingDisabled?: boolean,
- *   rebooting: boolean,
- *   sigAlias?: string,
- *   gateAccess?: string,
- *   forwardingEnabled?: boolean,
- *   lootCount?: number[],
+ *   visibility: string,
+ *   [key: string]: any,
  * }} NodeState
  */
 
@@ -192,24 +181,17 @@
  * Dependency-injection context passed to action execute() functions.
  * main.js constructs one instance at init, wiring each field to the
  * corresponding state mutator. Tests can pass mock contexts.
+ * Action context for the dispatcher — only contains actions not handled by the
+ * graph's trait-based action system. Most game actions (probe, exploit, read,
+ * loot, reboot, reconfigure) are now graph-native via timed-action operators.
  * @typedef {{
- *   getState:      () => GameState,
- *   selectNode:    (nodeId: string) => void,
- *   deselectNode:  () => void,
- *   startProbe:    (nodeId: string) => void,
- *   cancelProbe:   () => void,
- *   startExploit:  (nodeId: string, exploitId: string) => void,
- *   cancelExploit: () => void,
- *   startRead:     (nodeId: string) => void,
- *   cancelRead:    () => void,
- *   startLoot:     (nodeId: string) => void,
- *   cancelLoot:    () => void,
- *   ejectIce:         () => void,
- *   rebootNode:       (nodeId: string) => void,
- *   jackOut:          () => void,
- *   reconfigureNode:     (nodeId: string) => void,
- *   cancelTrace:         () => void,
- *   openDarknetsStore:   () => void,
+ *   getState:          () => GameState,
+ *   selectNode:        (nodeId: string) => void,
+ *   deselectNode:      () => void,
+ *   ejectIce:          () => void,
+ *   jackOut:            () => void,
+ *   cancelTrace:       () => void,
+ *   openDarknetsStore: () => void,
  * }} ActionContext
  */
 
@@ -285,10 +267,6 @@
  *   ice: IceState|null,
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
- *   executingExploit: ExecutingExploit|null,
- *   activeProbe: ActiveProbe|null,
- *   activeRead: ActiveRead|null,
- *   activeLoot: ActiveLoot|null,
  *   nodeGraph?: any,
  * }} GameState
  */

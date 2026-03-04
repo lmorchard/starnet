@@ -10,6 +10,8 @@ export const nullCtx = {
   cancelTrace() {},
   giveReward(_amount) {},
   spawnICE(_nodeId) {},
+  stopIce() {},
+  disableIce() {},
   setGlobalAlert(_level) {},
   enableNode(_nodeId) {},
   disableNode(_nodeId) {},
@@ -27,6 +29,14 @@ export const nullCtx = {
   rebootNode(_nodeId) {},
   reconfigureNode(_nodeId) {},
   openDarknetsStore() {},
+  resolveProbe(_nodeId) {},
+  resolveExploit(_nodeId) {},
+  resolveRead(_nodeId) {},
+  resolveLoot(_nodeId) {},
+  resolveReboot(_nodeId) {},
+  startReboot(_nodeId) {},
+  completeReboot(_nodeId) {},
+  emitActionFeedback(_nodeId, _action, _phase, _progress, _result) {},
 };
 
 /**
@@ -54,6 +64,8 @@ export function mockCtx() {
     cancelTrace: spy("cancelTrace"),
     giveReward: spy("giveReward"),
     spawnICE: spy("spawnICE"),
+    stopIce: spy("stopIce"),
+    disableIce: spy("disableIce"),
     setGlobalAlert: spy("setGlobalAlert"),
     enableNode: spy("enableNode"),
     disableNode: spy("disableNode"),
@@ -71,6 +83,14 @@ export function mockCtx() {
     rebootNode: spy("rebootNode"),
     reconfigureNode: spy("reconfigureNode"),
     openDarknetsStore: spy("openDarknetsStore"),
+    resolveProbe: spy("resolveProbe"),
+    resolveExploit: spy("resolveExploit"),
+    resolveRead: spy("resolveRead"),
+    resolveLoot: spy("resolveLoot"),
+    resolveReboot: spy("resolveReboot"),
+    startReboot: spy("startReboot"),
+    completeReboot: spy("completeReboot"),
+    emitActionFeedback: spy("emitActionFeedback"),
     calls,
   };
 

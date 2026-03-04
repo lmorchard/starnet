@@ -11,7 +11,9 @@ import { applyOperators } from "./operators.js";
 import { QualityStore } from "./qualities.js";
 import { TriggerStore } from "./triggers.js";
 import { getAvailableActions, executeAction } from "./actions.js";
+import { applyEffect } from "./effects.js";
 import { nullCtx } from "./ctx.js";
+import { resolveTraits } from "./traits.js";
 
 /**
  * @typedef {Object} NodeGraphDef
@@ -49,7 +51,8 @@ export class NodeGraph {
 
     /** @type {Map<string, NodeState>} */
     this._nodes = new Map();
-    for (const n of nodes) {
+    for (const raw of nodes) {
+      const n = resolveTraits(raw);
       this._nodes.set(n.id, {
         id: n.id,
         type: n.type,
@@ -167,6 +170,7 @@ export class NodeGraph {
     node.attributes = { ...node.attributes, [attr]: value };
     if (value !== previous) {
       this._onEvent("node-state-changed", { nodeId, attr, value, previous });
+      this._evaluateTriggers();
     }
   }
 
@@ -286,7 +290,7 @@ export class NodeGraph {
     this._onEvent("message-delivered", { nodeId, message: incoming });
 
     const oldAttrs = node.attributes;
-    const { attributes, outgoing, qualityDeltas } = applyOperators(node.operators, node.attributes, incoming, this._ctx);
+    const { attributes, outgoing, qualityDeltas, events } = applyOperators(node.operators, node.attributes, incoming, this._ctx);
     node.attributes = attributes;
 
     // Emit per-attribute change events for operator mutations
@@ -302,6 +306,16 @@ export class NodeGraph {
       const value = this._qualities.get(name);
       if (value !== previous) {
         this._onEvent("quality-changed", { name, value, previous });
+      }
+    }
+
+    // Emit operator-returned events (e.g. action-feedback from timed-action)
+    for (const evt of events) {
+      if (evt.type === "operator-effect") {
+        // Apply completion effects (ctx-call, set-attr, etc.) through the effect system
+        applyEffect(evt.payload, this._actionMutators(nodeId));
+      } else {
+        this._onEvent(evt.type, evt.payload);
       }
     }
 
