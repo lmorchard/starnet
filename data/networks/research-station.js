@@ -9,7 +9,7 @@
 
 import { instantiate, SET_PIECES } from "../../js/core/node-graph/set-pieces.js";
 import {
-  createGateway, createRouter, createFileserver, enrichWithGameActions,
+  createGateway, createRouter, createFileserver, createWAN, enrichWithGameActions,
 } from "../../js/core/node-graph/game-types.js";
 
 /**
@@ -23,6 +23,7 @@ export function buildNetwork() {
   const spine1 = createRouter("spine-1");
   const spine2 = createRouter("spine-2");
   const archive = createFileserver("archive-1", { grade: "D" });
+  const wan = createWAN("wan");
 
   // ── Set-piece instances ──────────────────────────────
   const deadman = instantiate(SET_PIECES.deadmanCircuit, "deadman");
@@ -44,7 +45,7 @@ export function buildNetwork() {
 
   // ── Merge all nodes ──────────────────────────────────
   const nodes = [
-    gateway, spine1, spine2, archive,
+    gateway, spine1, spine2, archive, wan,
     ...deadmanNodes,
     ...lockNodes,
     ...cryptoNodes,
@@ -60,6 +61,7 @@ export function buildNetwork() {
     ...tamper.edges,
     // Backbone
     ["gateway", "spine-1"],
+    ["gateway", "wan"],
     ["spine-1", "spine-2"],
     // Spine-1 branches
     ["spine-1", "deadman/heartbeat-relay"],

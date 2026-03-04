@@ -9,7 +9,7 @@
 
 import { instantiate, SET_PIECES } from "../../js/core/node-graph/set-pieces.js";
 import {
-  createGateway, createRouter, enrichWithGameActions,
+  createGateway, createRouter, createWAN, enrichWithGameActions,
 } from "../../js/core/node-graph/game-types.js";
 
 /**
@@ -21,6 +21,7 @@ export function buildNetwork() {
     attributes: { visibility: "accessible" },
   });
   const router1 = createRouter("router-1");
+  const wan = createWAN("wan");
 
   // ── Set-piece instances ──────────────────────────────
   const sec = instantiate(SET_PIECES.idsRelayChain, "sec");
@@ -41,7 +42,7 @@ export function buildNetwork() {
 
   // ── Merge all nodes ──────────────────────────────────
   const nodes = [
-    gateway, router1,
+    gateway, router1, wan,
     ...secNodes,
     ...alarmNodes,
     ...vaultNodes,
@@ -57,6 +58,7 @@ export function buildNetwork() {
     ...office.edges,
     // Backbone
     ["gateway", "router-1"],
+    ["gateway", "wan"],
     // Router-1 to components
     ["router-1", "sec/ids"],
     ["router-1", "alarm/sensor"],
