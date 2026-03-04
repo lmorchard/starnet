@@ -32,8 +32,8 @@ describe("getNodeType", () => {
     assert.ok(Array.isArray(def.actions));
   });
 
-  it("throws for an unknown type", () => {
-    assert.throws(() => getNodeType("nonexistent"), /Unknown node type/);
+  it("returns null for an unknown type", () => {
+    assert.equal(getNodeType("nonexistent"), null);
   });
 });
 

@@ -184,10 +184,14 @@ export const NODE_TYPES = {
  * @param {string} type
  * @returns {NodeTypeDef}
  */
+/**
+ * Returns the base type definition, or null if the type is unknown.
+ * Set-piece nodes may have types (e.g. "tripwire-sensor") not in this registry.
+ * @param {string} type
+ * @returns {NodeTypeDef | null}
+ */
 export function getNodeType(type) {
-  const def = NODE_TYPES[type];
-  if (!def) throw new Error(`Unknown node type: "${type}"`);
-  return def;
+  return NODE_TYPES[type] ?? null;
 }
 
 /**
@@ -199,6 +203,7 @@ export function getNodeType(type) {
  */
 export function resolveNode(node) {
   const base = getNodeType(node.type);
+  if (!base) return null;
   const override = base.gradeOverrides?.[node.grade];
   if (!override) return base;
 
@@ -230,7 +235,7 @@ export function resolveNode(node) {
  * @returns {"probed"|"compromised"|"owned"}
  */
 export function getGateAccess(node) {
-  return resolveNode(node).gateAccess ?? "probed";
+  return resolveNode(node)?.gateAccess ?? /** @type {any} */ (node).gateAccess ?? "probed";
 }
 
 /**
@@ -239,8 +244,9 @@ export function getGateAccess(node) {
  * @returns {BehaviorAtom[]}
  */
 export function getBehaviors(node) {
-  const { behaviors } = resolveNode(node);
-  return behaviors.map((id) => {
+  const resolved = resolveNode(node);
+  if (!resolved) return [];
+  return resolved.behaviors.map((id) => {
     const atom = BEHAVIORS[id];
     if (!atom) throw new Error(`Unknown behavior atom: "${id}"`);
     return atom;
@@ -254,7 +260,7 @@ export function getBehaviors(node) {
  * @returns {boolean}
  */
 export function hasBehavior(node, id) {
-  return resolveNode(node).behaviors.includes(id);
+  return resolveNode(node)?.behaviors.includes(id) ?? false;
 }
 
 /**
@@ -276,5 +282,7 @@ export function getStateFields(node) {
  * @returns {ActionDef[]}
  */
 export function getActions(node, state) {
-  return resolveNode(node).actions.filter((a) => a.available(node, state));
+  const resolved = resolveNode(node);
+  if (!resolved) return [];
+  return resolved.actions.filter((a) => a.available(node, state));
 }
