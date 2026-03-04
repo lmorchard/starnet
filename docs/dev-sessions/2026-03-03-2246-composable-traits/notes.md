@@ -54,3 +54,10 @@ rebootable on all hackable types. Can revisit later.
 - All 529 tests pass
 - Deferred adding timed-action operators to trait definitions until Phase 7
   to avoid double-execution with old executors still active
+
+## Phase 6: ACTION_FEEDBACK Event (Partial) ✓
+
+- Added `E.ACTION_FEEDBACK` to events.js
+- Deferred full renderer rewire to Phase 7 — avoids a broken intermediate state
+  where renderers are rewired but executors still emit old events. Will do the
+  renderer rewire as part of the Phase 7 end-to-end swap.

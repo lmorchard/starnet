@@ -80,6 +80,9 @@ export const E = Object.freeze({
 
   COMMAND_ISSUED:       "command:issued",
 
+  // Unified action feedback event — replaces per-action start/progress/complete events
+  ACTION_FEEDBACK:      "action:feedback",
+
   // NodeGraph events — emitted by the onEvent bridge
   NODE_STATE_CHANGED:   "graph:node-state-changed",
   MESSAGE_PROPAGATED:   "graph:message-propagated",
