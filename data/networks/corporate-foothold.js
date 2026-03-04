@@ -80,7 +80,7 @@ export function buildNetwork() {
       startNode: "gateway",
       startCash: 0,
       moneyCost: "C",
-      startHandSpec: { count: 4, grade: "C" },
+      startHand: ["common", "common", "uncommon", "uncommon"],
       ice: null,
     },
   };

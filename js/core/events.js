@@ -79,4 +79,9 @@ export const E = Object.freeze({
   MISSION_COMPLETE:     "mission:complete",
 
   COMMAND_ISSUED:       "command:issued",
+
+  // NodeGraph events — emitted by the onEvent bridge
+  NODE_STATE_CHANGED:   "graph:node-state-changed",
+  MESSAGE_PROPAGATED:   "graph:message-propagated",
+  QUALITY_CHANGED:      "graph:quality-changed",
 });

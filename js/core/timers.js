@@ -25,6 +25,12 @@ let currentTick = 0;
 let nextId = 1;
 let _pauseCount = 0;
 
+/** @type {import('./node-graph/runtime.js').NodeGraph | null} */
+let _graphRef = null;
+
+/** Register NodeGraph for tick advancement. */
+export function setGraphForTick(graph) { _graphRef = graph; }
+
 export function pauseTimers()  { _pauseCount++; }
 export function resumeTimers() { if (_pauseCount > 0) _pauseCount--; }
 export function isPaused()     { return _pauseCount > 0; }
@@ -82,6 +88,11 @@ export function tick(n = 1) {
       }
     }
   }
+  // Advance NodeGraph internal clock (operators: clock, delay, watchdog, debounce)
+  if (_graphRef) {
+    for (let i = 0; i < n; i++) _graphRef.tick(1);
+  }
+
   // Emit STATE_CHANGED once at the end of the tick cycle if any state mutation occurred.
   if (getVersion() !== versionBefore) {
     emitEvent(E.STATE_CHANGED, getState());

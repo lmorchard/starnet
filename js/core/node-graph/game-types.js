@@ -449,6 +449,13 @@ export function createWAN(id, config = {}) {
  * @returns {NodeDef}
  */
 export function enrichWithGameActions(node, { lootable = false } = {}) {
+  /** @type {Record<string, [number, number]>} */
+  const LOOT_COUNTS = {
+    "fileserver": [1, 2],
+    "workstation": [0, 1],
+    "cryptovault": [1, 3],
+    "key-server": [0, 1],
+  };
   const defaults = {
     label: node.id,
     grade: "D",
@@ -467,6 +474,7 @@ export function enrichWithGameActions(node, { lootable = false } = {}) {
     reading: false,
     looting: false,
     forwardingEnabled: true,
+    ...(lootable && LOOT_COUNTS[node.type] ? { lootCount: LOOT_COUNTS[node.type] } : {}),
   };
   const baseActions = lootable ? LOOTABLE_ACTIONS : BASIC_ACTIONS;
   // Merge: defaults first, then node's own attrs override, then ensure label

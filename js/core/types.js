@@ -286,6 +286,7 @@
  *   activeProbe: ActiveProbe|null,
  *   activeRead: ActiveRead|null,
  *   activeLoot: ActiveLoot|null,
+ *   nodeGraph?: any,
  * }} GameState
  */
 

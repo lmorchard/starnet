@@ -183,6 +183,17 @@ export class NodeGraph {
   }
 
   /**
+   * Return a node's full data: id, type, and all attributes.
+   * Useful for populating game state objects.
+   * @param {string} nodeId
+   * @returns {{ id: string, type: string } & Record<string, any>}
+   */
+  getNode(nodeId) {
+    const node = this._requireNode(nodeId);
+    return { id: node.id, type: node.type, ...node.attributes };
+  }
+
+  /**
    * Return all node IDs in the graph.
    * @returns {string[]}
    */

@@ -1,7 +1,41 @@
 // @ts-check
 // Pure node state mutations. No event emission, no orchestration.
+// When a NodeGraph is registered, setters also sync changes to the graph.
 
 import { getState, mutate } from "./index.js";
+
+/** @type {import('../node-graph/runtime.js').NodeGraph | null} */
+let _graph = null;
+let _syncingToGraph = false;
+
+/**
+ * Register the NodeGraph for bidirectional sync.
+ * Call once after graph construction in initGame().
+ * @param {import('../node-graph/runtime.js').NodeGraph | null} graph
+ */
+export function setNodeGraph(graph) {
+  _graph = graph;
+}
+
+/** @returns {boolean} True if we're currently syncing from a setter to graph. */
+export function isSyncingToGraph() {
+  return _syncingToGraph;
+}
+
+/**
+ * Sync an attribute change to the graph (if registered).
+ * Guards against circular updates.
+ * @param {string} nodeId
+ * @param {string} attr
+ * @param {any} value
+ */
+function syncToGraph(nodeId, attr, value) {
+  if (_graph) {
+    _syncingToGraph = true;
+    try { _graph.setNodeAttr(nodeId, attr, value); }
+    finally { _syncingToGraph = false; }
+  }
+}
 
 /** Sets node.visibility ('hidden' | 'revealed' | 'accessible'). */
 export function setNodeVisible(nodeId, visibility) {
@@ -9,6 +43,7 @@ export function setNodeVisible(nodeId, visibility) {
     const node = s.nodes[nodeId];
     if (node) node.visibility = visibility;
   });
+  syncToGraph(nodeId, "visibility", visibility);
 }
 
 /** Sets node.accessLevel ('locked' | 'compromised' | 'owned'). */
@@ -17,6 +52,7 @@ export function setNodeAccessLevel(nodeId, level) {
     const node = s.nodes[nodeId];
     if (node) node.accessLevel = level;
   });
+  syncToGraph(nodeId, "accessLevel", level);
 }
 
 /** Marks a node as probed. */
@@ -25,6 +61,7 @@ export function setNodeProbed(nodeId) {
     const node = s.nodes[nodeId];
     if (node) node.probed = true;
   });
+  syncToGraph(nodeId, "probed", true);
 }
 
 /** Sets node.alertState ('green' | 'yellow' | 'red'). */
@@ -33,6 +70,7 @@ export function setNodeAlertState(nodeId, alertState) {
     const node = s.nodes[nodeId];
     if (node) node.alertState = alertState;
   });
+  syncToGraph(nodeId, "alertState", alertState);
 }
 
 /** Marks a node as read. */
@@ -41,6 +79,7 @@ export function setNodeRead(nodeId) {
     const node = s.nodes[nodeId];
     if (node) node.read = true;
   });
+  syncToGraph(nodeId, "read", true);
 }
 
 /**
@@ -63,6 +102,11 @@ export function collectMacguffins(nodeId) {
       }
     });
   });
+  // Sync the full macguffins array to the graph (collected flags changed)
+  const s = getState();
+  if (s.nodes[nodeId]) {
+    syncToGraph(nodeId, "macguffins", s.nodes[nodeId].macguffins);
+  }
   return { items, total };
 }
 
@@ -72,6 +116,7 @@ export function setNodeLooted(nodeId) {
     const node = s.nodes[nodeId];
     if (node) node.looted = true;
   });
+  syncToGraph(nodeId, "looted", true);
 }
 
 /** Sets node.rebooting. */
@@ -80,6 +125,7 @@ export function setNodeRebooting(nodeId, rebooting) {
     const node = s.nodes[nodeId];
     if (node) node.rebooting = rebooting;
   });
+  syncToGraph(nodeId, "rebooting", rebooting);
 }
 
 /** Sets node.sigAlias (temporary console alias while the node is revealed). */
@@ -88,6 +134,7 @@ export function setNodeSigAlias(nodeId, alias) {
     const node = s.nodes[nodeId];
     if (node) node.sigAlias = alias;
   });
+  syncToGraph(nodeId, "sigAlias", alias);
 }
 
 /** Sets node.eventForwardingDisabled. */
@@ -96,6 +143,7 @@ export function setNodeEventForwarding(nodeId, disabled) {
     const node = s.nodes[nodeId];
     if (node) node.eventForwardingDisabled = disabled;
   });
+  syncToGraph(nodeId, "eventForwardingDisabled", disabled);
 }
 
 /** Sets hidden flag on a specific vulnerability by index. */
@@ -106,4 +154,9 @@ export function setNodeVulnHidden(nodeId, vulnIndex, hidden) {
       node.vulnerabilities[vulnIndex].hidden = hidden;
     }
   });
+  // Sync full vulns array
+  const s = getState();
+  if (s.nodes[nodeId]) {
+    syncToGraph(nodeId, "vulnerabilities", s.nodes[nodeId].vulnerabilities);
+  }
 }

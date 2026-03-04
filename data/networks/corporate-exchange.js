@@ -96,7 +96,7 @@ export function buildNetwork() {
       startNode: "gateway",
       startCash: 200,
       moneyCost: "A",
-      startHandSpec: { count: 5, grade: "B" },
+      startHand: ["common", "uncommon", "uncommon", "rare", "rare"],
       ice: { grade: "B", startNode: "sec/monitor" },
     },
   };

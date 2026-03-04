@@ -23,17 +23,20 @@
 /** @typedef {import('../types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('../types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick } from "../rng.js";
+import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt } from "../rng.js";
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
-import { clearAll as clearAllTimers, serializeTimers, deserializeTimers } from "../timers.js";
+import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
 import { emitEvent, E } from "../events.js";
 import { getStateFields, getBehaviors, resolveNode } from "../actions/node-types.js";
 
-import { setNodeVisible, setNodeSigAlias } from "./node.js";
+import { setNodeVisible, setNodeSigAlias, setNodeGraph, isSyncingToGraph } from "./node.js";
 import { setIceActive } from "./ice.js";
 import { setPhase, setRunOutcome } from "./game.js";
 import { setCash, addCash, addCardToHand } from "./player.js";
+
+import { NodeGraph } from "../node-graph/runtime.js";
+import { buildGameCtx } from "../node-graph/game-ctx.js";
 
 // ── State + version counter ──────────────────────────────
 
@@ -154,6 +157,149 @@ export function initState(networkData, seedString) {
       ?? randomPick(RNG.WORLD, nodeIds);
     state.ice = {
       grade: networkData.ice.grade,
+      residentNodeId,
+      attentionNodeId: residentNodeId,
+      active: true,
+      dwellTimerId: null,
+      detectedAtNode: null,
+      detectionCount: 0,
+    };
+  }
+
+  if (state.mission) {
+    emitEvent(E.MISSION_STARTED, { targetName: state.mission.targetName });
+  }
+  emitEvent(E.RUN_STARTED, { state });
+
+  version++;
+  // @ts-ignore — dev convenience
+  if (typeof window !== "undefined") window._starnetState = state;
+  emitEvent(E.STATE_CHANGED, state);
+  return state;
+}
+
+// ── NodeGraph-based initialization ────────────────────────
+
+/**
+ * Initialize the game from a NodeGraph-based network definition.
+ * Replaces initState() for the new network format.
+ *
+ * @param {() => { graphDef: import('../node-graph/runtime.js').NodeGraphDef, meta: any }} buildNetworkFn
+ * @param {string} [seedString]
+ * @param {{ openDarknetsStore?: (state: any) => void }} [opts]
+ * @returns {GameState}
+ */
+export function initGame(buildNetworkFn, seedString, opts = {}) {
+  initRng(seedString);
+
+  const { graphDef, meta } = buildNetworkFn();
+
+  // Build game ctx with late-bound graph reference
+  const ctx = buildGameCtx({ openDarknetsStore: opts.openDarknetsStore });
+
+  // Build the onEvent bridge: graph → state.nodes sync + game event bus
+  const onEvent = (type, payload) => {
+    if (type === "node-state-changed") {
+      // Sync graph attribute changes to state.nodes (skip if change came from a setter)
+      if (!isSyncingToGraph() && state?.nodes[payload.nodeId]) {
+        mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
+      }
+      emitEvent(E.NODE_STATE_CHANGED, payload);
+    } else if (type === "message-delivered") {
+      emitEvent(E.MESSAGE_PROPAGATED, payload);
+    } else if (type === "quality-changed") {
+      emitEvent(E.QUALITY_CHANGED, payload);
+    }
+  };
+
+  // Construct the NodeGraph
+  const graph = new NodeGraph(graphDef, ctx, onEvent);
+  ctx._graph = graph;
+
+  // Run init lifecycle — operators react to { type: 'init' } messages
+  graph.init();
+
+  // Generate vulnerabilities for each node (seeded RNG)
+  for (const nodeId of graph.getNodeIds()) {
+    const nodeData = graph.getNode(nodeId);
+    const vulns = generateVulnerabilities(nodeData.grade, nodeData.type);
+    graph.setNodeAttr(nodeId, "vulnerabilities", vulns);
+  }
+
+  // Generate macguffins for lootable nodes
+  const moneyCostGrade = meta.moneyCost ?? "F";
+  for (const nodeId of graph.getNodeIds()) {
+    const nodeData = graph.getNode(nodeId);
+    const lootCount = nodeData.lootCount;
+    if (lootCount) {
+      const [min, max] = lootCount;
+      const count = randomInt(RNG.LOOT, min, max);
+      const macguffins = [];
+      for (let i = 0; i < count; i++) {
+        macguffins.push(generateMacguffin(moneyCostGrade));
+      }
+      graph.setNodeAttr(nodeId, "macguffins", macguffins);
+    }
+  }
+
+  // Build state.nodes from graph (backward-compat cache)
+  /** @type {Object.<string, NodeState>} */
+  const nodes = {};
+  for (const nodeId of graph.getNodeIds()) {
+    nodes[nodeId] = /** @type {NodeState} */ (graph.getNode(nodeId));
+  }
+
+  // Build adjacency from graph edges
+  /** @type {Object.<string, string[]>} */
+  const adjacency = {};
+  for (const nodeId of graph.getNodeIds()) adjacency[nodeId] = [];
+  for (const [a, b] of graph.getEdges()) {
+    if (adjacency[a]) adjacency[a].push(b);
+    if (adjacency[b]) adjacency[b].push(a);
+  }
+
+  // Create the state object
+  state = {
+    seed: getSeed(),
+    moneyCost: meta.moneyCost ?? "F",
+    nodes,
+    adjacency,
+    nodeGraph: graph,
+    player: { cash: meta.startCash ?? 1000, hand: generateStartingHand(meta.startHand) },
+    globalAlert: "green",
+    traceSecondsRemaining: null,
+    traceTimerId: null,
+    selectedNodeId: null,
+    phase: "playing",
+    runOutcome: null,
+    isCheating: false,
+    ice: null,
+    lastDisturbedNodeId: null,
+    executingExploit: null,
+    activeProbe: null,
+    activeRead: null,
+    activeLoot: null,
+    mission: null,
+  };
+
+  // Register graph sync on the node setter module
+  setNodeGraph(graph);
+
+  // Register graph tick in the timer system
+  setGraphForTick(graph);
+
+  // Flag one macguffin as the mission target (10x value)
+  const missionTarget = flagMissionMacguffin(Object.values(nodes));
+  state.mission = missionTarget
+    ? { targetMacguffinId: missionTarget.id, targetName: missionTarget.name, complete: false }
+    : null;
+
+  // Spawn ICE if defined in meta
+  if (meta.ice) {
+    const nodeIds = Object.keys(nodes);
+    const residentNodeId = meta.ice.startNode ?? randomPick(RNG.WORLD, nodeIds);
+    state.ice = {
+      grade: meta.ice.grade,
       residentNodeId,
       attentionNodeId: residentNodeId,
       active: true,
