@@ -11,6 +11,7 @@
  * @typedef {Object} NodeDef
  * @property {string} id
  * @property {string} type
+ * @property {string[]} [traits]         - trait names resolved at construction time
  * @property {Record<string, any>} attributes
  * @property {OperatorConfig[]} [operators]
  * @property {ActionDef[]} [actions]

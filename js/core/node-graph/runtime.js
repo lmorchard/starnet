@@ -12,6 +12,7 @@ import { QualityStore } from "./qualities.js";
 import { TriggerStore } from "./triggers.js";
 import { getAvailableActions, executeAction } from "./actions.js";
 import { nullCtx } from "./ctx.js";
+import { resolveTraits } from "./traits.js";
 
 /**
  * @typedef {Object} NodeGraphDef
@@ -49,7 +50,8 @@ export class NodeGraph {
 
     /** @type {Map<string, NodeState>} */
     this._nodes = new Map();
-    for (const n of nodes) {
+    for (const raw of nodes) {
+      const n = resolveTraits(raw);
       this._nodes.set(n.id, {
         id: n.id,
         type: n.type,
