@@ -575,7 +575,7 @@ function syncReticle() {
 /** @type {HTMLElement|null} */
 let _iceOverlay = null;
 
-/** Reposition ICE overlay to track its attention node (no animation). */
+/** Reposition and scale ICE overlay to track its attention node (no animation). */
 function _repositionIceOverlay() {
   if (!_iceOverlay || !cy || !prevIceNodeId) return;
   if (_iceOverlay.style.opacity === "0") return;
@@ -584,6 +584,7 @@ function _repositionIceOverlay() {
   const rp = node.renderedPosition();
   _iceOverlay.style.left = `${rp.x}px`;
   _iceOverlay.style.top = `${rp.y}px`;
+  _iceOverlay.style.transform = `scale(${cy.zoom()})`;
 }
 
 /**
@@ -638,11 +639,13 @@ export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
     const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
     if (attentionCyNode && attentionCyNode.length > 0) {
       const rp = attentionCyNode.renderedPosition();
+      const zoom = cy.zoom();
       if (moved) {
         // Animate movement between nodes
-        _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease";
+        _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease, transform 0.1s ease";
         _iceOverlay.style.left = `${rp.x}px`;
         _iceOverlay.style.top = `${rp.y}px`;
+        _iceOverlay.style.transform = `scale(${zoom})`;
         // Remove position transition after animation completes
         setTimeout(() => {
           if (_iceOverlay) _iceOverlay.style.transition = "opacity 0.3s ease";
@@ -651,6 +654,7 @@ export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
         // Snap (initial placement or reposition)
         _iceOverlay.style.left = `${rp.x}px`;
         _iceOverlay.style.top = `${rp.y}px`;
+        _iceOverlay.style.transform = `scale(${zoom})`;
       }
       _iceOverlay.style.opacity = "1";
     }
