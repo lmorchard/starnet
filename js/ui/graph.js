@@ -4,8 +4,9 @@
 import { isIceVisible } from "../core/state.js";
 
 // Still playing with what might be the best default here
-const DEFAULT_LAYOUT_ALGO = "breadthfirst";
+// const DEFAULT_LAYOUT_ALGO = "breadthfirst";
 // const DEFAULT_LAYOUT_ALGO = "dagre";
+const DEFAULT_LAYOUT_ALGO = "cola";
 
 // Node type → shape mapping
 const NODE_SHAPES = {
@@ -591,13 +592,12 @@ function syncReticle() {
 export function addIceNode() {
   if (!cy) return;
   prevIceNodeId = null;
-  if (cy.getElementById("ice-0").length > 0) return; // already added
+  if (cy.getElementById("ice-0").length > 0) return;
   cy.add({
     data: { id: "ice-0", label: "ICE" },
     position: { x: 0, y: 0 },
     classes: ["ice"],
   });
-  // ICE node should not respond to clicks like network nodes
   cy.getElementById("ice-0").ungrabify();
 }
 
@@ -613,7 +613,6 @@ export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
     return;
   }
 
-  // Detect movement before updating prevIceNodeId
   const moved = prevIceNodeId !== null && prevIceNodeId !== iceState.attentionNodeId;
   const fromId = prevIceNodeId;
   prevIceNodeId = iceState.attentionNodeId;
@@ -632,30 +631,20 @@ export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
         if (fromWasVisible) {
           iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
         } else {
-          // Arriving from invisible territory — snap to avoid animating from a stale position
           iceNode.stop().position(attentionCyNode.position());
         }
+      } else {
+        // Snap to current position (initial placement or after layout)
+        iceNode.position(attentionCyNode.position());
       }
     }
   } else {
     iceNode.style("display", "none");
   }
 
-  // Flash movement path along edges (staggered, fog-of-war respecting)
+  // Flash movement path along edges
   if (moved && fromId) {
     flashIcePath(fromId, iceState.attentionNodeId);
-    // Pulse the ICE node on arrival — especially visible when materializing from dark territory
-    if (isVisible) {
-      setTimeout(() => {
-        iceNode.animate(
-          { style: { width: 50, height: 34, "border-width": 5 } },
-          { duration: 120, complete: () => iceNode.animate(
-            { style: { width: 36, height: 24, "border-width": 2 } },
-            { duration: 300, complete: () => iceNode.removeStyle("width height border-width") }
-          )}
-        );
-      }, 100); // slight delay so position animation starts first
-    }
   }
 
   // Trace-back path: only when attention is on an owned node
