@@ -76,26 +76,15 @@
 // ── Composite shapes ──────────────────────────────────────
 
 /**
- * Per-node game state. All fields are managed exclusively through state.js mutations.
+ * Per-node game state. Core fields are listed here; trait-provided attributes
+ * (probing, exploiting, reading, looting, activeExploitId, etc.) are dynamic
+ * and accessed via index signature.
  * @typedef {{
  *   id: string,
  *   type: string,
  *   label: string,
- *   grade: Grade,
- *   visibility: Visibility,
- *   accessLevel: AccessLevel,
- *   alertState: NodeAlertLevel,
- *   probed: boolean,
- *   vulnerabilities: Vulnerability[],
- *   macguffins: Macguffin[],
- *   read: boolean,
- *   looted: boolean,
- *   eventForwardingDisabled?: boolean,
- *   rebooting: boolean,
- *   sigAlias?: string,
- *   gateAccess?: string,
- *   forwardingEnabled?: boolean,
- *   lootCount?: number[],
+ *   visibility: string,
+ *   [key: string]: any,
  * }} NodeState
  */
 
