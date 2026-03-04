@@ -1,5 +1,157 @@
 # Session Notes: Composable Traits & Core Mechanics Migration
 
+## Session Retro
+
+### Summary
+
+Replaced the factory-based node type system with a composable trait system and migrated
+all core game mechanics (probe, exploit, read, loot, reboot, reconfigure) into the
+node-graph runtime. This is the second major architectural overhaul after the node-graph
+integration — moving from "graph as state store" to "graph as behavior engine."
+
+**23 commits, 51 files changed, +3,007 / -1,893 lines.**
+
+### Key Actions
+
+**Planned phases (1-8) — all completed:**
+1. Trait registry and composition engine (`resolveTraits`)
+2. 8 built-in traits (graded, hackable, lootable, rebootable, relay, detectable, security, gate)
+3. Factory functions rewritten as trait-based NodeDefs
+4. Network definitions verified (no-op — createGameNode handles it)
+5. Generic timed-action operator (one operator for all timed actions)
+6. ACTION_FEEDBACK event type
+7. Migrate executors to ctx resolve methods (the big swap)
+8. Delete executor files + cleanup
+
+**Beyond-plan work:**
+- Renderer rewire (visual-renderer, log-renderer) to ACTION_FEEDBACK
+- ICE noise detection migrated from EXPLOIT_NOISE to ACTION_FEEDBACK
+- Reboot action migrated to timed-action operator
+- Reconfigure action migrated to game-ctx, node-orchestration.js deleted
+- Node lifecycle (cancel trace on monitor owned, disable ICE on resident owned)
+  migrated from event-driven type checks to graph triggers + ctx functions
+- Cancel-on-navigate restored (regression from executor deletion)
+- Exploit hand pane rendering fixed (dead state.executingExploit reference)
+- Context menu flicker fix (innerHTML rebuild on every progress tick)
+- Dynamic command discovery — all graph actions auto-registered as console commands
+- Tab completion for dynamic commands
+- ACTION_RESOLVED event — unified resolution event replacing 8 per-action events
+- NodeState typedef loosened to index signature for trait-provided attributes
+- Old state fields removed (activeProbe, executingExploit, activeRead, activeLoot)
+- Old timer types removed (PROBE_SCAN, EXPLOIT_EXEC, etc.)
+- playtest-graph.js deleted (redundant with playtest.js)
+- Backlog updated with deferred items
+
+### Divergences from Plan
+
+1. **Phases 6+7 merged.** The plan had Phase 6 (renderer rewire) separate from Phase 7
+   (executor swap). In practice, rewiring renderers before the executors were replaced
+   would create a broken intermediate state. Combined them into one pass.
+
+2. **Rebootable on all hackable types.** The spec had rebootable only on fileserver/
+   cryptovault, but the old system gave eject/reboot to everything. Kept old behavior.
+
+3. **Exploit special case persisted.** The spec envisioned all actions using pure set-attr
+   effects. Exploit still needs a ctx-call because it requires the exploitId from the
+   event payload to compute card-dependent duration. This is the one action that doesn't
+   fit the pure data model cleanly.
+
+4. **ACTION_RESOLVED was not in the original plan.** Emerged during follow-up cleanup —
+   Les pushed for coalescing per-action resolution events after seeing the event catalog.
+
+5. **Dynamic command discovery was not planned.** Emerged when cleaning up static command
+   stubs — Les identified that graph-provided actions should be auto-registered.
+
+6. **Graph trigger evaluation on setNodeAttr.** The runtime's `setNodeAttr` didn't
+   evaluate triggers — had to add this so ownership triggers (cancel trace, disable ICE)
+   fire correctly when access level changes via state sync.
+
+### Insights & Lessons
+
+- **The "all at once" approach for Phase 7 was correct.** Les pushed for doing all
+  executor migrations simultaneously rather than one-at-a-time. This avoided dual-path
+  complexity and was actually simpler — fewer intermediate states to manage.
+
+- **Behavior regressions hide in event-driven side effects.** Cancel-on-navigate was
+  a module-level `on(E.PLAYER_NAVIGATED, ...)` in the deleted executor files. Easy to
+  miss because it wasn't in the executor's main logic — it was a side effect of importing
+  the module. Lesson: when deleting a module, grep for all its side effects, not just its
+  exports.
+
+- **Dynamic attributes break static type systems.** The trait system produces attributes
+  dynamically — `probing`, `exploiting`, `activeExploitId` etc. don't exist on the static
+  NodeState typedef. Loosening to an index signature was the right call. JSDoc's type
+  system isn't expressive enough for this pattern.
+
+- **Operator events channel was the key design decision for Phase 5.** Extending
+  OperatorResult with an `events` array and having the runtime apply `operator-effect`
+  events through the effect system kept operators pure while enabling completion effects.
+
+- **Context menu flicker is a symptom of the new architecture.** The timed-action operator
+  changes node attributes on every tick, which triggers STATE_CHANGED, which re-renders
+  the context menu. The fix (skip innerHTML when action IDs unchanged) is a band-aid.
+  The deeper solution would be fine-grained DOM updates (lit-html) — already noted in
+  the backlog.
+
+- **Graph triggers on setNodeAttr was a gap.** The original NodeGraph only evaluated
+  triggers after message delivery, tick, and executeAction. External attribute changes
+  (from state sync) didn't fire triggers. This was architecturally correct (triggers
+  react to graph-internal changes) but practically wrong (ownership changes come from
+  combat.js via state sync). The fix was one line but exposed a design tension.
+
+### Stats
+
+- **Commits:** 23
+- **Tests:** 497 passing (started at 506, peaked at 529, settled at 497 after removing
+  old executor tests and static command tests)
+- **Lines:** +3,007 / -1,893 net across 51 files
+- **Files deleted:** 7 (4 executor files, node-orchestration.js, node-lifecycle.js,
+  playtest-graph.js)
+- **New files:** 3 (traits.js, traits.test.js, timed-action.test.js)
+- **Events removed:** 17 per-action events → 2 unified events (ACTION_FEEDBACK + ACTION_RESOLVED)
+- **Conversation turns:** ~100+
+
+### Process Observations
+
+- **Planning-to-execution ratio felt right.** The brainstorm → spec → plan → audit
+  cycle took significant time but execution was smooth — we knew what we were doing
+  and caught several issues (ICE noise, renderer state, test scope) before they became
+  bugs.
+
+- **Browser playtesting via Playwright caught real bugs.** The exploit not starting
+  (wrapGraphAction ctx routing) and context menu flicker would not have surfaced from
+  headless tests.
+
+- **Les's real-time direction drove several important extensions.** Reboot migration,
+  reconfigure migration, node-lifecycle migration, dynamic command discovery, and
+  ACTION_RESOLVED were all Les-initiated during the session — not pre-planned. Each
+  one made the system cleaner.
+
+- **The "barrel through" approach worked.** Les explicitly declined pausing between
+  phases, which maintained momentum through the entire 8-phase plan plus follow-up
+  work. The incremental commits gave safe rollback points without losing flow.
+
+### Follow-Up Work Identified
+
+**Immediate (next session candidates):**
+- Visual preview harness ("Storybook") for isolated renderer/animation testing
+- Set-piece playtest jigs for isolated circuit testing
+- Bot player rebuild for the new trait/graph system
+
+**Architecture:**
+- Merge playtest scripts into one (done this session)
+- state.js re-export shim cleanup (backlogged)
+- lit-html or fine-grained DOM updates to replace innerHTML pattern
+
+**Trait system expansion:**
+- New traits: trapped, encrypted, volatile, mirrored, hardened, audited
+- Parameterized traits (gate("owned") instead of attributes override)
+- Conditional trait activation via triggers
+
+---
+
+## Phase-by-Phase Notes
+
 ## Phase 1: Trait Registry & Composition Engine ✓
 
 - Created `js/core/node-graph/traits.js` — registry, resolveTraits(), clearTraits()
