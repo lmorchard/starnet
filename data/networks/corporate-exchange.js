@@ -71,7 +71,7 @@ export function buildNetwork() {
     ["switch-1", "noise/sensor"],
     ["switch-1", "burst/scanner"],
     ["switch-1", "office/fileserver"],
-    ["switch-1", "wan"],
+    ["gateway", "wan"],
     // Switch-2 branches (inner ring — security, vault)
     ["switch-2", "sec/ids"],
     ["switch-2", "fw-1"],
