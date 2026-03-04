@@ -146,18 +146,37 @@ export function initVisualRenderer() {
   on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { nodeId }) => flashNode(nodeId, "success"));
   on(E.EXPLOIT_FAILURE, (/** @type {ExploitFailurePayload} */ { nodeId }) => flashNode(nodeId, "failure"));
   on(E.NODE_ACCESSED,   (/** @type {NodeAccessedPayload} */   { nodeId }) => flashNode(nodeId, "success"));
+  // Track which nodes existed before this batch of reveals
+  let _preRevealNodeIds = null;
+
   on(E.NODE_REVEALED,   (/** @type {NodeRevealedPayload} */   { nodeId }) => {
     flashNode(nodeId, "reveal");
-    // Debounce viewport fit — new nodes spawn near their neighbor already,
-    // so we just expand the viewport to show them. No full relayout needed.
+    // Snapshot existing node positions before the first reveal in a batch
+    if (!_preRevealNodeIds) {
+      const cy = getCy();
+      if (cy) _preRevealNodeIds = new Set(cy.nodes().map(n => n.id()));
+    }
+    // Debounce incremental layout — lock existing nodes, let new ones settle
     clearTimeout(revealFitTimer);
     revealFitTimer = setTimeout(() => {
       const cy = getCy();
-      if (!cy) return;
-      const allNodes = cy.nodes();
-      if (allNodes.length <= 1) return;
-      cy.animate({ fit: { eles: allNodes, padding: 50 } }, { duration: 400 });
-    }, 150);
+      if (!cy || cy.nodes().length <= 1) { _preRevealNodeIds = null; return; }
+      const locked = _preRevealNodeIds;
+      _preRevealNodeIds = null;
+      // Run layout with existing nodes locked in place
+      cy.layout({
+        name: "cola",
+        animate: true,
+        randomize: false,
+        fit: true,
+        padding: 50,
+        nodeSpacing: 30,
+        edgeLength: 120,
+        maxSimulationTime: 2000,
+        ungrabifyWhileSimulating: true,
+        lock: (node) => locked.has(node.id()),
+      }).run();
+    }, 200);
   });
 
   // Keep context menu attached to node on pan/zoom/drag
