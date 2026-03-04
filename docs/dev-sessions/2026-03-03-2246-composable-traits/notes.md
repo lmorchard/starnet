@@ -32,3 +32,25 @@
 **Divergence from spec:** The spec listed rebootable as only on fileserver/cryptovault,
 but the old system had eject/reboot on all hackable nodes. Kept old behavior —
 rebootable on all hackable types. Can revisit later.
+
+## Phase 4: Update Network Definitions & Set-Pieces ✓
+
+- No changes needed — Phase 3's createGameNode() already attaches traits from
+  TRAITS_BY_TYPE for known types. Set-piece nodes pass through correctly.
+- All 3 networks build, all set-pieces instantiate, all 521 tests pass.
+
+## Phase 5: Generic Timed-Action Operator ✓
+
+- Registered `timed-action` operator in operators.js
+- Extended OperatorResult to include `events` array
+- Runtime delivers operator events via onEvent, handles `operator-effect` events
+  by applying them through the effect system (ctx-call, set-attr, etc.)
+- Operator handles: start detection (grade table → duration), progress ticking,
+  completion (fires onComplete effects), onProgressInterval for milestone effects
+- Added resolve methods (resolveProbe, resolveExploit, etc.) to nullCtx and mockCtx
+  in preparation for Phase 7
+- Updated OperatorConfig and CtxInterface typedefs
+- 8 unit tests for timed-action operator lifecycle
+- All 529 tests pass
+- Deferred adding timed-action operators to trait definitions until Phase 7
+  to avoid double-execution with old executors still active

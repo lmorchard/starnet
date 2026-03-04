@@ -35,6 +35,14 @@
  * @property {any} [value]            - flag: value to assign (default: true)
  * @property {string} [quality]       - tally: quality name to increment
  * @property {number} [delta]         - tally: amount to add per message (default: 1)
+ * @property {string} [action]        - timed-action: action name
+ * @property {string} [activeAttr]    - timed-action: boolean attribute for "in progress"
+ * @property {string} [progressAttr]  - timed-action: numeric progress attribute
+ * @property {string} [durationAttr]  - timed-action: numeric duration attribute
+ * @property {Record<string, number>} [durationTable] - timed-action: grade → ticks
+ * @property {Effect[]} [onComplete]  - timed-action: effects to fire on completion
+ * @property {number} [onProgressInterval] - timed-action: fraction at which to fire progress effects
+ * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
  */
 
 /**
@@ -219,6 +227,12 @@
  * @property {(nodeId: string) => void} rebootNode
  * @property {(nodeId: string) => void} reconfigureNode
  * @property {() => void} openDarknetsStore
+ * @property {(nodeId: string) => void} [resolveProbe]
+ * @property {(nodeId: string) => void} [resolveExploit]
+ * @property {(nodeId: string) => void} [resolveRead]
+ * @property {(nodeId: string) => void} [resolveLoot]
+ * @property {(nodeId: string) => void} [resolveReboot]
+ * @property {(nodeId: string, action: string, phase: string, progress: number, result?: any) => void} [emitActionFeedback]
  */
 
 export {};

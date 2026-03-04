@@ -27,6 +27,12 @@ export const nullCtx = {
   rebootNode(_nodeId) {},
   reconfigureNode(_nodeId) {},
   openDarknetsStore() {},
+  resolveProbe(_nodeId) {},
+  resolveExploit(_nodeId) {},
+  resolveRead(_nodeId) {},
+  resolveLoot(_nodeId) {},
+  resolveReboot(_nodeId) {},
+  emitActionFeedback(_nodeId, _action, _phase, _progress, _result) {},
 };
 
 /**
@@ -71,6 +77,12 @@ export function mockCtx() {
     rebootNode: spy("rebootNode"),
     reconfigureNode: spy("reconfigureNode"),
     openDarknetsStore: spy("openDarknetsStore"),
+    resolveProbe: spy("resolveProbe"),
+    resolveExploit: spy("resolveExploit"),
+    resolveRead: spy("resolveRead"),
+    resolveLoot: spy("resolveLoot"),
+    resolveReboot: spy("resolveReboot"),
+    emitActionFeedback: spy("emitActionFeedback"),
     calls,
   };
 
