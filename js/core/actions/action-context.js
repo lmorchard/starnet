@@ -5,7 +5,6 @@
 /** @typedef {import('../types.js').ActionContext} ActionContext */
 
 import { getState, getVersion, endRun } from "../state.js";
-import { reconfigureNode, rebootNode } from "../node-orchestration.js";
 import { ejectIce } from "../ice.js";
 import { addLogEntry } from "../log.js";
 import { navigateTo, navigateAway } from "../navigation.js";
@@ -35,9 +34,9 @@ export function buildActionContext(openDarknetsStore = () => {}) {
     startLoot:        () => {},
     cancelLoot:       () => {},
     ejectIce:         ()       => ejectIce(),
-    rebootNode:       (nodeId) => rebootNode(nodeId),
+    rebootNode:       () => {},
     jackOut:          ()       => endRun("success"),
-    reconfigureNode:  (nodeId) => reconfigureNode(nodeId),
+    reconfigureNode:  () => {},
     cancelTrace:      ()       => cancelTraceCountdown(),
     openDarknetsStore: () => {
       pauseTimers();

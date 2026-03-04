@@ -26,7 +26,6 @@ import { emitEvent, E } from "../events.js";
 function exploitDuration(quality) {
   return Math.round((2 + quality * 5) * 1000); // ms
 }
-import { reconfigureNode } from "../node-orchestration.js";
 import { endRun, ALERT_ORDER, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
@@ -112,7 +111,12 @@ export function buildGameCtx(opts = {}) {
     rebootNode: (nodeId) => {
       // Legacy stub — reboot now handled by startReboot + timed-action operator
     },
-    reconfigureNode: (nodeId) => reconfigureNode(nodeId),
+    reconfigureNode: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node) return;
+      emitEvent(E.NODE_RECONFIGURED, { nodeId, label: node.label });
+    },
 
     startReboot: (nodeId) => {
       const s = getState();
