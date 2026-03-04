@@ -83,6 +83,8 @@ export function buildGameCtx(opts = {}) {
         ctx._graph.setNodeAttr(nodeId, "_ta_exploit_progress", 0);
         ctx._graph.setNodeAttr(nodeId, "_ta_exploit_duration", durationTicks);
       }
+      // Emit start feedback immediately (operator skips start for pre-set durations)
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "exploit", phase: "start", progress: 0, durationTicks });
       // Alert ICE immediately
       setLastDisturbedNode(nodeId);
     },

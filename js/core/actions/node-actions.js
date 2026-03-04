@@ -55,13 +55,17 @@ function wrapGraphAction(ga) {
     desc: () => ga.desc || ga.label,
     noSidebar: ga.noSidebar,
     execute: (node, state, ctx, payload) => {
-      // Exploit special case: needs exploitId from payload
+      // Exploit special case: needs exploitId from payload to compute duration.
+      // Call the game-ctx's startExploit directly (sets graph attributes for the
+      // timed-action operator to pick up).
       if (ga.id === "exploit") {
         const exploitId = payload?.exploitId;
-        if (exploitId) ctx.startExploit(node.id, exploitId);
+        if (exploitId && state.nodeGraph?._ctx?.startExploit) {
+          state.nodeGraph._ctx.startExploit(node.id, exploitId);
+        }
         return;
       }
-      // All other actions: execute via the graph (effects include ctx-call)
+      // All other actions: execute via the graph (effects include set-attr)
       state.nodeGraph.executeAction(node.id, ga.id);
     },
   };
