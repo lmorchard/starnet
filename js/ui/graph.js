@@ -419,11 +419,11 @@ function buildStylesheet() {
       selector: "edge.ice-trace",
       style: {
         display: "element",
-        "line-color": "#aa0066",
+        "line-color": "#cc0077",
         "line-style": "dashed",
         "target-arrow-shape": "none",
-        width: 1,
-        opacity: 0.6,
+        width: 1.5,
+        opacity: 0.8,
       },
     },
   ];
