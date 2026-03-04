@@ -67,6 +67,9 @@ export function getVersion() {
 // ── Initialization ───────────────────────────────────────
 
 export function initState(networkData, seedString) {
+  // Clear any graph refs from a previous initGame session
+  setNodeGraph(null);
+  setGraphForTick(null);
   initRng(seedString);
 
   /** @type {Object.<string, NodeState>} */
