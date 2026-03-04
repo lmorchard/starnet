@@ -18,6 +18,7 @@ import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from 
 import { initGraphBridge } from "../core/graph-bridge.js";
 import { initDynamicActions } from "../core/console-commands/dynamic-actions.js";
 import { buildSetPieceMiniNetwork, buildMiniNetwork, listSetPieces } from "../core/node-graph/mini-network.js";
+import { registerDebugCommands } from "./debug-commands.js";
 
 import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
@@ -324,6 +325,7 @@ async function init() {
   initActionDispatcher(ctx);
 
   // Playground-specific systems
+  registerDebugCommands();
   initMessageLog();
   initInspector();
   initJsonPanel();
