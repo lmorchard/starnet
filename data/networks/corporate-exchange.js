@@ -10,7 +10,7 @@
 import { instantiate, SET_PIECES } from "../../js/core/node-graph/set-pieces.js";
 import {
   createGateway, createRouter, createFirewall, createCryptovault,
-  createWAN, enrichWithGameActions,
+  createWAN, createGameNode,
 } from "../../js/core/node-graph/game-types.js";
 
 /**
@@ -34,17 +34,12 @@ export function buildNetwork() {
   const pot = instantiate(SET_PIECES.honeyPot, "pot");
   const office = instantiate(SET_PIECES.officeCluster, "office");
 
-  // Enrich set-piece nodes with standard game actions
-  const LOOTABLE_TYPES = new Set(["fileserver", "cryptovault", "workstation"]);
-  const enrich = nodes => nodes.map(n =>
-    enrichWithGameActions(n, { lootable: LOOTABLE_TYPES.has(n.type) })
-  );
-
-  const secNodes = enrich(sec.nodes);
-  const noiseNodes = enrich(noise.nodes);
-  const burstNodes = enrich(burst.nodes);
-  const potNodes = enrich(pot.nodes);
-  const officeNodes = enrich(office.nodes);
+  // Compose set-piece nodes with game-type factories
+  const secNodes = sec.nodes.map(createGameNode);
+  const noiseNodes = noise.nodes.map(createGameNode);
+  const burstNodes = burst.nodes.map(createGameNode);
+  const potNodes = pot.nodes.map(createGameNode);
+  const officeNodes = office.nodes.map(createGameNode);
 
   // ── Merge all nodes ──────────────────────────────────
   const nodes = [

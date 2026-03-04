@@ -258,7 +258,7 @@ describe("multi-key-vault: requires two tokens before looting", () => {
     const graph = new NodeGraph(inst, ctx);
 
     // vault starts owned in this set-piece
-    assert.equal(graph.getAvailableActions("mk1/vault-node").map((a) => a.id).includes("loot"), false);
+    assert.equal(graph.getAvailableActions("mk1/vault-node").map((a) => a.id).includes("unlock-vault"), false);
   });
 
   it("loot action available after both tokens extracted; reward dispensed", () => {
@@ -268,15 +268,16 @@ describe("multi-key-vault: requires two tokens before looting", () => {
 
     graph._nodes.get("mk1/key-server-1").attributes.accessLevel = "owned";
     graph._nodes.get("mk1/key-server-2").attributes.accessLevel = "owned";
+    graph._nodes.get("mk1/vault-node").attributes.accessLevel = "owned";
 
     graph.executeAction("mk1/key-server-1", "extract-token");
     graph.executeAction("mk1/key-server-2", "extract-token");
     assert.equal(graph.getQuality("mk1/auth-tokens"), 2);
 
     const available = graph.getAvailableActions("mk1/vault-node").map((a) => a.id);
-    assert.ok(available.includes("loot"));
+    assert.ok(available.includes("unlock-vault"));
 
-    graph.executeAction("mk1/vault-node", "loot");
+    graph.executeAction("mk1/vault-node", "unlock-vault");
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [5000]);
   });

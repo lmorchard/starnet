@@ -437,27 +437,58 @@ export function createWAN(id, config = {}) {
   };
 }
 
-// ── Set-piece enrichment ─────────────────────────────────────
+// ── Set-piece node composition ───────────────────────────────
+
+/** @type {Record<string, (id: string, config?: NodeConfig) => NodeDef>} */
+const FACTORY_BY_TYPE = {
+  "gateway": createGateway,
+  "router": createRouter,
+  "ids": createIDS,
+  "security-monitor": createSecurityMonitor,
+  "fileserver": createFileserver,
+  "cryptovault": createCryptovault,
+  "firewall": createFirewall,
+  "wan": createWAN,
+  "workstation": createFileserver, // workstations use fileserver factory (lootable, low grade)
+};
 
 /**
- * Enrich a set-piece node with standard game attributes and actions.
- * Adds missing defaults (probed, read, etc.) and standard actions
- * (probe, exploit, cancel-*, eject, reboot) on top of any set-piece-specific actions.
+ * Create a game-ready node from a set-piece node definition.
  *
- * @param {NodeDef} node
- * @param {{ lootable?: boolean }} [opts]
+ * If the set-piece node's type matches a known game type, creates the node
+ * using the appropriate factory (which provides all standard game actions
+ * and attributes), then merges in the set-piece's operators and additional
+ * actions on top.
+ *
+ * If the type is unknown (internal set-piece nodes like "alarm-latch",
+ * "watchdog-daemon"), creates a basic game-ready node with standard actions
+ * and the set-piece's operators/actions.
+ *
+ * This replaces enrichWithGameActions — composition instead of enrichment.
+ *
+ * @param {NodeDef} setPieceNode - node from instantiate()
  * @returns {NodeDef}
  */
-export function enrichWithGameActions(node, { lootable = false } = {}) {
-  /** @type {Record<string, [number, number]>} */
-  const LOOT_COUNTS = {
-    "fileserver": [1, 2],
-    "workstation": [0, 1],
-    "cryptovault": [1, 3],
-    "key-server": [0, 1],
-  };
+export function createGameNode(setPieceNode) {
+  const factory = FACTORY_BY_TYPE[setPieceNode.type];
+
+  if (factory) {
+    // Known game type — create from factory, merge set-piece additions
+    const base = factory(setPieceNode.id, {
+      attributes: setPieceNode.attributes,
+    });
+    return {
+      ...base,
+      // Keep factory operators, add set-piece operators after
+      operators: [...base.operators, ...(setPieceNode.operators || [])],
+      // Factory actions first, then set-piece actions (no dedup — they have different IDs)
+      actions: [...base.actions, ...(setPieceNode.actions || [])],
+    };
+  }
+
+  // Unknown type (internal set-piece node) — add basic game actions + attributes
   const defaults = {
-    label: node.id,
+    label: setPieceNode.id,
     grade: "D",
     visibility: "hidden",
     accessLevel: "locked",
@@ -474,22 +505,16 @@ export function enrichWithGameActions(node, { lootable = false } = {}) {
     reading: false,
     looting: false,
     forwardingEnabled: true,
-    ...(lootable && LOOT_COUNTS[node.type] ? { lootCount: LOOT_COUNTS[node.type] } : {}),
   };
-  const baseActions = lootable ? LOOTABLE_ACTIONS : BASIC_ACTIONS;
-  // Merge: defaults first, then node's own attrs override, then ensure label
-  const mergedAttrs = { ...defaults, ...node.attributes };
-  if (!node.attributes.label) mergedAttrs.label = node.id;
-  // Deduplicate: if the set-piece already defines an action with the same id,
-  // the set-piece version wins (it may have quality gates or special effects).
-  const existingIds = new Set((node.actions || []).map(a => a.id));
-  const filtered = baseActions.filter(a => !existingIds.has(a.id));
   return {
-    ...node,
-    attributes: mergedAttrs,
-    actions: [...filtered, ...(node.actions || [])],
+    ...setPieceNode,
+    attributes: { ...defaults, ...setPieceNode.attributes },
+    actions: [...BASIC_ACTIONS, ...(setPieceNode.actions || [])],
   };
 }
+
+// Legacy alias — network builders that haven't migrated yet
+export const enrichWithGameActions = createGameNode;
 
 // ── Export action templates for testing ───────────────────────
 

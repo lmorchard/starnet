@@ -9,7 +9,7 @@
 
 import { instantiate, SET_PIECES } from "../../js/core/node-graph/set-pieces.js";
 import {
-  createGateway, createRouter, createFileserver, createWAN, enrichWithGameActions,
+  createGateway, createRouter, createFileserver, createWAN, createGameNode,
 } from "../../js/core/node-graph/game-types.js";
 
 /**
@@ -31,17 +31,11 @@ export function buildNetwork() {
   const crypto = instantiate(SET_PIECES.encryptedVault, "crypto");
   const tamper = instantiate(SET_PIECES.tamperDetect, "tamper");
 
-  // Enrich set-piece nodes with standard game actions
-  const deadmanNodes = deadman.nodes.map(n => enrichWithGameActions(n));
-  const lockNodes = lock.nodes.map(n => {
-    const isLootable = n.type === "cryptovault";
-    return enrichWithGameActions(n, { lootable: isLootable });
-  });
-  const cryptoNodes = crypto.nodes.map(n => {
-    const isLootable = n.type === "cryptovault";
-    return enrichWithGameActions(n, { lootable: isLootable });
-  });
-  const tamperNodes = tamper.nodes.map(n => enrichWithGameActions(n));
+  // Compose set-piece nodes with game-type factories
+  const deadmanNodes = deadman.nodes.map(createGameNode);
+  const lockNodes = lock.nodes.map(createGameNode);
+  const cryptoNodes = crypto.nodes.map(createGameNode);
+  const tamperNodes = tamper.nodes.map(createGameNode);
 
   // ── Merge all nodes ──────────────────────────────────
   const nodes = [

@@ -631,22 +631,23 @@ export const multiKeyVault = {
     {
       id: "vault-node",
       type: "cryptovault",
-      attributes: { accessLevel: "owned", contents: "corp-secrets", vaultLooted: false },
+      attributes: { accessLevel: "locked", contents: "corp-secrets", vaultUnlocked: false },
       operators: [],
       actions: [
         {
-          id: "loot",
-          label: "Loot Vault",
+          id: "unlock-vault",
+          label: "Unlock Vault",
+          desc: "Use auth tokens to decrypt the vault contents.",
           requires: [
             { type: "node-attr", attr: "accessLevel", eq: "owned" },
-            { type: "node-attr", attr: "vaultLooted", eq: false },
+            { type: "node-attr", attr: "vaultUnlocked", eq: false },
             { type: "quality-gte", name: "auth-tokens", value: 2 },
           ],
           effects: [
-            { effect: "set-attr", attr: "vaultLooted", value: true },
+            { effect: "set-attr", attr: "vaultUnlocked", value: true },
             { effect: "quality-set", name: "auth-tokens", value: 0 },
             { effect: "ctx-call", method: "giveReward", args: [5000] },
-            { effect: "ctx-call", method: "log", args: ["Vault looted — 5000cr transferred"] },
+            { effect: "ctx-call", method: "log", args: ["Vault decrypted — 5000cr bonus transferred"] },
           ],
         },
       ],
