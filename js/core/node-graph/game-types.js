@@ -477,12 +477,21 @@ export function createGameNode(setPieceNode) {
     const base = factory(setPieceNode.id, {
       attributes: setPieceNode.attributes,
     });
+    // Dedup operators and actions by name/id — set-piece versions win when
+    // they override a factory default (e.g. set-piece reconfigure with
+    // tamper-emit vs factory reconfigure without).
+    const baseOpNames = new Set(base.operators.map(o => o.name + (o.filter || "")));
+    const extraOps = (setPieceNode.operators || []).filter(o =>
+      !baseOpNames.has(o.name + (o.filter || ""))
+    );
+    const baseActionIds = new Set(base.actions.map(a => a.id));
+    const extraActions = (setPieceNode.actions || []).filter(a =>
+      !baseActionIds.has(a.id)
+    );
     return {
       ...base,
-      // Keep factory operators, add set-piece operators after
-      operators: [...base.operators, ...(setPieceNode.operators || [])],
-      // Factory actions first, then set-piece actions (no dedup — they have different IDs)
-      actions: [...base.actions, ...(setPieceNode.actions || [])],
+      operators: [...base.operators, ...extraOps],
+      actions: [...base.actions, ...extraActions],
     };
   }
 

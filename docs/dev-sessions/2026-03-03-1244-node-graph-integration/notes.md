@@ -60,9 +60,45 @@ triggers, and set-piece circuits.
 - Old integration tests still use initState — should migrate to initGame
 
 ### Design Decisions Made
-- `getNodeType()` returns null for unknown types (not throw) — set-piece nodes have types outside the old registry
-- `enrichWithGameActions()` deduplicates by action id — set-piece actions win over generic game actions
-- `initState()` clears graph refs to prevent cross-test contamination
+- `createGameNode()` composes set-piece nodes with game-type factories — replaces `enrichWithGameActions()`
+- `initState()` deleted — all init goes through `initGame()`
 - Gateway gateAccess is "probed" (reveals neighbors on probe), router is "compromised" (reveals on exploit)
 - All networks include a WAN node for darknet store access
-- Default layout changed to breadthfirst (works better with incremental reveals)
+- ICE rendered as HTML overlay, not a Cytoscape node
+- Cytoscape reserved for topology (nodes + edges); all entity/UI overlays are HTML
+- Nodes added to Cytoscape dynamically when disclosed, spawning near parent
+- Incremental layout: new nodes settle via cola with existing nodes locked
+
+### Follow-Up: Composable Traits System
+
+The current node-graph uses operators for reactive message processing but lacks a
+clean composition model for game behaviors. A **traits system** would let common
+behaviors be attached to any node declaratively:
+
+- `lootable(config)` — adds loot actions, macguffin storage, lootCount config
+- `detectable` — adds alert propagation to security monitors
+- `relay(filter?)` — adds message forwarding (already an operator, but could be a trait)
+- `qualityGated(name, threshold)` — adds a quality condition to an action
+- `iceResident` — marks a node as ICE home, adds disable-on-own behavior
+
+Traits would replace the per-type factory functions with a more flexible composition:
+```
+createNode("vault", [lootable({ count: [1, 3] }), qualityGated("auth-tokens", 2)])
+```
+
+This also enables macguffin assignment as a trait rather than a special case in
+`initGame()`. The trait would define an init operator that generates macguffins
+using the seeded RNG.
+
+### Follow-Up: Tab Completion for Node-Graph Actions
+
+Console tab completion doesn't include node-graph-specific actions (unlock-vault,
+extract-token, activate, etc.). The completion system needs to query
+`getAvailableActions` for the selected node and include those action IDs.
+
+### Follow-Up: encryptedVault Clock Spam
+
+The encryptedVault set-piece's clock(period:5) fires every 500ms and logs
+"Key-gen cycle: decryption key refreshed — extract quickly" repeatedly on the
+research-station network. The clock is working correctly but the log message
+is too noisy. Either suppress repeated messages or only log on the first cycle.
