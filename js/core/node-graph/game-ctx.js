@@ -16,6 +16,7 @@
 import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
 import { addCash, setMissionComplete } from "../state/player.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
+import { on } from "../events.js";
 import { setSelectedNode } from "../state/game.js";
 import { setNodeRebooting } from "../state/node.js";
 import { RNG, random } from "../rng.js";
@@ -242,4 +243,40 @@ export function buildGameCtx(opts = {}) {
 
   return ctx;
 }
+
+// ── Cancel timed actions on navigation (module-level, runs once) ──
+// When the player selects a different node or deselects, cancel any in-progress
+// timed action. Critical for evasion gameplay — the player must be able to
+// disengage quickly.
+on(E.PLAYER_NAVIGATED, () => {
+  const s = getState();
+  const graph = s.nodeGraph;
+  if (!graph) return;
+
+  for (const nodeId of graph.getNodeIds()) {
+    const attrs = graph.getNodeState(nodeId);
+    if (attrs.probing) {
+      graph.setNodeAttr(nodeId, "probing", false);
+      graph.setNodeAttr(nodeId, "_ta_probe_progress", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "probe", phase: "cancel", progress: 0 });
+    }
+    if (attrs.exploiting) {
+      graph.setNodeAttr(nodeId, "exploiting", false);
+      graph.setNodeAttr(nodeId, "_ta_exploit_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_exploit_duration", 0);
+      graph.setNodeAttr(nodeId, "activeExploitId", null);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "exploit", phase: "cancel", progress: 0 });
+    }
+    if (attrs.reading) {
+      graph.setNodeAttr(nodeId, "reading", false);
+      graph.setNodeAttr(nodeId, "_ta_read_progress", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "read", phase: "cancel", progress: 0 });
+    }
+    if (attrs.looting) {
+      graph.setNodeAttr(nodeId, "looting", false);
+      graph.setNodeAttr(nodeId, "_ta_loot_progress", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "loot", phase: "cancel", progress: 0 });
+    }
+  }
+});
 

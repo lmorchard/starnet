@@ -35,8 +35,7 @@ export {
 } from "./state/alert.js";
 
 export {
-  addCash, setCash, addCardToHand, setExecutingExploit,
-  incrementNoiseTick, setActiveProbe, setMissionComplete, applyCardDecay,
+  addCash, setCash, addCardToHand, setMissionComplete, applyCardDecay,
 } from "./state/player.js";
 
 export {

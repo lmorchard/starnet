@@ -278,10 +278,6 @@
  *   ice: IceState|null,
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
- *   executingExploit: ExecutingExploit|null,
- *   activeProbe: ActiveProbe|null,
- *   activeRead: ActiveRead|null,
- *   activeLoot: ActiveLoot|null,
  *   nodeGraph?: any,
  * }} GameState
  */

@@ -162,10 +162,6 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     isCheating: false,
     ice: null,
     lastDisturbedNodeId: null,
-    executingExploit: null,
-    activeProbe: null,
-    activeRead: null,
-    activeLoot: null,
     mission: null,
   };
 

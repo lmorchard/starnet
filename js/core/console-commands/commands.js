@@ -100,28 +100,33 @@ export const COMMANDS = [
 
   { verb: "cancel-probe",
     execute() {
-      if (!getState().activeProbe) { addLogEntry("No probe scan in progress.", "error"); return; }
+      const sel = getState().selectedNodeId;
+      const n = /** @type {any} */ (getState().nodes[getState().selectedNodeId ?? ""]);
+      if (!n?.probing) { addLogEntry("No probe scan in progress.", "error"); return; }
       dispatch("cancel-probe");
     },
   },
 
   { verb: "cancel-exploit",
     execute() {
-      if (!getState().executingExploit) { addLogEntry("No exploit execution in progress.", "error"); return; }
+      const n = /** @type {any} */ (getState().nodes[getState().selectedNodeId ?? ""]);
+      if (!n?.exploiting) { addLogEntry("No exploit execution in progress.", "error"); return; }
       dispatch("cancel-exploit");
     },
   },
 
   { verb: "cancel-read",
     execute() {
-      if (!getState().activeRead) { addLogEntry("No read scan in progress.", "error"); return; }
+      const n = /** @type {any} */ (getState().nodes[getState().selectedNodeId ?? ""]);
+      if (!n?.reading) { addLogEntry("No read scan in progress.", "error"); return; }
       dispatch("cancel-read");
     },
   },
 
   { verb: "cancel-loot",
     execute() {
-      if (!getState().activeLoot) { addLogEntry("No loot extraction in progress.", "error"); return; }
+      const n = /** @type {any} */ (getState().nodes[getState().selectedNodeId ?? ""]);
+      if (!n?.looting) { addLogEntry("No loot extraction in progress.", "error"); return; }
       dispatch("cancel-loot");
     },
   },
@@ -221,7 +226,7 @@ export const COMMANDS = [
         }
 
         if (has.has("cancel-exploit")) {
-          const execCard = s.player.hand.find((c) => c.id === s.executingExploit?.exploitId);
+          const execCard = s.player.hand.find((c) => c.id === /** @type {any} */ (sel)?.activeExploitId);
           lines.push(`  cancel-exploit           — abort ${execCard?.name ?? "exploit"} execution`);
         } else if (has.has("exploit")) {
           const sorted = [...s.player.hand].sort(

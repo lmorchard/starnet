@@ -33,29 +33,19 @@ export function cmdStatusSummary() {
     lines.push(`  Selected: none`);
   }
 
-  if (s.activeProbe) {
-    const scanTimer = timers.find((t) => t.label === "SCANNING");
-    const scanStr = scanTimer ? `${scanTimer.remaining}s remaining` : "resolving...";
-    lines.push(`  Scanning: ${s.nodes[s.activeProbe.nodeId]?.label ?? s.activeProbe.nodeId}  |  ${scanStr}`);
-  }
-
-  if (s.activeLoot) {
-    const lootTimer = timers.find((t) => t.label === "EXTRACTING");
-    const lootStr = lootTimer ? `${lootTimer.remaining}s remaining` : "resolving...";
-    lines.push(`  Extracting: ${s.nodes[s.activeLoot.nodeId]?.label ?? s.activeLoot.nodeId}  |  ${lootStr}`);
-  }
-
-  if (s.activeRead) {
-    const readTimer = timers.find((t) => t.label === "READING");
-    const readStr = readTimer ? `${readTimer.remaining}s remaining` : "resolving...";
-    lines.push(`  Reading: ${s.nodes[s.activeRead.nodeId]?.label ?? s.activeRead.nodeId}  |  ${readStr}`);
-  }
-
-  if (s.executingExploit) {
-    const execCard = s.player.hand.find((c) => c.id === s.executingExploit.exploitId);
-    const execTimer = timers.find((t) => t.label === "EXECUTING");
-    const execStr = execTimer ? `${execTimer.remaining}s remaining` : "resolving...";
-    lines.push(`  Executing: ${execCard?.name ?? s.executingExploit.exploitId} @ ${s.executingExploit.nodeId}  |  ${execStr}`);
+  // Show active timed actions from graph node attributes
+  if (s.nodeGraph) {
+    for (const nodeId of s.nodeGraph.getNodeIds()) {
+      const attrs = s.nodeGraph.getNodeState(nodeId);
+      const label = attrs.label ?? nodeId;
+      if (attrs.probing) lines.push(`  Scanning: ${label}`);
+      if (attrs.exploiting) {
+        const card = s.player.hand.find((c) => c.id === attrs.activeExploitId);
+        lines.push(`  Executing: ${card?.name ?? attrs.activeExploitId} @ ${label}`);
+      }
+      if (attrs.reading) lines.push(`  Reading: ${label}`);
+      if (attrs.looting) lines.push(`  Extracting: ${label}`);
+    }
   }
 
   const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;

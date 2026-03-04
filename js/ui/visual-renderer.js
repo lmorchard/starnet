@@ -513,9 +513,11 @@ function syncHandPane(state) {
   const el = document.getElementById("hand-strip");
   if (!el) return;
 
-  const executing = state.executingExploit;
-  const isSelecting = !!state.selectedNodeId && !executing;
+  // Check for active exploit via node graph attributes (not old state.executingExploit)
   const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
+  const exploitingId = selectedNode?.exploiting ? selectedNode.activeExploitId : null;
+  const executing = !!exploitingId;
+  const isSelecting = !!state.selectedNodeId && !executing;
   const sortedHand = selectedNode
     ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : state.player.hand;
@@ -528,7 +530,7 @@ function syncHandPane(state) {
       ${sortedHand.length === 0
         ? '<span class="nd-dim">No exploits in hand.</span>'
         : sortedHand.map((c, i) => {
-            const isExec = executing?.exploitId === c.id;
+            const isExec = exploitingId === c.id;
             const elapsedMs = (isExec && execStartTime !== null && execTotalMs !== null)
               ? Math.min(Date.now() - execStartTime, execTotalMs)
               : 0;
