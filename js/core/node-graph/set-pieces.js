@@ -744,7 +744,7 @@ export const encryptedVault = {
       id: "key-gen",
       type: "key-gen",
       attributes: { accessLevel: "locked", keyReady: false },
-      operators: [{ name: "clock", period: 5 }],
+      operators: [{ name: "clock", period: 100 }],  // 10s cycle at 100ms/tick
       actions: [
         {
           id: "extract-key",
