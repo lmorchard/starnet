@@ -45,7 +45,7 @@ describe("default attributes", () => {
     const gw = createGateway("gw");
     assert.equal(gw.attributes.visibility, "hidden");
     assert.equal(gw.attributes.accessLevel, "locked");
-    assert.equal(gw.attributes.gateAccess, "compromised");
+    assert.equal(gw.attributes.gateAccess, "probed");
   });
 
   it("config overrides default attributes", () => {

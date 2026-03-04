@@ -236,7 +236,7 @@ export function createGateway(id, config = {}) {
     type: "gateway",
     attributes: defaultAttributes(config.label || id, {
       grade: config.grade || "D",
-      gateAccess: "compromised",
+      gateAccess: "probed",
       ...config.attributes,
     }),
     operators: [],

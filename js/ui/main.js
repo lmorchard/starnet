@@ -67,11 +67,11 @@ function init() {
   const cy = initGraph(cytoscapeNetwork, buildNodeClickHandler(), () => {
     emitEvent("starnet:action", { actionId: "deselect" });
   });
-  addIceNode();
   initConsole();
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
   initGame(() => networkResult, undefined, { openDarknetsStore });
   fitGraph(cy);
+  addIceNode();  // after layout — ICE polygon shape crashes cola bounding box calc
   startIce();
   setInterval(() => {
     tick(1);

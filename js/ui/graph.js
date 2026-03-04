@@ -4,7 +4,7 @@
 import { isIceVisible } from "../core/state.js";
 
 // Still playing with what might be the best default here
-const DEFAULT_LAYOUT_ALGO = "cola";
+const DEFAULT_LAYOUT_ALGO = "breadthfirst";
 // const DEFAULT_LAYOUT_ALGO = "dagre";
 
 // Node type → shape mapping
@@ -140,7 +140,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
     elements,
-    layout: LAYOUTS[currentLayout](false),
+    layout: { name: "preset" },  // defer real layout to fitGraph()
     style: buildStylesheet(),
     userZoomingEnabled: true,
     userPanningEnabled: true,
@@ -288,30 +288,7 @@ function buildStylesheet() {
     {
       selector: "node.ice",
       style: {
-        shape: "polygon",
-        "shape-polygon-points": [
-          // 20-point eye outline: pointed canthus at ±x, smooth arcs top and bottom
-          -1, 0,
-          -0.8, -0.22,
-          -0.6, -0.42,
-          -0.4, -0.55,
-          -0.2, -0.63,
-          0, -0.65,
-          0.2, -0.63,
-          0.4, -0.55,
-          0.6, -0.42,
-          0.8, -0.22,
-          1, 0,
-          0.8, 0.22,
-          0.6, 0.42,
-          0.4, 0.55,
-          0.2, 0.63,
-          0, 0.65,
-          -0.2, 0.63,
-          -0.4, 0.55,
-          -0.6, 0.42,
-          -0.8, 0.22,
-        ].join(" "),
+        shape: "diamond",
         width: 36,
         height: 24,
         "background-color": "#1a0010",
@@ -1282,7 +1259,12 @@ let currentLayout = DEFAULT_LAYOUT_ALGO;
 export function relayout(name) {
   if (!cy) return;
   if (name && LAYOUTS[name]) currentLayout = name;
-  cy.layout(LAYOUTS[currentLayout](true)).run();
+  // Run layout only on visible elements — display:none nodes crash
+  // Cytoscape's bounding box computation when edges reference them.
+  const visible = cy.elements(":visible");
+  if (visible.length > 0) {
+    visible.layout(LAYOUTS[currentLayout](true)).run();
+  }
   return currentLayout;
 }
 
@@ -1291,16 +1273,24 @@ export function getLayoutNames() {
   return Object.keys(LAYOUTS);
 }
 
-export function fitGraph(cy) {
-  const visible = cy.nodes(".accessible, .revealed");
+export function fitGraph(theCy) {
+  if (!theCy) return;
+  // Run layout on visible elements only — display:none nodes crash Cytoscape's
+  // bounding box computation when edges reference them.
+  const visibleEles = theCy.elements(":visible");
+  if (visibleEles.length > 0) {
+    visibleEles.layout(LAYOUTS[currentLayout](false)).run();
+  }
+
+  const visible = theCy.nodes(".accessible, .revealed");
   if (visible.length === 0) return;
-  cy.fit(visible, 50);
-  if (cy.zoom() > MAX_FIT_ZOOM) {
+  theCy.fit(visible, 50);
+  if (theCy.zoom() > MAX_FIT_ZOOM) {
     // Clamp zoom then re-center on visible nodes so they don't drift off-screen
     const bb = visible.boundingBox();
     const cx = (bb.x1 + bb.x2) / 2;
     const cy2 = (bb.y1 + bb.y2) / 2;
-    cy.zoom({ level: MAX_FIT_ZOOM, position: { x: cx, y: cy2 } });
+    theCy.zoom({ level: MAX_FIT_ZOOM, position: { x: cx, y: cy2 } });
   }
 }
 

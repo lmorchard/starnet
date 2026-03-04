@@ -13,7 +13,7 @@
 import { on, emitEvent, E } from "../core/events.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep, relayout } from "./graph.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
 
@@ -148,30 +148,19 @@ export function initVisualRenderer() {
   on(E.NODE_ACCESSED,   (/** @type {NodeAccessedPayload} */   { nodeId }) => flashNode(nodeId, "success"));
   on(E.NODE_REVEALED,   (/** @type {NodeRevealedPayload} */   { nodeId }) => {
     flashNode(nodeId, "reveal");
-    // Debounce fit — batch simultaneous reveals into one viewport adjustment
+    // Debounce layout + fit — batch simultaneous reveals into one pass.
+    // Newly revealed nodes start at (0,0) because display:none prevented
+    // the initial layout from positioning them. Re-run layout on all visible
+    // elements so the new nodes get placed.
     clearTimeout(revealFitTimer);
     revealFitTimer = setTimeout(() => {
       const cy = getCy();
       if (!cy) return;
-      const visible = cy.nodes(".accessible, .revealed");
-      if (visible.length <= 1) return;
-      const MAX_FIT_ZOOM = 1.5;
-      const pad = 50;
-      const bb = visible.boundingBox();
-      const zoom = Math.min(
-        cy.width() / (bb.w + 2 * pad),
-        cy.height() / (bb.h + 2 * pad),
-        MAX_FIT_ZOOM
-      );
-      const cx = (bb.x1 + bb.x2) / 2;
-      const cy2 = (bb.y1 + bb.y2) / 2;
-      const pan = {
-        x: cy.width() / 2 - zoom * cx,
-        y: cy.height() / 2 - zoom * cy2,
-      };
-      cy.stop();
-      cy.animate({ zoom, pan, duration: 500 });
-    }, 50);
+      const visibleEles = cy.elements(":visible");
+      if (visibleEles.length <= 1) return;
+      // Re-layout all visible elements to position the newly revealed nodes
+      relayout();
+    }, 100);
   });
 
   // Keep context menu attached to node on pan/zoom
