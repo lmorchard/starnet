@@ -28,9 +28,6 @@ import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setEx
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
 import { emitEvent, E } from "../events.js";
-// Legacy initState still uses node-types for old network format.
-// TODO: remove once all callers migrate to initGame.
-import { getStateFields, getBehaviors, resolveNode, getGateAccess } from "../actions/node-types.js";
 
 import { setNodeVisible, setNodeSigAlias, setNodeGraph, isSyncingToGraph } from "./node.js";
 import { setIceActive } from "./ice.js";
@@ -65,124 +62,6 @@ export function getVersion() {
 }
 
 // ── Initialization ───────────────────────────────────────
-
-export function initState(networkData, seedString) {
-  // Clear any graph refs from a previous initGame session
-  setNodeGraph(null);
-  setGraphForTick(null);
-  initRng(seedString);
-
-  /** @type {Object.<string, NodeState>} */
-  const nodes = {};
-  networkData.nodes.forEach((n) => {
-    const vulns = generateVulnerabilities(n.grade, n.type);
-    if (n.stagedVulnerabilities) {
-      n.stagedVulnerabilities.forEach((sv) => vulns.push(/** @type {import('../types.js').Vulnerability} */ ({
-        ...sv,
-        patched: false,
-        patchTurn: null,
-        hidden: true,
-      })));
-    }
-    nodes[n.id] = {
-      id: n.id,
-      type: n.type,
-      label: n.label,
-      grade: n.grade,
-      visibility: "hidden",
-      accessLevel: "locked",
-      alertState: "green",
-      probed: false,
-      vulnerabilities: vulns,
-      macguffins: [],
-      read: false,
-      looted: false,
-      rebooting: false,
-      gateAccess: getGateAccess(n),
-      ...getStateFields(n),
-    };
-  });
-
-  /** @type {Object.<string, string[]>} */
-  const adjacency = {};
-  networkData.nodes.forEach((n) => { adjacency[n.id] = []; });
-  networkData.edges.forEach((e) => {
-    adjacency[e.source].push(e.target);
-    adjacency[e.target].push(e.source);
-  });
-
-  state = {
-    seed: getSeed(),
-    moneyCost: networkData.moneyCost ?? "F",
-    nodes,
-    adjacency,
-    player: { cash: networkData.startCash ?? 1000, hand: generateStartingHand(networkData.startHandSpec) },
-    globalAlert: "green",
-    traceSecondsRemaining: null,
-    traceTimerId: null,
-    selectedNodeId: null,
-    phase: "playing",
-    runOutcome: null,
-    isCheating: false,
-    ice: null,
-    lastDisturbedNodeId: null,
-    executingExploit: null,
-    activeProbe: null,
-    activeRead: null,
-    activeLoot: null,
-    mission: null,
-  };
-
-  // Dispatch onInit to behavior atoms — lootable assigns macguffins here
-  const moneyCostGrade = state.moneyCost;
-  Object.values(nodes).forEach((node) => {
-    const typeDef = resolveNode(node);
-    const ctx = { typeDef, generateMacguffin: () => generateMacguffin(moneyCostGrade) };
-    getBehaviors(node).forEach((atom) => atom.onInit?.(node, state, ctx));
-  });
-
-  // Flag one macguffin as the mission target (10x value)
-  const missionTarget = flagMissionMacguffin(Object.values(nodes));
-  state.mission = missionTarget
-    ? { targetMacguffinId: missionTarget.id, targetName: missionTarget.name, complete: false }
-    : null;
-
-  // WAN node is always accessible
-  Object.values(state.nodes).forEach((node) => {
-    if (node.type === "wan") node.visibility = "accessible";
-  });
-
-  // Make start node accessible
-  state.nodes[networkData.startNode].visibility = "accessible";
-  emitEvent(E.NODE_REVEALED, { nodeId: networkData.startNode, label: state.nodes[networkData.startNode].label });
-
-  // Spawn ICE if defined in network data
-  if (networkData.ice) {
-    const nodeIds = Object.keys(nodes);
-    const residentNodeId = networkData.ice.startNode
-      ?? randomPick(RNG.WORLD, nodeIds);
-    state.ice = {
-      grade: networkData.ice.grade,
-      residentNodeId,
-      attentionNodeId: residentNodeId,
-      active: true,
-      dwellTimerId: null,
-      detectedAtNode: null,
-      detectionCount: 0,
-    };
-  }
-
-  if (state.mission) {
-    emitEvent(E.MISSION_STARTED, { targetName: state.mission.targetName });
-  }
-  emitEvent(E.RUN_STARTED, { state });
-
-  version++;
-  // @ts-ignore — dev convenience
-  if (typeof window !== "undefined") window._starnetState = state;
-  emitEvent(E.STATE_CHANGED, state);
-  return state;
-}
 
 // ── NodeGraph-based initialization ────────────────────────
 

@@ -4,7 +4,7 @@
 
 export {
   // Core
-  initState, initGame, getState, mutate, getVersion,
+  initGame, getState, mutate, getVersion,
   // Graph traversal utilities
   revealNeighbors, accessNeighbors,
   // Alert constants

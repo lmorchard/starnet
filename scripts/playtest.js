@@ -202,7 +202,8 @@ if (!isReset) {
       deserializeState(JSON.parse(readFileSync(stateFile, "utf8")));
     } catch (e) {
       out(`[SYS] Failed to load ${stateFile}: ${e.message}. Initializing fresh.`);
-      initState(NETWORK, seedArg ?? undefined);
+      initGame(() => buildNetworkFn(), seedArg ?? undefined);
+      initGraphBridge();
       startIce();
     }
   } else {
