@@ -123,3 +123,93 @@ export function resolveTraits(nodeDef) {
 export function clearTraits() {
   _registry.clear();
 }
+
+// ── Built-in trait definitions ──────────────────────────────────
+
+import { ACTION_TEMPLATES } from "./game-types.js";
+
+registerTrait("graded", {
+  attributes: { grade: "D" },
+  operators: [],
+  actions: [],
+});
+
+registerTrait("hackable", {
+  attributes: {
+    accessLevel: "locked",
+    probed: false,
+    vulnerabilities: [],
+    probing: false,
+    exploiting: false,
+    alertState: "green",
+  },
+  operators: [], // timed-action operators added in Phase 5
+  actions: [
+    ACTION_TEMPLATES.PROBE,
+    ACTION_TEMPLATES.CANCEL_PROBE,
+    ACTION_TEMPLATES.EXPLOIT,
+    ACTION_TEMPLATES.CANCEL_EXPLOIT,
+  ],
+});
+
+registerTrait("lootable", {
+  attributes: {
+    read: false,
+    looted: false,
+    macguffins: [],
+    reading: false,
+    looting: false,
+  },
+  operators: [], // timed-action operators added in Phase 5
+  actions: [
+    ACTION_TEMPLATES.READ,
+    ACTION_TEMPLATES.CANCEL_READ,
+    ACTION_TEMPLATES.LOOT,
+    ACTION_TEMPLATES.CANCEL_LOOT,
+  ],
+});
+
+registerTrait("rebootable", {
+  attributes: { rebooting: false },
+  operators: [], // timed-action operator added in Phase 5
+  actions: [
+    ACTION_TEMPLATES.EJECT,
+    ACTION_TEMPLATES.REBOOT,
+  ],
+});
+
+registerTrait("relay", {
+  attributes: {},
+  operators: [{ name: "relay" }],
+  actions: [],
+});
+
+registerTrait("detectable", {
+  attributes: {
+    forwardingEnabled: true,
+    alerted: false,
+    alertState: "green",
+  },
+  operators: [
+    { name: "relay", filter: "alert" },
+    { name: "flag", on: "alert", attr: "alerted", value: true },
+  ],
+  actions: [ACTION_TEMPLATES.RECONFIGURE],
+});
+
+registerTrait("security", {
+  attributes: {
+    alerted: false,
+    alertState: "green",
+  },
+  operators: [
+    { name: "flag", on: "alert", attr: "alerted", value: true },
+  ],
+  actions: [ACTION_TEMPLATES.CANCEL_TRACE],
+});
+
+registerTrait("gate", {
+  attributes: { gateAccess: "probed" },
+  operators: [],
+  actions: [],
+});

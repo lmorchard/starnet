@@ -1,7 +1,21 @@
 // @ts-check
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { registerTrait, getTrait, resolveTraits, clearTraits } from "./traits.js";
+
+// traits.js self-registers built-in traits at import time.
+// Save them before tests clear the registry.
+const BUILT_IN_TRAITS = ["graded", "hackable", "lootable", "rebootable", "relay", "detectable", "security", "gate"];
+const _savedTraits = new Map();
+for (const name of BUILT_IN_TRAITS) {
+  _savedTraits.set(name, getTrait(name));
+}
+/** Restore built-in traits (for tests that clear the registry). */
+function restoreBuiltIns() {
+  for (const [name, def] of _savedTraits) {
+    registerTrait(name, def);
+  }
+}
 
 describe("Trait Registry", () => {
   beforeEach(() => {
@@ -166,5 +180,105 @@ describe("resolveTraits", () => {
       attributes: {},
     });
     assert.equal(result.type, "fileserver");
+  });
+});
+
+describe("Built-in traits", () => {
+  beforeEach(() => {
+    restoreBuiltIns();
+  });
+
+  it("all 8 built-in traits are registered", () => {
+    for (const name of BUILT_IN_TRAITS) {
+      assert.ok(getTrait(name), `trait "${name}" should be registered`);
+    }
+  });
+
+  it("graded provides grade attribute", () => {
+    const t = getTrait("graded");
+    assert.equal(t.attributes.grade, "D");
+  });
+
+  it("hackable provides accessLevel, probed, vulnerabilities, actions", () => {
+    const t = getTrait("hackable");
+    assert.equal(t.attributes.accessLevel, "locked");
+    assert.equal(t.attributes.probed, false);
+    assert.deepStrictEqual(t.attributes.vulnerabilities, []);
+    const actionIds = t.actions.map(a => a.id);
+    assert.ok(actionIds.includes("probe"));
+    assert.ok(actionIds.includes("cancel-probe"));
+    assert.ok(actionIds.includes("exploit"));
+    assert.ok(actionIds.includes("cancel-exploit"));
+  });
+
+  it("lootable provides read, looted, macguffins, actions", () => {
+    const t = getTrait("lootable");
+    assert.equal(t.attributes.read, false);
+    assert.equal(t.attributes.looted, false);
+    const actionIds = t.actions.map(a => a.id);
+    assert.ok(actionIds.includes("read"));
+    assert.ok(actionIds.includes("loot"));
+  });
+
+  it("rebootable provides rebooting and eject/reboot actions", () => {
+    const t = getTrait("rebootable");
+    assert.equal(t.attributes.rebooting, false);
+    const actionIds = t.actions.map(a => a.id);
+    assert.ok(actionIds.includes("eject"));
+    assert.ok(actionIds.includes("reboot"));
+  });
+
+  it("relay provides relay operator", () => {
+    const t = getTrait("relay");
+    assert.equal(t.operators.length, 1);
+    assert.equal(t.operators[0].name, "relay");
+  });
+
+  it("detectable provides forwardingEnabled, alert operators, reconfigure action", () => {
+    const t = getTrait("detectable");
+    assert.equal(t.attributes.forwardingEnabled, true);
+    assert.equal(t.attributes.alerted, false);
+    assert.ok(t.operators.some(o => o.name === "relay" && o.filter === "alert"));
+    assert.ok(t.operators.some(o => o.name === "flag"));
+    assert.ok(t.actions.some(a => a.id === "reconfigure"));
+  });
+
+  it("security provides alert flag operator and cancel-trace action", () => {
+    const t = getTrait("security");
+    assert.ok(t.operators.some(o => o.name === "flag"));
+    assert.ok(t.actions.some(a => a.id === "cancel-trace"));
+  });
+
+  it("gate provides gateAccess attribute", () => {
+    const t = getTrait("gate");
+    assert.equal(t.attributes.gateAccess, "probed");
+  });
+
+  it("composing graded + hackable + gate resolves correctly", () => {
+    const result = resolveTraits({
+      id: "gw-1", type: "gateway",
+      traits: ["graded", "hackable", "gate"],
+      attributes: { grade: "C" },
+    });
+    assert.equal(result.attributes.grade, "C"); // explicit override
+    assert.equal(result.attributes.accessLevel, "locked"); // from hackable
+    assert.equal(result.attributes.gateAccess, "probed"); // from gate
+    assert.equal(result.attributes.visibility, "hidden"); // base intrinsic
+    assert.ok(result.actions.some(a => a.id === "probe"));
+  });
+
+  it("composing hackable + lootable + rebootable gives all actions", () => {
+    const result = resolveTraits({
+      id: "fs-1", type: "fileserver",
+      traits: ["graded", "hackable", "lootable", "rebootable", "gate"],
+      attributes: {},
+    });
+    const actionIds = result.actions.map(a => a.id);
+    assert.ok(actionIds.includes("probe"));
+    assert.ok(actionIds.includes("exploit"));
+    assert.ok(actionIds.includes("read"));
+    assert.ok(actionIds.includes("loot"));
+    assert.ok(actionIds.includes("eject"));
+    assert.ok(actionIds.includes("reboot"));
   });
 });

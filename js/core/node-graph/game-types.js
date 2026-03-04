@@ -169,6 +169,39 @@ const REBOOT_ACTION = {
   ],
 };
 
+/** @type {ActionDef} */
+const RECONFIGURE_ACTION = {
+  id: "reconfigure",
+  label: "RECONFIGURE",
+  desc: "Disable event forwarding to security monitor.",
+  requires: [
+    {
+      type: "any-of", conditions: [
+        { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+        { type: "node-attr", attr: "accessLevel", eq: "owned" },
+      ],
+    },
+    { type: "node-attr", attr: "forwardingEnabled", eq: true },
+  ],
+  effects: [
+    { effect: "set-attr", attr: "forwardingEnabled", value: false },
+    { effect: "ctx-call", method: "reconfigureNode", args: ["$nodeId"] },
+  ],
+};
+
+/** @type {ActionDef} */
+const CANCEL_TRACE_ACTION = {
+  id: "cancel-trace",
+  label: "CANCEL TRACE",
+  desc: "Abort trace countdown.",
+  requires: [
+    { type: "node-attr", attr: "accessLevel", eq: "owned" },
+  ],
+  effects: [
+    { effect: "ctx-call", method: "cancelTrace", args: [] },
+  ],
+};
+
 // ── Action sets by role ──────────────────────────────────────
 
 const BASIC_ACTIONS = [
@@ -271,26 +304,6 @@ export function createRouter(id, config = {}) {
  * @returns {NodeDef}
  */
 export function createIDS(id, config = {}) {
-  /** @type {ActionDef} */
-  const reconfigureAction = {
-    id: "reconfigure",
-    label: "RECONFIGURE",
-    desc: "Disable event forwarding to security monitor.",
-    requires: [
-      {
-        type: "any-of", conditions: [
-          { type: "node-attr", attr: "accessLevel", eq: "compromised" },
-          { type: "node-attr", attr: "accessLevel", eq: "owned" },
-        ],
-      },
-      { type: "node-attr", attr: "forwardingEnabled", eq: true },
-    ],
-    effects: [
-      { effect: "set-attr", attr: "forwardingEnabled", value: false },
-      { effect: "ctx-call", method: "reconfigureNode", args: ["$nodeId"] },
-    ],
-  };
-
   return {
     id,
     type: "ids",
@@ -305,7 +318,7 @@ export function createIDS(id, config = {}) {
       { name: "relay", filter: "alert" },
       { name: "flag", on: "alert", attr: "alerted", value: true },
     ],
-    actions: [...BASIC_ACTIONS, reconfigureAction],
+    actions: [...BASIC_ACTIONS, RECONFIGURE_ACTION],
   };
 }
 
@@ -316,19 +329,6 @@ export function createIDS(id, config = {}) {
  * @returns {NodeDef}
  */
 export function createSecurityMonitor(id, config = {}) {
-  /** @type {ActionDef} */
-  const cancelTraceAction = {
-    id: "cancel-trace",
-    label: "CANCEL TRACE",
-    desc: "Abort trace countdown.",
-    requires: [
-      { type: "node-attr", attr: "accessLevel", eq: "owned" },
-    ],
-    effects: [
-      { effect: "ctx-call", method: "cancelTrace", args: [] },
-    ],
-  };
-
   return {
     id,
     type: "security-monitor",
@@ -341,7 +341,7 @@ export function createSecurityMonitor(id, config = {}) {
     operators: [
       { name: "flag", on: "alert", attr: "alerted", value: true },
     ],
-    actions: [...BASIC_ACTIONS, cancelTraceAction],
+    actions: [...BASIC_ACTIONS, CANCEL_TRACE_ACTION],
   };
 }
 
@@ -538,4 +538,6 @@ export const ACTION_TEMPLATES = {
   CANCEL_LOOT: CANCEL_LOOT_ACTION,
   EJECT: EJECT_ACTION,
   REBOOT: REBOOT_ACTION,
+  RECONFIGURE: RECONFIGURE_ACTION,
+  CANCEL_TRACE: CANCEL_TRACE_ACTION,
 };
