@@ -15,7 +15,7 @@ lint:
 
 # Run unit + integration tests
 test:
-	node --test $(shell find tests js scripts -name '*.test.js' ! -path '*/fixtures/*')
+	node --test $(shell find tests js scripts data -name '*.test.js' ! -path '*/fixtures/*')
 
 # Full check: lint + test
 check: lint test

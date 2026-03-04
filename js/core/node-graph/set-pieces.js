@@ -1148,6 +1148,105 @@ export const tamperDetect = {
 };
 
 /**
+ * Server Bank
+ *
+ * Pattern: a cluster of plain fileserver nodes connected to a common hub.
+ * No puzzles, no defenses — just straightforward loot. The hub routes
+ * traffic between the servers and the rest of the network.
+ *
+ * External ports: ['hub', 'server-1', 'server-2', 'server-3']
+ * The hub is the entry point; servers are lootable.
+ *
+ * @type {SetPieceDef}
+ */
+export const serverBank = {
+  id: "server-bank",
+  description: "Cluster of three lootable fileservers connected to a hub.",
+  nodes: [
+    {
+      id: "hub",
+      type: "router",
+      attributes: { accessLevel: "locked" },
+      operators: [{ name: "relay" }],
+      actions: [],
+    },
+    {
+      id: "server-1",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "server-2",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "server-3",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [
+    ["hub", "server-1"],
+    ["hub", "server-2"],
+    ["hub", "server-3"],
+  ],
+  triggers: [],
+  externalPorts: ["hub", "server-1", "server-2", "server-3"],
+};
+
+/**
+ * Office Cluster
+ *
+ * Pattern: a few workstations connected to a fileserver. Exploration filler.
+ * Workstations might hold small loot; the fileserver is the main prize.
+ * No defenses, no puzzles — just territory to map and harvest.
+ *
+ * External ports: ['fileserver', 'workstation-1', 'workstation-2']
+ *
+ * @type {SetPieceDef}
+ */
+export const officeCluster = {
+  id: "office-cluster",
+  description: "Workstations connected to a fileserver. Exploration filler with light loot.",
+  nodes: [
+    {
+      id: "fileserver",
+      type: "fileserver",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "workstation-1",
+      type: "workstation",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "workstation-2",
+      type: "workstation",
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [
+    ["fileserver", "workstation-1"],
+    ["fileserver", "workstation-2"],
+  ],
+  triggers: [],
+  externalPorts: ["fileserver", "workstation-1", "workstation-2"],
+};
+
+/**
  * Convenience catalog of all set-pieces.
  */
 export const SET_PIECES = {
@@ -1164,4 +1263,6 @@ export const SET_PIECES = {
   probeBurstAlarm,
   noisySensor,
   tamperDetect,
+  serverBank,
+  officeCluster,
 };

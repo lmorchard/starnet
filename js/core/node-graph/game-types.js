@@ -437,6 +437,49 @@ export function createWAN(id, config = {}) {
   };
 }
 
+// ── Set-piece enrichment ─────────────────────────────────────
+
+/**
+ * Enrich a set-piece node with standard game attributes and actions.
+ * Adds missing defaults (probed, read, etc.) and standard actions
+ * (probe, exploit, cancel-*, eject, reboot) on top of any set-piece-specific actions.
+ *
+ * @param {NodeDef} node
+ * @param {{ lootable?: boolean }} [opts]
+ * @returns {NodeDef}
+ */
+export function enrichWithGameActions(node, { lootable = false } = {}) {
+  const defaults = {
+    label: node.id,
+    grade: "D",
+    visibility: "hidden",
+    accessLevel: "locked",
+    probed: false,
+    read: false,
+    looted: false,
+    rebooting: false,
+    alertState: "green",
+    vulnerabilities: [],
+    macguffins: [],
+    gateAccess: "probed",
+    probing: false,
+    exploiting: false,
+    reading: false,
+    looting: false,
+    forwardingEnabled: true,
+  };
+  const baseActions = lootable ? LOOTABLE_ACTIONS : BASIC_ACTIONS;
+  // Merge: defaults first, then node's own attrs override, then ensure label
+  const mergedAttrs = { ...defaults, ...node.attributes };
+  if (!node.attributes.label) mergedAttrs.label = node.id;
+  return {
+    ...node,
+    attributes: mergedAttrs,
+    // Standard game actions first, then set-piece-specific actions
+    actions: [...baseActions, ...(node.actions || [])],
+  };
+}
+
 // ── Export action templates for testing ───────────────────────
 
 export const ACTION_TEMPLATES = {
