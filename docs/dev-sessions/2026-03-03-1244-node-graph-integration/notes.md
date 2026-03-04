@@ -118,6 +118,25 @@ when the set-piece is instantiated for a network of a given difficulty. Ties
 into the composable traits system — a `timedThreat` trait would compute
 actual tick period from base × grade multiplier.
 
+### Follow-Up: Migrate Core Game Mechanics into Node-Graph
+
+The remaining game mechanics still live outside the node-graph system and need
+full migration:
+
+- **Loot/macguffins**: generation, collection, cash reward — currently in
+  initGame + collectMacguffins + loot-exec.js. Should be a graph trait/effect.
+- **Combat/exploit resolution**: RNG roll, grade modifiers, card decay, access
+  level change — currently in combat.js. Should be graph effects with the
+  card system as a quality or ctx interaction.
+- **Probe**: vuln reveal, alert raise — currently in probe-exec.js. Should be
+  a graph action with timed effects.
+- **Read**: mark-read, macguffin visibility — currently in read-exec.js.
+
+This is the final step to making the node-graph the COMPLETE game engine.
+The old exec modules (probe-exec, exploit-exec, read-exec, loot-exec) and
+combat.js would be deleted, replaced by graph actions + effects + the unified
+timed action system.
+
 ### Follow-Up: Unified Timed Action System
 
 All node-graph actions should take time, not execute instantly. Currently the
