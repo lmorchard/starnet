@@ -4,9 +4,9 @@
 import { isIceVisible } from "../core/state.js";
 
 // Still playing with what might be the best default here
-// const DEFAULT_LAYOUT_ALGO = "breadthfirst";
+const DEFAULT_LAYOUT_ALGO = "breadthfirst";
 // const DEFAULT_LAYOUT_ALGO = "dagre";
-const DEFAULT_LAYOUT_ALGO = "cola";
+// const DEFAULT_LAYOUT_ALGO = "cola";
 
 // Node type → shape mapping
 const NODE_SHAPES = {
@@ -194,14 +194,20 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
 }
 
 /**
- * Add all initially visible nodes to the graph after initGame.
- * Call once after initGame populates state.nodes.
+ * Add all initially visible nodes to the graph after initGame,
+ * then apply full styling so edges and visual classes are correct.
  * @param {Object<string, { id: string, visibility: string }>} nodes
  */
 export function syncInitialNodes(nodes) {
   for (const node of Object.values(nodes)) {
     if (node.visibility !== "hidden") {
       ensureNodeInGraph(node.id, node.visibility);
+    }
+  }
+  // Apply full styling now that all initial nodes + edges are present
+  for (const node of Object.values(nodes)) {
+    if (node.visibility !== "hidden") {
+      updateNodeStyle(node.id, node);
     }
   }
 }
