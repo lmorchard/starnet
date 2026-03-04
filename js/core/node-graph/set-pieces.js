@@ -418,17 +418,28 @@ export const combinationLock = {
  */
 export const deadmanCircuit = {
   id: "deadman-circuit",
-  description: "Watchdog arms alarm if no heartbeat arrives within the period. Blocking the relay fires the trace.",
+  description: "Heartbeat clock keeps watchdog alive via relay. Subverting the relay stops heartbeats and fires the trace.",
   nodes: [
+    {
+      id: "heartbeat-clock",
+      type: "heartbeat-source",
+      attributes: {},
+      // Clock sends heartbeat every 3 ticks — must be faster than watchdog period
+      operators: [{ name: "clock", period: 3 }],
+      actions: [],
+    },
     {
       id: "heartbeat-relay",
       type: "heartbeat-monitor",
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      operators: [{ name: "relay", filter: "heartbeat" }],
+      // Relay forwards heartbeat messages (clock signal arrives as "signal",
+      // relay forwards all non-tick messages including signals)
+      operators: [{ name: "relay" }],
       actions: [
         {
           id: "subvert",
           label: "Subvert Relay",
+          desc: "Block heartbeat signals. WARNING: may trigger deadman alarm.",
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
         },
@@ -438,6 +449,8 @@ export const deadmanCircuit = {
       id: "watchdog",
       type: "watchdog-daemon",
       attributes: {},
+      // Watchdog resets on any non-tick message. If no message arrives in
+      // 5 ticks, it fires a "set" message to the alarm latch.
       operators: [{ name: "watchdog", period: 5 }],
       actions: [],
     },
@@ -450,6 +463,7 @@ export const deadmanCircuit = {
     },
   ],
   internalEdges: [
+    ["heartbeat-clock", "heartbeat-relay"],
     ["heartbeat-relay", "watchdog"],
     ["watchdog", "alarm-latch"],
   ],
