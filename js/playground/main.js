@@ -5,7 +5,7 @@
  * added debug tooling.
  */
 
-import { initGraph, getCy, fitGraph, syncInitialNodes, addIceNode } from "../ui/graph.js";
+import { initGraph, getCy, fitGraph, syncInitialNodes, addIceNode, flashNode } from "../ui/graph.js";
 import { initGame, getState } from "../core/state.js";
 import { startIce, handleIceTick, handleIceDetect } from "../core/ice.js";
 import { initConsole, runCommand } from "../ui/console.js";
@@ -148,7 +148,18 @@ function initMessageLog() {
 
   on(E.MESSAGE_PROPAGATED, ({ nodeId, message }) => {
     if (message.type === "tick") return; // too noisy
-    addMsg(`[MSG] ${message.type} → ${nodeId} (origin: ${message.origin})`, "log-msg");
+    if (message.type === "init") return; // init noise
+    addMsg(`[MSG] ${message.type} → ${nodeId} (origin: ${message.origin}, path: ${message.path?.join("→")})`, "log-msg");
+
+    // Flash the receiving node on the graph
+    if (_messagesEnabled) {
+      try { flashNode(nodeId, "reveal"); } catch (_) { /* node might not be in graph yet */ }
+    }
+  });
+
+  // Trigger fire events — check triggers after each state change
+  on(E.ACTION_RESOLVED, ({ action, nodeId, label }) => {
+    addMsg(`[RESOLVED] ${action} @ ${label ?? nodeId}`, "log-trigger");
   });
 
   // Toggle
