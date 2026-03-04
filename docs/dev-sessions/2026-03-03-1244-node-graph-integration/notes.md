@@ -96,9 +96,22 @@ Console tab completion doesn't include node-graph-specific actions (unlock-vault
 extract-token, activate, etc.). The completion system needs to query
 `getAvailableActions` for the selected node and include those action IDs.
 
-### Follow-Up: encryptedVault Clock Spam
+### Follow-Up: Set-Piece Timing/Difficulty Tuning Sweep
 
-The encryptedVault set-piece's clock(period:5) fires every 500ms and logs
-"Key-gen cycle: decryption key refreshed — extract quickly" repeatedly on the
-research-station network. The clock is working correctly but the log message
-is too noisy. Either suppress repeated messages or only log on the first cycle.
+All set-piece tick periods need a playtesting pass to tune difficulty against
+practical exploit and action timing. Current values are first-pass estimates:
+- deadmanCircuit: heartbeat 30 ticks (3s), watchdog 50 ticks (5s)
+- encryptedVault: key cycle 100 ticks (10s)
+- tripwireGauntlet: delay 6 ticks (600ms)
+- cascadeShutdown: watchdog 4 ticks (400ms) — probably too fast
+- noisySensor: debounce 4 ticks (400ms)
+
+These should be tuned against the actual probe/exploit/action durations so the
+puzzles create meaningful time pressure without being impossible. A dedicated
+balance session with bot-player metrics would be ideal.
+
+### Follow-Up: WAN Node Commands
+
+access-darknet, store, and buy should be actions attached to the WAN node
+specifically, not global console commands. When WAN is selected, these
+become available as dynamic commands via the node-graph action system.
