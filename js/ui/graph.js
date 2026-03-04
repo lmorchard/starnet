@@ -131,16 +131,26 @@ function runRebootPulse(node) {
   );
 }
 
-export function initGraph(networkData, onNodeClick, onBackgroundTap) {
-  const elements = buildElements(networkData);
+// Full network topology — stored for deferred node addition.
+// Nodes are only added to Cytoscape when they become visible.
+let _networkNodes = new Map();  // id → { id, label, type, grade }
+let _networkEdges = [];         // [{ source, target }]
 
-  // HACK: Cytoscape warns about wheelSensitivity being non-default; suppress that one specific warning.
+export function initGraph(networkData, onNodeClick, onBackgroundTap) {
+  // Store full topology for deferred node addition
+  _networkNodes = new Map();
+  for (const n of networkData.nodes) {
+    _networkNodes.set(n.id, { id: n.id, label: n.label, type: n.type, grade: n.grade });
+  }
+  _networkEdges = networkData.edges;
+
+  // Start empty — nodes are added as they become visible
   const _warn = console.warn;
   console.warn = (...args) => { if (!String(args[0]).includes("wheel sensitivity")) _warn(...args); };
   cy = window._cy = cytoscape({
     container: document.getElementById("cy"),
-    elements,
-    layout: { name: "preset" },  // defer real layout to fitGraph()
+    elements: [],
+    layout: { name: "preset" },
     style: buildStylesheet(),
     userZoomingEnabled: true,
     userPanningEnabled: true,
@@ -182,36 +192,44 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   return cy;
 }
 
-function buildElements(networkData) {
-  const nodes = networkData.nodes.map((n) => ({
-    data: {
-      id: n.id,
-      label: n.label,
-      type: n.type,
-      grade: n.grade,
-    },
-    classes: ["hidden"],
-  }));
+/**
+ * Add a node to the Cytoscape graph when it becomes visible.
+ * Also adds edges to any already-present neighbors.
+ * @param {string} nodeId
+ * @param {string} visibilityClass - "revealed" or "accessible"
+ */
+export function ensureNodeInGraph(nodeId, visibilityClass) {
+  if (!cy) return;
+  // Already in graph?
+  if (cy.getElementById(nodeId).length > 0) return;
+  // Known node?
+  const ndata = _networkNodes.get(nodeId);
+  if (!ndata) return;
 
-  const edges = networkData.edges.map((e, i) => ({
-    data: {
-      id: `edge-${i}`,
-      source: e.source,
-      target: e.target,
-    },
-    classes: ["hidden"],
-  }));
+  // Add the node
+  cy.add({
+    data: { id: ndata.id, label: ndata.label, type: ndata.type, grade: ndata.grade },
+    classes: [visibilityClass],
+  });
 
-  return [...nodes, ...edges];
+  // Add edges to any already-present neighbors
+  _networkEdges.forEach((e, i) => {
+    const src = e.source;
+    const tgt = e.target;
+    const edgeId = `edge-${src}-${tgt}`;
+    if (cy.getElementById(edgeId).length > 0) return; // already added
+    if ((src === nodeId && cy.getElementById(tgt).length > 0) ||
+        (tgt === nodeId && cy.getElementById(src).length > 0)) {
+      cy.add({
+        data: { id: edgeId, source: src, target: tgt },
+        classes: ["visible"],
+      });
+    }
+  });
 }
 
 function buildStylesheet() {
   return [
-    // Default hidden state
-    {
-      selector: "node.hidden",
-      style: { display: "none" },
-    },
     // Revealed but not accessible
     {
       selector: "node.revealed",
@@ -367,10 +385,16 @@ function buildStylesheet() {
         "border-style": "dashed",
       },
     },
-    // Edges hidden
+    // Edges between revealed-only nodes — very dim
     {
       selector: "edge.hidden",
-      style: { display: "none" },
+      style: {
+        "line-color": "#112222",
+        "target-arrow-shape": "none",
+        "curve-style": "bezier",
+        width: 1,
+        opacity: 0.2,
+      },
     },
     // Edges visible
     {
@@ -411,8 +435,14 @@ function buildStylesheet() {
 // Update a single node's visual classes based on its state
 export function updateNodeStyle(nodeId, nodeState) {
   if (!cy) return;
+
+  // If the node just became visible, add it to the Cytoscape graph
+  if (nodeState.visibility !== "hidden") {
+    ensureNodeInGraph(nodeId, nodeState.visibility);
+  }
+
   const node = cy.getElementById(nodeId);
-  if (!node) return;
+  if (!node || node.length === 0) return;
 
   // Rebooting state
   if (nodeState.rebooting) {
@@ -468,18 +498,16 @@ export function updateNodeStyle(nodeId, nodeState) {
 }
 
 function updateEdgeVisibility() {
+  if (!cy) return;
   cy.edges().forEach((edge) => {
     const src = cy.getElementById(edge.data("source"));
     const tgt = cy.getElementById(edge.data("target"));
-    const srcVisible = !src.hasClass("hidden");
-    const tgtVisible = !tgt.hasClass("hidden");
-    // Require at least one accessible endpoint — don't reveal edges between two ??? nodes
+    if (src.length === 0 || tgt.length === 0) return;
     const srcAccessible = src.hasClass("accessible");
     const tgtAccessible = tgt.hasClass("accessible");
-
-    if (srcVisible && tgtVisible && (srcAccessible || tgtAccessible)) {
+    // Only show edge if at least one endpoint is accessible
+    if (srcAccessible || tgtAccessible) {
       edge.removeClass("hidden").addClass("visible");
-      // Highlight path between two owned nodes
       if (src.hasClass("owned") && tgt.hasClass("owned")) {
         edge.addClass("owned-path");
       } else {
@@ -1259,11 +1287,8 @@ let currentLayout = DEFAULT_LAYOUT_ALGO;
 export function relayout(name) {
   if (!cy) return;
   if (name && LAYOUTS[name]) currentLayout = name;
-  // Run layout only on visible elements — display:none nodes crash
-  // Cytoscape's bounding box computation when edges reference them.
-  const visible = cy.elements(":visible");
-  if (visible.length > 0) {
-    visible.layout(LAYOUTS[currentLayout](true)).run();
+  if (cy.nodes().length > 0) {
+    cy.layout(LAYOUTS[currentLayout](true)).run();
   }
   return currentLayout;
 }
@@ -1275,14 +1300,13 @@ export function getLayoutNames() {
 
 export function fitGraph(theCy) {
   if (!theCy) return;
-  // Run layout on visible elements only — display:none nodes crash Cytoscape's
-  // bounding box computation when edges reference them.
-  const visibleEles = theCy.elements(":visible");
-  if (visibleEles.length > 0) {
-    visibleEles.layout(LAYOUTS[currentLayout](false)).run();
+  // All nodes in the graph are visible (hidden nodes aren't added).
+  // Run layout on everything.
+  if (theCy.nodes().length > 0) {
+    theCy.layout(LAYOUTS[currentLayout](false)).run();
   }
 
-  const visible = theCy.nodes(".accessible, .revealed");
+  const visible = theCy.nodes();
   if (visible.length === 0) return;
   theCy.fit(visible, 50);
   if (theCy.zoom() > MAX_FIT_ZOOM) {
