@@ -210,6 +210,8 @@
  * @property {() => void} cancelTrace
  * @property {(amount: number) => void} giveReward
  * @property {(nodeId: string) => void} spawnICE
+ * @property {() => void} [stopIce]
+ * @property {() => void} [disableIce]
  * @property {(level: string) => void} setGlobalAlert
  * @property {(nodeId: string) => void} enableNode
  * @property {(nodeId: string) => void} disableNode

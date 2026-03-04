@@ -237,6 +237,13 @@ export const idsRelayChain = {
         { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
       ],
     },
+    {
+      id: "monitor-owned-cancel-trace",
+      when: { type: "node-attr", nodeId: "monitor", attr: "accessLevel", eq: "owned" },
+      then: [
+        { effect: "ctx-call", method: "cancelTrace", args: [] },
+      ],
+    },
   ],
   externalPorts: ["ids", "monitor"],
 };

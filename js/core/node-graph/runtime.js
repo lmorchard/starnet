@@ -170,6 +170,7 @@ export class NodeGraph {
     node.attributes = { ...node.attributes, [attr]: value };
     if (value !== previous) {
       this._onEvent("node-state-changed", { nodeId, attr, value, previous });
+      this._evaluateTriggers();
     }
   }
 

@@ -82,6 +82,12 @@ export function buildNetwork() {
     ...burst.triggers,
     ...pot.triggers,
     ...office.triggers,
+    // ICE resident node owned → disable ICE
+    {
+      id: "ice-resident-owned",
+      when: { type: "node-attr", nodeId: "sec/monitor", attr: "accessLevel", eq: "owned" },
+      then: [{ effect: "ctx-call", method: "disableIce", args: [] }],
+    },
   ];
 
   return {

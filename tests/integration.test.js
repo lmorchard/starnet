@@ -94,7 +94,12 @@ function buildIceWithMonitorLAN({ startCash = 0, grade = "C" } = {}) {
         createSecurityMonitor("sec-mon"),
       ],
       edges: [["gateway", "router-a"], ["router-a", "sec-mon"]],
-      triggers: [],
+      triggers: [
+        // Monitor owned → cancel trace (from security trait)
+        { id: "monitor-owned-cancel-trace", when: { type: "node-attr", nodeId: "sec-mon", attr: "accessLevel", eq: "owned" }, then: [{ effect: "ctx-call", method: "cancelTrace", args: [] }] },
+        // ICE resident owned → disable ICE
+        { id: "ice-resident-owned", when: { type: "node-attr", nodeId: "sec-mon", attr: "accessLevel", eq: "owned" }, then: [{ effect: "ctx-call", method: "disableIce", args: [] }] },
+      ],
     },
     meta: { startNode: "gateway", startCash, moneyCost: "C", ice: { grade, startNode: "sec-mon" } },
   };
@@ -202,16 +207,14 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
 
   it("owning security-monitor sets ice.active to false", () => {
     const s = getState();
-    s.nodes["sec-mon"].accessLevel = "owned";
-    emitEvent(E.NODE_ACCESSED, { nodeId: "sec-mon", label: "sec-mon", prev: "locked", next: "owned" });
+    s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
     assert.equal(getState().ice?.active, false);
   });
 
   it("owning security-monitor emits ICE_DISABLED", () => {
     const s = getState();
     const fired = withEvents(E.ICE_DISABLED, () => {
-      s.nodes["sec-mon"].accessLevel = "owned";
-      emitEvent(E.NODE_ACCESSED, { nodeId: "sec-mon", label: "sec-mon", prev: "locked", next: "owned" });
+      s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
     });
     assert.equal(fired.length, 1);
   });
@@ -240,16 +243,15 @@ describe("Lifecycle: monitor — owning security-monitor cancels active trace", 
   it("owning security-monitor emits ALERT_TRACE_CANCELLED", () => {
     const s = getState();
     const fired = withEvents(E.ALERT_TRACE_CANCELLED, () => {
-      s.nodes["sec-mon"].accessLevel = "owned";
-      emitEvent(E.NODE_ACCESSED, { nodeId: "sec-mon", label: "sec-mon", prev: "locked", next: "owned" });
+      // Set via graph so the trigger fires
+      s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
     });
     assert.equal(fired.length, 1);
   });
 
   it("traceSecondsRemaining is null after owning security-monitor", () => {
     const s = getState();
-    s.nodes["sec-mon"].accessLevel = "owned";
-    emitEvent(E.NODE_ACCESSED, { nodeId: "sec-mon", label: "sec-mon", prev: "locked", next: "owned" });
+    s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
     assert.equal(getState().traceSecondsRemaining, null);
   });
 });
