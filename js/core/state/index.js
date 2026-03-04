@@ -28,7 +28,9 @@ import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setEx
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
 import { emitEvent, E } from "../events.js";
-import { getStateFields, getBehaviors, resolveNode } from "../actions/node-types.js";
+// Legacy initState still uses node-types for old network format.
+// TODO: remove once all callers migrate to initGame.
+import { getStateFields, getBehaviors, resolveNode, getGateAccess } from "../actions/node-types.js";
 
 import { setNodeVisible, setNodeSigAlias, setNodeGraph, isSyncingToGraph } from "./node.js";
 import { setIceActive } from "./ice.js";
@@ -93,6 +95,7 @@ export function initState(networkData, seedString) {
       read: false,
       looted: false,
       rebooting: false,
+      gateAccess: getGateAccess(n),
       ...getStateFields(n),
     };
   });

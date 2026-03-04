@@ -14,8 +14,6 @@ import {
 import { setLastDisturbedNode } from "./state/ice.js";
 import { applyCardDecay as applyCardDecayState } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
-import { getGateAccess } from "./actions/node-types.js";
-import { resolveNode } from "./actions/node-types.js";
 
 // Success chance modifier by node security grade
 export const GRADE_MODIFIER = {
@@ -64,9 +62,8 @@ export function resolveExploit(exploit, node) {
     exploit.targetVulnTypes.includes(v.id)
   );
 
-  const resolved = resolveNode(node);
-  const gradeModifier    = (resolved.combatConfig?.gradeModifier    ?? GRADE_MODIFIER)[node.grade]    ?? 0.3;
-  const disclosureChance = (resolved.combatConfig?.disclosureChance ?? DISCLOSURE_CHANCE)[node.grade] ?? 0.3;
+  const gradeModifier    = GRADE_MODIFIER[node.grade]    ?? 0.3;
+  const disclosureChance = DISCLOSURE_CHANCE[node.grade] ?? 0.3;
 
   const matchBonus = matchingVulns.length > 0 ? MATCH_BONUS : 0;
   const successChance = Math.min(SUCCESS_CAP, exploit.quality * gradeModifier + matchBonus);
@@ -196,7 +193,7 @@ export function launchExploit(nodeId, exploitId) {
       setNodeAccessLevel(nodeId, "compromised");
       setNodeAlertState(nodeId, "green");
       setNodeVisible(nodeId, "accessible");
-      if (getGateAccess(node) !== "owned") revealNeighbors(nodeId);
+      if ((node.gateAccess ?? "probed") !== "owned") revealNeighbors(nodeId);
       result.levelChanged = true;
     } else if (node.accessLevel === "compromised") {
       setNodeAccessLevel(nodeId, "owned");

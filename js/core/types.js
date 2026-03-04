@@ -93,6 +93,9 @@
  *   eventForwardingDisabled?: boolean,
  *   rebooting: boolean,
  *   sigAlias?: string,
+ *   gateAccess?: string,
+ *   forwardingEnabled?: boolean,
+ *   lootCount?: number[],
  * }} NodeState
  */
 

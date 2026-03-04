@@ -1,8 +1,6 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
-import { NETWORK } from "../../data/network.js";
-import { generateNetwork } from "../core/network/network-gen.js";
 import { initGraph, getCy, addIceNode, fitGraph } from "./graph.js";
-import { initState, getState } from "../core/state.js";
+import { initGame, getState } from "../core/state.js";
 import { completeReboot } from "../core/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../core/actions/exploit-exec.js";
 import { handleProbeScanTimer } from "../core/actions/probe-exec.js";
@@ -18,40 +16,61 @@ import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "../core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
 import { openDarknetsStore } from "./store.js";
-import { openLevelSelect } from "./level-select.js";
 
-/** Read seed/time/money from URL search params. Returns null if any are missing. */
-function getNetworkParams() {
+import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
+import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
+import { buildNetwork as buildCorporateExchange } from "../../data/networks/corporate-exchange.js";
+
+/** Available graph-based networks. */
+const NETWORKS = {
+  "corporate-foothold": buildCorporateFoothold,
+  "research-station": buildResearchStation,
+  "corporate-exchange": buildCorporateExchange,
+};
+
+/** Read network name from URL param, default to corporate-foothold. */
+function getSelectedNetwork() {
   const p = new URLSearchParams(location.search);
-  const seed  = p.get("seed");
-  const time  = p.get("time")?.toUpperCase();
-  const money = p.get("money")?.toUpperCase();
-  if (seed && time && money) return { seed, timeCost: time, moneyCost: money };
-  return null;
+  const name = p.get("network") ?? "corporate-foothold";
+  return NETWORKS[name] ?? buildCorporateFoothold;
 }
 
-/** Active network for this session — generated from URL params or static fallback. */
-let network = NETWORK;
-{
-  const params = getNetworkParams();
-  if (params) {
-    try {
-      network = generateNetwork(params.seed, params.timeCost, params.moneyCost);
-    } catch (err) {
-      console.warn("[starnet] generateNetwork failed, using static network:", err);
-    }
-  }
+/**
+ * Convert a graph network definition to the format initGraph (Cytoscape) expects.
+ * @param {{ graphDef: { nodes: any[], edges: [string,string][] }, meta: any }} result
+ */
+function toCytoscapeFormat(result) {
+  const { graphDef, meta } = result;
+  return {
+    nodes: graphDef.nodes.map(n => ({
+      id: n.id,
+      type: n.type,
+      label: n.attributes?.label ?? n.id,
+      grade: n.attributes?.grade ?? "D",
+    })),
+    edges: graphDef.edges.map(([a, b]) => ({ source: a, target: b })),
+    startNode: meta.startNode,
+    startCash: meta.startCash,
+    moneyCost: meta.moneyCost,
+    ice: meta.ice,
+  };
 }
+
+/** Module-scope so run-again can reuse it. */
+const buildNetworkFn = getSelectedNetwork();
 
 function init() {
+  const networkResult = buildNetworkFn();
+  const cytoscapeNetwork = toCytoscapeFormat(networkResult);
+
   initLogRenderer();
-  const cy = initGraph(network, buildNodeClickHandler(), () => {
+  const cy = initGraph(cytoscapeNetwork, buildNodeClickHandler(), () => {
     emitEvent("starnet:action", { actionId: "deselect" });
   });
   addIceNode();
   initConsole();
-  initVisualRenderer();  // must subscribe before initState fires STATE_CHANGED
-  initState(network);
+  initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
+  initGame(() => networkResult, undefined, { openDarknetsStore });
   fitGraph(cy);
   startIce();
   setInterval(() => {
@@ -68,8 +87,13 @@ function init() {
     else resumeTimers();
   });
 
-  // Wire new run button
-  document.getElementById("new-run-btn").addEventListener("click", openLevelSelect);
+  // New run button — disabled while procgen is removed; graph networks only for now
+  const newRunBtn = document.getElementById("new-run-btn");
+  if (newRunBtn) {
+    newRunBtn.style.opacity = "0.3";
+    newRunBtn.style.pointerEvents = "none";
+    newRunBtn.title = "Network selection coming soon";
+  }
 
   // Wire HUD pause button
   let _userPaused = false;
@@ -122,7 +146,7 @@ function init() {
   });
 
   on("starnet:action:run-again", () => {
-    initState(network);
+    initGame(() => buildNetworkFn(), undefined, { openDarknetsStore });
     const cy = getCy();
     if (cy) fitGraph(cy);
     addIceNode();
