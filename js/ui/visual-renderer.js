@@ -148,19 +148,16 @@ export function initVisualRenderer() {
   on(E.NODE_ACCESSED,   (/** @type {NodeAccessedPayload} */   { nodeId }) => flashNode(nodeId, "success"));
   on(E.NODE_REVEALED,   (/** @type {NodeRevealedPayload} */   { nodeId }) => {
     flashNode(nodeId, "reveal");
-    // Debounce layout + fit — batch simultaneous reveals into one pass.
-    // Newly revealed nodes start at (0,0) because display:none prevented
-    // the initial layout from positioning them. Re-run layout on all visible
-    // elements so the new nodes get placed.
+    // Debounce viewport fit — new nodes spawn near their neighbor already,
+    // so we just expand the viewport to show them. No full relayout needed.
     clearTimeout(revealFitTimer);
     revealFitTimer = setTimeout(() => {
       const cy = getCy();
       if (!cy) return;
-      const visibleEles = cy.elements(":visible");
-      if (visibleEles.length <= 1) return;
-      // Re-layout all visible elements to position the newly revealed nodes
-      relayout();
-    }, 100);
+      const allNodes = cy.nodes();
+      if (allNodes.length <= 1) return;
+      cy.animate({ fit: { eles: allNodes, padding: 50 } }, { duration: 400 });
+    }, 150);
   });
 
   // Keep context menu attached to node on pan/zoom/drag
