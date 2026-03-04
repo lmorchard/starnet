@@ -61,3 +61,23 @@ rebootable on all hackable types. Can revisit later.
 - Deferred full renderer rewire to Phase 7 — avoids a broken intermediate state
   where renderers are rewired but executors still emit old events. Will do the
   renderer rewire as part of the Phase 7 end-to-end swap.
+
+## Phase 7: Migrate Executors to Ctx Resolve Methods ✓ (core swap)
+
+All four timed actions (probe, read, loot, exploit) now use the graph-native
+timed-action operator lifecycle instead of the old timer-based executors.
+
+- Added resolve methods to game-ctx.js: resolveProbe, resolveExploit, resolveRead,
+  resolveLoot, resolveReboot, emitActionFeedback
+- Added timed-action operators to hackable trait (probe + exploit) and lootable
+  trait (read + loot)
+- Updated action effects: probe/read/loot now use set-attr to set activeAttr + progress
+  instead of ctx-call to executor start functions
+- Exploit special case: still uses ctx-call startExploit because it needs exploitId
+  from event payload to compute card-dependent duration
+- Cancel actions: set-attr to reset state + ctx-call emitActionFeedback for cancel event
+- Added activeExploitId to hackable trait attributes
+- Old executor files still exist but are no longer called by the action system
+- Entry points (main.js, playtest.js, playtest-graph.js) still import executors
+  for timer handling — to be removed in Phase 8
+- All 529 tests pass

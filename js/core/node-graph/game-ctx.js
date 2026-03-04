@@ -14,18 +14,20 @@
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
 import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
-import { addCash } from "../state/player.js";
+import { addCash, setMissionComplete } from "../state/player.js";
 import { startIce, ejectIce } from "../ice.js";
 import { setGlobalAlert } from "../state/alert.js";
 import { emitEvent, E } from "../events.js";
-import { startProbe, cancelProbe } from "../actions/probe-exec.js";
-import { startExploit, cancelExploit } from "../actions/exploit-exec.js";
-import { startRead, cancelRead } from "../actions/read-exec.js";
-import { startLoot, cancelLoot } from "../actions/loot-exec.js";
+// Old executor imports — still used for exploit start (needs exploitId from payload).
+// Will be removed in Phase 8 cleanup.
+import { exploitDuration } from "../actions/exploit-exec.js";
 import { rebootNode, reconfigureNode } from "../node-orchestration.js";
-import { endRun } from "../state.js";
+import { endRun, ALERT_ORDER, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
+import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted } from "../state/node.js";
+import { setLastDisturbedNode } from "../state/ice.js";
+import { launchExploit } from "../combat.js";
 
 /**
  * Build the real CtxInterface for game integration.
@@ -59,20 +61,126 @@ export function buildGameCtx(opts = {}) {
     log: (message) => emitEvent(E.LOG_ENTRY, { text: message, type: "system" }),
 
     // ── Game action callbacks ───────────────────────────
-    startProbe: (nodeId) => startProbe(nodeId),
-    cancelProbe: () => cancelProbe(),
-    startExploit: (nodeId, exploitId) => startExploit(nodeId, exploitId),
-    cancelExploit: () => cancelExploit(),
-    startRead: (nodeId) => startRead(nodeId),
-    cancelRead: () => cancelRead(),
-    startLoot: (nodeId) => startLoot(nodeId),
-    cancelLoot: () => cancelLoot(),
+    // Probe, read, loot start/cancel now handled by action effects (set-attr)
+    // in the trait-based action system. These stubs remain for backward compat.
+    startProbe: (_nodeId) => { /* now handled by timed-action operator */ },
+    cancelProbe: () => { /* now handled by cancel-probe action effects */ },
+    startExploit: (nodeId, exploitId) => {
+      // Exploit is special: needs exploitId from event payload to compute duration.
+      // Set node attributes so the timed-action operator drives the lifecycle.
+      const s = getState();
+      const node = s.nodes[nodeId];
+      const exploit = s.player.hand.find((c) => c.id === exploitId);
+      if (!node || !exploit || exploit.decayState === "disclosed" || exploit.usesRemaining === 0) return;
+
+      const durationMs = exploitDuration(exploit.quality);
+      const durationTicks = Math.round(durationMs / 100); // 100ms per tick
+      if (ctx._graph) {
+        ctx._graph.setNodeAttr(nodeId, "exploiting", true);
+        ctx._graph.setNodeAttr(nodeId, "activeExploitId", exploitId);
+        ctx._graph.setNodeAttr(nodeId, "_ta_exploit_progress", 0);
+        ctx._graph.setNodeAttr(nodeId, "_ta_exploit_duration", durationTicks);
+      }
+      // Alert ICE immediately
+      setLastDisturbedNode(nodeId);
+    },
+    cancelExploit: () => {
+      // Find the node that's exploiting and reset it
+      const s = getState();
+      const exploitingNode = Object.values(s.nodes).find(n => /** @type {any} */ (n).exploiting);
+      if (!exploitingNode) return;
+      if (ctx._graph) {
+        ctx._graph.setNodeAttr(exploitingNode.id, "exploiting", false);
+        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_exploit_progress", 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_exploit_duration", 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, "activeExploitId", null);
+      }
+      emitEvent(E.ACTION_FEEDBACK, { nodeId: exploitingNode.id, action: "exploit", phase: "cancel", progress: 0 });
+    },
+    startRead: (_nodeId) => { /* now handled by timed-action operator */ },
+    cancelRead: () => { /* now handled by cancel-read action effects */ },
+    startLoot: (_nodeId) => { /* now handled by timed-action operator */ },
+    cancelLoot: () => { /* now handled by cancel-loot action effects */ },
     ejectIce: () => ejectIce(),
     rebootNode: (nodeId) => rebootNode(nodeId),
     reconfigureNode: (nodeId) => reconfigureNode(nodeId),
     openDarknetsStore: () => {
       pauseTimers();
       openStore(getState());
+    },
+
+    // ── Resolve methods (called by timed-action operator on completion) ──
+
+    resolveProbe: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.probed) return;
+
+      setNodeProbed(nodeId);
+      setLastDisturbedNode(nodeId);
+
+      if ((node.gateAccess ?? "probed") === "probed") {
+        revealNeighbors(nodeId);
+      }
+
+      const prevAlert = node.alertState ?? "green";
+      const idx = ALERT_ORDER.indexOf(prevAlert);
+      if (idx >= 0 && idx < ALERT_ORDER.length - 1) {
+        setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
+      }
+
+      emitEvent(E.NODE_PROBED, { nodeId, label: node.label });
+      const newAlert = getState().nodes[nodeId]?.alertState;
+      if (newAlert && newAlert !== prevAlert) {
+        emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: newAlert });
+      }
+    },
+
+    resolveExploit: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      const exploitId = /** @type {any} */ (node)?.activeExploitId;
+      if (!exploitId) return;
+      launchExploit(nodeId, exploitId);
+    },
+
+    resolveRead: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.read) return;
+
+      setNodeRead(nodeId);
+      emitEvent(E.NODE_READ, { nodeId, label: node.label, macguffinCount: (node.macguffins ?? []).length });
+    },
+
+    resolveLoot: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node || node.looted) return;
+
+      const { items, total } = collectMacguffins(nodeId);
+      if (items.length === 0) {
+        setNodeLooted(nodeId);
+        return;
+      }
+
+      setNodeLooted(nodeId);
+      addCash(total);
+      emitEvent(E.NODE_LOOTED, { nodeId, label: node.label, items: items.length, total });
+
+      if (s.mission && !s.mission.complete) {
+        const gotMission = items.some((m) => m.id === s.mission.targetMacguffinId);
+        if (gotMission) {
+          setMissionComplete();
+          emitEvent(E.MISSION_COMPLETE, { targetName: s.mission.targetName });
+        }
+      }
+    },
+
+    resolveReboot: (nodeId) => rebootNode(nodeId),
+
+    emitActionFeedback: (nodeId, action, phase, progress, result) => {
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action, phase, progress, result });
     },
   };
 

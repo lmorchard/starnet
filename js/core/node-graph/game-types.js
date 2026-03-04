@@ -25,7 +25,8 @@ const PROBE_ACTION = {
     { type: "node-attr", attr: "probing", eq: false },
   ],
   effects: [
-    { effect: "ctx-call", method: "startProbe", args: ["$nodeId"] },
+    { effect: "set-attr", attr: "probing", value: true },
+    { effect: "set-attr", attr: "_ta_probe_progress", value: 0 },
   ],
 };
 
@@ -38,7 +39,9 @@ const CANCEL_PROBE_ACTION = {
     { type: "node-attr", attr: "probing", eq: true },
   ],
   effects: [
-    { effect: "ctx-call", method: "cancelProbe", args: [] },
+    { effect: "set-attr", attr: "probing", value: false },
+    { effect: "set-attr", attr: "_ta_probe_progress", value: 0 },
+    { effect: "ctx-call", method: "emitActionFeedback", args: ["$nodeId", "probe", "cancel", "0"] },
   ],
 };
 
@@ -60,6 +63,10 @@ const EXPLOIT_ACTION = {
     { type: "node-attr", attr: "exploiting", eq: false },
   ],
   effects: [
+    // Exploit is special: exploitId comes from event payload and is set by the dispatcher.
+    // The dispatcher calls ctx.startExploit(nodeId, exploitId) which sets up the node
+    // attributes (exploiting, activeExploitId, duration) before the timed-action operator
+    // takes over. This is the one action that still uses a ctx-call to start.
     { effect: "ctx-call", method: "startExploit", args: ["$nodeId"] },
   ],
 };
@@ -76,6 +83,8 @@ const CANCEL_EXPLOIT_ACTION = {
     { effect: "ctx-call", method: "cancelExploit", args: [] },
   ],
 };
+// Note: cancel-exploit still uses ctx-call because it needs to find the exploiting
+// node and clear multiple attributes. The ctx method handles this.
 
 /** @type {ActionDef} */
 const READ_ACTION = {
@@ -94,7 +103,8 @@ const READ_ACTION = {
     { type: "node-attr", attr: "reading", eq: false },
   ],
   effects: [
-    { effect: "ctx-call", method: "startRead", args: ["$nodeId"] },
+    { effect: "set-attr", attr: "reading", value: true },
+    { effect: "set-attr", attr: "_ta_read_progress", value: 0 },
   ],
 };
 
@@ -107,7 +117,9 @@ const CANCEL_READ_ACTION = {
     { type: "node-attr", attr: "reading", eq: true },
   ],
   effects: [
-    { effect: "ctx-call", method: "cancelRead", args: [] },
+    { effect: "set-attr", attr: "reading", value: false },
+    { effect: "set-attr", attr: "_ta_read_progress", value: 0 },
+    { effect: "ctx-call", method: "emitActionFeedback", args: ["$nodeId", "read", "cancel", "0"] },
   ],
 };
 
@@ -124,7 +136,8 @@ const LOOT_ACTION = {
     { type: "node-attr", attr: "looting", eq: false },
   ],
   effects: [
-    { effect: "ctx-call", method: "startLoot", args: ["$nodeId"] },
+    { effect: "set-attr", attr: "looting", value: true },
+    { effect: "set-attr", attr: "_ta_loot_progress", value: 0 },
   ],
 };
 
@@ -137,7 +150,9 @@ const CANCEL_LOOT_ACTION = {
     { type: "node-attr", attr: "looting", eq: true },
   ],
   effects: [
-    { effect: "ctx-call", method: "cancelLoot", args: [] },
+    { effect: "set-attr", attr: "looting", value: false },
+    { effect: "set-attr", attr: "_ta_loot_progress", value: 0 },
+    { effect: "ctx-call", method: "emitActionFeedback", args: ["$nodeId", "loot", "cancel", "0"] },
   ],
 };
 

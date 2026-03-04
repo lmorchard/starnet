@@ -143,8 +143,28 @@ registerTrait("hackable", {
     exploiting: false,
     rebooting: false,
     alertState: "green",
+    activeExploitId: null,
   },
-  operators: [], // timed-action operators added in Phase 5
+  operators: [
+    {
+      name: "timed-action",
+      action: "probe",
+      activeAttr: "probing",
+      durationTable: { S: 50, A: 40, B: 30, C: 20, D: 20, F: 10 },
+      onComplete: [{ effect: "ctx-call", method: "resolveProbe", args: ["$nodeId"] }],
+    },
+    {
+      name: "timed-action",
+      action: "exploit",
+      activeAttr: "exploiting",
+      // No durationTable — ctx.startExploit sets duration from card quality
+      onComplete: [{ effect: "ctx-call", method: "resolveExploit", args: ["$nodeId"] }],
+      onProgressInterval: 0.1,
+      onProgressEffects: [
+        { effect: "emit-message", type: "exploit-noise", payload: {} },
+      ],
+    },
+  ],
   actions: [
     ACTION_TEMPLATES.PROBE,
     ACTION_TEMPLATES.CANCEL_PROBE,
@@ -162,7 +182,22 @@ registerTrait("lootable", {
     reading: false,
     looting: false,
   },
-  operators: [], // timed-action operators added in Phase 5
+  operators: [
+    {
+      name: "timed-action",
+      action: "read",
+      activeAttr: "reading",
+      durationTable: { S: 40, A: 35, B: 25, C: 15, D: 15, F: 8 },
+      onComplete: [{ effect: "ctx-call", method: "resolveRead", args: ["$nodeId"] }],
+    },
+    {
+      name: "timed-action",
+      action: "loot",
+      activeAttr: "looting",
+      durationTable: { S: 30, A: 25, B: 20, C: 12, D: 10, F: 6 },
+      onComplete: [{ effect: "ctx-call", method: "resolveLoot", args: ["$nodeId"] }],
+    },
+  ],
   actions: [
     ACTION_TEMPLATES.READ,
     ACTION_TEMPLATES.CANCEL_READ,

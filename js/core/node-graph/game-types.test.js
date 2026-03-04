@@ -149,10 +149,12 @@ describe("operators", () => {
     assert.ok(mon.operators.some(o => o.name === "flag" && o.on === "alert"));
   });
 
-  it("gateway, fileserver, cryptovault, firewall have no operators beyond traits", () => {
+  it("gateway and firewall have only timed-action operators from hackable", () => {
     for (const factory of [createGateway, createFirewall]) {
       const def = resolve(factory("test"));
-      assert.equal(def.operators.length, 0, `${def.type} should have no operators`);
+      // hackable trait provides timed-action operators for probe + exploit
+      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "probe"));
+      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "exploit"));
     }
   });
 
@@ -278,13 +280,12 @@ describe("action availability", () => {
 // ── Action execution ─────────────────────────────────────────
 
 describe("action execution", () => {
-  it("probe action calls ctx.startProbe with nodeId", () => {
+  it("probe action sets probing attribute to true", () => {
     const ctx = mockCtx();
     const gw = createGateway("gw", { attributes: { visibility: "accessible" } });
     const graph = new NodeGraph({ nodes: [gw], edges: [] }, ctx);
     graph.executeAction("gw", "probe");
-    assert.equal(ctx.calls.startProbe?.length, 1);
-    assert.deepEqual(ctx.calls.startProbe[0], ["gw"]);
+    assert.equal(graph.getNodeState("gw").probing, true);
   });
 
   it("reconfigure action sets forwardingEnabled false and calls ctx", () => {
