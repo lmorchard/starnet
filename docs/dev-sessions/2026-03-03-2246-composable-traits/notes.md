@@ -93,3 +93,16 @@ timed-action operator lifecycle instead of the old timer-based executors.
 - Removed enrichWithGameActions alias
 - Replaced old executor-based integration tests with graph-native timed-action tests
 - All 515 tests pass
+
+## Follow-up: Renderer Rewire + Event Cleanup ✓
+
+- Wired ACTION_FEEDBACK through onEvent bridge in state/index.js (both init and restore paths)
+- Rewired visual-renderer.js: replaced 12 per-action event subscriptions with single
+  ACTION_FEEDBACK handler that dispatches to probe/exploit/read/loot animations.
+  Removed TIMERS_UPDATED progress tracking for timed actions (operator provides progress).
+- Rewired log-renderer.js: replaced 8 per-action log subscriptions with ACTION_FEEDBACK handler
+- Rewired ice.js: EXPLOIT_NOISE → ACTION_FEEDBACK for exploit progress noise detection
+- Rewired playtest.js: replaced 8 per-action output listeners with ACTION_FEEDBACK handler
+- Removed 9 old event types from events.js (PROBE_SCAN_STARTED/CANCELLED,
+  READ_SCAN_STARTED/CANCELLED, LOOT_EXTRACT_STARTED/CANCELLED, EXPLOIT_STARTED/NOISE/INTERRUPTED)
+- All 515 tests pass

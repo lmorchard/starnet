@@ -118,18 +118,23 @@ on(E.NODE_READ,            ({ label, macguffinCount }) => out(`[NODE] ${label}: 
 on(E.NODE_LOOTED,          ({ label, items, total })   => out(`[NODE] ${label}: looted ${items} item(s) — ¥${total.toLocaleString()}.`));
 on(E.NODE_REBOOTING,       ({ label })                 => out(`[NODE] ${label}: rebooting.`));
 on(E.NODE_REBOOTED,        ({ label })                 => out(`[NODE] ${label}: online.`));
-on(E.PROBE_SCAN_STARTED,   ({ label, durationMs }) =>
-  out(`[PROBE] ${label}: scanning (${Math.round(durationMs / 1000)}s)...`));
-on(E.PROBE_SCAN_CANCELLED, ({ label }) => out(`[PROBE] ${label}: scan cancelled.`));
-on(E.READ_SCAN_STARTED,    ({ label, durationMs }) =>
-  out(`[READ] ${label}: extracting data (${Math.round(durationMs / 1000)}s)...`));
-on(E.READ_SCAN_CANCELLED,  ({ label }) => out(`[READ] ${label}: extraction cancelled.`));
-on(E.LOOT_EXTRACT_STARTED,    ({ label, durationMs }) =>
-  out(`[LOOT] ${label}: extracting loot (${Math.round(durationMs / 1000)}s)...`));
-on(E.LOOT_EXTRACT_CANCELLED,  ({ label }) => out(`[LOOT] ${label}: extraction cancelled.`));
-on(E.EXPLOIT_STARTED,      ({ label, exploitName, durationMs }) =>
-  out(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`));
-on(E.EXPLOIT_INTERRUPTED,  ({ exploitName }) => out(`[EXPLOIT] ${exploitName}: interrupted.`));
+// Timed action events via unified ACTION_FEEDBACK
+on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
+  const s = getState();
+  const label = s.nodes[nodeId]?.label ?? nodeId;
+  if (phase === "start") {
+    const secs = Math.round((durationTicks ?? 0) / 10);
+    if (action === "probe") out(`[PROBE] ${label}: scanning (${secs}s)...`);
+    else if (action === "exploit") out(`[EXPLOIT] ${label}: executing (${secs}s)...`);
+    else if (action === "read") out(`[READ] ${label}: extracting data (${secs}s)...`);
+    else if (action === "loot") out(`[LOOT] ${label}: extracting loot (${secs}s)...`);
+  } else if (phase === "cancel") {
+    if (action === "probe") out(`[PROBE] ${label}: scan cancelled.`);
+    else if (action === "exploit") out(`[EXPLOIT] ${label}: interrupted.`);
+    else if (action === "read") out(`[READ] ${label}: extraction cancelled.`);
+    else if (action === "loot") out(`[LOOT] ${label}: extraction cancelled.`);
+  }
+});
 on(E.EXPLOIT_SUCCESS,      ({ label, exploitName, roll, successChance }) =>
   out(`[EXPLOIT] ${label} — ${exploitName}: SUCCESS (roll ${roll} vs ${successChance}%)`));
 on(E.EXPLOIT_FAILURE,      ({ label, exploitName, roll, successChance }) =>

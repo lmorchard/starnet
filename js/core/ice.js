@@ -69,12 +69,17 @@ export function initIceHandlers() {
   on(E.ICE_EJECTED,  handleIceDeparture);
   on(E.ICE_REBOOTED, handleIceDeparture);
 
-  // Respond to exploit execution noise based on ICE sensitivity.
-  on(E.EXPLOIT_NOISE, ({ nodeId, tick }) => {
+  // Respond to exploit execution noise via ACTION_FEEDBACK progress events.
+  // The timed-action operator emits progress at every tick. We convert the progress
+  // fraction to a noise tick count (10 milestones over duration) and compare
+  // against the ICE grade threshold.
+  on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, progress }) => {
+    if (action !== "exploit" || phase !== "progress") return;
     const s = getState();
     if (!s.ice?.active || s.phase !== "playing") return;
+    const noiseTick = Math.floor(progress * 10);
     const threshold = ICE_NOISE_THRESHOLD[s.ice.grade] ?? 5;
-    if (tick < threshold) return;
+    if (noiseTick < threshold) return;
     if (s.lastDisturbedNodeId === nodeId) return;
     setLastDisturbedNode(nodeId);
   });

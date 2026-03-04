@@ -34,6 +34,7 @@
 
 import { on, emitEvent, E } from "../core/events.js";
 import { initLog, addLogEntry as _addLogEntry, getRecentLog } from "../core/log.js";
+import { getState as _getState } from "../core/state.js";
 
 
 export function initLogRenderer() {
@@ -77,29 +78,25 @@ export function initLogRenderer() {
   on(E.NODE_REBOOTING,    (/** @type {NodeRebootingPayload} */    { label }) => add(`[NODE] ${label}: REBOOTING — offline temporarily.`, "info"));
   on(E.NODE_REBOOTED,     (/** @type {NodeRebootedPayload} */     { label }) => add(`[NODE] ${label}: back online.`, "info"));
 
-  // ── Probe scan events ────────────────────────────────────
-  on(E.PROBE_SCAN_STARTED,   (/** @type {import('../core/types.js').ProbeScanStartedPayload} */ { label, durationMs }) =>
-    add(`[PROBE] ${label}: scanning (${Math.round(durationMs / 1000)}s)...`, "info"));
-  on(E.PROBE_SCAN_CANCELLED, (/** @type {import('../core/types.js').ProbeScanCancelledPayload} */ { label }) =>
-    add(`[PROBE] ${label}: scan cancelled.`, "info"));
-
-  // ── Read scan events ────────────────────────────────────
-  on(E.READ_SCAN_STARTED,    (/** @type {import('../core/types.js').ReadScanStartedPayload} */ { label, durationMs }) =>
-    add(`[READ] ${label}: extracting data (${Math.round(durationMs / 1000)}s)...`, "info"));
-  on(E.READ_SCAN_CANCELLED,  (/** @type {import('../core/types.js').ReadScanCancelledPayload} */ { label }) =>
-    add(`[READ] ${label}: extraction cancelled.`, "info"));
-
-  // ── Loot extract events ─────────────────────────────────
-  on(E.LOOT_EXTRACT_STARTED,    (/** @type {import('../core/types.js').LootExtractStartedPayload} */ { label, durationMs }) =>
-    add(`[LOOT] ${label}: extracting (${Math.round(durationMs / 1000)}s)...`, "info"));
-  on(E.LOOT_EXTRACT_CANCELLED,  (/** @type {import('../core/types.js').LootExtractCancelledPayload} */ { label }) =>
-    add(`[LOOT] ${label}: extraction cancelled.`, "info"));
-
-  // ── Exploit events ───────────────────────────────────────
-  on(E.EXPLOIT_STARTED,      (/** @type {ExploitStartedPayload} */      { label, exploitName, durationMs }) =>
-    add(`[EXPLOIT] ${label} — ${exploitName}: executing (${Math.round(durationMs / 1000)}s)...`, "info"));
-  on(E.EXPLOIT_INTERRUPTED,  (/** @type {ExploitInterruptedPayload} */  { exploitName }) =>
-    add(`[EXPLOIT] ${exploitName}: interrupted.`, "info"));
+  // ── Timed action log entries (via ACTION_FEEDBACK) ──────────
+  on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
+    // Resolve label from state
+    const s = _getState();
+    const label = s?.nodes[nodeId]?.label ?? nodeId;
+    if (action === "probe") {
+      if (phase === "start") add(`[PROBE] ${label}: scanning (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
+      else if (phase === "cancel") add(`[PROBE] ${label}: scan cancelled.`, "info");
+    } else if (action === "exploit") {
+      if (phase === "start") add(`[EXPLOIT] ${label}: executing (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
+      else if (phase === "cancel") add(`[EXPLOIT] ${label}: interrupted.`, "info");
+    } else if (action === "read") {
+      if (phase === "start") add(`[READ] ${label}: extracting data (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
+      else if (phase === "cancel") add(`[READ] ${label}: extraction cancelled.`, "info");
+    } else if (action === "loot") {
+      if (phase === "start") add(`[LOOT] ${label}: extracting (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
+      else if (phase === "cancel") add(`[LOOT] ${label}: extraction cancelled.`, "info");
+    }
+  });
   on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { label, flavor, roll, successChance, matchingVulns }) => {
     add(`[EXPLOIT] ${label} — ${flavor}`, "success");
     add(`[EXPLOIT] Roll: ${roll} vs ${successChance}%${matchingVulns.length > 0 ? " (vuln match)" : ""}`, "meta");

@@ -43,18 +43,7 @@ export const E = Object.freeze({
   NODE_REBOOTING:       "node:rebooting",
   NODE_REBOOTED:        "node:rebooted",
 
-  PROBE_SCAN_STARTED:   "probe:scan-started",
-  PROBE_SCAN_CANCELLED: "probe:scan-cancelled",
-
-  READ_SCAN_STARTED:    "read:scan-started",
-  READ_SCAN_CANCELLED:  "read:scan-cancelled",
-
-  LOOT_EXTRACT_STARTED:   "loot:extract-started",
-  LOOT_EXTRACT_CANCELLED: "loot:extract-cancelled",
-
-  EXPLOIT_STARTED:      "exploit:started",
-  EXPLOIT_NOISE:        "exploit:noise",
-  EXPLOIT_INTERRUPTED:  "exploit:interrupted",
+  // Per-action start/cancel events removed — replaced by ACTION_FEEDBACK
   EXPLOIT_SUCCESS:      "exploit:success",
   EXPLOIT_FAILURE:      "exploit:failure",
   EXPLOIT_DISCLOSED:    "exploit:disclosed",

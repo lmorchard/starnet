@@ -94,6 +94,8 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
       emitEvent(E.MESSAGE_PROPAGATED, payload);
     } else if (type === "quality-changed") {
       emitEvent(E.QUALITY_CHANGED, payload);
+    } else if (type === "action-feedback") {
+      emitEvent(E.ACTION_FEEDBACK, payload);
     }
   };
 
