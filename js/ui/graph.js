@@ -4,9 +4,9 @@
 import { isIceVisible } from "../core/state.js";
 
 // Still playing with what might be the best default here
-const DEFAULT_LAYOUT_ALGO = "breadthfirst";
+// const DEFAULT_LAYOUT_ALGO = "breadthfirst";
 // const DEFAULT_LAYOUT_ALGO = "dagre";
-// const DEFAULT_LAYOUT_ALGO = "cola";
+const DEFAULT_LAYOUT_ALGO = "cola";
 
 // Node type → shape mapping
 const NODE_SHAPES = {
@@ -226,9 +226,24 @@ export function ensureNodeInGraph(nodeId, visibilityClass) {
   const ndata = _networkNodes.get(nodeId);
   if (!ndata) return;
 
-  // Add the node
+  // Find an already-present neighbor to spawn near
+  let spawnPos = { x: cy.width() / 2, y: cy.height() / 2 };
+  for (const e of _networkEdges) {
+    const neighborId = e.source === nodeId ? e.target : e.target === nodeId ? e.source : null;
+    if (!neighborId) continue;
+    const neighborCy = cy.getElementById(neighborId);
+    if (neighborCy.length > 0) {
+      const np = neighborCy.position();
+      // Offset slightly with jitter so overlapping reveals don't pile up
+      spawnPos = { x: np.x + (Math.random() - 0.5) * 60, y: np.y + 50 + Math.random() * 30 };
+      break;
+    }
+  }
+
+  // Add the node near its neighbor
   cy.add({
     data: { id: ndata.id, label: ndata.label, type: ndata.type, grade: ndata.grade },
+    position: spawnPos,
     classes: [visibilityClass],
   });
 
