@@ -480,11 +480,14 @@ export function enrichWithGameActions(node, { lootable = false } = {}) {
   // Merge: defaults first, then node's own attrs override, then ensure label
   const mergedAttrs = { ...defaults, ...node.attributes };
   if (!node.attributes.label) mergedAttrs.label = node.id;
+  // Deduplicate: if the set-piece already defines an action with the same id,
+  // the set-piece version wins (it may have quality gates or special effects).
+  const existingIds = new Set((node.actions || []).map(a => a.id));
+  const filtered = baseActions.filter(a => !existingIds.has(a.id));
   return {
     ...node,
     attributes: mergedAttrs,
-    // Standard game actions first, then set-piece-specific actions
-    actions: [...baseActions, ...(node.actions || [])],
+    actions: [...filtered, ...(node.actions || [])],
   };
 }
 

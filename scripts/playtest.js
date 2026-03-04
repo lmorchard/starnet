@@ -33,6 +33,7 @@ import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
 import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
+import { initGraphBridge } from "../js/core/graph-bridge.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
@@ -182,6 +183,7 @@ function runCmd(raw) {
   if (verb === "reset") {
     if (useGraphNetwork) {
       initGame(() => GRAPH_NETWORKS[networkArg](), seedArg ?? undefined);
+      initGraphBridge();
     } else {
       initState(network, seedArg ?? undefined);
     }

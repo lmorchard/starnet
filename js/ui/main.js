@@ -16,6 +16,7 @@ import { initLogRenderer } from "./log-renderer.js";
 import { initNodeLifecycle } from "../core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
 import { openDarknetsStore } from "./store.js";
+import { initGraphBridge } from "../core/graph-bridge.js";
 
 import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
@@ -70,6 +71,7 @@ function init() {
   initConsole();
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
   initGame(() => networkResult, undefined, { openDarknetsStore });
+  initGraphBridge();
   fitGraph(cy);
   addIceNode();  // after layout — ICE polygon shape crashes cola bounding box calc
   startIce();

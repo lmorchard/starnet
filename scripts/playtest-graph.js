@@ -17,6 +17,7 @@ import { initLog } from "../js/core/log.js";
 import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
 import { getAvailableActions } from "../js/core/actions/node-actions.js";
+import { initGraphBridge } from "../js/core/graph-bridge.js";
 
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
@@ -115,6 +116,7 @@ console.log(`\n═══ Headless Playtest: ${networkName} (seed: ${seed}) ═�
 // Init
 console.log("▸ Initializing game...");
 initGame(() => buildFn(), seed);
+initGraphBridge();
 const s0 = getState();
 if (s0.ice?.active) startIce();
 console.log(`  Network: ${Object.keys(s0.nodes).length} nodes`);
