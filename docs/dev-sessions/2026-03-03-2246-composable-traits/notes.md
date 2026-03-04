@@ -106,3 +106,13 @@ timed-action operator lifecycle instead of the old timer-based executors.
 - Removed 9 old event types from events.js (PROBE_SCAN_STARTED/CANCELLED,
   READ_SCAN_STARTED/CANCELLED, LOOT_EXTRACT_STARTED/CANCELLED, EXPLOIT_STARTED/NOISE/INTERRUPTED)
 - All 515 tests pass
+
+## Browser Playtest ✓
+
+- Probe: sweep animation works, log messages correct, vulns revealed, alert escalated
+- Exploit: bracket animation works, start log with duration, timed execution,
+  combat resolution, access promotion, card decay — all confirmed by Les
+- Fix: exploit start event wasn't firing because timed-action operator skips
+  start for pre-set durations. Added explicit ACTION_FEEDBACK emit from
+  ctx.startExploit. Fixed wrapGraphAction routing exploit through game-ctx
+  instead of stubbed ActionContext.
