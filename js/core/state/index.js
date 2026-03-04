@@ -401,14 +401,43 @@ export function buyExploit(card, price) {
 // ── Serialization ─────────────────────────────────────────
 
 export function serializeState() {
-  return { ...state, _timers: serializeTimers(), _rng: serializeRng(), _exploitIdCounter };
+  const { nodeGraph, ...rest } = /** @type {any} */ (state);
+  return {
+    ...rest,
+    _timers: serializeTimers(),
+    _rng: serializeRng(),
+    _exploitIdCounter,
+    _nodeGraph: nodeGraph ? nodeGraph.snapshot() : null,
+  };
 }
 
 export function deserializeState(snapshot) {
-  const { _timers, _rng, _exploitIdCounter: exploitId, ...gameState } = snapshot;
+  const { _timers, _rng, _exploitIdCounter: exploitId, _nodeGraph, ...gameState } = snapshot;
   state = gameState;
   deserializeTimers(_timers);
   if (_rng) deserializeRng(_rng);
   else initRng(gameState.seed ?? undefined);
   if (exploitId != null) setExploitIdCounter(exploitId);
+
+  // Restore NodeGraph from snapshot
+  if (_nodeGraph) {
+    const ctx = buildGameCtx();
+    const onEvent = (type, payload) => {
+      if (type === "node-state-changed") {
+        if (!isSyncingToGraph() && state?.nodes[payload.nodeId]) {
+          mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
+        }
+        emitEvent(E.NODE_STATE_CHANGED, payload);
+      } else if (type === "message-delivered") {
+        emitEvent(E.MESSAGE_PROPAGATED, payload);
+      } else if (type === "quality-changed") {
+        emitEvent(E.QUALITY_CHANGED, payload);
+      }
+    };
+    const graph = NodeGraph.fromSnapshot(_nodeGraph, ctx, onEvent);
+    ctx._graph = graph;
+    state.nodeGraph = graph;
+    setNodeGraph(graph);
+    setGraphForTick(graph);
+  }
 }
