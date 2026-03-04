@@ -15,7 +15,10 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { NETWORK } from "../data/network.js";
 import { generateNetwork } from "../js/core/network/network-gen.js";
-import { initState, getState, serializeState, deserializeState } from "../js/core/state.js";
+import { initState, initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
+import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
+import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
+import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { completeReboot } from "../js/core/node-orchestration.js";
 import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/core/actions/exploit-exec.js";
 import { handleProbeScanTimer } from "../js/core/actions/probe-exec.js";
@@ -42,6 +45,7 @@ let cmdStr = null;
 let seedArg = null;
 let timeArg = null;
 let moneyArg = null;
+let networkArg = null;
 /** @type {string[]} */
 const forcePiecesArg = [];
 
@@ -56,6 +60,8 @@ const forcePiecesArg = [];
       timeArg = argv[++i].toUpperCase();
     } else if (argv[i] === "--money" && argv[i + 1]) {
       moneyArg = argv[++i].toUpperCase();
+    } else if (argv[i] === "--network" && argv[i + 1]) {
+      networkArg = argv[++i];
     } else if (argv[i] === "--force-piece" && argv[i + 1]) {
       forcePiecesArg.push(argv[++i]);
     } else if (cmdStr === null) {
@@ -65,10 +71,19 @@ const forcePiecesArg = [];
 }
 
 // ── Network selection ───────────────────────────────────────
-// Use generated network when --time and --money are both present; otherwise static.
-const network = (timeArg && moneyArg)
-  ? generateNetwork(seedArg ?? "default", timeArg, moneyArg, { forcePieces: forcePiecesArg })
-  : NETWORK;
+// --network selects a NodeGraph-based network; --time/--money uses procgen; else static.
+const GRAPH_NETWORKS = {
+  "corporate-foothold": buildCorporateFoothold,
+  "research-station": buildResearchStation,
+  "corporate-exchange": buildCorporateExchange,
+};
+
+const useGraphNetwork = networkArg && GRAPH_NETWORKS[networkArg];
+const network = useGraphNetwork
+  ? null // not used when graph network is active
+  : (timeArg && moneyArg)
+    ? generateNetwork(seedArg ?? "default", timeArg, moneyArg, { forcePieces: forcePiecesArg })
+    : NETWORK;
 
 if (!cmdStr) {
   console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] [--force-piece <id>] <command>");
@@ -165,12 +180,16 @@ function runCmd(raw) {
 
   // Harness-only commands
   if (verb === "reset") {
-    initState(network, seedArg ?? undefined);
+    if (useGraphNetwork) {
+      initGame(() => GRAPH_NETWORKS[networkArg](), seedArg ?? undefined);
+    } else {
+      initState(network, seedArg ?? undefined);
+    }
     startIce();
-    const genInfo = (timeArg && moneyArg)
-      ? ` (generated: time=${timeArg} money=${moneyArg})`
-      : "";
-    out(`[SYS] Initialized. Seed: "${getState().seed}". Network: ${network.nodes.length} nodes${genInfo}.`);
+    const s = getState();
+    const nodeCount = Object.keys(s.nodes).length;
+    const info = useGraphNetwork ? ` (${networkArg})` : (timeArg && moneyArg) ? ` (generated: time=${timeArg} money=${moneyArg})` : "";
+    out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes${info}.`);
     return;
   }
   if (verb === "tick") {
