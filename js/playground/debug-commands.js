@@ -129,7 +129,7 @@ export function registerDebugCommands() {
   registerCommand({
     verb: "messages",
     execute(args) {
-      const el = document.getElementById("toggle-messages");
+      const el = /** @type {HTMLInputElement} */ (document.getElementById("toggle-messages"));
       if (!el) return;
       if (args[0] === "on") el.checked = true;
       else if (args[0] === "off") el.checked = false;
