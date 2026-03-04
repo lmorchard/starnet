@@ -434,6 +434,12 @@ untested — circuits are validated but access gating is not.
 
 ## Technical / Architecture
 
+### Remove `state.js` Re-Export Shim
+`js/core/state.js` is a barrel re-export of `js/core/state/index.js` and submodules.
+It exists so old `import ... from "./state.js"` paths work. ~27 files import from it.
+Low priority — the shim works fine, but consumers could import directly from the
+`state/` submodules for clarity. Touches many files.
+
 ### ~~Seeded RNG~~ ✓ DONE
 Implemented in `js/rng.js` — Mulberry32 PRNG with 5 named streams (exploit, combat,
 ice, loot, world). String seeds hashed via djb2. All 26 gameplay `Math.random()` calls
