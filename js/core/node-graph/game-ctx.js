@@ -118,7 +118,7 @@ export function buildGameCtx(opts = {}) {
       const s = getState();
       const node = s.nodes[nodeId];
       if (!node) return;
-      emitEvent(E.NODE_RECONFIGURED, { nodeId, label: node.label });
+      emitEvent(E.ACTION_RESOLVED, { action: "reconfigure", nodeId, label: node.label });
     },
 
     startReboot: (nodeId) => {
@@ -148,7 +148,7 @@ export function buildGameCtx(opts = {}) {
         ctx._graph.setNodeAttr(nodeId, "_ta_reboot_duration", durationTicks);
       }
 
-      emitEvent(E.NODE_REBOOTING, { nodeId, label: node.label, durationMs: durationTicks * 100 });
+      emitEvent(E.ACTION_RESOLVED, { action: "reboot-start", nodeId, label: node.label, detail: { durationMs: durationTicks * 100 } });
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "reboot", phase: "start", progress: 0, durationTicks });
     },
     openDarknetsStore: () => {
@@ -176,7 +176,7 @@ export function buildGameCtx(opts = {}) {
         setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
       }
 
-      emitEvent(E.NODE_PROBED, { nodeId, label: node.label });
+      emitEvent(E.ACTION_RESOLVED, { action: "probe", nodeId, label: node.label });
       const newAlert = getState().nodes[nodeId]?.alertState;
       if (newAlert && newAlert !== prevAlert) {
         emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: newAlert });
@@ -197,7 +197,7 @@ export function buildGameCtx(opts = {}) {
       if (!node || node.read) return;
 
       setNodeRead(nodeId);
-      emitEvent(E.NODE_READ, { nodeId, label: node.label, macguffinCount: (node.macguffins ?? []).length });
+      emitEvent(E.ACTION_RESOLVED, { action: "read", nodeId, label: node.label, detail: { macguffinCount: (node.macguffins ?? []).length } });
     },
 
     resolveLoot: (nodeId) => {
@@ -213,7 +213,7 @@ export function buildGameCtx(opts = {}) {
 
       setNodeLooted(nodeId);
       addCash(total);
-      emitEvent(E.NODE_LOOTED, { nodeId, label: node.label, items: items.length, total });
+      emitEvent(E.ACTION_RESOLVED, { action: "loot", nodeId, label: node.label, detail: { items: items.length, total } });
 
       if (s.mission && !s.mission.complete) {
         const gotMission = items.some((m) => m.id === s.mission.targetMacguffinId);
@@ -233,7 +233,7 @@ export function buildGameCtx(opts = {}) {
       const node = s.nodes[nodeId];
       if (!node) return;
       setNodeRebooting(nodeId, false);
-      emitEvent(E.NODE_REBOOTED, { nodeId, label: node.label });
+      emitEvent(E.ACTION_RESOLVED, { action: "reboot-complete", nodeId, label: node.label });
     },
 
     emitActionFeedback: (nodeId, action, phase, progress, result) => {

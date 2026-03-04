@@ -120,9 +120,10 @@ export function initVisualRenderer() {
     }
   });
 
-  // Exploit result flash — still driven by existing events from combat.js
-  on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { nodeId }) => flashNode(nodeId, "success"));
-  on(E.EXPLOIT_FAILURE, (/** @type {ExploitFailurePayload} */ { nodeId }) => flashNode(nodeId, "failure"));
+  // Exploit result flash — driven by ACTION_RESOLVED
+  on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
+    if (action === "exploit") flashNode(nodeId, success ? "success" : "failure");
+  });
 
   on(E.RUN_STARTED, () => {
     clearExploitBrackets(); clearProbeSweep(); clearReadSectors(); clearLootRings();

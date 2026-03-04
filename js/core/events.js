@@ -34,18 +34,8 @@ export const E = Object.freeze({
   RUN_ENDED:            "run:ended",
 
   NODE_REVEALED:        "node:revealed",
-  NODE_PROBED:          "node:probed",
   NODE_ACCESSED:        "node:accessed",
   NODE_ALERT_RAISED:    "node:alert-raised",
-  NODE_READ:            "node:read",
-  NODE_LOOTED:          "node:looted",
-  NODE_RECONFIGURED:    "node:reconfigured",
-  NODE_REBOOTING:       "node:rebooting",
-  NODE_REBOOTED:        "node:rebooted",
-
-  // Per-action start/cancel events removed — replaced by ACTION_FEEDBACK
-  EXPLOIT_SUCCESS:      "exploit:success",
-  EXPLOIT_FAILURE:      "exploit:failure",
   EXPLOIT_DISCLOSED:    "exploit:disclosed",
   EXPLOIT_PARTIAL_BURN: "exploit:partial-burn",
   EXPLOIT_SURFACE:      "exploit:surface-revealed",
@@ -71,6 +61,8 @@ export const E = Object.freeze({
 
   // Unified action feedback event — replaces per-action start/progress/complete events
   ACTION_FEEDBACK:      "action:feedback",
+  // Unified action resolution event — replaces per-action NODE_PROBED, NODE_READ, etc.
+  ACTION_RESOLVED:      "action:resolved",
 
   // NodeGraph events — emitted by the onEvent bridge
   NODE_STATE_CHANGED:   "graph:node-state-changed",

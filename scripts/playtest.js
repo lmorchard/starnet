@@ -106,35 +106,33 @@ initLog();
 on(E.LOG_ENTRY, ({ text }) => out(text));
 
 // Game events not covered by log-renderer (which isn't loaded in the harness)
-on(E.NODE_PROBED,          ({ label })                 => out(`[NODE] ${label}: vulnerabilities scanned.`));
 on(E.NODE_ALERT_RAISED,    ({ label, prev, next })     => out(`[NODE] ${label}: alert ${prev} → ${next}.`));
 on(E.NODE_ACCESSED,        ({ label, prev, next })     => out(`[NODE] ${label}: ${prev} → ${next.toUpperCase()}.`));
 on(E.NODE_REVEALED,        ({ label, unlocked })       => { if (unlocked) out(`[NODE] ${label}: node accessible.`); });
-on(E.NODE_READ,            ({ label, macguffinCount }) => out(`[NODE] ${label}: ${macguffinCount} item(s) found.`));
-on(E.NODE_LOOTED,          ({ label, items, total })   => out(`[NODE] ${label}: looted ${items} item(s) — ¥${total.toLocaleString()}.`));
-on(E.NODE_REBOOTING,       ({ label })                 => out(`[NODE] ${label}: rebooting.`));
-on(E.NODE_REBOOTED,        ({ label })                 => out(`[NODE] ${label}: online.`));
-// Timed action events via unified ACTION_FEEDBACK
+// Timed action lifecycle
 on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
   const s = getState();
   const label = s.nodes[nodeId]?.label ?? nodeId;
   if (phase === "start") {
     const secs = Math.round((durationTicks ?? 0) / 10);
-    if (action === "probe") out(`[PROBE] ${label}: scanning (${secs}s)...`);
-    else if (action === "exploit") out(`[EXPLOIT] ${label}: executing (${secs}s)...`);
-    else if (action === "read") out(`[READ] ${label}: extracting data (${secs}s)...`);
-    else if (action === "loot") out(`[LOOT] ${label}: extracting loot (${secs}s)...`);
+    out(`[${action.toUpperCase()}] ${label}: ${action === "exploit" ? "executing" : "running"} (${secs}s)...`);
   } else if (phase === "cancel") {
-    if (action === "probe") out(`[PROBE] ${label}: scan cancelled.`);
-    else if (action === "exploit") out(`[EXPLOIT] ${label}: interrupted.`);
-    else if (action === "read") out(`[READ] ${label}: extraction cancelled.`);
-    else if (action === "loot") out(`[LOOT] ${label}: extraction cancelled.`);
+    out(`[${action.toUpperCase()}] ${label}: cancelled.`);
   }
 });
-on(E.EXPLOIT_SUCCESS,      ({ label, exploitName, roll, successChance }) =>
-  out(`[EXPLOIT] ${label} — ${exploitName}: SUCCESS (roll ${roll} vs ${successChance}%)`));
-on(E.EXPLOIT_FAILURE,      ({ label, exploitName, roll, successChance }) =>
-  out(`[EXPLOIT] ${label} — ${exploitName}: FAIL (roll ${roll} vs ${successChance}%)`));
+// Action resolutions
+on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
+  if (action === "probe") out(`[NODE] ${label}: vulnerabilities scanned.`);
+  else if (action === "exploit") {
+    const d = detail ?? {};
+    out(`[EXPLOIT] ${label} — ${d.exploitName}: ${success ? "SUCCESS" : "FAIL"} (roll ${d.roll} vs ${d.successChance}%)`);
+  }
+  else if (action === "read") out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
+  else if (action === "loot") out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
+  else if (action === "reconfigure") out(`[NODE] ${label}: event forwarding disabled.`);
+  else if (action === "reboot-start") out(`[NODE] ${label}: rebooting.`);
+  else if (action === "reboot-complete") out(`[NODE] ${label}: online.`);
+});
 on(E.EXPLOIT_DISCLOSED,    ({ exploitName })           => out(`[EXPLOIT] ${exploitName}: disclosed.`));
 on(E.EXPLOIT_PARTIAL_BURN, ({ exploitName, usesRemaining }) =>
   out(`[EXPLOIT] ${exploitName}: partial burn (${usesRemaining} uses left).`));

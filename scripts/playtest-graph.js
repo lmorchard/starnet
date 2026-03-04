@@ -34,12 +34,13 @@ initActionDispatcher(ctx);
 const lines = [];
 function out(msg) { lines.push(String(msg)); }
 on(E.LOG_ENTRY,           ({ text }) => out(text));
-on(E.NODE_PROBED,         ({ label }) => out(`  [PROBED] ${label}`));
 on(E.NODE_ACCESSED,       ({ label, prev, next }) => out(`  [ACCESS] ${label}: ${prev} → ${next}`));
-on(E.NODE_READ,           ({ label, macguffinCount }) => out(`  [READ] ${label}: ${macguffinCount} items`));
-on(E.NODE_LOOTED,         ({ label, items, total }) => out(`  [LOOT] ${label}: ${items} items — ¥${total}`));
-on(E.EXPLOIT_SUCCESS,     ({ label, exploitName }) => out(`  [EXPLOIT ✓] ${label} — ${exploitName}`));
-on(E.EXPLOIT_FAILURE,     ({ label, exploitName }) => out(`  [EXPLOIT ✗] ${label} — ${exploitName}`));
+on(E.ACTION_RESOLVED,     ({ action, label, success, detail }) => {
+  if (action === "probe") out(`  [PROBED] ${label}`);
+  else if (action === "exploit") out(`  [EXPLOIT ${success ? "✓" : "✗"}] ${label} — ${detail?.exploitName}`);
+  else if (action === "read") out(`  [READ] ${label}: ${detail?.macguffinCount ?? 0} items`);
+  else if (action === "loot") out(`  [LOOT] ${label}: ${detail?.items} items — ¥${detail?.total}`);
+});
 on(E.ALERT_GLOBAL_RAISED, ({ prev, next }) => out(`  [ALERT] ${prev} → ${next}`));
 on(E.ALERT_TRACE_STARTED, ({ seconds }) => out(`  [TRACE] ${seconds}s countdown!`));
 on(E.RUN_ENDED,           ({ outcome }) => out(`  [RUN END] ${outcome}`));

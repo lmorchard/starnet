@@ -48,11 +48,8 @@ export function initAlertHandlers() {
     recomputeGlobalAlert();
   });
 
-  on(E.NODE_RECONFIGURED, ({ nodeId }) => {
-    const s = getState();
-    const node = s.nodes[nodeId];
-    if (!node) return;
-    recomputeGlobalAlert();
+  on(E.ACTION_RESOLVED, ({ action }) => {
+    if (action === "reconfigure") recomputeGlobalAlert();
   });
 }
 

@@ -15,8 +15,8 @@
 
 import { getState } from "../state.js";
 import { on, E, emitEvent } from "../events.js";
-import { addLogEntry } from "../log.js";
 import { registry, registerCommand } from "./registry.js";
+import { completeNodeArg } from "./completions.js";
 
 // Action IDs with custom argument handling that stay as static console commands.
 // Everything else is dynamically discovered from the graph's available actions.
@@ -60,6 +60,7 @@ function syncDynamicActions() {
 
     registerCommand({
       verb: actionId,
+      complete: completeNodeArg,
       execute: () => {
         emitEvent("starnet:action", {
           actionId,

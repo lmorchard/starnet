@@ -4,8 +4,8 @@
  *
  * Set-piece circuits (nthAlarm, idsRelayChain, probeBurstAlarm, noisySensor,
  * honeyPot, etc.) react to messages like "probe-noise", "alert", "exploit".
- * This bridge listens to game events and translates them into graph messages
- * so the circuits fire correctly.
+ * This bridge listens to ACTION_RESOLVED and alert events and translates them
+ * into graph messages so the circuits fire correctly.
  */
 
 import { on, E } from "./events.js";
@@ -17,16 +17,22 @@ import { createMessage } from "./node-graph/message.js";
  * Call once after initGame() sets up the NodeGraph.
  */
 export function initGraphBridge() {
-  // Probe completed → send "probe-noise" to the probed node and its neighbors.
-  // Set-pieces like nthAlarm and probeBurstAlarm listen for probe-noise.
-  on(E.NODE_PROBED, ({ nodeId }) => {
+  // ACTION_RESOLVED → graph messages for set-piece circuits
+  on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
     const graph = getState().nodeGraph;
     if (!graph) return;
-    const msg = createMessage({ type: "probe-noise", origin: nodeId, payload: { nodeId } });
-    // Send to the probed node's neighbors (simulates noise radiating outward)
-    const adj = getState().adjacency[nodeId] || [];
-    for (const neighborId of adj) {
-      try { graph.sendMessage(neighborId, msg); } catch (_) { /* node might not exist in graph */ }
+
+    if (action === "probe") {
+      // Probe completed → send "probe-noise" to the probed node's neighbors.
+      const msg = createMessage({ type: "probe-noise", origin: nodeId, payload: { nodeId } });
+      const adj = getState().adjacency[nodeId] || [];
+      for (const neighborId of adj) {
+        try { graph.sendMessage(neighborId, msg); } catch (_) { }
+      }
+    } else if (action === "exploit") {
+      // Exploit attempt → send "exploit" message to the node.
+      const msg = createMessage({ type: "exploit", origin: nodeId, payload: { nodeId, success } });
+      try { graph.sendMessage(nodeId, msg); } catch (_) { }
     }
   });
 
@@ -36,22 +42,6 @@ export function initGraphBridge() {
     const graph = getState().nodeGraph;
     if (!graph) return;
     const msg = createMessage({ type: "alert", origin: nodeId, payload: { nodeId } });
-    try { graph.sendMessage(nodeId, msg); } catch (_) { }
-  });
-
-  // Exploit attempt (success or failure) → send "exploit" message to the node.
-  // HoneyPot set-piece listens for exploit messages.
-  on(E.EXPLOIT_SUCCESS, ({ nodeId }) => {
-    const graph = getState().nodeGraph;
-    if (!graph) return;
-    const msg = createMessage({ type: "exploit", origin: nodeId, payload: { nodeId, success: true } });
-    try { graph.sendMessage(nodeId, msg); } catch (_) { }
-  });
-
-  on(E.EXPLOIT_FAILURE, ({ nodeId }) => {
-    const graph = getState().nodeGraph;
-    if (!graph) return;
-    const msg = createMessage({ type: "exploit", origin: nodeId, payload: { nodeId, success: false } });
     try { graph.sendMessage(nodeId, msg); } catch (_) { }
   });
 }

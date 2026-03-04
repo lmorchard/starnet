@@ -65,51 +65,60 @@ export function initLogRenderer() {
     }
     pendingSignals++;
   });
-  on(E.NODE_PROBED,       (/** @type {NodeProbedPayload} */       { label }) => add(`[NODE] ${label}: vulnerabilities scanned.`, "info"));
-  on(E.NODE_ACCESSED,     (/** @type {NodeAccessedPayload} */     { label, prev, next }) => add(`[NODE] ${label}: access ${prev} → ${next}.`, "success"));
-  on(E.NODE_ALERT_RAISED, (/** @type {NodeAlertRaisedPayload} */  { label, prev, next }) => add(`[NODE] ${label}: alert ${prev} → ${next}.`, "error"));
-  on(E.NODE_READ,         (/** @type {NodeReadPayload} */         { label, macguffinCount }) =>
-    add(macguffinCount > 0
-      ? `[NODE] ${label}: ${macguffinCount} item(s) found.`
-      : `[NODE] ${label}: nothing of value found.`, "info"));
-  on(E.NODE_LOOTED,       (/** @type {NodeLootedPayload} */       { label, items, total }) =>
-    add(`[NODE] ${label}: looted ${items} item(s). +¥${total.toLocaleString()}`, "success"));
-  on(E.NODE_RECONFIGURED, (/** @type {NodeReconfiguredPayload} */ { label }) => add(`[NODE] ${label}: event forwarding disabled.`, "success"));
-  on(E.NODE_REBOOTING,    (/** @type {NodeRebootingPayload} */    { label }) => add(`[NODE] ${label}: REBOOTING — offline temporarily.`, "info"));
-  on(E.NODE_REBOOTED,     (/** @type {NodeRebootedPayload} */     { label }) => add(`[NODE] ${label}: back online.`, "info"));
+  on(E.NODE_ACCESSED,     ({ label, prev, next }) => add(`[NODE] ${label}: access ${prev} → ${next}.`, "success"));
+  on(E.NODE_ALERT_RAISED, ({ label, prev, next }) => add(`[NODE] ${label}: alert ${prev} → ${next}.`, "error"));
 
-  // ── Timed action log entries (via ACTION_FEEDBACK) ──────────
+  // ── Timed action lifecycle log entries (via ACTION_FEEDBACK) ──
   on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
-    // Resolve label from state
     const s = _getState();
     const label = s?.nodes[nodeId]?.label ?? nodeId;
-    if (action === "probe") {
-      if (phase === "start") add(`[PROBE] ${label}: scanning (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
-      else if (phase === "cancel") add(`[PROBE] ${label}: scan cancelled.`, "info");
-    } else if (action === "exploit") {
-      if (phase === "start") add(`[EXPLOIT] ${label}: executing (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
-      else if (phase === "cancel") add(`[EXPLOIT] ${label}: interrupted.`, "info");
-    } else if (action === "read") {
-      if (phase === "start") add(`[READ] ${label}: extracting data (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
-      else if (phase === "cancel") add(`[READ] ${label}: extraction cancelled.`, "info");
-    } else if (action === "loot") {
-      if (phase === "start") add(`[LOOT] ${label}: extracting (${Math.round((durationTicks ?? 0) / 10)}s)...`, "info");
-      else if (phase === "cancel") add(`[LOOT] ${label}: extraction cancelled.`, "info");
+    if (phase === "start") {
+      const secs = Math.round((durationTicks ?? 0) / 10);
+      const prefixes = { probe: "PROBE", exploit: "EXPLOIT", read: "READ", loot: "LOOT" };
+      const verbs = { probe: "scanning", exploit: "executing", read: "extracting data", loot: "extracting" };
+      const prefix = prefixes[action] ?? action.toUpperCase();
+      const verb = verbs[action] ?? "running";
+      add(`[${prefix}] ${label}: ${verb} (${secs}s)...`, "info");
+    } else if (phase === "cancel") {
+      const msgs = { probe: "scan cancelled", exploit: "interrupted", read: "extraction cancelled", loot: "extraction cancelled" };
+      const prefix = action === "exploit" ? "EXPLOIT" : action.toUpperCase();
+      add(`[${prefix}] ${label}: ${msgs[action] ?? "cancelled"}.`, "info");
     }
   });
-  on(E.EXPLOIT_SUCCESS, (/** @type {ExploitSuccessPayload} */ { label, flavor, roll, successChance, matchingVulns }) => {
-    add(`[EXPLOIT] ${label} — ${flavor}`, "success");
-    add(`[EXPLOIT] Roll: ${roll} vs ${successChance}%${matchingVulns.length > 0 ? " (vuln match)" : ""}`, "meta");
+
+  // ── Action resolution log entries (via ACTION_RESOLVED) ──
+  on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
+    if (action === "probe") {
+      add(`[NODE] ${label}: vulnerabilities scanned.`, "info");
+    } else if (action === "exploit") {
+      const d = detail ?? {};
+      if (success) {
+        add(`[EXPLOIT] ${label} — ${d.flavor}`, "success");
+        add(`[EXPLOIT] Roll: ${d.roll} vs ${d.successChance}%${d.matchingVulns?.length > 0 ? " (vuln match)" : ""}`, "meta");
+      } else {
+        add(`[EXPLOIT] ${label} — ${d.flavor}`, "error");
+        add(`[EXPLOIT] Roll: ${d.roll} vs ${d.successChance}%${d.matchingVulns?.length > 0 ? " (vuln match)" : ""}`, "meta");
+      }
+    } else if (action === "read") {
+      const mc = detail?.macguffinCount ?? 0;
+      add(mc > 0 ? `[NODE] ${label}: ${mc} item(s) found.` : `[NODE] ${label}: nothing of value found.`, "info");
+    } else if (action === "loot") {
+      add(`[NODE] ${label}: looted ${detail?.items} item(s). +¥${(detail?.total ?? 0).toLocaleString()}`, "success");
+    } else if (action === "reconfigure") {
+      add(`[NODE] ${label}: event forwarding disabled.`, "success");
+    } else if (action === "reboot-start") {
+      add(`[NODE] ${label}: REBOOTING — offline temporarily.`, "info");
+    } else if (action === "reboot-complete") {
+      add(`[NODE] ${label}: back online.`, "info");
+    }
   });
-  on(E.EXPLOIT_FAILURE, (/** @type {ExploitFailurePayload} */ { label, flavor, roll, successChance, matchingVulns }) => {
-    add(`[EXPLOIT] ${label} — ${flavor}`, "error");
-    add(`[EXPLOIT] Roll: ${roll} vs ${successChance}%${matchingVulns.length > 0 ? " (vuln match)" : ""}`, "meta");
-  });
-  on(E.EXPLOIT_DISCLOSED,    (/** @type {ExploitDisclosedPayload} */   { exploitName }) =>
+
+  // Card decay side-effects (still separate events from combat.js)
+  on(E.EXPLOIT_DISCLOSED,    ({ exploitName }) =>
     add(`[EXPLOIT] ${exploitName}: signature fully disclosed.`, "error"));
-  on(E.EXPLOIT_PARTIAL_BURN, (/** @type {ExploitPartialBurnPayload} */ { exploitName, usesRemaining }) =>
+  on(E.EXPLOIT_PARTIAL_BURN, ({ exploitName, usesRemaining }) =>
     add(`[EXPLOIT] ${exploitName}: signature partially leaked — ${usesRemaining} use${usesRemaining !== 1 ? "s" : ""} remaining.`, "error"));
-  on(E.EXPLOIT_SURFACE,      (/** @type {ExploitSurfacePayload} */     { label }) =>
+  on(E.EXPLOIT_SURFACE,      ({ label }) =>
     add(`[EXPLOIT] ${label}: deeper attack surface revealed.`, "success"));
 
   // ── Alert events ─────────────────────────────────────────
