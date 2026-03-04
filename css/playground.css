@@ -1,0 +1,152 @@
+/* Playground-specific styles — layered on top of game styles */
+
+.playground-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-label {
+  color: var(--green);
+  font-size: 0.8rem;
+}
+
+.toolbar-label select {
+  background: #0a0a0f;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+}
+
+.toolbar-sep {
+  color: #333;
+  margin: 0 2px;
+}
+
+.toggle-label {
+  color: var(--green);
+  font-size: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+  accent-color: var(--cyan);
+}
+
+/* Message log pane — separate from game log, shows structured trace */
+#message-log-pane {
+  max-height: 150px;
+  overflow-y: auto;
+  border-top: 1px solid #1a1a2a;
+  border-bottom: 1px solid #1a1a2a;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+}
+
+#message-log-pane .log-entry {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.log-msg { color: var(--cyan); }
+.log-attr { color: #aa88ff; }
+.log-trigger { color: #ff8844; }
+
+/* Inspector panel */
+.inspector-panel {
+  border-top: 1px solid #1a1a2a;
+  padding: 8px;
+  font-size: 0.75rem;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.inspector-header {
+  color: var(--green);
+  font-size: 0.7rem;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#inspector-content {
+  color: #aaa;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+.inspector-section {
+  margin-top: 6px;
+}
+
+.inspector-section-title {
+  color: var(--cyan);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.inspector-row {
+  display: flex;
+  gap: 8px;
+}
+
+.inspector-key {
+  color: #888;
+  min-width: 120px;
+}
+
+.inspector-val {
+  color: var(--green);
+}
+
+.inspector-val.internal {
+  color: #666;
+}
+
+/* JSON panel */
+.json-panel {
+  border-top: 1px solid #1a1a2a;
+  padding: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.json-content {
+  color: #888;
+  font-size: 0.65rem;
+  font-family: inherit;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.json-refresh-btn {
+  font-size: 0.65rem;
+  background: none;
+  border: 1px solid #333;
+  color: var(--cyan);
+  cursor: pointer;
+  padding: 1px 6px;
+}
+
+.json-refresh-btn:hover {
+  border-color: var(--cyan);
+}
+
+/* Playground sidebar — denser than game sidebar */
+.playground-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Message flash on nodes */
+.message-flash {
+  border-color: #ff8844 !important;
+  border-width: 3px !important;
+}
