@@ -110,6 +110,14 @@ These should be tuned against the actual probe/exploit/action durations so the
 puzzles create meaningful time pressure without being impossible. A dedicated
 balance session with bot-player metrics would be ideal.
 
+**Grade-scaled timing:** Tick periods should scale with LAN or node grade.
+A grade-S network has faster clocks and shorter watchdog windows; grade-F
+gives more breathing room. This could be a multiplier table on the set-piece
+config (e.g. `basePeriod: 50, gradeScale: { S: 0.3, ..., F: 2.0 }`), applied
+when the set-piece is instantiated for a network of a given difficulty. Ties
+into the composable traits system — a `timedThreat` trait would compute
+actual tick period from base × grade multiplier.
+
 ### Follow-Up: WAN Node Commands
 
 access-darknet, store, and buy should be actions attached to the WAN node
