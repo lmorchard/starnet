@@ -83,12 +83,20 @@ behaviors be attached to any node declaratively:
 
 Traits would replace the per-type factory functions with a more flexible composition:
 ```
-createNode("vault", [lootable({ count: [1, 3] }), qualityGated("auth-tokens", 2)])
+createNode("vault", [hackable, lootable({ count: [1, 3] }), qualityGated("auth-tokens", 2)])
 ```
 
-This also enables macguffin assignment as a trait rather than a special case in
-`initGame()`. The trait would define an init operator that generates macguffins
-using the seeded RNG.
+Key insight: not all nodes support the core probe/exploit/read/loot loop.
+- Most network nodes are `hackable` (probe + exploit) but internal set-piece
+  nodes (alarm-latch, watchdog-daemon) are NOT — the player interacts with
+  them indirectly through the circuit.
+- Only some nodes are `lootable` (fileservers, vaults, workstations).
+- WAN is neither hackable nor lootable — it's a service endpoint.
+- A pre-owned vault might be lootable but not hackable (just needs a key).
+
+The trait system makes these distinctions declarative instead of hardcoded in
+factory functions. It also enables macguffin assignment as a trait rather than
+a special case in `initGame()`.
 
 ### Follow-Up: Tab Completion for Node-Graph Actions
 
