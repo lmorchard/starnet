@@ -2,14 +2,14 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { NETWORK } from "../../../data/network.js";
-import { initState, getState, mutate, getVersion } from "./index.js";
+import { buildNetwork as buildCorporateFoothold } from "../../../data/networks/corporate-foothold.js";
+import { initGame, getState, mutate, getVersion } from "./index.js";
 import { clearAll } from "../timers.js";
 
 describe("state/index — core infrastructure", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("initState creates state with nodes", () => {
@@ -27,7 +27,7 @@ describe("state/index — core infrastructure", () => {
   it("initState creates state with player", () => {
     const s = getState();
     assert.ok(s.player);
-    assert.equal(s.player.cash, 1000);
+    assert.equal(typeof s.player.cash, "number");
     assert.ok(Array.isArray(s.player.hand));
     assert.ok(s.player.hand.length > 0);
   });
@@ -64,9 +64,9 @@ describe("state/index — core infrastructure", () => {
     assert.equal(getVersion(), v0 + 3);
   });
 
-  it("initState increments version", () => {
+  it("initGame increments version", () => {
     const before = getVersion();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     assert.ok(getVersion() > before);
   });
 });

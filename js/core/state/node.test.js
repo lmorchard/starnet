@@ -2,8 +2,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { NETWORK } from "../../../data/network.js";
-import { initState, getState, getVersion } from "./index.js";
+import { buildNetwork as buildCorporateFoothold } from "../../../data/networks/corporate-foothold.js";
+import { initGame, getState, getVersion } from "./index.js";
 import { clearAll } from "../timers.js";
 import {
   setNodeVisible, setNodeAccessLevel, setNodeProbed, setNodeAlertState,
@@ -14,7 +14,7 @@ import {
 describe("state/node — node mutations", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("setNodeVisible changes visibility and bumps version", () => {

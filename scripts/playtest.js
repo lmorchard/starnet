@@ -13,9 +13,7 @@
 //   node scripts/playtest.js --state scenario.json "status"
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { NETWORK } from "../data/network.js";
-import { generateNetwork } from "../js/core/network/network-gen.js";
-import { initState, initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
+import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
@@ -44,11 +42,7 @@ initNodeLifecycle();
 let stateFile = "scripts/playtest-state.json";
 let cmdStr = null;
 let seedArg = null;
-let timeArg = null;
-let moneyArg = null;
 let networkArg = null;
-/** @type {string[]} */
-const forcePiecesArg = [];
 
 {
   const argv = process.argv.slice(2);
@@ -57,14 +51,8 @@ const forcePiecesArg = [];
       stateFile = argv[++i];
     } else if (argv[i] === "--seed" && argv[i + 1]) {
       seedArg = argv[++i];
-    } else if (argv[i] === "--time" && argv[i + 1]) {
-      timeArg = argv[++i].toUpperCase();
-    } else if (argv[i] === "--money" && argv[i + 1]) {
-      moneyArg = argv[++i].toUpperCase();
     } else if (argv[i] === "--network" && argv[i + 1]) {
       networkArg = argv[++i];
-    } else if (argv[i] === "--force-piece" && argv[i + 1]) {
-      forcePiecesArg.push(argv[++i]);
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
@@ -72,19 +60,18 @@ const forcePiecesArg = [];
 }
 
 // ── Network selection ───────────────────────────────────────
-// --network selects a NodeGraph-based network; --time/--money uses procgen; else static.
 const GRAPH_NETWORKS = {
   "corporate-foothold": buildCorporateFoothold,
   "research-station": buildResearchStation,
   "corporate-exchange": buildCorporateExchange,
 };
 
-const useGraphNetwork = networkArg && GRAPH_NETWORKS[networkArg];
-const network = useGraphNetwork
-  ? null // not used when graph network is active
-  : (timeArg && moneyArg)
-    ? generateNetwork(seedArg ?? "default", timeArg, moneyArg, { forcePieces: forcePiecesArg })
-    : NETWORK;
+const selectedNetwork = networkArg ?? "corporate-foothold";
+const buildNetworkFn = GRAPH_NETWORKS[selectedNetwork];
+if (!buildNetworkFn) {
+  console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(GRAPH_NETWORKS).join(", ")}`);
+  process.exit(1);
+}
 
 if (!cmdStr) {
   console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] [--force-piece <id>] <command>");
@@ -181,17 +168,12 @@ function runCmd(raw) {
 
   // Harness-only commands
   if (verb === "reset") {
-    if (useGraphNetwork) {
-      initGame(() => GRAPH_NETWORKS[networkArg](), seedArg ?? undefined);
-      initGraphBridge();
-    } else {
-      initState(network, seedArg ?? undefined);
-    }
+    initGame(() => buildNetworkFn(), seedArg ?? undefined);
+    initGraphBridge();
     startIce();
     const s = getState();
     const nodeCount = Object.keys(s.nodes).length;
-    const info = useGraphNetwork ? ` (${networkArg})` : (timeArg && moneyArg) ? ` (generated: time=${timeArg} money=${moneyArg})` : "";
-    out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes${info}.`);
+    out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes (${selectedNetwork}).`);
     return;
   }
   if (verb === "tick") {

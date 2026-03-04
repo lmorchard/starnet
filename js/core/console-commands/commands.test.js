@@ -16,8 +16,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { NETWORK } from "../../../data/network.js";
-import { initState, getState } from "../state.js";
+import { buildNetwork as buildCorporateFoothold } from "../../../data/networks/corporate-foothold.js";
+import { initGame, getState } from "../state.js";
 import { navigateTo } from "../navigation.js";
 import { addCardToHand } from "../state/player.js";
 import { setNodeAccessLevel } from "../state/node.js";
@@ -47,7 +47,7 @@ const logs = (fn) => withEvents(E.LOG_ENTRY, fn);
 
 beforeEach(() => {
   clearAll();
-  initState(NETWORK);
+  initGame(() => buildCorporateFoothold());
 });
 
 // ── Registry API ──────────────────────────────────────────────────────────────

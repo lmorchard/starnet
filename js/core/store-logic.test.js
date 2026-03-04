@@ -3,12 +3,12 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { buyFromStore } from "./store-logic.js";
 import { getStoreCatalog } from "./exploits.js";
-import { initState, getState } from "./state.js";
-import { NETWORK } from "../../data/network.js";
+import { initGame, getState } from "./state.js";
+import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
 
 describe("buyFromStore", () => {
   beforeEach(() => {
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("buys by catalog index (1-based)", () => {

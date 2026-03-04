@@ -2,8 +2,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { NETWORK } from "../../../data/network.js";
-import { initState, getState, getVersion } from "./index.js";
+import { buildNetwork as buildCorporateExchange } from "../../../data/networks/corporate-exchange.js";
+import { initGame, getState, getVersion } from "./index.js";
 import { clearAll } from "../timers.js";
 import {
   setIceAttention, setIceDetectedAt, setIceDwellTimer,
@@ -13,7 +13,7 @@ import {
 describe("state/ice — ICE mutations", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateExchange());
   });
 
   it("setIceAttention changes attentionNodeId", () => {

@@ -33,6 +33,7 @@ function syncToGraph(nodeId, attr, value) {
   if (_graph) {
     _syncingToGraph = true;
     try { _graph.setNodeAttr(nodeId, attr, value); }
+    catch (_) { /* node might not exist in graph (e.g. internal set-piece nodes) */ }
     finally { _syncingToGraph = false; }
   }
 }

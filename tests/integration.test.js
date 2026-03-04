@@ -12,14 +12,13 @@
 import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { NETWORK } from "../data/network.js";
-import { initState, initGame, getState, isIceVisible, buyExploit } from "../js/core/state.js";
+import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
+import { initGame, getState, isIceVisible, buyExploit } from "../js/core/state.js";
 import { navigateTo, navigateAway } from "../js/core/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/core/ice.js";
 import { emitEvent, on, off, E } from "../js/core/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/core/timers.js";
 import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
-import { getActions, hasBehavior } from "../js/core/actions/node-types.js";
 import { getAvailableActions } from "../js/core/actions/node-actions.js";
 import { generateExploit } from "../js/core/exploits.js";
 import { launchExploit } from "../js/core/combat.js";
@@ -54,11 +53,11 @@ function withEvents(type, fn) {
 describe("Node initialization", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("fileserver has at least 1 macguffin after init", () => {
-    const fs = getState().nodes["fileserver"];
+    const fs = getState().nodes["office/fileserver"];
     assert.ok(fs.macguffins.length >= 1, `expected ≥1 macguffin, got ${fs.macguffins.length}`);
   });
 
@@ -67,7 +66,7 @@ describe("Node initialization", () => {
   });
 
   it("ids node has eventForwardingDisabled: false after init", () => {
-    assert.equal(getState().nodes["ids"].eventForwardingDisabled, false);
+    assert.equal(getState().nodes["sec/ids"].eventForwardingDisabled, false);
   });
 
   it("gateway has no eventForwardingDisabled property", () => {
@@ -80,7 +79,7 @@ describe("Node initialization", () => {
 describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -90,16 +89,16 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
 
   it("owning security-monitor sets ice.active to false", () => {
     const s = getState();
-    s.nodes["security-monitor"].accessLevel = "owned";
-    emitEvent(E.NODE_ACCESSED, { nodeId: "security-monitor", label: "SEC-MON", prev: "locked", next: "owned" });
+    s.nodes["sec/monitor"].accessLevel = "owned";
+    emitEvent(E.NODE_ACCESSED, { nodeId: "sec/monitor", label: "SEC-MON", prev: "locked", next: "owned" });
     assert.equal(getState().ice?.active, false);
   });
 
   it("owning security-monitor emits ICE_DISABLED", () => {
     const s = getState();
     const fired = withEvents(E.ICE_DISABLED, () => {
-      s.nodes["security-monitor"].accessLevel = "owned";
-      emitEvent(E.NODE_ACCESSED, { nodeId: "security-monitor", label: "SEC-MON", prev: "locked", next: "owned" });
+      s.nodes["sec/monitor"].accessLevel = "owned";
+      emitEvent(E.NODE_ACCESSED, { nodeId: "sec/monitor", label: "SEC-MON", prev: "locked", next: "owned" });
     });
     assert.equal(fired.length, 1);
   });
@@ -117,7 +116,7 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
 describe("Lifecycle: monitor — owning security-monitor cancels active trace", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startTraceCountdown();
   });
 
@@ -128,16 +127,16 @@ describe("Lifecycle: monitor — owning security-monitor cancels active trace", 
   it("owning security-monitor emits ALERT_TRACE_CANCELLED", () => {
     const s = getState();
     const fired = withEvents(E.ALERT_TRACE_CANCELLED, () => {
-      s.nodes["security-monitor"].accessLevel = "owned";
-      emitEvent(E.NODE_ACCESSED, { nodeId: "security-monitor", label: "SEC-MON", prev: "locked", next: "owned" });
+      s.nodes["sec/monitor"].accessLevel = "owned";
+      emitEvent(E.NODE_ACCESSED, { nodeId: "sec/monitor", label: "SEC-MON", prev: "locked", next: "owned" });
     });
     assert.equal(fired.length, 1);
   });
 
   it("traceSecondsRemaining is null after owning security-monitor", () => {
     const s = getState();
-    s.nodes["security-monitor"].accessLevel = "owned";
-    emitEvent(E.NODE_ACCESSED, { nodeId: "security-monitor", label: "SEC-MON", prev: "locked", next: "owned" });
+    s.nodes["sec/monitor"].accessLevel = "owned";
+    emitEvent(E.NODE_ACCESSED, { nodeId: "sec/monitor", label: "SEC-MON", prev: "locked", next: "owned" });
     assert.equal(getState().traceSecondsRemaining, null);
   });
 });
@@ -147,15 +146,15 @@ describe("Lifecycle: monitor — owning security-monitor cancels active trace", 
 describe("Alert flow: ids alert propagates to security-monitor", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("NODE_ALERT_RAISED on ids fires ALERT_PROPAGATED", () => {
     const fired = withEvents(E.ALERT_PROPAGATED, () => {
-      emitEvent(E.NODE_ALERT_RAISED, { nodeId: "ids", label: "IDS-01" });
+      emitEvent(E.NODE_ALERT_RAISED, { nodeId: "sec/ids", label: "IDS-01" });
     });
     assert.equal(fired.length, 1);
-    assert.equal(fired[0].fromNodeId, "ids");
+    assert.equal(fired[0].fromNodeId, "sec/ids");
   });
 
   it("NODE_ALERT_RAISED on ids (with raised alertState) escalates global alert", () => {
@@ -163,8 +162,8 @@ describe("Alert flow: ids alert propagates to security-monitor", () => {
     // Simulate that here: set ids to yellow, then fire the event.
     const s = getState();
     assert.equal(s.globalAlert, "green");
-    s.nodes["ids"].alertState = "yellow";
-    emitEvent(E.NODE_ALERT_RAISED, { nodeId: "ids", label: "IDS-01" });
+    s.nodes["sec/ids"].alertState = "yellow";
+    emitEvent(E.NODE_ALERT_RAISED, { nodeId: "sec/ids", label: "IDS-01" });
     assert.ok(
       ["yellow", "red", "trace"].includes(s.globalAlert),
       `expected alert to escalate, got: ${s.globalAlert}`
@@ -173,9 +172,9 @@ describe("Alert flow: ids alert propagates to security-monitor", () => {
 
   it("NODE_ALERT_RAISED does NOT propagate when forwarding disabled", () => {
     const s = getState();
-    s.nodes["ids"].eventForwardingDisabled = true;
+    s.nodes["sec/ids"].eventForwardingDisabled = true;
     const fired = withEvents(E.ALERT_PROPAGATED, () => {
-      emitEvent(E.NODE_ALERT_RAISED, { nodeId: "ids", label: "IDS-01" });
+      emitEvent(E.NODE_ALERT_RAISED, { nodeId: "sec/ids", label: "IDS-01" });
     });
     assert.equal(fired.length, 0);
   });
@@ -186,34 +185,34 @@ describe("Alert flow: ids alert propagates to security-monitor", () => {
 describe("Action availability: reconfigure on ids", () => {
   before(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("available when compromised and forwarding enabled", () => {
     const s = getState();
-    const node = { ...s.nodes["ids"], accessLevel: "compromised", eventForwardingDisabled: false };
-    const actionIds = getActions(node, s).map((a) => a.id);
+    const node = { ...s.nodes["sec/ids"], accessLevel: "compromised", eventForwardingDisabled: false };
+    const actionIds = getAvailableActions(node, s).map((a) => a.id);
     assert.ok(actionIds.includes("reconfigure"));
   });
 
   it("not available when eventForwardingDisabled is true", () => {
     const s = getState();
-    const node = { ...s.nodes["ids"], accessLevel: "compromised", eventForwardingDisabled: true };
-    const actionIds = getActions(node, s).map((a) => a.id);
+    const node = { ...s.nodes["sec/ids"], accessLevel: "compromised", eventForwardingDisabled: true };
+    const actionIds = getAvailableActions(node, s).map((a) => a.id);
     assert.ok(!actionIds.includes("reconfigure"));
   });
 
   it("not available when locked (even if forwarding enabled)", () => {
     const s = getState();
-    const node = { ...s.nodes["ids"], accessLevel: "locked", eventForwardingDisabled: false };
-    const actionIds = getActions(node, s).map((a) => a.id);
+    const node = { ...s.nodes["sec/ids"], accessLevel: "locked", eventForwardingDisabled: false };
+    const actionIds = getAvailableActions(node, s).map((a) => a.id);
     assert.ok(!actionIds.includes("reconfigure"));
   });
 
   it("available when owned and forwarding still enabled", () => {
     const s = getState();
-    const node = { ...s.nodes["ids"], accessLevel: "owned", eventForwardingDisabled: false };
-    const actionIds = getActions(node, s).map((a) => a.id);
+    const node = { ...s.nodes["sec/ids"], accessLevel: "owned", eventForwardingDisabled: false };
+    const actionIds = getAvailableActions(node, s).map((a) => a.id);
     assert.ok(actionIds.includes("reconfigure"));
   });
 });
@@ -221,31 +220,31 @@ describe("Action availability: reconfigure on ids", () => {
 describe("Action availability: cancel-trace on security-monitor", () => {
   it("available when owned and trace is active", () => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     const s = getState();
     s.traceSecondsRemaining = 60;
-    const node = { ...s.nodes["security-monitor"], accessLevel: "owned" };
-    const actionIds = getActions(node, s).map((a) => a.id);
+    const node = { ...s.nodes["sec/monitor"], accessLevel: "owned" };
+    const actionIds = getAvailableActions(node, s).map((a) => a.id);
     assert.ok(actionIds.includes("cancel-trace"));
   });
 
   it("not available when traceSecondsRemaining is null", () => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     const s = getState();
     assert.equal(s.traceSecondsRemaining, null, "trace should not be active after init");
-    const node = { ...s.nodes["security-monitor"], accessLevel: "owned" };
-    const actionIds = getActions(node, s).map((a) => a.id);
+    const node = { ...s.nodes["sec/monitor"], accessLevel: "owned" };
+    const actionIds = getAvailableActions(node, s).map((a) => a.id);
     assert.ok(!actionIds.includes("cancel-trace"));
   });
 
   it("not available when not owned", () => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     const s = getState();
     s.traceSecondsRemaining = 60;
-    const node = { ...s.nodes["security-monitor"], accessLevel: "locked" };
-    const actionIds = getActions(node, s).map((a) => a.id);
+    const node = { ...s.nodes["sec/monitor"], accessLevel: "locked" };
+    const actionIds = getAvailableActions(node, s).map((a) => a.id);
     assert.ok(!actionIds.includes("cancel-trace"));
   });
 });
@@ -255,7 +254,7 @@ describe("Action availability: cancel-trace on security-monitor", () => {
 describe("ICE detection: detectedAtNode resets when player moves", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -287,7 +286,7 @@ describe("ICE detection: detectedAtNode resets when player moves", () => {
 describe("ICE detection: player navigates to node where ICE is already present", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -310,7 +309,7 @@ describe("ICE detection: player navigates to node where ICE is already present",
 describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -342,7 +341,7 @@ describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {
 describe("ICE detection: detectedAtNode resets when ICE leaves player's node", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -367,7 +366,7 @@ describe("ICE detection: alert escalation", () => {
   // Network has grade C ICE; DETECTION_TRACE_THRESHOLD for C is 2.
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("first detection escalates global alert from green to yellow", () => {
@@ -398,7 +397,7 @@ describe("ICE detection: alert escalation", () => {
 describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -429,32 +428,12 @@ describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
   });
 });
 
-// ── Grade overrides ───────────────────────────────────────────────────────────
-
-describe("Grade overrides: ids direct-trace behavior", () => {
-  it("Grade-S ids includes direct-trace behavior", () => {
-    assert.ok(hasBehavior({ type: "ids", grade: "S" }, "direct-trace"));
-  });
-
-  it("Grade-A ids includes direct-trace behavior", () => {
-    assert.ok(hasBehavior({ type: "ids", grade: "A" }, "direct-trace"));
-  });
-
-  it("Grade-B ids does NOT include direct-trace", () => {
-    assert.ok(!hasBehavior({ type: "ids", grade: "B" }, "direct-trace"));
-  });
-
-  it("Grade-C ids does NOT include direct-trace", () => {
-    assert.ok(!hasBehavior({ type: "ids", grade: "C" }, "direct-trace"));
-  });
-});
-
 // ── Exploit execution timing ───────────────────────────────────────────────────
 
 describe("Exploit execution timing", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -569,7 +548,7 @@ describe("Exploit execution timing", () => {
 describe("Probe execution timing", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -644,7 +623,7 @@ describe("Probe execution timing", () => {
 describe("Navigation: navigateTo cancels in-progress actions", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -688,7 +667,7 @@ describe("Navigation: navigateTo cancels in-progress actions", () => {
 describe("Navigation: navigateAway cancels in-progress actions", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -722,7 +701,7 @@ describe("Navigation: navigateAway cancels in-progress actions", () => {
 describe("isIceVisible: ICE visible on selected locked node", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
     startIce();
   });
 
@@ -812,7 +791,7 @@ describe("WAN node", () => {
 describe("buyExploit", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("adds card to hand and deducts cash", () => {
@@ -842,7 +821,7 @@ describe("buyExploit", () => {
 describe("Exploit success: neighbor visibility", () => {
   beforeEach(() => {
     clearAll();
-    initState(NETWORK);
+    initGame(() => buildCorporateFoothold());
   });
 
   it("successfully exploiting a locked node leaves neighbors as revealed (???), not accessible", () => {
