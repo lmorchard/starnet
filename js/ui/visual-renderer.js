@@ -28,6 +28,8 @@ let execTotalMs = null;
 
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
+// Cache the last-rendered action ID set to avoid flickering re-renders during timed actions.
+let _lastContextMenuActionIds = "";
 
 export function initVisualRenderer() {
   // ── Event-driven node style updates from NodeGraph ──────
@@ -247,6 +249,15 @@ function syncContextMenu(node, state) {
     return;
   }
 
+  // Skip innerHTML rebuild if the same actions are already rendered — avoids
+  // destroying hover state during timed-action progress ticks.
+  const actionIdKey = actions.map(a => a.id).join(",");
+  if (actionIdKey === _lastContextMenuActionIds && contextMenuNodeId === node.id) {
+    _positionContextMenu(node.id);
+    return;
+  }
+  _lastContextMenuActionIds = actionIdKey;
+
   menu.innerHTML = actions.map((a) => {
     const desc = a.desc(node, state);
     return `<button class="ctx-item" data-action="${a.id}">
@@ -268,6 +279,7 @@ function syncContextMenu(node, state) {
 
 function clearContextMenu() {
   contextMenuNodeId = null;
+  _lastContextMenuActionIds = "";
   const menu = document.getElementById("node-context-menu");
   if (!menu) return;
   menu.style.opacity = "0";
