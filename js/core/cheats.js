@@ -8,13 +8,13 @@
 // Any use of a cheat command sets state.isCheating = true for the run.
 
 import { getState, revealNeighbors, accessNeighbors } from "./state.js";
+import { emitEvent, E } from "./events.js";
 import { setNodeAccessLevel, setNodeAlertState, setNodeVisible } from "./state/node.js";
 import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
 import { setCheating } from "./state/game.js";
 import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
 import { teleportIce } from "./ice.js";
 import { addLogEntry } from "./log.js";
-import { emitEvent, E } from "./events.js";
 import { generateExploit, generateExploitForVuln } from "./exploits.js";
 
 const VALID_RARITIES = ["common", "uncommon", "rare"];
@@ -243,6 +243,7 @@ function cheatTrace(args) {
     }
     cancelTraceCountdown();
     activateCheat();
+    emitEvent(E.STATE_CHANGED, getState());
     addLogEntry("[CHEAT] Trace cancelled.", "success");
     return true;
   }
