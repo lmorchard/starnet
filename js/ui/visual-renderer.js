@@ -11,6 +11,7 @@
 /** @typedef {import('../core/types.js').NodeAccessedPayload} NodeAccessedPayload */
 
 import { on, emitEvent, E } from "../core/events.js";
+import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep } from "./graph.js";
 import { getVisibleTimers } from "../core/timers.js";
@@ -42,8 +43,24 @@ let lootTotalMs = null;
 let contextMenuNodeId = null;
 
 export function initVisualRenderer() {
+  // ── Event-driven node style updates from NodeGraph ──────
+  // When a node attribute changes via the graph, update just that node's visual.
+  // This is the primary render path when a NodeGraph is active.
+  on(E.NODE_STATE_CHANGED, ({ nodeId }) => {
+    const s = _getState();
+    const node = s?.nodes[nodeId];
+    if (node) updateNodeStyle(nodeId, node);
+  });
+
+  // ── STATE_CHANGED — HUD, selection, ICE, context menu ──
+  // Node styles are driven by NODE_STATE_CHANGED above; this handler covers
+  // everything else. Falls back to full node sync when no graph is present.
   on(E.STATE_CHANGED, (/** @type {GameState} */ state) => {
-    syncGraph(state);
+    // Fallback: full node sync when there's no graph (legacy initState path)
+    if (!state.nodeGraph) {
+      Object.values(state.nodes).forEach((n) => updateNodeStyle(n.id, n));
+    }
+    syncOverlays(state);
     syncHud(state);
     const node = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
     if (node && node.visibility !== "revealed") {
@@ -240,11 +257,9 @@ function clearContextMenu() {
 
 // ── Graph sync ────────────────────────────────────────────
 
-function syncGraph(state) {
+/** Sync selection highlight and ICE position — not per-node styles. */
+function syncOverlays(state) {
   const cy = getCy();
-
-  Object.values(state.nodes).forEach((n) => updateNodeStyle(n.id, n));
-
   if (!cy) return;
 
   syncSelection(state.selectedNodeId);
