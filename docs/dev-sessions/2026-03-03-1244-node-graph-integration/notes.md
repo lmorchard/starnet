@@ -1,167 +1,137 @@
 # Session Notes: Node Graph Integration
 
-## Summary
+## Session Retro
+
+### Summary
 
 Integrated the reactive node graph runtime as the authoritative source of node
-behavior in the game engine. The old node-type registry + behavior atom system
-is largely replaced by NodeDef-based node definitions with operators, actions,
-triggers, and set-piece circuits.
+state and behavior in the game engine. This is essentially a 2.0 redesign —
+the old node-type registry, behavior atom system, procgen, and static network
+were all replaced by NodeDef-based definitions with operators, actions,
+triggers, and set-piece circuits. The game runs on NodeGraph end-to-end.
 
-## What Was Built
+**63 commits, 86 files changed, +10,763 / -4,342 lines.**
 
-### Core Integration (Phases 1-6)
-- **Runtime extensions**: `setNodeAttr()`, `init()`, `onEvent` callback, `$nodeId` placeholder, `getNode()`/`getNodeIds()`/`getEdges()` convenience API
-- **Game node type factories**: 8 types (gateway, router, ids, security-monitor, fileserver, cryptovault, firewall, wan) with shared action templates (probe, exploit, read, loot, cancel-*, eject, reboot)
-- **Strawman networks**: 3 hand-crafted networks from set-pieces (corporate-foothold, research-station, corporate-exchange)
-- **CtxInterface bridge**: Real game callbacks wired to NodeGraph ctx
-- **initGame()**: NodeGraph-based game initialization with bidirectional state sync
-- **Action dispatch**: All node actions route through NodeGraph — old NODE_ACTIONS array deleted
+### Key Actions
 
-### Additional Set-Pieces
-- `serverBank` — cluster of lootable fileservers
-- `officeCluster` — workstations + fileserver, exploration filler
+**Planned phases (1-10) — all completed:**
+1. Runtime extensions (setNodeAttr, init, onEvent, $nodeId placeholder)
+2. Game node type factories (8 types + shared action templates)
+3. Strawman networks (3 hand-crafted from set-pieces + 2 new filler set-pieces)
+4. CtxInterface bridge (real game callbacks)
+5. initGame() with bidirectional state sync + tick wiring
+6. Action dispatch through NodeGraph (old NODE_ACTIONS deleted)
+7. Event-driven renderer (NODE_STATE_CHANGED subscriptions)
+8. Save/load with graph snapshot round-trip
+9. Playtest harness --network flag
+10. Cleanup — deleted initState, node-types.js, procgen, bot scripts, static network
 
-### Browser Integration (Phase 7-11)
-- **Event-driven renderer**: NODE_STATE_CHANGED subscriptions for targeted updates
-- **Save/load**: Graph snapshot round-trips correctly
-- **Playtest harness**: `--network` flag for headless testing
-- **Graph message bridge**: Translates NODE_PROBED/NODE_ALERT_RAISED/EXPLOIT events into graph messages so set-piece circuits fire
-- **Layout fixes**: Deferred layout, visible-only layout to avoid Cytoscape bounding box crash with display:none nodes
+**Beyond-plan work:**
+- Graph message bridge (probe-noise, alert, exploit → graph messages)
+- Dynamic Cytoscape node addition (nodes added when disclosed, not at init)
+- ICE as HTML overlay (not a Cytoscape node)
+- Incremental layout with locked existing nodes
+- createGameNode composition system (replaced enrichWithGameActions)
+- Dynamic console commands per node selection
+- Full test rewrite with purpose-built minimal LAN fixtures
+- Set-piece bug fixes (deadman heartbeat source, encrypted vault timing)
+- Multiple balance tuning passes on set-piece tick periods
 
-### Cleanup
-- Removed node-types.js dependency from alert, combat, probe, lifecycle, console
-- alert.js uses direct type checks (DETECTOR_TYPES, MONITOR_TYPES sets)
-- node-lifecycle.js uses direct type checks for onOwned hooks
-- main.js uses initGame with graph networks by default
-- Old NODE_ACTIONS array and getNodeActions() deleted entirely
+### Divergences from Plan
 
-## What Works (Verified in Browser)
-- Full game loop: select → probe → exploit → read → loot → jackout
-- IDS relay chain circuit: probe IDS → alert propagates to monitor → global alert YELLOW
-- Nth alarm circuit: 3 probes near sensor → counter reaches threshold → TRACE INITIATED
-- Graph layout with incremental node reveal (breadthfirst)
-- Card sorting, vulnerability display, alert escalation
-- Set-piece circuits running in background (clocks, watchdogs)
-- Cheat commands work with graph nodes
-- WAN node + darknet store on all networks
-- Save/load preserves graph state
+1. **Cytoscape rendering** was not anticipated as a major challenge. The
+   `display: none` nodes + cola layout bounding box crash consumed significant
+   time. The solution (dynamic node addition) was a better architecture than
+   the plan's approach of hiding nodes with CSS.
 
-## Known Issues / Follow-up Work
+2. **ICE rendering** required three iterations: Cytoscape polygon node (crashed),
+   Cytoscape diamond node (layout island), HTML overlay (correct). The plan
+   didn't address ICE at all.
 
-### Must Fix
-- **ICE visual**: Diamond shape is a workaround — polygon SVG crashes Cytoscape render loop. Need to investigate the hasMiterBounds bug
-- **Action refactor incomplete**: Les wants ALL actions to be NodeDef actions natively, removing the wrapper layer. Probe/exploit/read/loot are currently NodeDef actions that call ctx methods, but the exploit special case (exploitId payload) is handled in the wrapper
-- **Bot player broken**: Uses old procgen/initState — needs migration to initGame
-- **Old procgen/node-types files not deleted**: Still imported by legacy initState used by some tests
+3. **Action refactor** was flagged by Les as in-scope mid-session. The plan had
+   it as Phase 10 cleanup but it became a first-class refactor: old NODE_ACTIONS
+   deleted, all actions route through graph, createGameNode replaces
+   enrichWithGameActions.
 
-### Should Fix
-- Probe-noise bridge sends to neighbors, not the probed node itself — check if set-pieces need the message at the probed node too
-- No "reconfigure" action appears in browser UI for IDS nodes (need to verify enrichWithGameActions includes it)
-- Old integration tests still use initState — should migrate to initGame
+4. **Test rewrite** was much larger than expected. Every integration test needed
+   purpose-built LAN fixtures instead of depending on the old static network
+   topology. This was the right call — tests are now self-contained.
 
-### Design Decisions Made
-- `createGameNode()` composes set-piece nodes with game-type factories — replaces `enrichWithGameActions()`
-- `initState()` deleted — all init goes through `initGame()`
-- Gateway gateAccess is "probed" (reveals neighbors on probe), router is "compromised" (reveals on exploit)
-- All networks include a WAN node for darknet store access
-- ICE rendered as HTML overlay, not a Cytoscape node
-- Cytoscape reserved for topology (nodes + edges); all entity/UI overlays are HTML
-- Nodes added to Cytoscape dynamically when disclosed, spawning near parent
-- Incremental layout: new nodes settle via cola with existing nodes locked
+5. **Set-piece timing** was not in the plan but emerged from playtesting. The
+   deadman circuit needed a heartbeat source, and all tick periods needed
+   real-world-playable values.
 
-### Follow-Up: Composable Traits System
+### Insights & Lessons
 
-The current node-graph uses operators for reactive message processing but lacks a
-clean composition model for game behaviors. A **traits system** would let common
-behaviors be attached to any node declaratively:
+- **Bidirectional state sync was the key architectural decision.** The bridge
+  between NodeGraph attributes and state.nodes let us migrate incrementally
+  without a big-bang rewrite. Each subsystem could move to graph reads at its
+  own pace.
 
-- `lootable(config)` — adds loot actions, macguffin storage, lootCount config
-- `detectable` — adds alert propagation to security monitors
-- `relay(filter?)` — adds message forwarding (already an operator, but could be a trait)
-- `qualityGated(name, threshold)` — adds a quality condition to an action
-- `iceResident` — marks a node as ICE home, adds disable-on-own behavior
+- **Cytoscape is for topology only.** Trying to use it for entity rendering
+  (ICE) and UI overlays doesn't work with dynamic graphs. HTML overlays
+  positioned via renderedPosition() are the right pattern.
 
-Traits would replace the per-type factory functions with a more flexible composition:
-```
-createNode("vault", [hackable, lootable({ count: [1, 3] }), qualityGated("auth-tokens", 2)])
-```
+- **Set-piece circuits work as designed** when properly wired. The IDS relay
+  chain, nth alarm, and probe burst alarm all fired correctly through the
+  graph bridge with no circuit-level bugs. The runtime built in the previous
+  session proved solid.
 
-Key insight: not all nodes support the core probe/exploit/read/loot loop.
-- Most network nodes are `hackable` (probe + exploit) but internal set-piece
-  nodes (alarm-latch, watchdog-daemon) are NOT — the player interacts with
-  them indirectly through the circuit.
-- Only some nodes are `lootable` (fileservers, vaults, workstations).
-- WAN is neither hackable nor lootable — it's a service endpoint.
-- A pre-owned vault might be lootable but not hackable (just needs a key).
+- **Test fixtures beat shared networks.** Purpose-built minimal LANs using
+  the type factories are faster, clearer, and don't break when network
+  topology changes. Every test should construct exactly what it needs.
 
-The trait system makes these distinctions declarative instead of hardcoded in
-factory functions. It also enables macguffin assignment as a trait rather than
-a special case in `initGame()`.
+- **Les's push against backward-compat hedging was right.** Every try/catch
+  wrapper and legacy fallback I added was eventually replaced by the proper
+  fix. Going direct saved time overall.
 
-### Follow-Up: Tab Completion for Node-Graph Actions
+- **Surprisingly few integration bugs** for a 2.0 redesign. The node-graph
+  runtime's clean separation (headless, no DOM, pure functions) made it
+  composable with the existing game systems without deep entanglement.
 
-Console tab completion doesn't include node-graph-specific actions (unlock-vault,
-extract-token, activate, etc.). The completion system needs to query
-`getAvailableActions` for the selected node and include those action IDs.
+### Follow-Up Work Identified
 
-### Follow-Up: Set-Piece Timing/Difficulty Tuning Sweep
+**Architecture (next sessions):**
+- Composable traits system (hackable, lootable, detectable, relay, etc.)
+- Unified timed action system (all actions take time, generic progress animation)
+- Migrate core mechanics into node-graph (loot/macguffins, combat/exploit
+  resolution, probe, read)
+- Grade-scaled timing for set-piece tick periods
+- WAN commands as node-specific actions (not global)
 
-All set-piece tick periods need a playtesting pass to tune difficulty against
-practical exploit and action timing. Current values are first-pass estimates:
-- deadmanCircuit: heartbeat 30 ticks (3s), watchdog 50 ticks (5s)
-- encryptedVault: key cycle 100 ticks (10s)
-- tripwireGauntlet: delay 6 ticks (600ms)
-- cascadeShutdown: watchdog 4 ticks (400ms) — probably too fast
-- noisySensor: debounce 4 ticks (400ms)
+**Polish:**
+- Set-piece timing/difficulty tuning sweep
+- Gate-access tests for graph subsections
+- MANUAL.md update
+- Bot player rebuild for new system
+- ICE visual refinement (the HTML overlay works but could look better)
 
-These should be tuned against the actual probe/exploit/action durations so the
-puzzles create meaningful time pressure without being impossible. A dedicated
-balance session with bot-player metrics would be ideal.
+### Stats
 
-**Grade-scaled timing:** Tick periods should scale with LAN or node grade.
-A grade-S network has faster clocks and shorter watchdog windows; grade-F
-gives more breathing room. This could be a multiplier table on the set-piece
-config (e.g. `basePeriod: 50, gradeScale: { S: 0.3, ..., F: 2.0 }`), applied
-when the set-piece is instantiated for a network of a given difficulty. Ties
-into the composable traits system — a `timedThreat` trait would compute
-actual tick period from base × grade multiplier.
+- **Commits:** 63 (34 this session specifically for integration, rest from
+  prior node-graph runtime sessions on the same branch)
+- **Tests:** 492 passing, 0 failures
+- **Lines:** +10,763 / -4,342 net across 86 files
+- **Deleted:** ~3,244 lines of old systems (initState, node-types, procgen,
+  bot scripts, static network)
+- **New files:** game-types.js, game-ctx.js, graph-bridge.js, dynamic-actions.js,
+  3 network definitions, 2 new set-pieces, playtest-graph.js
+- **Conversation turns:** ~200+ (extremely long session)
+- **Biggest time sinks:** Cytoscape rendering/layout issues (~20% of session),
+  test migration and fixture rewrite (~15%), ICE rendering iterations (~10%)
 
-### Follow-Up: Migrate Core Game Mechanics into Node-Graph
+### Process Observations
 
-The remaining game mechanics still live outside the node-graph system and need
-full migration:
+- **Parallel agents** worked well for the test migration — launched a background
+  agent to rewrite 10 test files while continuing other work. Saved ~10 minutes.
 
-- **Loot/macguffins**: generation, collection, cash reward — currently in
-  initGame + collectMacguffins + loot-exec.js. Should be a graph trait/effect.
-- **Combat/exploit resolution**: RNG roll, grade modifiers, card decay, access
-  level change — currently in combat.js. Should be graph effects with the
-  card system as a quality or ctx interaction.
-- **Probe**: vuln reveal, alert raise — currently in probe-exec.js. Should be
-  a graph action with timed effects.
-- **Read**: mark-read, macguffin visibility — currently in read-exec.js.
+- **Playwright MCP playtesting** was invaluable for catching rendering bugs that
+  headless tests couldn't. The select → probe → wait → screenshot cycle found
+  real issues (missing edges, ICE positioning, layout glitches).
 
-This is the final step to making the node-graph the COMPLETE game engine.
-The old exec modules (probe-exec, exploit-exec, read-exec, loot-exec) and
-combat.js would be deleted, replaced by graph actions + effects + the unified
-timed action system.
+- **Incremental commits** (one per fix) made it easy to track what changed and
+  roll back if needed. The 63-commit history is a clean record.
 
-### Follow-Up: Unified Timed Action System
-
-All node-graph actions should take time, not execute instantly. Currently the
-standard actions (probe, exploit, read, loot) have bespoke timer paths
-(probe-exec.js, etc.) while set-piece actions (extract-token, activate,
-subvert, unlock-vault) execute immediately via graph.executeAction.
-
-Design: actions declare an optional `duration` (fixed ms or grade-based table).
-The system schedules the action, shows a progress animation (bespoke per action
-type or a generic progress ring as default), and supports cancellation. The
-visual renderer selects the animation based on action ID or a category field.
-
-This also unifies the cancel-action pattern — any timed action gets a
-cancel-{id} counterpart automatically.
-
-### Follow-Up: WAN Node Commands
-
-access-darknet, store, and buy should be actions attached to the WAN node
-specifically, not global console commands. When WAN is selected, these
-become available as dynamic commands via the node-graph action system.
+- **Les's real-time feedback** during browser playtesting drove several important
+  fixes that wouldn't have surfaced from automated tests alone (ICE animation
+  on pan, edge visibility, layout jarring, trace HUD persistence).
