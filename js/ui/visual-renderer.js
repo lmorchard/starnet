@@ -163,9 +163,12 @@ export function initVisualRenderer() {
     }, 100);
   });
 
-  // Keep context menu attached to node on pan/zoom
+  // Keep context menu attached to node on pan/zoom/drag
   const cy = getCy();
-  if (cy) cy.on("pan zoom", () => _positionContextMenu(contextMenuNodeId));
+  if (cy) {
+    cy.on("pan zoom", () => _positionContextMenu(contextMenuNodeId));
+    cy.on("position", "node", () => _positionContextMenu(contextMenuNodeId));
+  }
 }
 
 // ── Context menu ──────────────────────────────────────────

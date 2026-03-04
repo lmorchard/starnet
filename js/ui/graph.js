@@ -173,6 +173,12 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     if (evt.target === cy && onBackgroundTap) onBackgroundTap();
   });
 
+  // Reposition overlays when nodes are dragged
+  cy.on("position", "node", () => {
+    _repositionIceOverlay();
+    syncReticle();
+  });
+
   const graphContainer = document.getElementById("graph-container");
   const onPanZoom = () => {
     syncReticle();
@@ -186,6 +192,8 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     const size = 40 * zoom;
     graphContainer.style.backgroundSize = `${size}px ${size}px`;
     graphContainer.style.backgroundPosition = `${pan.x}px ${pan.y}px`;
+    // Reposition ICE overlay on pan/zoom
+    _repositionIceOverlay();
   };
   cy.on("pan zoom", onPanZoom);
   onPanZoom();
@@ -337,53 +345,7 @@ function buildStylesheet() {
         "border-width": 2,
       },
     },
-    // ICE entity node — ominous eye shape
-    {
-      selector: "node.ice",
-      style: {
-        shape: "diamond",
-        width: 36,
-        height: 24,
-        "background-color": "#1a0010",
-        "border-color": "#ff00aa",
-        "border-width": 2,
-        "background-image": "data:image/svg+xml," + encodeURIComponent(
-          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
-          // Iris
-          '<circle cx="50" cy="50" r="53" fill="#ff00aa" opacity="0.8"/>' +
-          // Limbal ring
-          '<circle cx="50" cy="50" r="53" fill="none" stroke="#880044" stroke-width="5"/>' +
-          // Radial iris lines (covered at center by pupil, visible at iris edge)
-          '<line x1="50" y1="4" x2="50" y2="96" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          '<line x1="9" y1="23" x2="91" y2="77" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          '<line x1="91" y1="23" x2="9" y2="77" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          '<line x1="4" y1="50" x2="96" y2="50" stroke="#cc0066" stroke-width="2" opacity="0.6"/>' +
-          // Vertical slit pupil
-          '<ellipse cx="50" cy="50" rx="10" ry="26" fill="#0d0008"/>' +
-          // Highlight glint
-          '<circle cx="64" cy="36" r="6" fill="#ffffff" opacity="0.35"/>' +
-          '</svg>'
-        ),
-        "background-width": "65%",
-        "background-height": "100%",
-        label: "ICE",
-        color: "#ff00aa",
-        "font-family": "Courier New, monospace",
-        "font-size": 7,
-        "font-weight": "bold",
-        "text-valign": "bottom",
-        "text-margin-y": 4,
-        "z-index": 10,
-      },
-    },
-    // ICE pulsing when docked on player's selected node
-    {
-      selector: "node.ice.docked",
-      style: {
-        "border-color": "#ff2020",
-        "border-width": 1,
-      },
-    },
+    // (ICE is now an HTML overlay, not a Cytoscape node)
     // Trace-back waypoint nodes (hidden nodes revealed as part of ICE trace)
     {
       selector: "node.ice-traced",
@@ -610,25 +572,60 @@ function syncReticle() {
   svg.style.opacity = "1";
 }
 
-export function addIceNode() {
-  if (!cy) return;
-  prevIceNodeId = null;
-  if (cy.getElementById("ice-0").length > 0) return;
-  cy.add({
-    data: { id: "ice-0", label: "ICE" },
-    position: { x: 0, y: 0 },
-    classes: ["ice"],
+/** @type {HTMLElement|null} */
+let _iceOverlay = null;
+
+/** Reposition ICE overlay to track its attention node through pan/zoom. */
+function _repositionIceOverlay() {
+  if (!_iceOverlay || !cy || !prevIceNodeId) return;
+  if (_iceOverlay.style.opacity === "0") return;
+  const node = cy.getElementById(prevIceNodeId);
+  if (node.length === 0) return;
+  const rp = node.renderedPosition();
+  _iceOverlay.style.transition = "none"; // no animation during pan/zoom
+  _iceOverlay.style.left = `${rp.x}px`;
+  _iceOverlay.style.top = `${rp.y}px`;
+  requestAnimationFrame(() => {
+    if (_iceOverlay) _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease";
   });
-  cy.getElementById("ice-0").ungrabify();
+}
+
+/**
+ * ICE is rendered as an HTML overlay positioned over the Cytoscape canvas.
+ * Not a Cytoscape node — avoids layout interference and shape rendering bugs.
+ */
+export function addIceNode() {
+  prevIceNodeId = null;
+  if (_iceOverlay) return;
+
+  const container = document.getElementById("cy");
+  if (!container) return;
+
+  const el = document.createElement("div");
+  el.id = "ice-overlay";
+  el.style.cssText = `
+    position: absolute; pointer-events: none; z-index: 10;
+    width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
+    border: 2px solid #ff00aa; border-radius: 50%;
+    background: radial-gradient(circle, #ff00aa33 0%, transparent 70%);
+    box-shadow: 0 0 12px #ff00aa88, inset 0 0 8px #ff00aa44;
+    transition: left 0.4s ease, top 0.4s ease, opacity 0.3s ease;
+    opacity: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Courier New", monospace; font-size: 7px; font-weight: bold;
+    color: #ff00aa; letter-spacing: 1px;
+  `;
+  el.textContent = "ICE";
+  container.style.position = "relative";
+  container.appendChild(el);
+  _iceOverlay = el;
 }
 
 export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
-  if (!cy || !iceState) return;
-  const iceNode = cy.getElementById("ice-0");
-  if (!iceNode || iceNode.length === 0) return;
+  if (!cy || !iceState || !_iceOverlay) return;
 
   if (!iceState.active) {
-    iceNode.style("display", "none");
+    _iceOverlay.style.opacity = "0";
     clearIceTrace();
     prevIceNodeId = null;
     return;
@@ -644,23 +641,24 @@ export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
   if (isVisible) {
     const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
     if (attentionCyNode && attentionCyNode.length > 0) {
-      iceNode.style("display", "element");
-      if (moved) {
-        const fromAccess = fromId ? nodeStates[fromId]?.accessLevel : null;
-        const fromWasVisible = (fromId && fromId === selectedNodeId) ||
-          fromAccess === "compromised" || fromAccess === "owned";
-        if (fromWasVisible) {
-          iceNode.animate({ position: attentionCyNode.position() }, { duration: 400 });
-        } else {
-          iceNode.stop().position(attentionCyNode.position());
-        }
+      const rp = attentionCyNode.renderedPosition();
+      // Snap immediately on first appearance (no CSS transition)
+      if (!moved && _iceOverlay.style.opacity === "0") {
+        _iceOverlay.style.transition = "opacity 0.3s ease";
+        _iceOverlay.style.left = `${rp.x}px`;
+        _iceOverlay.style.top = `${rp.y}px`;
+        // Restore transition after snap
+        requestAnimationFrame(() => {
+          _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease";
+        });
       } else {
-        // Snap to current position (initial placement or after layout)
-        iceNode.position(attentionCyNode.position());
+        _iceOverlay.style.left = `${rp.x}px`;
+        _iceOverlay.style.top = `${rp.y}px`;
       }
+      _iceOverlay.style.opacity = "1";
     }
   } else {
-    iceNode.style("display", "none");
+    _iceOverlay.style.opacity = "0";
   }
 
   // Flash movement path along edges
