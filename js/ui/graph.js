@@ -575,19 +575,15 @@ function syncReticle() {
 /** @type {HTMLElement|null} */
 let _iceOverlay = null;
 
-/** Reposition ICE overlay to track its attention node through pan/zoom. */
+/** Reposition ICE overlay to track its attention node (no animation). */
 function _repositionIceOverlay() {
   if (!_iceOverlay || !cy || !prevIceNodeId) return;
   if (_iceOverlay.style.opacity === "0") return;
   const node = cy.getElementById(prevIceNodeId);
   if (node.length === 0) return;
   const rp = node.renderedPosition();
-  _iceOverlay.style.transition = "none"; // no animation during pan/zoom
   _iceOverlay.style.left = `${rp.x}px`;
   _iceOverlay.style.top = `${rp.y}px`;
-  requestAnimationFrame(() => {
-    if (_iceOverlay) _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease";
-  });
 }
 
 /**
@@ -609,7 +605,7 @@ export function addIceNode() {
     border: 2px solid #ff00aa; border-radius: 50%;
     background: radial-gradient(circle, #ff00aa33 0%, transparent 70%);
     box-shadow: 0 0 12px #ff00aa88, inset 0 0 8px #ff00aa44;
-    transition: left 0.4s ease, top 0.4s ease, opacity 0.3s ease;
+    transition: opacity 0.3s ease;
     opacity: 0;
     display: flex; align-items: center; justify-content: center;
     font-family: "Courier New", monospace; font-size: 7px; font-weight: bold;
@@ -642,16 +638,17 @@ export function syncIceGraph(iceState, nodeStates, selectedNodeId = null) {
     const attentionCyNode = cy.getElementById(iceState.attentionNodeId);
     if (attentionCyNode && attentionCyNode.length > 0) {
       const rp = attentionCyNode.renderedPosition();
-      // Snap immediately on first appearance (no CSS transition)
-      if (!moved && _iceOverlay.style.opacity === "0") {
-        _iceOverlay.style.transition = "opacity 0.3s ease";
+      if (moved) {
+        // Animate movement between nodes
+        _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease";
         _iceOverlay.style.left = `${rp.x}px`;
         _iceOverlay.style.top = `${rp.y}px`;
-        // Restore transition after snap
-        requestAnimationFrame(() => {
-          _iceOverlay.style.transition = "left 0.4s ease, top 0.4s ease, opacity 0.3s ease";
-        });
+        // Remove position transition after animation completes
+        setTimeout(() => {
+          if (_iceOverlay) _iceOverlay.style.transition = "opacity 0.3s ease";
+        }, 450);
       } else {
+        // Snap (initial placement or reposition)
         _iceOverlay.style.left = `${rp.x}px`;
         _iceOverlay.style.top = `${rp.y}px`;
       }
