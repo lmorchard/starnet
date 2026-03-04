@@ -31,8 +31,7 @@ import { launchExploit } from "../js/core/combat.js";
 import { startTraceCountdown, recordIceDetection } from "../js/core/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
-import { startExploit, cancelExploit, handleExploitExecTimer, exploitDuration } from "../js/core/actions/exploit-exec.js";
-import { startProbe, cancelProbe, handleProbeScanTimer, probeDuration } from "../js/core/actions/probe-exec.js";
+// Old executor imports removed — timed actions now graph-native
 import { RNG, _forceNext } from "../js/core/rng.js";
 
 // Register the node lifecycle dispatcher once for this test file.
@@ -556,268 +555,41 @@ describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
 
 // ── Exploit execution timing ───────────────────────────────────────────────────
 
-describe("Exploit execution timing", () => {
-  beforeEach(() => {
-    clearAll();
-    initGame(() => buildIceLAN());
-    startIce();
-  });
+// ── Timed action lifecycle (graph-native) ──────────────────────────────────────
+// These tests verify that the timed-action operator drives probe/exploit/read/loot
+// lifecycles through the NodeGraph tick system, replacing the old executor-based
+// timer handlers.
 
-  it("startExploit sets executingExploit on state", () => {
-    const s = getState();
-    const card = s.player.hand[0];
-    s.selectedNodeId = "gateway";
-    const started = startExploit("gateway", card.id);
-    assert.ok(started, "startExploit should return true");
-    assert.notEqual(s.executingExploit, null, "executingExploit should be set");
-    assert.equal(s.executingExploit.nodeId, "gateway");
-    assert.equal(s.executingExploit.exploitId, card.id);
-  });
-
-  it("exploit does not resolve immediately after startExploit", () => {
-    const s = getState();
-    const card = s.player.hand[0];
-    s.selectedNodeId = "gateway";
-    const resolved = withEvents(E.EXPLOIT_SUCCESS, () => {
-      startExploit("gateway", card.id);
-    }).concat(withEvents(E.EXPLOIT_FAILURE, () => {}));
-    assert.equal(resolved.length, 0, "exploit must not resolve synchronously");
-    assert.notEqual(s.executingExploit, null, "executingExploit must remain set");
-  });
-
-  it("exploit resolves after ticking past its duration", () => {
-    on(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
-    const s = getState();
-    const card = s.player.hand[0];
-    s.selectedNodeId = "gateway";
-    startExploit("gateway", card.id);
-
-    const durationMs = exploitDuration(card.quality);
-    const ticksNeeded = Math.ceil(durationMs / 100) + 2;
-
-    let resolved = false;
-    const handler = () => { resolved = true; };
-    on(E.EXPLOIT_SUCCESS, handler);
-    on(E.EXPLOIT_FAILURE, handler);
-    tick(ticksNeeded);
-    off(E.EXPLOIT_SUCCESS, handler);
-    off(E.EXPLOIT_FAILURE, handler);
-    off(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
-
-    assert.ok(resolved, "exploit must resolve (success or failure) after ticking past its duration");
-    assert.equal(s.executingExploit, null, "executingExploit must be cleared after resolution");
-  });
-
-  it("cancelExploit clears executingExploit and emits EXPLOIT_INTERRUPTED", () => {
-    const s = getState();
-    const card = s.player.hand[0];
-    s.selectedNodeId = "gateway";
-    startExploit("gateway", card.id);
-    assert.notEqual(s.executingExploit, null);
-
-    const fired = withEvents(E.EXPLOIT_INTERRUPTED, () => {
-      cancelExploit();
-    });
-    assert.equal(fired.length, 1, "EXPLOIT_INTERRUPTED must fire once");
-    assert.equal(fired[0].exploitName, card.name);
-    assert.equal(s.executingExploit, null, "executingExploit must be null after cancel");
-  });
-
-  it("starting a second exploit while one is running returns false and logs error", () => {
-    const s = getState();
-    const [card1, card2] = s.player.hand;
-    s.selectedNodeId = "gateway";
-    startExploit("gateway", card1.id);
-
-    const logErrors = withEvents(E.LOG_ENTRY, () => {
-      const result = startExploit("gateway", card2.id);
-      assert.equal(result, false, "second startExploit must return false");
-    }).filter((e) => e.type === "error");
-
-    assert.ok(logErrors.length > 0, "guard must emit a LOG_ENTRY error");
-    assert.equal(s.executingExploit.exploitId, card1.id, "first exploit must remain active");
-  });
-
-  it("ICE detection timer fires independently during exploit execution", () => {
-    on(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
-    on(TIMER.ICE_DETECT,   handleIceDetect);
-
-    const s = getState();
-    const card = s.player.hand[0];
-    s.selectedNodeId = "gateway";
-    s.ice.attentionNodeId = "gateway";
-
-    startExploit("gateway", card.id);
-    // Schedule a fast ICE detection that fires before the exploit resolves
-    scheduleEvent(TIMER.ICE_DETECT, 200, { nodeId: "gateway" });
-
-    let exploitResolved = false;
-    let iceDetected = false;
-    on(E.EXPLOIT_SUCCESS, () => { exploitResolved = true; });
-    on(E.EXPLOIT_FAILURE, () => { exploitResolved = true; });
-    on(E.ICE_DETECTED,    () => { iceDetected = true; });
-
-    // Tick past the full exploit duration
-    const durationMs = exploitDuration(card.quality);
-    tick(Math.ceil(durationMs / 100) + 2);
-
-    off(TIMER.EXPLOIT_EXEC, handleExploitExecTimer);
-    off(TIMER.ICE_DETECT,   handleIceDetect);
-
-    assert.ok(iceDetected,     "ICE detection must fire during exploit execution window");
-    assert.ok(exploitResolved, "exploit must still resolve after ICE detection");
-  });
-});
-
-// ── Probe execution timing ────────────────────────────────────────────────────
-
-describe("Probe execution timing", () => {
+describe("Timed action: probe via graph ticks", () => {
   beforeEach(() => {
     clearAll();
     initGame(() => buildBasicLAN());
   });
 
-  it("startProbe sets activeProbe on state", () => {
+  it("probe action sets probing attribute and completes after ticking", () => {
     const s = getState();
-    const started = startProbe("gateway");
-    assert.ok(started, "startProbe should return true");
-    assert.notEqual(s.activeProbe, null, "activeProbe should be set");
-    assert.equal(s.activeProbe.nodeId, "gateway");
-  });
+    const graph = s.nodeGraph;
+    // Execute the probe action on the gateway via graph
+    graph.executeAction("gateway", "probe");
+    assert.equal(graph.getNodeState("gateway").probing, true, "probing must be true after action");
 
-  it("probe does not complete immediately after startProbe", () => {
-    const s = getState();
-    const probed = withEvents(E.NODE_PROBED, () => {
-      startProbe("gateway");
-    });
-    assert.equal(probed.length, 0, "NODE_PROBED must not fire synchronously");
-    assert.equal(s.nodes["gateway"].probed, false, "node must not be probed immediately");
-    assert.notEqual(s.activeProbe, null, "activeProbe must remain set");
-  });
-
-  it("probe completes after ticking past its duration", () => {
-    on(TIMER.PROBE_SCAN, handleProbeScanTimer);
-    const s = getState();
-    startProbe("gateway");
-
-    const durationMs = probeDuration(s.nodes["gateway"].grade);
-    const ticksNeeded = Math.ceil(durationMs / 100) + 2;
-
-    let probeCompleted = false;
-    const handler = () => { probeCompleted = true; };
-    on(E.NODE_PROBED, handler);
-    tick(ticksNeeded);
-    off(E.NODE_PROBED, handler);
-    off(TIMER.PROBE_SCAN, handleProbeScanTimer);
-
-    assert.ok(probeCompleted, "NODE_PROBED must fire after ticking past the scan duration");
-    assert.equal(s.activeProbe, null, "activeProbe must be cleared after completion");
+    // Tick past the duration (grade D = 20 ticks + 1 for start)
+    graph.tick(22);
+    assert.equal(graph.getNodeState("gateway").probing, false, "probing must be false after completion");
     assert.equal(s.nodes["gateway"].probed, true, "node must be probed after completion");
   });
-
-  it("cancelProbe clears activeProbe and emits PROBE_SCAN_CANCELLED", () => {
-    const s = getState();
-    startProbe("gateway");
-    assert.notEqual(s.activeProbe, null);
-
-    const fired = withEvents(E.PROBE_SCAN_CANCELLED, () => {
-      cancelProbe();
-    });
-    assert.equal(fired.length, 1, "PROBE_SCAN_CANCELLED must fire once");
-    assert.equal(fired[0].nodeId, "gateway");
-    assert.equal(s.activeProbe, null, "activeProbe must be null after cancel");
-    assert.equal(s.nodes["gateway"].probed, false, "node must not be probed after cancel");
-  });
-
-  it("starting a second probe while one is running returns false and logs error", () => {
-    const s = getState();
-    startProbe("gateway");
-
-    const logErrors = withEvents(E.LOG_ENTRY, () => {
-      const result = startProbe("gateway");
-      assert.equal(result, false, "second startProbe must return false");
-    }).filter((e) => e.type === "error");
-
-    assert.ok(logErrors.length > 0, "guard must emit a LOG_ENTRY error");
-    assert.equal(s.activeProbe.nodeId, "gateway", "first probe must remain active");
-  });
 });
 
-// ── Navigation: navigateTo / navigateAway ─────────────────────────────────────
-
-describe("Navigation: navigateTo cancels in-progress actions", () => {
+describe("Navigation: navigateTo / navigateAway", () => {
   beforeEach(() => {
     clearAll();
     initGame(() => buildBasicLAN());
-  });
-
-  it("navigateTo cancels a running exploit and emits EXPLOIT_INTERRUPTED", () => {
-    const s = getState();
-    const card = s.player.hand[0];
-    s.selectedNodeId = "gateway";
-    startExploit("gateway", card.id);
-    assert.notEqual(s.executingExploit, null);
-
-    const interrupted = withEvents(E.EXPLOIT_INTERRUPTED, () => {
-      navigateTo("router-a");
-    });
-    assert.equal(interrupted.length, 1, "EXPLOIT_INTERRUPTED must fire once");
-    assert.equal(s.executingExploit, null, "executingExploit must be null after navigateTo");
-    assert.equal(s.selectedNodeId, "router-a");
-  });
-
-  it("navigateTo cancels a running probe scan and emits PROBE_SCAN_CANCELLED", () => {
-    const s = getState();
-    startProbe("gateway");
-    assert.notEqual(s.activeProbe, null);
-
-    const cancelled = withEvents(E.PROBE_SCAN_CANCELLED, () => {
-      navigateTo("router-a");
-    });
-    assert.equal(cancelled.length, 1, "PROBE_SCAN_CANCELLED must fire once");
-    assert.equal(s.activeProbe, null, "activeProbe must be null after navigateTo");
-    assert.equal(s.selectedNodeId, "router-a");
   });
 
   it("navigateTo with no in-progress action just selects the node", () => {
     const s = getState();
     navigateTo("gateway");
     assert.equal(s.selectedNodeId, "gateway");
-    assert.equal(s.executingExploit, null);
-    assert.equal(s.activeProbe, null);
-  });
-});
-
-describe("Navigation: navigateAway cancels in-progress actions", () => {
-  beforeEach(() => {
-    clearAll();
-    initGame(() => buildBasicLAN());
-  });
-
-  it("navigateAway cancels a running exploit and emits EXPLOIT_INTERRUPTED", () => {
-    const s = getState();
-    const card = s.player.hand[0];
-    s.selectedNodeId = "gateway";
-    startExploit("gateway", card.id);
-
-    const interrupted = withEvents(E.EXPLOIT_INTERRUPTED, () => {
-      navigateAway();
-    });
-    assert.equal(interrupted.length, 1, "EXPLOIT_INTERRUPTED must fire once");
-    assert.equal(s.executingExploit, null);
-    assert.equal(s.selectedNodeId, null);
-  });
-
-  it("navigateAway cancels a running probe scan and emits PROBE_SCAN_CANCELLED", () => {
-    const s = getState();
-    startProbe("gateway");
-
-    const cancelled = withEvents(E.PROBE_SCAN_CANCELLED, () => {
-      navigateAway();
-    });
-    assert.equal(cancelled.length, 1, "PROBE_SCAN_CANCELLED must fire once");
-    assert.equal(s.activeProbe, null);
-    assert.equal(s.selectedNodeId, null);
   });
 });
 

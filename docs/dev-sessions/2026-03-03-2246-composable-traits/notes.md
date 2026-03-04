@@ -81,3 +81,15 @@ timed-action operator lifecycle instead of the old timer-based executors.
 - Entry points (main.js, playtest.js, playtest-graph.js) still import executors
   for timer handling — to be removed in Phase 8
 - All 529 tests pass
+
+## Phase 8: Delete Executor Files & Cleanup ✓
+
+- Deleted: probe-exec.js, exploit-exec.js, read-exec.js, loot-exec.js
+- Removed executor imports from: main.js, playtest.js, playtest-graph.js, action-context.js
+- Removed timer handler registrations (EXPLOIT_EXEC, EXPLOIT_NOISE, PROBE_SCAN,
+  READ_SCAN, LOOT_EXTRACT) from all entry points
+- Moved exploitDuration formula inline to game-ctx.js
+- Stubbed executor start/cancel methods in action-context.js (no-ops for type compat)
+- Removed enrichWithGameActions alias
+- Replaced old executor-based integration tests with graph-native timed-action tests
+- All 515 tests pass

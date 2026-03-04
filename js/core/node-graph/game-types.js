@@ -445,8 +445,6 @@ export function createGameNode(setPieceNode) {
   };
 }
 
-// Legacy alias — network builders that haven't migrated yet
-export const enrichWithGameActions = createGameNode;
 
 // ── Export action templates for testing ───────────────────────
 

@@ -6,12 +6,8 @@
 
 import { getState, getVersion, endRun } from "../state.js";
 import { reconfigureNode, rebootNode } from "../node-orchestration.js";
-import { startLoot, cancelLoot } from "./loot-exec.js";
-import { startRead, cancelRead } from "./read-exec.js";
 import { ejectIce } from "../ice.js";
 import { addLogEntry } from "../log.js";
-import { startExploit, cancelExploit } from "./exploit-exec.js";
-import { startProbe, cancelProbe } from "./probe-exec.js";
 import { navigateTo, navigateAway } from "../navigation.js";
 import { cancelTraceCountdown } from "../alert.js";
 import { getAvailableActions } from "./node-actions.js";
@@ -28,14 +24,16 @@ export function buildActionContext(openDarknetsStore = () => {}) {
     getState,
     selectNode:       (nodeId) => navigateTo(nodeId),
     deselectNode:     ()       => navigateAway(),
-    startProbe:       (nodeId) => startProbe(nodeId),
-    cancelProbe:      ()       => cancelProbe(),
-    startExploit:     (nodeId, exploitId) => startExploit(nodeId, exploitId),
-    cancelExploit:    ()       => cancelExploit(),
-    startRead:        (nodeId) => startRead(nodeId),
-    cancelRead:       ()       => cancelRead(),
-    startLoot:        (nodeId) => startLoot(nodeId),
-    cancelLoot:       ()       => cancelLoot(),
+    // Probe/read/loot start/cancel now handled by trait-based action effects
+    // (set-attr) and the timed-action operator. These stubs exist for type compat.
+    startProbe:       () => {},
+    cancelProbe:      () => {},
+    startExploit:     () => {},
+    cancelExploit:    () => {},
+    startRead:        () => {},
+    cancelRead:       () => {},
+    startLoot:        () => {},
+    cancelLoot:       () => {},
     ejectIce:         ()       => ejectIce(),
     rebootNode:       (nodeId) => rebootNode(nodeId),
     jackOut:          ()       => endRun("success"),

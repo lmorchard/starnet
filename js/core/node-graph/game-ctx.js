@@ -18,9 +18,11 @@ import { addCash, setMissionComplete } from "../state/player.js";
 import { startIce, ejectIce } from "../ice.js";
 import { setGlobalAlert } from "../state/alert.js";
 import { emitEvent, E } from "../events.js";
-// Old executor imports — still used for exploit start (needs exploitId from payload).
-// Will be removed in Phase 8 cleanup.
-import { exploitDuration } from "../actions/exploit-exec.js";
+// Exploit duration formula: higher quality = longer execution (more complex payload).
+// Range: 2s (quality=0) to 7s (quality=1).
+function exploitDuration(quality) {
+  return Math.round((2 + quality * 5) * 1000); // ms
+}
 import { rebootNode, reconfigureNode } from "../node-orchestration.js";
 import { endRun, ALERT_ORDER, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";

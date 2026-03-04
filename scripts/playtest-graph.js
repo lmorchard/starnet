@@ -5,10 +5,6 @@
 
 import { initGame, getState } from "../js/core/state.js";
 import { completeReboot } from "../js/core/node-orchestration.js";
-import { handleExploitExecTimer, handleExploitNoiseTimer } from "../js/core/actions/exploit-exec.js";
-import { handleProbeScanTimer } from "../js/core/actions/probe-exec.js";
-import { handleReadScanTimer } from "../js/core/actions/read-exec.js";
-import { handleLootExtractTimer } from "../js/core/actions/loot-exec.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
 import { on, emitEvent, E } from "../js/core/events.js";
 import { tick, TIMER } from "../js/core/timers.js";
@@ -32,11 +28,7 @@ on(TIMER.ICE_MOVE,        ()        => handleIceTick());
 on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
 on(TIMER.REBOOT_COMPLETE, (payload) => completeReboot(payload.nodeId));
-on(TIMER.EXPLOIT_EXEC,    (payload) => handleExploitExecTimer(payload));
-on(TIMER.EXPLOIT_NOISE,   (payload) => handleExploitNoiseTimer(payload));
-on(TIMER.PROBE_SCAN,      (payload) => handleProbeScanTimer(payload));
-on(TIMER.READ_SCAN,       (payload) => handleReadScanTimer(payload));
-on(TIMER.LOOT_EXTRACT,    (payload) => handleLootExtractTimer(payload));
+// Probe, exploit, read, loot timers removed — timed-action operator drives these
 
 // Action dispatcher
 const ctx = buildActionContext();
