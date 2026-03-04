@@ -145,6 +145,10 @@ import { getActions as getTypeActions } from "./node-types.js";
 /**
  * Returns all available actions for the given node and game state,
  * merging global actions, node-contextual actions, and type-specific actions.
+ *
+ * When a NodeGraph is present on state, graph actions replace the old
+ * node-actions + type-actions. Global actions are unchanged.
+ *
  * @param {NodeState | null} node
  * @param {GameState} state
  * @returns {ActionDef[]}
@@ -152,9 +156,59 @@ import { getActions as getTypeActions } from "./node-types.js";
 export function getAvailableActions(node, state) {
   const global = getGlobalActions(node, state);
   if (!node) return global;
+
+  // ── NodeGraph path (new) ──────────────────────────────
+  if (state.nodeGraph) {
+    const graphActions = state.nodeGraph.getAvailableActions(node.id);
+
+    // Apply global state filters that the graph can't check
+    const filtered = graphActions.filter(action => {
+      // Eject requires ICE attention at this specific node
+      if (action.id === "eject") {
+        return !!(state.ice?.active && state.ice.attentionNodeId === node.id);
+      }
+      return true;
+    });
+
+    // Wrap each graph ActionDef into a game-compatible ActionDef with execute()
+    const wrapped = filtered.map(ga => wrapGraphAction(ga));
+    return [...global, ...wrapped];
+  }
+
+  // ── Legacy path (no graph) ────────────────────────────
   return [
     ...global,
     ...getNodeActions(node, state),
     ...getTypeActions(node, state),
   ];
+}
+
+/**
+ * Wrap a node-graph ActionDef into a game-compatible ActionDef.
+ * The execute() function routes through graph.executeAction for most actions,
+ * with a special path for exploit (which needs exploitId from payload).
+ *
+ * @param {import('../node-graph/types.js').ActionDef} ga
+ * @returns {ActionDef}
+ */
+function wrapGraphAction(ga) {
+  return {
+    id: ga.id,
+    label: ga.label,
+    available: () => true, // already filtered by graph.getAvailableActions
+    desc: () => ga.desc || ga.label,
+    noSidebar: ga.noSidebar,
+    execute: (node, state, ctx, payload) => {
+      // Exploit special case: needs exploitId from payload
+      if (ga.id === "exploit") {
+        const exploitId = payload?.exploitId;
+        if (exploitId) ctx.startExploit(node.id, exploitId);
+        return;
+      }
+      // All other actions: execute via the graph (effects include ctx-call)
+      if (state.nodeGraph) {
+        state.nodeGraph.executeAction(node.id, ga.id);
+      }
+    },
+  };
 }
