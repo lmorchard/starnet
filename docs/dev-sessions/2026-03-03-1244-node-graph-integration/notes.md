@@ -118,6 +118,21 @@ when the set-piece is instantiated for a network of a given difficulty. Ties
 into the composable traits system — a `timedThreat` trait would compute
 actual tick period from base × grade multiplier.
 
+### Follow-Up: Unified Timed Action System
+
+All node-graph actions should take time, not execute instantly. Currently the
+standard actions (probe, exploit, read, loot) have bespoke timer paths
+(probe-exec.js, etc.) while set-piece actions (extract-token, activate,
+subvert, unlock-vault) execute immediately via graph.executeAction.
+
+Design: actions declare an optional `duration` (fixed ms or grade-based table).
+The system schedules the action, shows a progress animation (bespoke per action
+type or a generic progress ring as default), and supports cancellation. The
+visual renderer selects the animation based on action ID or a category field.
+
+This also unifies the cancel-action pattern — any timed action gets a
+cancel-{id} counterpart automatically.
+
 ### Follow-Up: WAN Node Commands
 
 access-darknet, store, and buy should be actions attached to the WAN node
