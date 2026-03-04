@@ -788,7 +788,6 @@ export const encryptedVault = {
         { effect: "set-node-attr", nodeId: "key-ready-latch", attr: "latched", value: false },
         { effect: "set-node-attr", nodeId: "key-gen", attr: "keyReady", value: true },
         { effect: "quality-set", name: "decryption-key", value: 0 },
-        { effect: "ctx-call", method: "log", args: ["Key-gen cycle: decryption key refreshed — extract quickly"] },
       ],
     },
   ],
