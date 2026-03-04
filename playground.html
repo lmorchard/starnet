@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STARNET — Playground</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/playground.css" />
+  <script src="dist/vendor.js"></script>
+</head>
+<body>
+  <div id="app" class="playground-app">
+
+    <!-- Toolbar -->
+    <header id="hud" class="playground-toolbar">
+      <span class="hud-title">★ PLAYGROUND</span>
+
+      <label class="toolbar-label">
+        Source:
+        <select id="source-select"></select>
+      </label>
+
+      <button id="reload-btn" title="Reload current source">[ RELOAD ]</button>
+
+      <span class="toolbar-sep">|</span>
+
+      <button id="tick-1-btn" title="Step 1 tick">[ TICK ]</button>
+      <button id="tick-10-btn" title="Step 10 ticks">[ ×10 ]</button>
+      <button id="tick-100-btn" title="Step 100 ticks">[ ×100 ]</button>
+      <button id="auto-btn" title="Toggle auto-tick">[ ▶ AUTO ]</button>
+      <button id="pause-btn">[ PAUSE ]</button>
+
+      <span class="toolbar-sep">|</span>
+
+      <label class="toggle-label">
+        <input type="checkbox" id="toggle-messages" checked /> Messages
+      </label>
+      <label class="toggle-label">
+        <input type="checkbox" id="toggle-internal" checked /> Internal
+      </label>
+      <label class="toggle-label">
+        <input type="checkbox" id="toggle-hidden" checked /> Hidden
+      </label>
+
+      <span class="toolbar-sep">|</span>
+
+      <div class="hud-alert">
+        <div class="alert-dot" id="alert-dot"></div>
+        <span class="hud-label">ALERT:</span>
+        <span class="hud-value" id="alert-level">GREEN</span>
+      </div>
+      <span class="hud-label">WALLET:</span>
+      <span class="hud-value" id="wallet">¥0</span>
+      <!-- Stubs for visual-renderer compat -->
+      <button id="jack-out-btn" style="display:none"></button>
+    </header>
+
+    <!-- Main area -->
+    <main id="main">
+      <div id="graph-column">
+        <div id="graph-container">
+          <div id="cy"></div>
+          <!-- Minimal SVG overlays for game rendering compat -->
+          <svg id="probe-sweep" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
+            <path id="probe-sweep-fill" fill="rgba(0,255,255,0.18)" />
+            <circle id="probe-sweep-ring" fill="none" stroke="#00ffff" stroke-width="1" stroke-opacity="0.45" />
+          </svg>
+          <svg id="ice-detect-sweep" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
+            <path id="ice-detect-arc" fill="none" stroke="#ff00aa" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <svg id="loot-rings" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;"></svg>
+          <svg id="read-sectors" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
+            <path id="read-sectors-fill" fill="rgba(0,255,65,0.15)" />
+            <circle id="read-sectors-ring" fill="none" stroke="#00ff41" stroke-width="1" stroke-opacity="0.45" />
+          </svg>
+          <svg id="exploit-brackets" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
+            <defs>
+              <filter id="zap-bloom" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <line id="bracket-tl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="bracket-tl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="bracket-tr-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="bracket-tr-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="bracket-br-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="bracket-br-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="bracket-bl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="bracket-bl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="zap-tl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+            <line id="zap-tr" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+            <line id="zap-br" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+            <line id="zap-bl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+          </svg>
+          <svg id="selection-reticle" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;">
+            <g id="reticle-group">
+              <circle id="reticle-ring" cx="30" cy="30" r="28" fill="none" stroke="#cc00cc"
+                      stroke-width="1.5" stroke-dasharray="6 3" stroke-opacity="0.75"/>
+              <line id="reticle-tick-n" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+              <line id="reticle-tick-s" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+              <line id="reticle-tick-e" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+              <line id="reticle-tick-w" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            </g>
+          </svg>
+          <div id="node-context-menu" style="position:absolute; opacity:0; pointer-events:none; z-index:10;"></div>
+        </div>
+
+        <!-- Message trace log -->
+        <div id="message-log-pane" class="log-pane">
+          <div id="message-log-entries" class="log-entries"></div>
+        </div>
+
+        <!-- Game log + console -->
+        <div id="log-pane" class="log-pane">
+          <div id="log-entries"></div>
+          <div id="console-row">
+            <span class="console-prompt">&gt;</span>
+            <input id="console-input" type="text" autocomplete="off" spellcheck="false" placeholder="enter command..." />
+          </div>
+        </div>
+      </div>
+
+      <!-- Right sidebar: inspector + JSON -->
+      <aside id="sidebar" class="playground-sidebar">
+        <div id="sidebar-mission"></div>
+        <div id="sidebar-node">
+          <div class="sidebar-placeholder">
+            &gt; SELECT A NODE<br />
+            &gt; TO INSPECT
+          </div>
+        </div>
+        <div id="inspector-panel" class="inspector-panel">
+          <div class="inspector-header">// INSPECTOR</div>
+          <div id="inspector-content">Select a node to inspect.</div>
+        </div>
+        <div id="json-panel" class="json-panel">
+          <div class="inspector-header">
+            // GRAPH JSON
+            <button id="json-refresh-btn" class="json-refresh-btn">[ REFRESH ]</button>
+          </div>
+          <pre id="json-content" class="json-content">Click REFRESH to view graph state.</pre>
+        </div>
+        <div id="hand-strip"></div>
+      </aside>
+    </main>
+
+  </div>
+
+  <script type="module" src="js/playground/main.js"></script>
+</body>
+</html>

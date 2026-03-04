@@ -18,7 +18,7 @@ import { buildNetwork as buildCorporateFoothold } from "../data/networks/corpora
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
-import { on, E } from "../js/core/events.js";
+import { on, emitEvent, E } from "../js/core/events.js";
 import { tick, TIMER } from "../js/core/timers.js";
 import { handleTraceTick } from "../js/core/alert.js";
 import { initLog, addLogEntry } from "../js/core/log.js";
@@ -27,6 +27,7 @@ import { handleCheatCommand } from "../js/core/cheats.js";
 import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
 import { initGraphBridge } from "../js/core/graph-bridge.js";
 import { initDynamicActions } from "../js/core/console-commands/dynamic-actions.js";
+import { buildSetPieceMiniNetwork, buildMiniNetwork, listSetPieces } from "../js/core/node-graph/mini-network.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
@@ -37,6 +38,8 @@ let stateFile = "scripts/playtest-state.json";
 let cmdStr = null;
 let seedArg = null;
 let networkArg = null;
+let pieceArg = null;
+let graphFileArg = null;
 
 {
   const argv = process.argv.slice(2);
@@ -47,6 +50,10 @@ let networkArg = null;
       seedArg = argv[++i];
     } else if (argv[i] === "--network" && argv[i + 1]) {
       networkArg = argv[++i];
+    } else if (argv[i] === "--piece" && argv[i + 1]) {
+      pieceArg = argv[++i];
+    } else if (argv[i] === "--graph" && argv[i + 1]) {
+      graphFileArg = argv[++i];
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
@@ -60,11 +67,27 @@ const GRAPH_NETWORKS = {
   "corporate-exchange": buildCorporateExchange,
 };
 
-const selectedNetwork = networkArg ?? "corporate-foothold";
-const buildNetworkFn = GRAPH_NETWORKS[selectedNetwork];
-if (!buildNetworkFn) {
-  console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(GRAPH_NETWORKS).join(", ")}`);
-  process.exit(1);
+let buildNetworkFn;
+if (pieceArg) {
+  // Set-piece mode: wrap in mini-network
+  const available = listSetPieces();
+  if (!available.includes(pieceArg)) {
+    console.error(`Unknown set-piece: ${pieceArg}. Available: ${available.join(", ")}`);
+    process.exit(1);
+  }
+  buildNetworkFn = () => buildSetPieceMiniNetwork(pieceArg);
+} else if (graphFileArg) {
+  // Ad-hoc JSON mode: load file and wrap
+  const graphJson = JSON.parse(readFileSync(graphFileArg, "utf-8"));
+  buildNetworkFn = () => buildMiniNetwork(graphJson, { name: `File: ${graphFileArg}` });
+} else {
+  // Standard network mode
+  const selectedNetwork = networkArg ?? "corporate-foothold";
+  buildNetworkFn = GRAPH_NETWORKS[selectedNetwork];
+  if (!buildNetworkFn) {
+    console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(GRAPH_NETWORKS).join(", ")}`);
+    process.exit(1);
+  }
 }
 
 if (!cmdStr) {
@@ -166,7 +189,8 @@ function runCmd(raw) {
     startIce();
     const s = getState();
     const nodeCount = Object.keys(s.nodes).length;
-    out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes (${selectedNetwork}).`);
+    const networkName = pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? "corporate-foothold");
+    out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes (${networkName}).`);
     return;
   }
   if (verb === "tick") {
@@ -193,6 +217,9 @@ if (!isReset) {
   if (existsSync(stateFile)) {
     try {
       deserializeState(JSON.parse(readFileSync(stateFile, "utf8")));
+      initDynamicActions();
+      // Emit STATE_CHANGED so dynamic actions sync for the restored state
+      emitEvent(E.STATE_CHANGED, getState());
     } catch (e) {
       out(`[SYS] Failed to load ${stateFile}: ${e.message}. Initializing fresh.`);
       initGame(() => buildNetworkFn(), seedArg ?? undefined);
