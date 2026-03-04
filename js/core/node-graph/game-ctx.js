@@ -15,7 +15,8 @@
 
 import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
 import { addCash, setMissionComplete } from "../state/player.js";
-import { startIce, ejectIce, rebootIce } from "../ice.js";
+import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
+import { on } from "../events.js";
 import { setSelectedNode } from "../state/game.js";
 import { setNodeRebooting } from "../state/node.js";
 import { RNG, random } from "../rng.js";
@@ -240,3 +241,24 @@ export function buildGameCtx(opts = {}) {
 
   return ctx;
 }
+
+// ── Node lifecycle: ownership side-effects (module-level, runs once) ──
+// When a node becomes owned, check for type-specific consequences.
+// (Migrated from node-lifecycle.js)
+on(E.NODE_ACCESSED, ({ nodeId, next }) => {
+  if (next !== "owned") return;
+  const s = getState();
+  const node = s.nodes[nodeId];
+  if (!node) return;
+
+  // Security monitor owned → cancel trace
+  if (node.type === "security-monitor") {
+    cancelTraceCountdown();
+  }
+
+  // ICE resident node owned → disable ICE
+  if (s.ice?.active && s.ice.residentNodeId === nodeId) {
+    stopIce();
+    disableIce();
+  }
+});

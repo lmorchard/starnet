@@ -23,20 +23,8 @@ export function buildActionContext(openDarknetsStore = () => {}) {
     getState,
     selectNode:       (nodeId) => navigateTo(nodeId),
     deselectNode:     ()       => navigateAway(),
-    // Probe/read/loot start/cancel now handled by trait-based action effects
-    // (set-attr) and the timed-action operator. These stubs exist for type compat.
-    startProbe:       () => {},
-    cancelProbe:      () => {},
-    startExploit:     () => {},
-    cancelExploit:    () => {},
-    startRead:        () => {},
-    cancelRead:       () => {},
-    startLoot:        () => {},
-    cancelLoot:       () => {},
     ejectIce:         ()       => ejectIce(),
-    rebootNode:       () => {},
     jackOut:          ()       => endRun("success"),
-    reconfigureNode:  () => {},
     cancelTrace:      ()       => cancelTraceCountdown(),
     openDarknetsStore: () => {
       pauseTimers();

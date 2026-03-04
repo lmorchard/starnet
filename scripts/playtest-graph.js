@@ -9,7 +9,6 @@ import { on, emitEvent, E } from "../js/core/events.js";
 import { tick, TIMER } from "../js/core/timers.js";
 import { handleTraceTick } from "../js/core/alert.js";
 import { initLog } from "../js/core/log.js";
-import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
 import { getAvailableActions } from "../js/core/actions/node-actions.js";
 import { initGraphBridge } from "../js/core/graph-bridge.js";
@@ -19,7 +18,6 @@ import { buildNetwork as buildResearchStation } from "../data/networks/research-
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 
 // ── Init plumbing ──────────────────────────────────────────
-initNodeLifecycle();
 initLog();
 
 // Timer handlers

@@ -24,14 +24,12 @@ import { handleTraceTick } from "../js/core/alert.js";
 import { initLog, addLogEntry } from "../js/core/log.js";
 import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
-import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
 import { initGraphBridge } from "../js/core/graph-bridge.js";
 import { initDynamicActions } from "../js/core/console-commands/dynamic-actions.js";
 
 // alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
 // (importing handleTraceTick above already loaded the module — no separate import needed)
-initNodeLifecycle();
 
 // ── Arg parsing ────────────────────────────────────────────
 

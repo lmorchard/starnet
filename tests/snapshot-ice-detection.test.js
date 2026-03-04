@@ -16,9 +16,7 @@ import { on, off, E } from "../js/core/events.js";
 import "../js/core/alert.js";
 import { handleIceTick, handleIceDetect } from "../js/core/ice.js";
 import { handleTraceTick } from "../js/core/alert.js";
-import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 
-initNodeLifecycle();
 
 // Wire timer handlers (same as main.js / playtest.js)
 on(TIMER.ICE_MOVE,   () => handleIceTick());

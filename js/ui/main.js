@@ -8,7 +8,6 @@ import { tick, TICK_MS, TIMER, getVisibleTimers, pauseTimers, resumeTimers } fro
 import { handleTraceTick } from "../core/alert.js";
 import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
-import { initNodeLifecycle } from "../core/node-lifecycle.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
 import { openDarknetsStore } from "./store.js";
 import { initGraphBridge } from "../core/graph-bridge.js";

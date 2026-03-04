@@ -3,7 +3,6 @@
 //
 // Design:
 //   - Modules are loaded once; alert.js registers its listeners at import time.
-//   - initNodeLifecycle() is called once to register the NODE_ACCESSED dispatcher.
 //   - beforeEach resets game state (initState) and timers (clearAll).
 //   - Event capture uses the withEvents() helper: register → run → off.
 //   - Direct state mutation is used sparingly to set up conditions
@@ -24,7 +23,6 @@ import { navigateTo, navigateAway } from "../js/core/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/core/ice.js";
 import { emitEvent, on, off, E } from "../js/core/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/core/timers.js";
-import { initNodeLifecycle } from "../js/core/node-lifecycle.js";
 import { getAvailableActions } from "../js/core/actions/node-actions.js";
 import { generateExploit } from "../js/core/exploits.js";
 import { launchExploit } from "../js/core/combat.js";
@@ -35,7 +33,6 @@ import { startTraceCountdown, recordIceDetection } from "../js/core/alert.js";
 import { RNG, _forceNext } from "../js/core/rng.js";
 
 // Register the node lifecycle dispatcher once for this test file.
-initNodeLifecycle();
 
 /**
  * Capture events of a given type emitted synchronously during fn().
