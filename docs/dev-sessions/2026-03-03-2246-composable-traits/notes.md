@@ -107,6 +107,19 @@ timed-action operator lifecycle instead of the old timer-based executors.
   READ_SCAN_STARTED/CANCELLED, LOOT_EXTRACT_STARTED/CANCELLED, EXPLOIT_STARTED/NOISE/INTERRUPTED)
 - All 515 tests pass
 
+## Dynamic Command Tab Completion + ACTION_RESOLVED ✓
+
+- Dynamic commands now have tab completion via `completeNodeArg` — probe, read,
+  loot, reboot, etc. all complete node arguments
+- Replaced 8 per-action resolution events with unified `E.ACTION_RESOLVED`:
+  NODE_PROBED, NODE_READ, NODE_LOOTED, EXPLOIT_SUCCESS/FAILURE, NODE_RECONFIGURED,
+  NODE_REBOOTING, NODE_REBOOTED → `{ action, nodeId, label, success, detail }`
+- Updated all subscribers: log-renderer, visual-renderer, graph-bridge, alert.js,
+  playtest.js, playtest-graph.js
+- Kept NODE_ACCESSED, NODE_ALERT_RAISED, NODE_REVEALED (not action resolutions)
+- Kept EXPLOIT_DISCLOSED, EXPLOIT_PARTIAL_BURN, EXPLOIT_SURFACE (card decay side-effects)
+- All 497 tests pass
+
 ## Browser Playtest ✓
 
 - Probe: sweep animation works, log messages correct, vulns revealed, alert escalated
