@@ -40,6 +40,7 @@
  * @property {string} [progressAttr]  - timed-action: numeric progress attribute
  * @property {string} [durationAttr]  - timed-action: numeric duration attribute
  * @property {Record<string, number>} [durationTable] - timed-action: grade → ticks
+ * @property {string} [durationAttrSource] - timed-action: read duration from this attribute
  * @property {Effect[]} [onComplete]  - timed-action: effects to fire on completion
  * @property {number} [onProgressInterval] - timed-action: fraction at which to fire progress effects
  * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
