@@ -68,6 +68,7 @@ export class NodeGraph {
           allTriggers.push({
             ...t,
             id: `${n.id}/${t.id}`,
+            _nodeId: n.id,
             when: _fillNodeId(t.when, n.id),
             then: t.then.map(eff => _fillEffectNodeId(eff, n.id)),
           });

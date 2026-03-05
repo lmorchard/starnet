@@ -45,6 +45,8 @@ export class TriggerStore {
   evaluate(stateAccessors, mutators) {
     for (const def of this._defs) {
       if (this._fired.has(def.id)) continue;
+      if (def.enabledAttr && def._nodeId &&
+          stateAccessors.getNodeAttr(def._nodeId, def.enabledAttr) === false) continue;
       if (evaluateCondition(def.when, stateAccessors)) {
         if (!def.repeating) {
           this._fired.add(def.id);

@@ -61,6 +61,7 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
   const events = [];
 
   for (const config of operatorConfigs) {
+    if (config.enabledAttr && attrs[config.enabledAttr] === false) continue;
     const fn = getOperator(config.name);
     const result = fn(config, attrs, message, ctx);
     if (result.attributes) {

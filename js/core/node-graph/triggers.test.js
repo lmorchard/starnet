@@ -167,6 +167,56 @@ describe("TriggerStore", () => {
     assert.equal(ts.getFired().has("repeater"), false);
   });
 
+  it("skips trigger when enabledAttr on owning node is false", () => {
+    const { ctx, calls } = makeCtx();
+    const store = makeStore({ "sensor": { latched: true, latchEnabled: false } });
+    const ts = new TriggerStore([{
+      id: "sensor/alarm",
+      _nodeId: "sensor",
+      enabledAttr: "latchEnabled",
+      when: { type: "node-attr", nodeId: "sensor", attr: "latched", eq: true },
+      then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+    }]);
+
+    const accessors = { getNodeAttr: store.getNodeAttr, getQuality: store.getQuality };
+    const mutators = { ...store, targetNodeId: null, ctx };
+    ts.evaluate(accessors, mutators);
+    assert.equal(calls.startTrace, undefined);
+  });
+
+  it("fires trigger when enabledAttr on owning node is true", () => {
+    const { ctx, calls } = makeCtx();
+    const store = makeStore({ "sensor": { latched: true, latchEnabled: true } });
+    const ts = new TriggerStore([{
+      id: "sensor/alarm",
+      _nodeId: "sensor",
+      enabledAttr: "latchEnabled",
+      when: { type: "node-attr", nodeId: "sensor", attr: "latched", eq: true },
+      then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+    }]);
+
+    const accessors = { getNodeAttr: store.getNodeAttr, getQuality: store.getQuality };
+    const mutators = { ...store, targetNodeId: null, ctx };
+    ts.evaluate(accessors, mutators);
+    assert.equal(calls.startTrace?.length, 1);
+  });
+
+  it("fires trigger when enabledAttr is absent (default enabled)", () => {
+    const { ctx, calls } = makeCtx();
+    const store = makeStore({ "sensor": { latched: true } });
+    const ts = new TriggerStore([{
+      id: "sensor/alarm",
+      _nodeId: "sensor",
+      when: { type: "node-attr", nodeId: "sensor", attr: "latched", eq: true },
+      then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+    }]);
+
+    const accessors = { getNodeAttr: store.getNodeAttr, getQuality: store.getQuality };
+    const mutators = { ...store, targetNodeId: null, ctx };
+    ts.evaluate(accessors, mutators);
+    assert.equal(calls.startTrace?.length, 1);
+  });
+
   it("one-shot trigger still fires only once even when condition stays true", () => {
     const { ctx, calls } = makeCtx();
     const store = makeStore({ "A": { active: true } });

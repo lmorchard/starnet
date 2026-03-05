@@ -253,26 +253,45 @@ export const nthAlarm = {
     {
       id: "sensor",
       type: "tripwire-sensor",
-      attributes: { accessLevel: "locked", threshold: 3 },
+      attributes: { accessLevel: "locked", threshold: 3, counterEnabled: true },
       operators: [
         {
           name: "counter",
           n: 3,
           filter: "probe-noise",
           emits: { type: "set", payload: {} },
+          enabledAttr: "counterEnabled",
         },
       ],
-      actions: [],
+      actions: [
+        {
+          id: "recalibrate",
+          label: "Recalibrate Sensor",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [{ effect: "set-attr", attr: "counterEnabled", value: false }],
+        },
+      ],
     },
     {
       id: "alarm-latch",
       type: "alarm-latch",
-      attributes: { latched: false },
-      operators: [{ name: "latch" }],
-      actions: [],
+      attributes: { latched: false, latchEnabled: true },
+      operators: [{ name: "latch", enabledAttr: "latchEnabled" }],
+      actions: [
+        {
+          id: "disarm",
+          label: "Disarm Latch",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [
+            { effect: "set-attr", attr: "latchEnabled", value: false },
+            { effect: "set-attr", attr: "latched", value: false },
+          ],
+        },
+      ],
       triggers: [{
         id: "alarm-fire",
         when: { type: "node-attr", attr: "latched", eq: true },
+        enabledAttr: "latchEnabled",
         then: [
           { effect: "ctx-call", method: "startTrace", args: [] },
           { effect: "ctx-call", method: "log", args: ["ALERT: Access threshold exceeded — trace initiated"] },
@@ -938,17 +957,24 @@ export const tripwireGauntlet = {
     {
       id: "sensor",
       type: "tripwire-sensor",
-      attributes: { triggered: false },
+      attributes: { accessLevel: "locked", triggered: false, sensorEnabled: true },
       operators: [
-        { name: "flag", on: "probe-noise", attr: "triggered" },
-        { name: "delay", ticks: 6 },
+        { name: "flag", on: "probe-noise", attr: "triggered", enabledAttr: "sensorEnabled" },
+        { name: "delay", ticks: 6, enabledAttr: "sensorEnabled" },
       ],
-      actions: [],
+      actions: [
+        {
+          id: "bypass",
+          label: "Bypass Tripwire",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [{ effect: "set-attr", attr: "sensorEnabled", value: false }],
+        },
+      ],
     },
     {
       id: "alarm",
       type: "alarm",
-      attributes: { triggered: false },
+      attributes: { accessLevel: "locked", triggered: false },
       operators: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
       actions: [],
     },
@@ -990,9 +1016,16 @@ export const probeBurstAlarm = {
     {
       id: "scanner",
       type: "traffic-scanner",
-      attributes: { accessLevel: "locked" },
-      operators: [{ name: "tally", on: "probe-noise", quality: "probe-bursts", delta: 1 }],
-      actions: [],
+      attributes: { accessLevel: "locked", tallyEnabled: true },
+      operators: [{ name: "tally", on: "probe-noise", quality: "probe-bursts", delta: 1, enabledAttr: "tallyEnabled" }],
+      actions: [
+        {
+          id: "blind",
+          label: "Blind Scanner",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [{ effect: "set-attr", attr: "tallyEnabled", value: false }],
+        },
+      ],
     },
   ],
   internalEdges: [],
@@ -1031,9 +1064,16 @@ export const noisySensor = {
     {
       id: "sensor",
       type: "traffic-sensor",
-      attributes: { accessLevel: "locked" },
-      operators: [{ name: "debounce", on: "probe-noise", ticks: 4 }],
-      actions: [],
+      attributes: { accessLevel: "locked", debounceEnabled: true },
+      operators: [{ name: "debounce", on: "probe-noise", ticks: 4, enabledAttr: "debounceEnabled" }],
+      actions: [
+        {
+          id: "muffle",
+          label: "Muffle Sensor",
+          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          effects: [{ effect: "set-attr", attr: "debounceEnabled", value: false }],
+        },
+      ],
     },
     {
       id: "alarm-flag",
