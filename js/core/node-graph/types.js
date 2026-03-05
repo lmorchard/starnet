@@ -248,6 +248,7 @@
  * @property {(nodeId: string) => void} [startReboot]
  * @property {(nodeId: string) => void} [completeReboot]
  * @property {(nodeId: string, action: string, phase: string, progress: number, result?: any) => void} [emitActionFeedback]
+ * @property {(nodeId: string) => void} [volatileDetonate]
  */
 
 export {};

@@ -5,7 +5,10 @@ import { registerTrait, getTrait, resolveTraits, clearTraits } from "./traits.js
 
 // traits.js self-registers built-in traits at import time.
 // Save them before tests clear the registry.
-const BUILT_IN_TRAITS = ["graded", "hackable", "lootable", "rebootable", "relay", "detectable", "security", "gate"];
+const BUILT_IN_TRAITS = [
+  "graded", "hackable", "lootable", "rebootable", "relay", "detectable", "security", "gate",
+  "hardened", "audited", "trapped", "encrypted", "volatile",
+];
 const _savedTraits = new Map();
 for (const name of BUILT_IN_TRAITS) {
   _savedTraits.set(name, getTrait(name));
@@ -302,5 +305,54 @@ describe("Built-in traits", () => {
     assert.ok(actionIds.includes("loot"));
     assert.ok(actionIds.includes("eject"));
     assert.ok(actionIds.includes("reboot"));
+  });
+
+  // ── New traits ──
+
+  it("hardened sets durationMultiplier", () => {
+    const t = getTrait("hardened");
+    assert.equal(t.attributes.durationMultiplier, 2.0);
+  });
+
+  it("audited sets noiseInterval", () => {
+    const t = getTrait("audited");
+    assert.equal(t.attributes.noiseInterval, 0.1);
+  });
+
+  it("trapped has a per-node trigger", () => {
+    const t = getTrait("trapped");
+    assert.ok(t.triggers);
+    assert.equal(t.triggers.length, 1);
+    assert.equal(t.triggers[0].id, "trap-on-probe");
+  });
+
+  it("encrypted overrides read action with quality-from-attr condition", () => {
+    const t = getTrait("encrypted");
+    assert.equal(t.actions.length, 1);
+    assert.equal(t.actions[0].id, "read");
+    const qualCond = t.actions[0].requires.find(r => r.type === "quality-from-attr");
+    assert.ok(qualCond, "read action should have quality-from-attr condition");
+  });
+
+  it("encrypted read action is gated when composed with lootable", () => {
+    const result = resolveTraits({
+      id: "vault", type: "cryptovault",
+      traits: ["graded", "hackable", "lootable", "encrypted", "gate"],
+      attributes: { encryptionKey: "test-key" },
+    });
+    // encrypted's read should override lootable's read (last-wins by ID)
+    const readAction = result.actions.find(a => a.id === "read");
+    assert.ok(readAction);
+    const qualCond = readAction.requires.find(r => r.type === "quality-from-attr");
+    assert.ok(qualCond, "composed read should have quality gate");
+  });
+
+  it("volatile has trigger + timed-action operator", () => {
+    const t = getTrait("volatile");
+    assert.ok(t.triggers);
+    assert.equal(t.triggers.length, 1);
+    assert.equal(t.triggers[0].id, "volatile-arm");
+    assert.equal(t.operators.length, 1);
+    assert.equal(t.operators[0].action, "volatile");
   });
 });

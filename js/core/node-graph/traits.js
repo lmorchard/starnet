@@ -273,3 +273,75 @@ registerTrait("gate", {
   operators: [],
   actions: [],
 });
+
+// ── New traits (stress-test the system) ─────────────────────
+
+registerTrait("hardened", {
+  attributes: { durationMultiplier: 2.0 },
+  operators: [],
+  actions: [],
+});
+
+registerTrait("audited", {
+  attributes: { noiseInterval: 0.1 },
+  operators: [],
+  actions: [],
+});
+
+registerTrait("trapped", {
+  attributes: {},
+  operators: [],
+  actions: [],
+  triggers: [{
+    id: "trap-on-probe",
+    when: { type: "node-attr", attr: "probed", eq: true },
+    then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+  }],
+});
+
+registerTrait("encrypted", {
+  attributes: { encryptionKey: "default-key" },
+  operators: [],
+  actions: [{
+    id: "read",
+    label: "READ",
+    desc: "Scan encrypted node contents (requires decryption key).",
+    requires: [
+      { type: "any-of", conditions: [
+        { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+        { type: "node-attr", attr: "accessLevel", eq: "owned" },
+      ]},
+      { type: "node-attr", attr: "read", eq: false },
+      { type: "node-attr", attr: "rebooting", eq: false },
+      { type: "node-attr", attr: "reading", eq: false },
+      { type: "quality-from-attr", attr: "encryptionKey", gte: 1 },
+    ],
+    effects: [
+      { effect: "set-attr", attr: "reading", value: true },
+      { effect: "set-attr", attr: "_ta_read_progress", value: 0 },
+    ],
+  }],
+});
+
+registerTrait("volatile", {
+  attributes: {
+    volatileDelay: 30,
+    volatileEffect: "reset",
+    _volatile_armed: false,
+  },
+  operators: [{
+    name: "timed-action",
+    action: "volatile",
+    activeAttr: "_volatile_armed",
+    durationAttrSource: "volatileDelay",
+    onComplete: [{ effect: "ctx-call", method: "volatileDetonate", args: ["$nodeId"] }],
+  }],
+  actions: [],
+  triggers: [{
+    id: "volatile-arm",
+    when: { type: "node-attr", attr: "accessLevel", eq: "owned" },
+    then: [
+      { effect: "set-attr", attr: "_volatile_armed", value: true },
+    ],
+  }],
+});
