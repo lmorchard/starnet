@@ -45,6 +45,7 @@
  * @property {Effect[]} [onComplete]  - timed-action: effects to fire on completion
  * @property {number} [onProgressInterval] - timed-action: fraction at which to fire progress effects
  * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
+ * @property {string} [enabledAttr]     - if set, operator is skipped when this node attribute is false
  */
 
 /**
@@ -74,6 +75,8 @@
  * @property {Effect[]} then
  * @property {boolean} [fired]
  * @property {boolean} [repeating]    - if true, fires every evaluation cycle the condition is true (not just once)
+ * @property {string} [enabledAttr]  - if set, trigger is skipped when owning node's attribute is false
+ * @property {string} [_nodeId]      - owning node ID (filled in by runtime for per-node triggers)
  */
 
 /**

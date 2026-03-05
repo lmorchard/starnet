@@ -400,6 +400,40 @@ describe("applyOperators", () => {
     assert.equal(result.outgoing.length, 2);
   });
 
+  it("skips operator when enabledAttr is false", () => {
+    const msg = createMessage({ type: "set", origin: "A" });
+    const result = applyOperators(
+      [{ name: "latch", enabledAttr: "latchEnabled" }],
+      { latchEnabled: false },
+      msg,
+      nullCtx,
+    );
+    // Latch should NOT have fired — latched should be undefined
+    assert.equal(result.attributes.latched, undefined);
+  });
+
+  it("runs operator when enabledAttr is true", () => {
+    const msg = createMessage({ type: "set", origin: "A" });
+    const result = applyOperators(
+      [{ name: "latch", enabledAttr: "latchEnabled" }],
+      { latchEnabled: true },
+      msg,
+      nullCtx,
+    );
+    assert.equal(result.attributes.latched, true);
+  });
+
+  it("runs operator when enabledAttr is absent from config", () => {
+    const msg = createMessage({ type: "set", origin: "A" });
+    const result = applyOperators(
+      [{ name: "latch" }],
+      {},
+      msg,
+      nullCtx,
+    );
+    assert.equal(result.attributes.latched, true);
+  });
+
   it("collects qualityDeltas from tally operators", () => {
     const msg = createMessage({ type: "probe-noise", origin: "A" });
     const result = applyOperators(
