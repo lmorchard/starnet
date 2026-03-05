@@ -89,7 +89,7 @@
 
 /**
  * Condition — union of supported condition shapes.
- * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | AllOfCondition | AnyOfCondition} Condition
+ * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | AllOfCondition | AnyOfCondition} Condition
  */
 
 /**
@@ -112,6 +112,15 @@
  * @property {'quality-eq'} type
  * @property {string} name
  * @property {number} value
+ */
+
+/**
+ * @typedef {Object} QualityFromAttrCondition
+ * @property {'quality-from-attr'} type
+ * @property {string} [nodeId]       - omitted in per-node triggers (runtime fills it in)
+ * @property {string} attr           - node attribute containing the quality name
+ * @property {number} [gte]          - quality value >= threshold
+ * @property {number} [eq]           - quality value === threshold
  */
 
 /**

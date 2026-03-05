@@ -467,9 +467,9 @@ function _fillNodeId(cond, nodeId) {
   if (cond.type === "all-of" || cond.type === "any-of") {
     return { ...cond, conditions: cond.conditions.map(c => _fillNodeId(c, nodeId)) };
   }
-  // quality-from-attr needs nodeId for attr lookup (added in Phase 3)
-  if (/** @type {any} */ (cond).type === "quality-from-attr" && !/** @type {any} */ (cond).nodeId) {
-    return { .../** @type {any} */ (cond), nodeId };
+  // quality-from-attr needs nodeId for attr lookup
+  if (cond.type === "quality-from-attr" && !cond.nodeId) {
+    return { ...cond, nodeId };
   }
   return cond;
 }

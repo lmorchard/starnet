@@ -29,6 +29,17 @@ export function evaluateCondition(condition, { getNodeAttr, getQuality }) {
         evaluateCondition(c, { getNodeAttr, getQuality })
       );
 
+    case "quality-from-attr": {
+      // Read quality name from a node attribute, then check the quality value.
+      // Enables dynamic quality gating — the quality name can change at runtime.
+      const qualityName = getNodeAttr(condition.nodeId ?? "", condition.attr);
+      if (!qualityName) return false;
+      const value = getQuality(qualityName);
+      if (condition.gte !== undefined) return value >= condition.gte;
+      if (condition.eq !== undefined) return value === condition.eq;
+      return false;
+    }
+
     default:
       throw new Error(`Unknown condition type: "${/** @type {any} */ (condition).type}"`);
   }
