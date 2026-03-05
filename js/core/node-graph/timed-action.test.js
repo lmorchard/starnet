@@ -170,4 +170,112 @@ describe("timed-action operator", () => {
     const completes = events.filter(e => e.type === "action-feedback" && e.payload.phase === "complete");
     assert.equal(completes.length, 1);
   });
+
+  it("durationMultiplier doubles the duration", () => {
+    const { graph, events } = makeGraph({
+      grade: "F", // F = 10 ticks base
+      attributes: { durationMultiplier: 2.0 },
+    });
+    graph.setNodeAttr("n1", "active", true);
+    graph.tick(1); // start — should set duration to 20 (10 * 2)
+    const starts = events.filter(e => e.type === "action-feedback" && e.payload.phase === "start");
+    assert.equal(starts[0].payload.durationTicks, 20);
+    // Verify it actually takes 20 ticks
+    graph.tick(19); // progress through 19 more
+    assert.equal(graph.getNodeState("n1").active, true, "should still be active at tick 19");
+    graph.tick(1); // tick 20 — should complete
+    assert.equal(graph.getNodeState("n1").active, false, "should complete at tick 20");
+  });
+
+  it("noiseInterval attribute makes non-exploit actions emit noise", () => {
+    const events = [];
+    const ctx = mockCtx();
+    const node = {
+      id: "n1",
+      type: "test",
+      attributes: {
+        label: "n1", grade: "F", active: false, visibility: "accessible",
+        noiseInterval: 0.25, // noise every 25%
+      },
+      operators: [{
+        name: "timed-action",
+        action: "probe",
+        activeAttr: "active",
+        durationTable: { F: 10 },
+        onComplete: [],
+        // No onProgressInterval in config — should fall back to noiseInterval attr
+      }],
+      actions: [],
+    };
+    // Add a neighbor to receive noise messages
+    const neighbor = {
+      id: "n2", type: "test",
+      attributes: { label: "n2", visibility: "accessible" },
+      operators: [], actions: [],
+    };
+    const graph = new NodeGraph(
+      { nodes: [node, neighbor], edges: [["n1", "n2"]] }, ctx,
+      (type, payload) => events.push({ type, payload }),
+    );
+    graph.setNodeAttr("n1", "active", true);
+    graph.tick(1); // start
+    graph.tick(10); // complete
+    // Should have emitted noise at 25%, 50%, 75%, 100% milestones
+    // These are outgoing messages delivered to neighbor n2
+    const noiseMessages = events.filter(e =>
+      e.type === "message-delivered" && e.payload.message?.type === "exploit-noise"
+    );
+    assert.ok(noiseMessages.length >= 3, `expected >=3 noise messages, got ${noiseMessages.length}`);
+  });
+
+  it("per-node trigger fires when condition becomes true", () => {
+    const ctx = mockCtx();
+    const node = {
+      id: "trapped-1",
+      type: "test",
+      attributes: { label: "trapped-1", visibility: "accessible", probed: false },
+      operators: [],
+      actions: [],
+      triggers: [{
+        id: "trap",
+        when: { type: "node-attr", attr: "probed", eq: true },
+        then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+      }],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, ctx);
+    // Setting probed=true should fire the trigger
+    graph.setNodeAttr("trapped-1", "probed", true);
+    assert.equal(ctx.calls.startTrace?.length, 1, "startTrace should have been called");
+  });
+
+  it("durationAttrSource reads duration from a named attribute", () => {
+    const events = [];
+    const ctx = mockCtx();
+    const node = {
+      id: "n1",
+      type: "test",
+      attributes: {
+        label: "n1", grade: "D", active: false, visibility: "accessible",
+        customDelay: 5,
+      },
+      operators: [{
+        name: "timed-action",
+        action: "volatile",
+        activeAttr: "active",
+        durationAttrSource: "customDelay", // read from this attribute
+        onComplete: [{ effect: "ctx-call", method: "resolveProbe", args: ["$nodeId"] }],
+      }],
+      actions: [],
+    };
+    const graph = new NodeGraph(
+      { nodes: [node], edges: [] }, ctx,
+      (type, payload) => events.push({ type, payload }),
+    );
+    graph.setNodeAttr("n1", "active", true);
+    graph.tick(1); // start — should set duration to 5
+    const starts = events.filter(e => e.type === "action-feedback" && e.payload.phase === "start");
+    assert.equal(starts[0].payload.durationTicks, 5);
+    graph.tick(5); // complete
+    assert.equal(ctx.calls.resolveProbe?.length, 1);
+  });
 });

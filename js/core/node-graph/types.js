@@ -15,6 +15,7 @@
  * @property {Record<string, any>} attributes
  * @property {OperatorConfig[]} [operators]
  * @property {ActionDef[]} [actions]
+ * @property {TriggerDef[]} [triggers]   - per-node triggers (nodeId filled in at construction)
  */
 
 /**
@@ -40,6 +41,7 @@
  * @property {string} [progressAttr]  - timed-action: numeric progress attribute
  * @property {string} [durationAttr]  - timed-action: numeric duration attribute
  * @property {Record<string, number>} [durationTable] - timed-action: grade → ticks
+ * @property {string} [durationAttrSource] - timed-action: read duration from this attribute
  * @property {Effect[]} [onComplete]  - timed-action: effects to fire on completion
  * @property {number} [onProgressInterval] - timed-action: fraction at which to fire progress effects
  * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
@@ -87,7 +89,7 @@
 
 /**
  * Condition — union of supported condition shapes.
- * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | AllOfCondition | AnyOfCondition} Condition
+ * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | AllOfCondition | AnyOfCondition} Condition
  */
 
 /**
@@ -110,6 +112,15 @@
  * @property {'quality-eq'} type
  * @property {string} name
  * @property {number} value
+ */
+
+/**
+ * @typedef {Object} QualityFromAttrCondition
+ * @property {'quality-from-attr'} type
+ * @property {string} [nodeId]       - omitted in per-node triggers (runtime fills it in)
+ * @property {string} attr           - node attribute containing the quality name
+ * @property {number} [gte]          - quality value >= threshold
+ * @property {number} [eq]           - quality value === threshold
  */
 
 /**
@@ -237,6 +248,7 @@
  * @property {(nodeId: string) => void} [startReboot]
  * @property {(nodeId: string) => void} [completeReboot]
  * @property {(nodeId: string, action: string, phase: string, progress: number, result?: any) => void} [emitActionFeedback]
+ * @property {(nodeId: string) => void} [volatileDetonate]
  */
 
 export {};

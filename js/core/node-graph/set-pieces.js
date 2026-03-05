@@ -228,23 +228,9 @@ export const idsRelayChain = {
     },
   ],
   internalEdges: [["ids", "monitor"]],
-  triggers: [
-    {
-      id: "alert-reached-monitor",
-      when: { type: "node-attr", nodeId: "monitor", attr: "alerted", eq: true },
-      then: [
-        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
-        { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
-      ],
-    },
-    {
-      id: "monitor-owned-cancel-trace",
-      when: { type: "node-attr", nodeId: "monitor", attr: "accessLevel", eq: "owned" },
-      then: [
-        { effect: "ctx-call", method: "cancelTrace", args: [] },
-      ],
-    },
-  ],
+  // Alert escalation + cancel-trace now handled by per-node triggers in the
+  // security trait. No set-piece triggers needed.
+  triggers: [],
   externalPorts: ["ids", "monitor"],
 };
 
@@ -284,19 +270,18 @@ export const nthAlarm = {
       attributes: { latched: false },
       operators: [{ name: "latch" }],
       actions: [],
+      triggers: [{
+        id: "alarm-fire",
+        when: { type: "node-attr", attr: "latched", eq: true },
+        then: [
+          { effect: "ctx-call", method: "startTrace", args: [] },
+          { effect: "ctx-call", method: "log", args: ["ALERT: Access threshold exceeded — trace initiated"] },
+        ],
+      }],
     },
   ],
   internalEdges: [["sensor", "alarm-latch"]],
-  triggers: [
-    {
-      id: "nth-alarm-fire",
-      when: { type: "node-attr", nodeId: "alarm-latch", attr: "latched", eq: true },
-      then: [
-        { effect: "ctx-call", method: "startTrace", args: [] },
-        { effect: "ctx-call", method: "log", args: ["ALERT: Access threshold exceeded — trace initiated"] },
-      ],
-    },
-  ],
+  triggers: [],
   externalPorts: ["sensor"],
 };
 
@@ -468,6 +453,14 @@ export const deadmanCircuit = {
       attributes: { latched: false },
       operators: [{ name: "latch" }],
       actions: [],
+      triggers: [{
+        id: "deadman-fired",
+        when: { type: "node-attr", attr: "latched", eq: true },
+        then: [
+          { effect: "ctx-call", method: "startTrace", args: [] },
+          { effect: "ctx-call", method: "log", args: ["DEADMAN: Heartbeat lost — trace initiated"] },
+        ],
+      }],
     },
   ],
   internalEdges: [
@@ -475,16 +468,7 @@ export const deadmanCircuit = {
     ["heartbeat-relay", "watchdog"],
     ["watchdog", "alarm-latch"],
   ],
-  triggers: [
-    {
-      id: "deadman-fired",
-      when: { type: "node-attr", nodeId: "alarm-latch", attr: "latched", eq: true },
-      then: [
-        { effect: "ctx-call", method: "startTrace", args: [] },
-        { effect: "ctx-call", method: "log", args: ["DEADMAN: Heartbeat lost — trace initiated"] },
-      ],
-    },
-  ],
+  triggers: [],
   externalPorts: ["heartbeat-relay"],
 };
 
@@ -708,19 +692,19 @@ export const honeyPot = {
       attributes: { accessLevel: "owned", contents: "corp-secrets", poisoned: false },
       operators: [{ name: "flag", on: "exploit", attr: "poisoned" }],
       actions: [],
+      // Per-node trigger: fire trace when poisoned (exploit received)
+      triggers: [{
+        id: "triggered",
+        when: { type: "node-attr", attr: "poisoned", eq: true },
+        then: [
+          { effect: "ctx-call", method: "startTrace", args: [] },
+          { effect: "ctx-call", method: "log", args: ["HONEYPOT: Counter-intrusion trace initiated"] },
+        ],
+      }],
     },
   ],
   internalEdges: [],
-  triggers: [
-    {
-      id: "honey-pot-triggered",
-      when: { type: "node-attr", nodeId: "honey-pot", attr: "poisoned", eq: true },
-      then: [
-        { effect: "ctx-call", method: "startTrace", args: [] },
-        { effect: "ctx-call", method: "log", args: ["HONEYPOT: Counter-intrusion trace initiated"] },
-      ],
-    },
-  ],
+  triggers: [],
   externalPorts: ["honey-pot"],
 };
 

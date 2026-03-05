@@ -37,6 +37,7 @@ export const nullCtx = {
   startReboot(_nodeId) {},
   completeReboot(_nodeId) {},
   emitActionFeedback(_nodeId, _action, _phase, _progress, _result) {},
+  volatileDetonate(_nodeId) {},
 };
 
 /**
@@ -91,6 +92,7 @@ export function mockCtx() {
     startReboot: spy("startReboot"),
     completeReboot: spy("completeReboot"),
     emitActionFeedback: spy("emitActionFeedback"),
+    volatileDetonate: spy("volatileDetonate"),
     calls,
   };
 

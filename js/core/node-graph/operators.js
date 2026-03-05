@@ -345,10 +345,19 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
 
   if (!isActive) return {};
 
-  // First tick after activation: set duration from grade table if needed
-  if (progress === 0 && duration === 0 && config.durationTable) {
-    const grade = attrs.grade ?? "D";
-    const gradeDuration = config.durationTable[grade] ?? config.durationTable["D"] ?? 20;
+  // First tick after activation: set duration from grade table or durationAttrSource
+  if (progress === 0 && duration === 0 && (config.durationTable || config.durationAttrSource)) {
+    let gradeDuration;
+    if (config.durationAttrSource) {
+      // Read duration from a named attribute (e.g. volatileDelay)
+      gradeDuration = attrs[config.durationAttrSource] ?? 30;
+    } else {
+      const grade = attrs.grade ?? "D";
+      gradeDuration = config.durationTable[grade] ?? config.durationTable["D"] ?? 20;
+    }
+    // Apply durationMultiplier if present (e.g. hardened trait)
+    const multiplier = attrs.durationMultiplier ?? 1;
+    gradeDuration = Math.ceil(gradeDuration * multiplier);
     return {
       attributes: {
         [durationAttr]: gradeDuration,
@@ -366,20 +375,26 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
   const newProgress = progress + 1;
 
   // Check progress milestone effects (e.g. exploit noise every 10%)
+  // Falls back to node-level noiseInterval/noiseEffects attributes (e.g. audited trait)
   /** @type {MessageDescriptor[]} */
   const outgoing = [];
-  if (config.onProgressInterval && config.onProgressEffects && duration > 0) {
+  const interval = config.onProgressInterval ?? attrs.noiseInterval ?? null;
+  const noiseEffects = config.onProgressEffects ?? attrs.noiseEffects ?? null;
+  if (interval && duration > 0) {
     const prevFrac = progress / duration;
     const newFrac = newProgress / duration;
-    const interval = config.onProgressInterval;
     const prevStep = Math.floor(prevFrac / interval);
     const newStep = Math.floor(newFrac / interval);
     if (newStep > prevStep) {
-      // Fire progress effects as outgoing messages
-      for (const eff of config.onProgressEffects) {
-        if (eff.effect === "emit-message") {
-          outgoing.push(eff.message ?? { type: eff.type ?? "noise", payload: eff.payload ?? {} });
+      if (noiseEffects) {
+        for (const eff of noiseEffects) {
+          if (eff.effect === "emit-message") {
+            outgoing.push(eff.message ?? { type: eff.type ?? "noise", payload: eff.payload ?? {} });
+          }
         }
+      } else {
+        // Default noise: emit exploit-noise message (ICE detection compatible)
+        outgoing.push({ type: "exploit-noise", payload: {} });
       }
     }
   }

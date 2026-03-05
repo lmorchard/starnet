@@ -22,6 +22,7 @@
  * @property {Record<string, any>} attributes
  * @property {OperatorConfig[]} operators
  * @property {ActionDef[]} actions
+ * @property {import('./types.js').TriggerDef[]} [triggers]
  */
 
 /** @type {Map<string, TraitDef>} */
@@ -74,6 +75,9 @@ export function resolveTraits(nodeDef) {
   /** @type {Map<string, ActionDef>} */
   const actionMap = new Map();
 
+  /** @type {import('./types.js').TriggerDef[]} */
+  let mergedTriggers = [];
+
   // Merge each trait left-to-right
   for (const traitName of nodeDef.traits) {
     const trait = getTrait(traitName);
@@ -87,6 +91,11 @@ export function resolveTraits(nodeDef) {
     // Actions: merge by ID, last-wins
     for (const action of trait.actions) {
       actionMap.set(action.id, action);
+    }
+
+    // Triggers: concatenate
+    if (trait.triggers) {
+      mergedTriggers = mergedTriggers.concat(trait.triggers);
     }
   }
 
@@ -107,6 +116,11 @@ export function resolveTraits(nodeDef) {
     }
   }
 
+  // NodeDef explicit triggers appended
+  if (nodeDef.triggers && nodeDef.triggers.length > 0) {
+    mergedTriggers = mergedTriggers.concat(nodeDef.triggers);
+  }
+
   return {
     id: nodeDef.id,
     type: nodeDef.type,
@@ -114,6 +128,7 @@ export function resolveTraits(nodeDef) {
     attributes: mergedAttrs,
     operators: mergedOps,
     actions: [...actionMap.values()],
+    triggers: mergedTriggers.length > 0 ? mergedTriggers : undefined,
   };
 }
 
@@ -251,10 +266,99 @@ registerTrait("security", {
     { name: "flag", on: "alert", attr: "alerted", value: true },
   ],
   actions: [ACTION_TEMPLATES.CANCEL_TRACE],
+  triggers: [
+    {
+      id: "alert-escalate",
+      when: { type: "node-attr", attr: "alerted", eq: true },
+      then: [
+        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
+        { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
+      ],
+    },
+    {
+      id: "owned-cancel-trace",
+      when: { type: "node-attr", attr: "accessLevel", eq: "owned" },
+      then: [
+        { effect: "ctx-call", method: "cancelTrace", args: [] },
+      ],
+    },
+  ],
 });
 
 registerTrait("gate", {
   attributes: { gateAccess: "probed" },
   operators: [],
   actions: [],
+});
+
+// ── New traits (stress-test the system) ─────────────────────
+
+registerTrait("hardened", {
+  attributes: { durationMultiplier: 2.0 },
+  operators: [],
+  actions: [],
+});
+
+registerTrait("audited", {
+  attributes: { noiseInterval: 0.1 },
+  operators: [],
+  actions: [],
+});
+
+registerTrait("trapped", {
+  attributes: {},
+  operators: [],
+  actions: [],
+  triggers: [{
+    id: "trap-on-probe",
+    when: { type: "node-attr", attr: "probed", eq: true },
+    then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+  }],
+});
+
+registerTrait("encrypted", {
+  attributes: { encryptionKey: "default-key" },
+  operators: [],
+  actions: [{
+    id: "read",
+    label: "READ",
+    desc: "Scan encrypted node contents (requires decryption key).",
+    requires: [
+      { type: "any-of", conditions: [
+        { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+        { type: "node-attr", attr: "accessLevel", eq: "owned" },
+      ]},
+      { type: "node-attr", attr: "read", eq: false },
+      { type: "node-attr", attr: "rebooting", eq: false },
+      { type: "node-attr", attr: "reading", eq: false },
+      { type: "quality-from-attr", attr: "encryptionKey", gte: 1 },
+    ],
+    effects: [
+      { effect: "set-attr", attr: "reading", value: true },
+      { effect: "set-attr", attr: "_ta_read_progress", value: 0 },
+    ],
+  }],
+});
+
+registerTrait("volatile", {
+  attributes: {
+    volatileDelay: 30,
+    volatileEffect: "reset",
+    _volatile_armed: false,
+  },
+  operators: [{
+    name: "timed-action",
+    action: "volatile",
+    activeAttr: "_volatile_armed",
+    durationAttrSource: "volatileDelay",
+    onComplete: [{ effect: "ctx-call", method: "volatileDetonate", args: ["$nodeId"] }],
+  }],
+  actions: [],
+  triggers: [{
+    id: "volatile-arm",
+    when: { type: "node-attr", attr: "accessLevel", eq: "owned" },
+    then: [
+      { effect: "set-attr", attr: "_volatile_armed", value: true },
+    ],
+  }],
 });

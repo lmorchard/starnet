@@ -239,6 +239,43 @@ export function buildGameCtx(opts = {}) {
     emitActionFeedback: (nodeId, action, phase, progress, result) => {
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action, phase, progress, result });
     },
+
+    volatileDetonate: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node) return;
+      const effect = node.volatileEffect ?? "reset";
+      if (effect === "reset") {
+        // Revert to locked/unprobed — player lost their work
+        if (ctx._graph) {
+          ctx._graph.setNodeAttr(nodeId, "accessLevel", "locked");
+          ctx._graph.setNodeAttr(nodeId, "probed", false);
+          ctx._graph.setNodeAttr(nodeId, "vulnerabilities", []);
+          ctx._graph.setNodeAttr(nodeId, "_volatile_armed", false);
+        }
+      } else if (effect === "disable") {
+        // Node goes dark permanently
+        if (ctx._graph) {
+          ctx._graph.setNodeAttr(nodeId, "visibility", "hidden");
+          ctx._graph.setNodeAttr(nodeId, "_volatile_armed", false);
+        }
+      } else if (effect === "corrupt") {
+        // Macguffins destroyed, node stays owned
+        if (ctx._graph) {
+          ctx._graph.setNodeAttr(nodeId, "macguffins", []);
+          ctx._graph.setNodeAttr(nodeId, "looted", true);
+          ctx._graph.setNodeAttr(nodeId, "_volatile_armed", false);
+        }
+      }
+      emitEvent(E.ACTION_RESOLVED, {
+        action: "volatile-detonate", nodeId, label: node.label,
+        detail: { effect },
+      });
+      emitEvent(E.LOG_ENTRY, {
+        text: `[VOLATILE] ${node.label}: ${effect === "reset" ? "NODE RESET — access revoked." : effect === "disable" ? "NODE DISABLED — gone dark." : "DATA CORRUPTED — loot destroyed."}`,
+        type: "error",
+      });
+    },
   };
 
   return ctx;
