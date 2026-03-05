@@ -164,4 +164,21 @@ Seems like time as a pressure factor would be fun in some dungeons, so time-savi
 Random stuff
 Dungeon has an overall security grade. Nodes can vary up or down from that grade slightly, offering vulnerable soft spots.
 
+## Potential Inspirations from Vernor Vinge's "True Names"
+
+Vinge's 1981 novella has strong thematic overlap with Starnet. Notes on flavor and mechanics we might pull in:
+
+- **True Names as a mechanic.** In Vinge, knowing someone's real-world identity gives power over them. Could work for daemons and machine elves — discovering an entity's True Name (through loot, data fragments, deep exploration) could be how you compel or ally with them. Conversely, adversaries could be piecing together *your* True Name during a run — a second clock alongside the trace.
+
+- **Magic-as-hacking metaphor layer.** The Other Plane renders code as sorcery — castles, swamps, enchantments. Our vector phosphene aesthetic is already stylized; we could lean into magical/arcane visuals when encountering alien artifacts or machine elves. Alien ansible contamination could shift the visual language from cyberpunk to something stranger and more mythic.
+
+- **The Coven / rival hackers.** Vinge's elite hackers know each other only by pseudonyms and meet on the Other Plane. We could have traces of other hackers in dungeons — someone already partially cracked this network, left backdoors or traps. A recurring rival whose style you recognize but whose True Name you don't know.
+
+- **AI emergence as horror (The Mailman).** The Mailman starts as just another coven member, then is revealed as something *other* — vast and inhuman. Machine elves could follow a similar arc: a quirky ally that turns out to be something incomprehensible using the galactic net as substrate. Ties into the "should backfire sometimes" note above.
+
+- **Identity layers as progression.** Deeper networks require thinner anonymity layers. The player decides how much of themselves to reveal to gain capability. Brain vs. deck attributes already hint at this — could be deepened so that the better known you become, the more powerful *and* more vulnerable you are simultaneously.
+
+- **The government angle.** Vinge's NSA/DoW agents are the mundane threat behind the cosmic one. Planetary security agencies could maintain "True Name registries" of known netrunners — getting added to one is a persistent cross-run consequence.
+
+The core thematic pull: **identity is the most valuable and dangerous thing in cyberspace.** The trace mechanic already treats location as vulnerability; these ideas would deepen that to identity itself — reputation, patterns, your True Name — as something that accumulates value and risk across runs.
 

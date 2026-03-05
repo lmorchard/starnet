@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { instantiate, SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect } from "./set-pieces.js";
+import { createGameNode } from "./game-types.js";
 import { NodeGraph } from "./runtime.js";
 import { mockCtx } from "./ctx.js";
 import { createMessage } from "./message.js";
@@ -29,16 +30,17 @@ describe("instantiate: edges are prefixed", () => {
 
 describe("instantiate: trigger IDs and nodeIds are prefixed", () => {
   it("prefixes trigger IDs", () => {
-    const inst = instantiate(idsRelayChain, "east");
-    assert.ok(inst.triggers.some((t) => t.id === "east/alert-reached-monitor"));
+    // combinationLock still has graph-level triggers (vault-reveal)
+    const inst = instantiate(combinationLock, "v1");
+    assert.ok(inst.triggers.some((t) => t.id === "v1/vault-reveal"));
   });
 
-  it("rewrites node-attr condition nodeId", () => {
-    const inst = instantiate(deadmanCircuit, "dm1");
-    const firedTrigger = inst.triggers.find((t) => t.id === "dm1/deadman-fired");
-    assert.ok(firedTrigger);
-    const when = /** @type {import('./types.js').NodeAttrCondition} */ (firedTrigger.when);
-    assert.equal(when.nodeId, "dm1/alarm-latch");
+  it("rewrites node-attr condition nodeId in graph-level triggers", () => {
+    const inst = instantiate(combinationLock, "v1");
+    const revealTrigger = inst.triggers.find((t) => t.id === "v1/vault-reveal");
+    assert.ok(revealTrigger);
+    const when = /** @type {import('./types.js').NodeAttrCondition} */ (revealTrigger.when);
+    assert.equal(when.nodeId, "v1/vault");
   });
 
   it("rewrites set-node-attr effect nodeId", () => {
@@ -46,6 +48,14 @@ describe("instantiate: trigger IDs and nodeIds are prefixed", () => {
     const revealTrigger = inst.triggers.find((t) => t.id === "v1/vault-reveal");
     const setAttrEffect = /** @type {import('./types.js').SetNodeAttrEffect} */ (revealTrigger?.then[0]);
     assert.equal(setAttrEffect.nodeId, "v1/vault");
+  });
+
+  it("per-node triggers are preserved on nodes (not in graph triggers)", () => {
+    // honeyPot now has per-node triggers on the honey-pot node
+    const inst = instantiate(honeyPot, "hp1");
+    assert.equal(inst.triggers.length, 0, "graph-level triggers should be empty");
+    const pot = inst.nodes.find(n => n.id === "hp1/honey-pot");
+    assert.ok(pot?.triggers?.length >= 1, "honey-pot node should have per-node triggers");
   });
 });
 
@@ -107,9 +117,12 @@ describe("ids-relay-chain: alert forwarding and subversion", () => {
   it("alert propagates through IDS to monitor when forwardingEnabled:true", () => {
     const ctx = mockCtx();
     const inst = instantiate(idsRelayChain, "east");
-    const graph = new NodeGraph(inst, ctx);
+    // Wrap nodes with createGameNode so traits (including security per-node triggers) apply
+    const nodes = inst.nodes.map(createGameNode);
+    const graph = new NodeGraph({ nodes, edges: inst.edges, triggers: inst.triggers }, ctx);
 
     // Send an alert into IDS — relay forwards it to monitor — monitor flags alerted:true
+    // security trait per-node trigger fires setGlobalAlert("yellow")
     graph.sendMessage("east/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
     assert.equal(ctx.calls.setGlobalAlert?.length, 1);
     assert.deepEqual(ctx.calls.setGlobalAlert[0], ["yellow"]);

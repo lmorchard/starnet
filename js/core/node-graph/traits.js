@@ -266,6 +266,23 @@ registerTrait("security", {
     { name: "flag", on: "alert", attr: "alerted", value: true },
   ],
   actions: [ACTION_TEMPLATES.CANCEL_TRACE],
+  triggers: [
+    {
+      id: "alert-escalate",
+      when: { type: "node-attr", attr: "alerted", eq: true },
+      then: [
+        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
+        { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
+      ],
+    },
+    {
+      id: "owned-cancel-trace",
+      when: { type: "node-attr", attr: "accessLevel", eq: "owned" },
+      then: [
+        { effect: "ctx-call", method: "cancelTrace", args: [] },
+      ],
+    },
+  ],
 });
 
 registerTrait("gate", {

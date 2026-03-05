@@ -95,9 +95,8 @@ function buildIceWithMonitorLAN({ startCash = 0, grade = "C" } = {}) {
       ],
       edges: [["gateway", "router-a"], ["router-a", "sec-mon"]],
       triggers: [
-        // Monitor owned → cancel trace (from security trait)
-        { id: "monitor-owned-cancel-trace", when: { type: "node-attr", nodeId: "sec-mon", attr: "accessLevel", eq: "owned" }, then: [{ effect: "ctx-call", method: "cancelTrace", args: [] }] },
-        // ICE resident owned → disable ICE
+        // Monitor owned → cancel trace: now handled by security trait per-node trigger
+        // ICE resident owned → disable ICE (network-specific, stays here)
         { id: "ice-resident-owned", when: { type: "node-attr", nodeId: "sec-mon", attr: "accessLevel", eq: "owned" }, then: [{ effect: "ctx-call", method: "disableIce", args: [] }] },
       ],
     },
