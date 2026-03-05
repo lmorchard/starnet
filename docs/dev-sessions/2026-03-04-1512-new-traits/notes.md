@@ -1,5 +1,106 @@
 # Session Notes: New Traits
 
+## Session Retro
+
+### Summary
+
+Built 5 new traits (hardened, audited, trapped, encrypted, volatile) that stress-test
+the composable trait system. Added 3 general-purpose runtime extensions (per-node
+triggers, quality-from-attr condition, timed-action attribute knobs) that enabled the
+traits as pure data definitions. Then used per-node triggers to simplify 4 existing
+set-pieces by moving graph-level triggers into traits and node definitions.
+
+**6 commits, 17 files changed, +1,160 / -73 lines.**
+
+### Key Actions
+
+**Planned phases (1-8) — all completed:**
+1. durationMultiplier + noiseInterval + durationAttrSource in timed-action operator
+2. Per-node triggers (TraitDef + resolveTraits + runtime constructor)
+3. quality-from-attr condition type
+4. Trait: hardened (durationMultiplier: 2.0)
+5. Trait: audited (noiseInterval: 0.1)
+6. Trait: trapped (per-node trigger → startTrace on probe)
+7. Trait: encrypted (quality-from-attr gated read action)
+8. Trait: volatile (per-node trigger + timed-action + ctx detonate)
+
+**Beyond-plan work:**
+- Set-piece refactor: moved graph-level triggers from idsRelayChain, nthAlarm,
+  deadmanCircuit, and honeyPot into per-node triggers (in traits and node defs)
+- Security trait now automatically provides alert escalation + cancel-trace on
+  ownership — every security monitor gets this for free
+
+### Divergences from Plan
+
+1. **Phases 4-8 done in one batch.** The plan had each trait as a separate phase.
+   In practice, all 5 traits were simple enough to register in one pass since the
+   runtime extensions were already in place.
+
+2. **Set-piece refactor was not planned.** Les asked "are there changes we can make
+   to existing set-pieces?" after seeing per-node triggers work. This turned out to
+   be the most architecturally satisfying part of the session — the trait system
+   paying for itself by simplifying existing code.
+
+3. **`durationAttrSource` added to the plan.** Not in the original spec — emerged
+   during implementation when volatile trait needed a way to read countdown duration
+   from a node attribute instead of a grade table.
+
+### Insights & Lessons
+
+- **All 5 traits composed cleanly as data.** No engine-specific code beyond the
+  general-purpose runtime extensions. The trait system's expressiveness holds up.
+  Les confirmed this met expectations.
+
+- **Per-node triggers are the best addition.** They enabled trapped and volatile
+  traits, AND simplified 4 existing set-pieces. The insight: behaviors that react
+  to "this node's state changed" are extremely common and should be expressible
+  without graph-level trigger wiring.
+
+- **Attribute-level knobs (durationMultiplier, noiseInterval) are composable.**
+  A node can have both hardened and audited traits simultaneously — actions take
+  longer AND emit noise. The effects stack through independent attribute checks
+  in the timed-action operator. No special composition logic needed.
+
+- **quality-from-attr enables dynamic gameplay.** The encrypted trait's read gate
+  checks a quality whose name comes from an attribute. This means the encryption
+  key can be changed at runtime — a future subversion mechanic. The condition
+  system is more expressive than it needs to be today, which is the right direction.
+
+- **One-shot trigger timing matters.** The security trait's `owned-cancel-trace`
+  trigger fires during `executeAction` evaluation (not during construction, since
+  the constructor doesn't evaluate triggers). This caused a test to see 2 calls
+  instead of 1 — the action effect calls cancelTrace AND the trigger fires it.
+  Not a bug, just a consequence of the dual-path (action + trigger) design.
+
+### Stats
+
+- **Commits:** 6
+- **Tests:** 517 passing (started at 505, +12 new tests)
+- **Lines:** +1,160 / -73 net across 17 files
+- **New traits:** 5 (hardened, audited, trapped, encrypted, volatile)
+- **Runtime extensions:** 3 (per-node triggers, quality-from-attr, timed-action knobs)
+- **Set-pieces simplified:** 4 (idsRelayChain, nthAlarm, deadmanCircuit, honeyPot)
+- **Conversation turns:** ~25
+
+### Process Observations
+
+- **Fastest session yet.** The trait system infrastructure was already solid from
+  the composable-traits session. Adding new traits was mostly "register data,
+  write test, verify." The runtime extensions were small, focused additions.
+
+- **The set-piece refactor was the highlight.** It wasn't planned but it was the
+  most valuable output — demonstrating that per-node triggers simplify existing
+  code, not just enable new code. This is the sign of a good abstraction.
+
+- **Playground would have been useful here.** We built the playground in the
+  previous session but didn't use it to test the new traits interactively. The
+  headless playtest had a dynamic-command-discovery issue that blocked end-to-end
+  testing. The playground would have been the right tool for interactive validation.
+
+---
+
+## Phase-by-Phase Notes
+
 ## Phase 1: durationMultiplier + noiseInterval ✓
 - timed-action operator now checks durationMultiplier, noiseInterval, durationAttrSource
 - 3 new tests, all 508 pass
@@ -24,3 +125,11 @@
 - volatile: per-node trigger arms timed-action countdown, volatileDetonate ctx method
   with reset/disable/corrupt modes
 - 6 new trait tests, all 516 pass
+
+## Set-Piece Refactor ✓
+- Security trait now provides alert-escalate + owned-cancel-trace per-node triggers
+- idsRelayChain: graph-level triggers removed (handled by security trait)
+- honeyPot: trigger moved to per-node trigger on honey-pot node
+- nthAlarm: trigger moved to per-node trigger on alarm-latch node
+- deadmanCircuit: trigger moved to per-node trigger on alarm-latch node
+- All 517 tests pass
