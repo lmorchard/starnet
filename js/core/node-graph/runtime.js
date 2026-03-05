@@ -51,6 +51,8 @@ export class NodeGraph {
 
     /** @type {Map<string, NodeState>} */
     this._nodes = new Map();
+    /** @type {TriggerDef[]} */
+    const allTriggers = [...triggers];
     for (const raw of nodes) {
       const n = resolveTraits(raw);
       this._nodes.set(n.id, {
@@ -60,13 +62,24 @@ export class NodeGraph {
         operators: n.operators ?? [],
         actions: n.actions ?? [],
       });
+      // Collect per-node triggers, pre-filling nodeId in conditions and $nodeId in effects
+      if (n.triggers) {
+        for (const t of n.triggers) {
+          allTriggers.push({
+            ...t,
+            id: `${n.id}/${t.id}`,
+            when: _fillNodeId(t.when, n.id),
+            then: t.then.map(eff => _fillEffectNodeId(eff, n.id)),
+          });
+        }
+      }
     }
 
     /** @type {[string, string][]} */
     this._edges = edges;
 
     this._qualities = new QualityStore();
-    this._triggers = new TriggerStore(triggers);
+    this._triggers = new TriggerStore(allTriggers);
   }
 
   // ---------------------------------------------------------------------------
@@ -436,4 +449,41 @@ export class NodeGraph {
   _evaluateTriggers() {
     this._triggers.evaluate(this._stateAccessors(), this._triggerMutators());
   }
+}
+
+// ── Per-node trigger helpers ────────────────────────────────
+
+/**
+ * Pre-fill nodeId in a condition tree. For node-attr conditions without a nodeId,
+ * sets it to the owning node's ID. Recurses into all-of/any-of compositions.
+ * @param {import('./types.js').Condition} cond
+ * @param {string} nodeId
+ * @returns {import('./types.js').Condition}
+ */
+function _fillNodeId(cond, nodeId) {
+  if (cond.type === "node-attr" && !cond.nodeId) {
+    return { ...cond, nodeId };
+  }
+  if (cond.type === "all-of" || cond.type === "any-of") {
+    return { ...cond, conditions: cond.conditions.map(c => _fillNodeId(c, nodeId)) };
+  }
+  // quality-from-attr needs nodeId for attr lookup (added in Phase 3)
+  if (/** @type {any} */ (cond).type === "quality-from-attr" && !/** @type {any} */ (cond).nodeId) {
+    return { .../** @type {any} */ (cond), nodeId };
+  }
+  return cond;
+}
+
+/**
+ * Pre-fill $nodeId in effect args. Replaces "$nodeId" string with the actual nodeId.
+ * Also sets targetNodeId for set-attr effects.
+ * @param {import('./types.js').Effect} eff
+ * @param {string} nodeId
+ * @returns {import('./types.js').Effect}
+ */
+function _fillEffectNodeId(eff, nodeId) {
+  if (eff.effect === "ctx-call" && eff.args) {
+    return { ...eff, args: eff.args.map(a => a === "$nodeId" ? nodeId : a) };
+  }
+  return eff;
 }

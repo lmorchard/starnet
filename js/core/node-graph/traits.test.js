@@ -267,6 +267,28 @@ describe("Built-in traits", () => {
     assert.ok(result.actions.some(a => a.id === "probe"));
   });
 
+  it("trait triggers are merged into resolved NodeDef", () => {
+    clearTraits();
+    registerTrait("test-trap", {
+      attributes: {},
+      operators: [],
+      actions: [],
+      triggers: [{
+        id: "trap-fire",
+        when: { type: "node-attr", attr: "probed", eq: true },
+        then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+      }],
+    });
+    const result = resolveTraits({
+      id: "n1", type: "test", traits: ["test-trap"],
+      attributes: {},
+    });
+    assert.ok(result.triggers);
+    assert.equal(result.triggers.length, 1);
+    assert.equal(result.triggers[0].id, "trap-fire");
+    restoreBuiltIns();
+  });
+
   it("composing hackable + lootable + rebootable gives all actions", () => {
     const result = resolveTraits({
       id: "fs-1", type: "fileserver",

@@ -228,6 +228,26 @@ describe("timed-action operator", () => {
     assert.ok(noiseMessages.length >= 3, `expected >=3 noise messages, got ${noiseMessages.length}`);
   });
 
+  it("per-node trigger fires when condition becomes true", () => {
+    const ctx = mockCtx();
+    const node = {
+      id: "trapped-1",
+      type: "test",
+      attributes: { label: "trapped-1", visibility: "accessible", probed: false },
+      operators: [],
+      actions: [],
+      triggers: [{
+        id: "trap",
+        when: { type: "node-attr", attr: "probed", eq: true },
+        then: [{ effect: "ctx-call", method: "startTrace", args: [] }],
+      }],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, ctx);
+    // Setting probed=true should fire the trigger
+    graph.setNodeAttr("trapped-1", "probed", true);
+    assert.equal(ctx.calls.startTrace?.length, 1, "startTrace should have been called");
+  });
+
   it("durationAttrSource reads duration from a named attribute", () => {
     const events = [];
     const ctx = mockCtx();

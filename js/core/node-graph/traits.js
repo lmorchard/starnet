@@ -22,6 +22,7 @@
  * @property {Record<string, any>} attributes
  * @property {OperatorConfig[]} operators
  * @property {ActionDef[]} actions
+ * @property {import('./types.js').TriggerDef[]} [triggers]
  */
 
 /** @type {Map<string, TraitDef>} */
@@ -74,6 +75,9 @@ export function resolveTraits(nodeDef) {
   /** @type {Map<string, ActionDef>} */
   const actionMap = new Map();
 
+  /** @type {import('./types.js').TriggerDef[]} */
+  let mergedTriggers = [];
+
   // Merge each trait left-to-right
   for (const traitName of nodeDef.traits) {
     const trait = getTrait(traitName);
@@ -87,6 +91,11 @@ export function resolveTraits(nodeDef) {
     // Actions: merge by ID, last-wins
     for (const action of trait.actions) {
       actionMap.set(action.id, action);
+    }
+
+    // Triggers: concatenate
+    if (trait.triggers) {
+      mergedTriggers = mergedTriggers.concat(trait.triggers);
     }
   }
 
@@ -107,6 +116,11 @@ export function resolveTraits(nodeDef) {
     }
   }
 
+  // NodeDef explicit triggers appended
+  if (nodeDef.triggers && nodeDef.triggers.length > 0) {
+    mergedTriggers = mergedTriggers.concat(nodeDef.triggers);
+  }
+
   return {
     id: nodeDef.id,
     type: nodeDef.type,
@@ -114,6 +128,7 @@ export function resolveTraits(nodeDef) {
     attributes: mergedAttrs,
     operators: mergedOps,
     actions: [...actionMap.values()],
+    triggers: mergedTriggers.length > 0 ? mergedTriggers : undefined,
   };
 }
 
