@@ -13,24 +13,19 @@
 //   node scripts/playtest.js --state scenario.json "status"
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
+import {
+  initHeadlessEngine, resetGame,
+  getState, serializeState, deserializeState,
+  tick, on, emitEvent, E,
+} from "./lib/headless-engine.js";
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
-import { startIce, handleIceTick, handleIceDetect } from "../js/core/ice.js";
-import { on, emitEvent, E } from "../js/core/events.js";
-import { tick, TIMER } from "../js/core/timers.js";
-import { handleTraceTick } from "../js/core/alert.js";
-import { initLog, addLogEntry } from "../js/core/log.js";
+import { addLogEntry } from "../js/core/log.js";
 import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
-import { buildActionContext, initActionDispatcher } from "../js/core/actions/action-context.js";
-import { initGraphBridge } from "../js/core/graph-bridge.js";
 import { initDynamicActions } from "../js/core/console-commands/dynamic-actions.js";
 import { buildSetPieceMiniNetwork, buildMiniNetwork, listSetPieces } from "../js/core/node-graph/mini-network.js";
-
-// alert.js registers NODE_ALERT_RAISED / NODE_RECONFIGURED listeners at module load
-// (importing handleTraceTick above already loaded the module — no separate import needed)
 
 // ── Arg parsing ────────────────────────────────────────────
 
@@ -101,29 +96,16 @@ if (!cmdStr) {
   process.exit(1);
 }
 
-// ── Timer wiring ───────────────────────────────────────────
+// ── Engine init ─────────────────────────────────────────────
 
-on(TIMER.ICE_MOVE,        ()        => handleIceTick());
-on(TIMER.ICE_DETECT,      (payload) => handleIceDetect(payload));
-on(TIMER.TRACE_TICK,      ()        => handleTraceTick());
-// Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
-
-// ── Action dispatcher ──────────────────────────────────────
-// Same path as the browser: starnet:action → getAvailableActions guard → ActionDef.execute()
-
-const ctx = {
-  ...buildActionContext(),
+initHeadlessEngine({
   openDarknetsStore: () => addLogEntry("[DARKNET] Use 'store' and 'buy' commands in the harness.", "meta"),
-};
-initActionDispatcher(ctx);
+});
 
 // ── Event → output ─────────────────────────────────────────
 
 const lines = [];
 function out(msg) { lines.push(String(msg)); }
-
-// Start the log buffer so getRecentLog() works (used by the 'log' command).
-initLog();
 
 // All LOG_ENTRY events → output (covers console.js command output + direct emits)
 on(E.LOG_ENTRY, ({ text }) => out(text));
@@ -183,10 +165,7 @@ function runCmd(raw) {
 
   // Harness-only commands
   if (verb === "reset") {
-    initGame(() => buildNetworkFn(), seedArg ?? undefined);
-    initGraphBridge();
-    initDynamicActions();
-    startIce();
+    resetGame(() => buildNetworkFn(), seedArg ?? undefined);
     const s = getState();
     const nodeCount = Object.keys(s.nodes).length;
     const networkName = pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? "corporate-foothold");
@@ -222,14 +201,11 @@ if (!isReset) {
       emitEvent(E.STATE_CHANGED, getState());
     } catch (e) {
       out(`[SYS] Failed to load ${stateFile}: ${e.message}. Initializing fresh.`);
-      initGame(() => buildNetworkFn(), seedArg ?? undefined);
-      initGraphBridge();
-      startIce();
+      resetGame(() => buildNetworkFn(), seedArg ?? undefined);
     }
   } else {
     out(`[SYS] No state file at ${stateFile}. Initializing fresh.`);
-    initState(NETWORK, seedArg ?? undefined);
-    startIce();
+    resetGame(() => buildNetworkFn(), seedArg ?? undefined);
   }
 }
 
