@@ -10,7 +10,7 @@ triggers, quality-from-attr condition, timed-action attribute knobs) that enable
 traits as pure data definitions. Then used per-node triggers to simplify 4 existing
 set-pieces by moving graph-level triggers into traits and node definitions.
 
-**6 commits, 17 files changed, +1,160 / -73 lines.**
+**7 commits, 20 files changed, +1,307 / -89 lines.**
 
 ### Key Actions
 
@@ -74,13 +74,14 @@ set-pieces by moving graph-level triggers into traits and node definitions.
 
 ### Stats
 
-- **Commits:** 6
-- **Tests:** 517 passing (started at 505, +12 new tests)
-- **Lines:** +1,160 / -73 net across 17 files
+- **Commits:** 7
+- **Tests:** 523 passing (started at 505, +18 new tests)
+- **Lines:** +1,307 / -89 net across 20 files
 - **New traits:** 5 (hardened, audited, trapped, encrypted, volatile)
-- **Runtime extensions:** 3 (per-node triggers, quality-from-attr, timed-action knobs)
+- **Runtime extensions:** 4 (per-node triggers, quality-from-attr, timed-action knobs, enabledAttr)
 - **Set-pieces simplified:** 4 (idsRelayChain, nthAlarm, deadmanCircuit, honeyPot)
-- **Conversation turns:** ~25
+- **Set-pieces given disarm actions:** 4 (nthAlarm, tripwireGauntlet, probeBurstAlarm, noisySensor)
+- **Conversation turns:** ~35 (across 2 conversations)
 
 ### Process Observations
 
@@ -96,6 +97,69 @@ set-pieces by moving graph-level triggers into traits and node definitions.
   previous session but didn't use it to test the new traits interactively. The
   headless playtest had a dynamic-command-discovery issue that blocked end-to-end
   testing. The playground would have been the right tool for interactive validation.
+
+---
+
+## Continuation: enabledAttr + Disarm Actions
+
+### Summary
+
+Added `enabledAttr` — an optional field on OperatorConfig and TriggerDef that names
+a node attribute controlling whether that operator/trigger is active. When the attribute
+is `false`, the operator/trigger is skipped. Absent = always enabled. Then used this
+to add player disarm actions to 4 defensive set-pieces that previously had no counterplay.
+
+**1 commit, 7 files changed, +147 / -16 lines.**
+
+### Key Actions
+
+1. **Identified the gap.** Audited all 15 set-pieces for player counterplay once nodes
+   are owned. Found 5 with no disarm path: nthAlarm, tripwireGauntlet, probeBurstAlarm,
+   noisySensor, honeyPot.
+2. **Designed `enabledAttr` mechanism.** One-line skip in `applyOperators`, two-line skip
+   in `TriggerStore.evaluate()`. Per-operator independent control via different attribute
+   names on the same node.
+3. **Stored `_nodeId` on per-node triggers** so the trigger evaluator can look up the
+   owning node's attributes for the enabledAttr check.
+4. **Added disarm actions** to 4 set-pieces (honeyPot excluded — avoidance trap by design).
+5. **Also added missing `accessLevel: "locked"`** to tripwireGauntlet sensor and alarm
+   nodes, which were missing it.
+
+### Divergences from Plan
+
+This work wasn't in the original session plan at all — it emerged from reviewing
+set-pieces after the traits work was complete. Les spotted that several traps had
+no player agency once triggered, and proposed the `enabledAttr` mechanism with
+per-operator granularity.
+
+### Insights
+
+- **The simplest engine extension unlocked the most gameplay.** One `continue` check
+  in a loop gave every operator and trigger an independent disable switch. The content
+  changes (adding actions to set-pieces) were straightforward once the mechanism existed.
+
+- **Per-operator granularity was the right call.** A node-level "disabled" flag would
+  have been coarser — you'd disable ALL operators at once. With `enabledAttr`, a node
+  can have its counter disabled while its relay still works. This enables more nuanced
+  player strategies.
+
+- **Attribute-driven means reversible by default.** Since enable/disable is just a node
+  attribute, any action, trigger, or effect can flip it back. A re-arming trigger or
+  an ICE countermeasure could re-enable a disarmed trap. No special "undo" mechanism
+  needed.
+
+- **Content audit was valuable.** Walking through every set-piece with "can the player
+  do anything about this?" surfaced not just missing actions but also missing
+  `accessLevel` attributes on nodes that should be hackable.
+
+### Stats
+
+- **Commits:** 1 (total session: 7)
+- **Tests:** 523 passing (+6 new)
+- **Lines:** +147 / -16 across 7 files
+- **Set-pieces updated:** 4 (nthAlarm, tripwireGauntlet, probeBurstAlarm, noisySensor)
+- **Conversation turns:** ~10
+- **PR:** https://github.com/lmorchard/starnet/pull/23
 
 ---
 
