@@ -15,6 +15,7 @@ const DISTANCE_PENALTY = 5;
 // Node types that are dangerous to probe (trigger alert escalation)
 const DANGEROUS_TYPES = new Set(["ids", "security-monitor"]);
 const DANGEROUS_PENALTY = 10;
+const ICE_COOLDOWN_PENALTY = 20;
 
 /**
  * @param {WorldModel} world
@@ -38,21 +39,22 @@ export function exploreStrategy(world) {
     });
   }
 
-  // Propose probing unprobed nodes
+  // Propose probing unprobed nodes (penalize ICE-cooled nodes)
   for (const nodeId of world.needsProbe) {
     const distance = pathDistance(world, nodeId);
     const missionBonus = isMissionRelevant(world, nodeId) ? MISSION_BONUS : 0;
     const selectedBonus = (nodeId === world.player.selectedNodeId) ? SELECTED_BONUS : 0;
+    const cooldownPenalty = world.iceCooldown.has(nodeId) ? ICE_COOLDOWN_PENALTY : 0;
     proposals.push({
       action: "probe",
       nodeId,
-      score: BASE_PROBE + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY),
+      score: BASE_PROBE + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - cooldownPenalty,
       reason: `probe unprobed node${missionBonus ? " (mission path)" : ""}`,
       strategy: STRATEGY,
     });
   }
 
-  // Propose exploiting probed, unowned nodes
+  // Propose exploiting probed, unowned nodes (penalize ICE-cooled nodes)
   for (const nodeId of world.needsExploit) {
     const card = pickBestCard(world, nodeId);
     if (!card) continue;
@@ -60,6 +62,7 @@ export function exploreStrategy(world) {
     const distance = pathDistance(world, nodeId);
     const missionBonus = isMissionRelevant(world, nodeId) ? MISSION_BONUS : 0;
     const selectedBonus = (nodeId === world.player.selectedNodeId) ? SELECTED_BONUS : 0;
+    const cooldownPenalty = world.iceCooldown.has(nodeId) ? ICE_COOLDOWN_PENALTY : 0;
 
     // Slight penalty for hail-mary (non-matching) exploits — prefer matches
     // but still willing to try non-matching cards over just exploring
@@ -69,7 +72,7 @@ export function exploreStrategy(world) {
     proposals.push({
       action: "exploit",
       nodeId,
-      score: BASE_EXPLOIT + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - matchPenalty,
+      score: BASE_EXPLOIT + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - matchPenalty - cooldownPenalty,
       reason: `exploit with ${card.name}${missionBonus ? " (mission path)" : ""}${matchPenalty ? " (hail-mary)" : ""}`,
       strategy: STRATEGY,
       payload: { exploitId: card.id },

@@ -42,7 +42,7 @@ export function recordAction(stats, action) {
   stats.strategyCounts[name] = (stats.strategyCounts[name] ?? 0) + 1;
 
   if (action.action === "exploit") stats.cardsUsed++;
-  if (action.action === "access-darknet") stats.storeVisits++;
+  if (action.action === "buy-card") stats.storeVisits++;
   if (action.action?.startsWith("disarm")) stats.disarmActionsUsed++;
 }
 

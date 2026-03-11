@@ -11,7 +11,7 @@ import { getAvailableActions } from "../../js/core/actions/node-actions.js";
 /**
  * Build a WorldModel snapshot from current game state.
  * @param {import('../../js/core/types.js').GameState} state
- * @param {{ failedExploits?: Set<string>, completedActions?: Set<string> }} [context]
+ * @param {{ failedExploits?: Set<string>, completedActions?: Set<string>, iceCooldown?: Set<string> }} [context]
  * @returns {WorldModel}
  */
 export function perceive(state, context = {}) {
@@ -68,7 +68,8 @@ export function perceive(state, context = {}) {
 
       if (!n.probed) {
         needsProbe.push(id);
-      } else if (n.accessLevel !== "owned") {
+      } else if (n.accessLevel !== "owned" && n.vulnerabilities?.length > 0) {
+        // Only exploitable if the node has vulnerabilities to target
         needsExploit.push(id);
       }
     } else if (n.visibility === "revealed" && !isWan) {
@@ -89,7 +90,7 @@ export function perceive(state, context = {}) {
 
   for (const [nodeId, node] of nodes) {
     if (!node.vulnerabilities?.length) continue;
-    const vulnTypes = new Set(node.vulnerabilities.map(v => v.type));
+    const vulnTypes = new Set(node.vulnerabilities.map(v => v.id));
     const matching = hand.filter(c =>
       c.targetVulnTypes.some(t => vulnTypes.has(t))
     ).map(c => c.id);
@@ -139,6 +140,7 @@ export function perceive(state, context = {}) {
     gamePhase: state.phase,
     failedExploits: context.failedExploits ?? new Set(),
     completedActions: context.completedActions ?? new Set(),
+    iceCooldown: context.iceCooldown ?? new Set(),
     shortestPath,
   };
 }

@@ -1,6 +1,6 @@
 # Session Notes: Bot Player Rebuild
 
-## Smoke-test Bug Fixes (2026-03-10)
+## Smoke-test Bug Fixes — Round 1 (2026-03-10)
 
 Ran the new modular bot against all 3 networks and found 5 bugs + 3 strategy issues.
 
@@ -50,18 +50,42 @@ Ran the new modular bot against all 3 networks and found 5 bugs + 3 strategy iss
 - **Trace-active jackout** — Evasion heuristic proposes jackout at score 100 when trace is
   active, so the bot saves progress instead of dying to trace.
 
-### Remaining Issues (not yet fixed)
+## Smoke-test Bug Fixes — Round 2 (2026-03-11)
 
-- **Bot runs out of cards before reaching lootable nodes** on corporate-foothold. The
-  lootable nodes (vault-node, fileserver, workstations) are 3-4 hops deep and the starting
-  hand doesn't match their vulns. Strategy needs better card economy: visit darknet store
-  with initial cash, or focus exploits on the path to lootable nodes.
+### Bugs Fixed
 
-- **research-station tick-cap** — Bot earns cash (5000-9000¥) but hits 5000-tick budget.
-  Likely another infinite loop in a heuristic — needs investigation.
+6. **Vulnerability field name mismatch** — `perception.js` card matching used `v.type` but
+   the Vulnerability type uses `v.id`. Card-to-node matching was completely broken — every
+   card appeared as non-matching. This was the root cause of all hail-mary exploits.
 
-- **corporate-exchange stuck at 1 node** — 0 cards used, 200 cash. Network may start with
-  empty hand or different initial state. Bot doesn't know to visit store first.
+7. **`access-darknet` infinite loop** — The darknet store is a no-op in headless mode
+   (browser UI only). Bot would repeatedly dispatch `access-darknet` thousands of times.
+   Fixed by replacing with `buy-card` — a bot-only action that calls `buyFromStore()` from
+   `store-logic.js` directly, picking the cheapest card matching a needed vulnerability.
+
+8. **`needsExploit` included non-exploitable nodes** — Set-piece internal nodes (latches,
+   relays, key-gens) are probed and not owned, but have no vulnerabilities and can't be
+   exploited. The perception layer now requires `vulnerabilities.length > 0` for needsExploit.
+
+9. **ICE interrupt re-score loop** — After ICE interruption, the interrupt handler immediately
+   re-scored and picked the same exploit, which got interrupted again → infinite loop (81+
+   evasions per run). Removed the interrupt re-score; the main loop now handles it naturally.
+   Added ICE cooldown penalty (-20) to deprioritize recently-interrupted nodes for one cycle.
+
+### Results After Round 2
+
+| Network             | Win Rate | Notes |
+|---------------------|----------|-------|
+| corporate-foothold  | 0/10     | 0 cash, 0 store visits — starting hand never matches vulns |
+| research-station    | 3/10     | 16/20 nodes owned, store working (5-16 visits), 9k-60k cash |
+| corporate-exchange  | 3/10     | Up to 14/14 nodes, high ICE evasion counts on failing seeds |
+
+### Remaining Issues
+
+- **corporate-foothold card economy** — Starting hand has no vulnerability matches for any
+  node. All exploits are hail-marys. Bot runs out of cards before reaching lootable nodes
+  (3-4 hops deep). Needs either: starting cash to buy from store, better starting hand
+  generation, or a network with shallower paths to loot.
 
 - **Set-piece design: disarm post-conditions** — The alarm-latch disarm action should
   require `latchEnabled === true` so it self-gates after execution. Currently worked around

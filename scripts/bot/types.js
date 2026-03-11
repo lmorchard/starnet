@@ -72,6 +72,7 @@
  * @property {string} gamePhase
  * @property {Set<string>} failedExploits — "nodeId:cardId" pairs that already failed
  * @property {Set<string>} completedActions — "nodeId:actionId" pairs already completed
+ * @property {Set<string>} iceCooldown — node IDs recently interrupted by ICE
  * @property {(fromId: string, toId: string) => string[]|null} shortestPath
  */
 

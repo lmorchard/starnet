@@ -5,6 +5,7 @@
 /** @typedef {import('./types.js').WorldModel} WorldModel */
 
 import { emitEvent, on, off, E, tick, getState } from "../lib/headless-engine.js";
+import { buyFromStore } from "../../js/core/store-logic.js";
 
 /** Actions that start a timed process and need tick-forward */
 const TIMED_ACTIONS = new Set(["probe", "exploit", "read", "loot", "reboot"]);
@@ -44,6 +45,18 @@ export function execute(choice, world, opts = {}) {
   // If we need to select a different node first
   if (choice.nodeId && choice.nodeId !== state.selectedNodeId && choice.action !== "select") {
     emitEvent("starnet:action", { actionId: "select", nodeId: choice.nodeId });
+  }
+
+  // Bot-only action: buy a card directly from the store (headless)
+  if (choice.action === "buy-card") {
+    const vulnId = choice.payload?.vulnId;
+    if (vulnId) {
+      const result = buyFromStore(vulnId);
+      if (result) {
+        emitEvent(E.STATE_CHANGED, getState());
+      }
+    }
+    return { completed: true, interrupted: false, ticksUsed: 0 };
   }
 
   // Build the action payload

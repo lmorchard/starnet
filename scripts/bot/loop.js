@@ -26,6 +26,8 @@ export function runLoop(strategies, opts = {}) {
   const failedExploits = new Set();
   /** @type {Set<string>} Track disarmed node:action pairs to avoid retrying */
   const completedActions = new Set();
+  /** @type {Set<string>} Nodes where ICE recently interrupted — avoid for a cycle */
+  const iceCooldown = new Set();
 
   // Track events for stats
   const onDetected = () => { stats.iceDetections++; };
@@ -45,7 +47,7 @@ export function runLoop(strategies, opts = {}) {
       const state = getState();
       if (state.phase !== "playing") break;
 
-      const world = perceive(state, { failedExploits, completedActions });
+      const world = perceive(state, { failedExploits, completedActions, iceCooldown });
 
       // If mission is complete, jack out
       if (world.mission.complete) {
@@ -72,9 +74,17 @@ export function runLoop(strategies, opts = {}) {
         ? getState().nodes[choice.nodeId]?.accessLevel
         : null;
 
+      // Snapshot cash before buy-card for tracking spend
+      const cashBefore = choice.action === "buy-card" ? getState().player.cash : 0;
+
       recordAction(stats, choice);
       const result = execute(choice, world);
       totalTicks += result.ticksUsed || 1;
+
+      // Track buy-card cash spent
+      if (choice.action === "buy-card") {
+        stats.cashSpent += cashBefore - getState().player.cash;
+      }
 
       // Track instant actions that shouldn't repeat (disarm, reconfigure, etc.)
       if (choice.action.startsWith("disarm") && choice.nodeId) {
@@ -96,20 +106,14 @@ export function runLoop(strategies, opts = {}) {
       }
 
       if (result.interrupted) {
-        // ICE arrived mid-action — re-score
+        // ICE arrived mid-action — already cancelled + deselected in execute.
+        // Cool down this node for ONE cycle so the bot tries something else first.
         recordEvasion(stats);
-        if (verbose) console.log("[BOT] ICE interrupted — re-scoring.");
-
-        const interruptWorld = perceive(getState());
-        const interruptChoice = score(interruptWorld, strategies, { verbose });
-
-        if (interruptChoice) {
-          if (verbose) {
-            console.log(`[BOT] interrupt → ${interruptChoice.action} ${interruptChoice.nodeId ?? ""} (${interruptChoice.score})`);
-          }
-          recordAction(stats, interruptChoice);
-          execute(interruptChoice, interruptWorld);
-        }
+        if (choice.nodeId) iceCooldown.add(choice.nodeId);
+        if (verbose) console.log("[BOT] ICE interrupted — will re-score next cycle.");
+      } else {
+        // Non-interrupted cycle clears all cooldowns (one-cycle penalty served)
+        iceCooldown.clear();
       }
     }
 
