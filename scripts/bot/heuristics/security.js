@@ -7,6 +7,8 @@
 const STRATEGY = "security";
 const BASE_RECONFIGURE = 70;
 const CANCEL_TRACE_SCORE = 900;
+// When alert is green, deprioritize security work — explore data nodes first
+const GREEN_ALERT_PENALTY = 35;
 
 /**
  * @param {WorldModel} world
@@ -36,7 +38,10 @@ export function securityStrategy(world) {
     }
   }
 
-  // Prioritize subverting IDS nodes
+  // Prioritize subverting IDS nodes (but not when alert is still green —
+  // probing IDS can trigger alert escalation, so explore data nodes first)
+  const alertPenalty = world.player.alertLevel === "green" ? GREEN_ALERT_PENALTY : 0;
+
   for (const nodeId of world.security) {
     const node = world.nodes.get(nodeId);
     if (!node || node.type !== "ids") continue;
@@ -62,19 +67,22 @@ export function securityStrategy(world) {
       proposals.push({
         action: "probe",
         nodeId,
-        score: BASE_RECONFIGURE + 2,
+        score: BASE_RECONFIGURE + 2 - alertPenalty,
         reason: "probe IDS for subversion",
         strategy: STRATEGY,
       });
     } else {
-      // Probed but not owned — exploit
+      // Probed but not owned — exploit (only if we have a matching card)
       const card = pickBestCard(world, nodeId);
       if (card) {
+        // Only propose at high priority if card actually matches a vuln
+        const matchingIds = world.cardMatchesByNode.get(nodeId) ?? [];
+        const isMatch = matchingIds.includes(card.id);
         proposals.push({
           action: "exploit",
           nodeId,
-          score: BASE_RECONFIGURE + 1,
-          reason: "exploit IDS for subversion",
+          score: (isMatch ? BASE_RECONFIGURE + 1 : BASE_RECONFIGURE - 30) - alertPenalty,
+          reason: isMatch ? "exploit IDS for subversion" : "hail-mary exploit on IDS",
           strategy: STRATEGY,
           payload: { exploitId: card.id },
         });

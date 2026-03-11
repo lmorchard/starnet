@@ -16,14 +16,26 @@ export function cardsStrategy(world) {
   /** @type {ScoredAction[]} */
   const proposals = [];
 
-  // Check if we have any cards that match visible nodes' vulns
-  const hasUsableMatch = world.needsExploit.some(nodeId =>
-    (world.cardMatchesByNode.get(nodeId)?.length ?? 0) > 0
+  if (world.needsExploit.length === 0) return proposals;
+
+  // Check if we have any non-failed cards that match exploitable nodes' vulns
+  const hasUsableMatch = world.needsExploit.some(nodeId => {
+    const matchingIds = world.cardMatchesByNode.get(nodeId) ?? [];
+    // Filter out cards that already failed on this node
+    return matchingIds.some(cardId =>
+      !world.failedExploits.has(`${nodeId}:${cardId}`)
+    );
+  });
+
+  // Check if any card in hand hasn't failed on at least one exploitable node
+  const hasAnyUsableCard = world.hand.some(card =>
+    world.needsExploit.some(nodeId =>
+      !world.failedExploits.has(`${nodeId}:${card.id}`)
+    )
   );
 
-  // If no cards match any exploitable node, visit the store
-  if (!hasUsableMatch && world.needsExploit.length > 0 && world.hand.length > 0) {
-    // Find the WAN node for store access
+  // Visit store if no matching cards (or all matches exhausted)
+  if (!hasUsableMatch && world.hand.length > 0) {
     const wanNodeId = findWanNode(world);
     if (wanNodeId && world.player.cash > 0) {
       proposals.push({
@@ -36,15 +48,16 @@ export function cardsStrategy(world) {
     }
   }
 
-  // Hand is completely empty and can't buy
-  if (world.hand.length === 0 && world.needsExploit.length > 0) {
+  // Jack out if we're truly stuck: no usable cards left and can't buy more
+  if (!hasAnyUsableCard) {
     const wanNodeId = findWanNode(world);
-    if (!wanNodeId || world.player.cash <= 0) {
+    const canBuy = wanNodeId && world.player.cash > 0;
+    if (!canBuy) {
       proposals.push({
         action: "jackout",
         nodeId: null,
         score: NO_CARDS_JACKOUT,
-        reason: "no cards, can't buy — jack out",
+        reason: "no usable cards, can't buy — jack out",
         strategy: STRATEGY,
       });
     }

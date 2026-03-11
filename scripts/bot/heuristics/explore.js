@@ -12,6 +12,10 @@ const SELECTED_BONUS = 8;
 const MISSION_BONUS = 10;
 const DISTANCE_PENALTY = 5;
 
+// Node types that are dangerous to probe (trigger alert escalation)
+const DANGEROUS_TYPES = new Set(["ids", "security-monitor"]);
+const DANGEROUS_PENALTY = 10;
+
 /**
  * @param {WorldModel} world
  * @returns {ScoredAction[]}
@@ -22,10 +26,12 @@ export function exploreStrategy(world) {
 
   // Propose selecting revealed (but not yet accessible) nodes to traverse deeper
   for (const nodeId of world.revealed) {
+    const node = world.nodes.get(nodeId);
+    const dangerPenalty = (node && DANGEROUS_TYPES.has(node.type)) ? DANGEROUS_PENALTY : 0;
     proposals.push({
       action: "select",
       nodeId,
-      score: BASE_SELECT_REVEALED,
+      score: BASE_SELECT_REVEALED - dangerPenalty,
       reason: "select revealed node to make accessible",
       strategy: STRATEGY,
       payload: { nodeId },
@@ -54,11 +60,17 @@ export function exploreStrategy(world) {
     const distance = pathDistance(world, nodeId);
     const missionBonus = isMissionRelevant(world, nodeId) ? MISSION_BONUS : 0;
     const selectedBonus = (nodeId === world.player.selectedNodeId) ? SELECTED_BONUS : 0;
+
+    // Slight penalty for hail-mary (non-matching) exploits — prefer matches
+    // but still willing to try non-matching cards over just exploring
+    const matchingIds = world.cardMatchesByNode.get(nodeId) ?? [];
+    const matchPenalty = matchingIds.includes(card.id) ? 0 : 5;
+
     proposals.push({
       action: "exploit",
       nodeId,
-      score: BASE_EXPLOIT + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY),
-      reason: `exploit with ${card.name}${missionBonus ? " (mission path)" : ""}`,
+      score: BASE_EXPLOIT + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - matchPenalty,
+      reason: `exploit with ${card.name}${missionBonus ? " (mission path)" : ""}${matchPenalty ? " (hail-mary)" : ""}`,
       strategy: STRATEGY,
       payload: { exploitId: card.id },
     });

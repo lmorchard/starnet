@@ -6,6 +6,7 @@
 
 const STRATEGY = "evasion";
 const ICE_ON_NODE_CANCEL = 800;
+const TRACE_JACKOUT = 100;
 const POST_ACTION_DESELECT = 15;
 
 /**
@@ -23,6 +24,18 @@ export function evasionStrategy(world) {
       nodeId: null,
       score: ICE_ON_NODE_CANCEL,
       reason: "ICE on current node — hide",
+      strategy: STRATEGY,
+    });
+  }
+
+  // If trace is active, propose jacking out (security heuristic may override
+  // with cancel-trace if the bot owns a security monitor)
+  if (world.player.traceActive) {
+    proposals.push({
+      action: "jackout",
+      nodeId: null,
+      score: TRACE_JACKOUT,
+      reason: "trace active — jack out to save progress",
       strategy: STRATEGY,
     });
   }

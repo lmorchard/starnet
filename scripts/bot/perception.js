@@ -11,7 +11,7 @@ import { getAvailableActions } from "../../js/core/actions/node-actions.js";
 /**
  * Build a WorldModel snapshot from current game state.
  * @param {import('../../js/core/types.js').GameState} state
- * @param {{ failedExploits?: Set<string> }} [context]
+ * @param {{ failedExploits?: Set<string>, completedActions?: Set<string> }} [context]
  * @returns {WorldModel}
  */
 export function perceive(state, context = {}) {
@@ -46,7 +46,7 @@ export function perceive(state, context = {}) {
     const isAccessible = n.visibility === "accessible";
     const isOwned = n.accessLevel === "owned";
 
-    if (isOwned) {
+    if (isOwned && !isWan) {
       owned.push(id);
 
       // Check for disarm actions
@@ -55,10 +55,12 @@ export function perceive(state, context = {}) {
       const disarms = actions.filter(a => a.id.startsWith("disarm"));
       if (disarms.length > 0) hasDisarmActions.push(id);
 
-      // Lootable: not read, or read but not looted with macguffins
+      // Lootable: nodes with read/looted attributes (from "lootable" trait)
+      // that haven't been fully looted yet. read/looted are undefined on
+      // node types that don't support these actions (gateway, router, etc.)
       if (n.read === false) {
         lootable.push(id);
-      } else if (n.looted === false && n.macguffins?.length > 0) {
+      } else if (n.read === true && n.looted === false && n.macguffins?.length > 0) {
         lootable.push(id);
       }
     } else if (isAccessible && !isWan) {
@@ -88,7 +90,9 @@ export function perceive(state, context = {}) {
   for (const [nodeId, node] of nodes) {
     if (!node.vulnerabilities?.length) continue;
     const vulnTypes = new Set(node.vulnerabilities.map(v => v.type));
-    const matching = hand.filter(c => vulnTypes.has(c.vulnType)).map(c => c.id);
+    const matching = hand.filter(c =>
+      c.targetVulnTypes.some(t => vulnTypes.has(t))
+    ).map(c => c.id);
     if (matching.length > 0) cardMatchesByNode.set(nodeId, matching);
   }
 
@@ -134,6 +138,7 @@ export function perceive(state, context = {}) {
     mission,
     gamePhase: state.phase,
     failedExploits: context.failedExploits ?? new Set(),
+    completedActions: context.completedActions ?? new Set(),
     shortestPath,
   };
 }
@@ -145,13 +150,13 @@ export function perceive(state, context = {}) {
  */
 function buildHand(state) {
   return (state.player.hand ?? [])
-    .filter(c => (c.uses ?? 1) > 0)
+    .filter(c => c.usesRemaining > 0 && c.decayState !== "disclosed")
     .map(c => ({
       id: c.id,
       name: c.name,
-      vulnType: c.vulnType,
+      targetVulnTypes: c.targetVulnTypes,
       quality: c.quality ?? 50,
-      usesLeft: c.uses ?? 1,
+      usesLeft: c.usesRemaining,
     }));
 }
 

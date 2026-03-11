@@ -38,7 +38,7 @@
  * @typedef {Object} WorldCard
  * @property {string} id
  * @property {string} name
- * @property {string} vulnType
+ * @property {string[]} targetVulnTypes
  * @property {number} quality
  * @property {number} usesLeft
  */
@@ -71,6 +71,7 @@
  * @property {WorldMission} mission
  * @property {string} gamePhase
  * @property {Set<string>} failedExploits — "nodeId:cardId" pairs that already failed
+ * @property {Set<string>} completedActions — "nodeId:actionId" pairs already completed
  * @property {(fromId: string, toId: string) => string[]|null} shortestPath
  */
 

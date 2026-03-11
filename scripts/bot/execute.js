@@ -17,6 +17,19 @@ const INSTANT_ACTIONS = new Set([
 ]);
 
 /**
+ * Check if an action is instant. Handles dynamic action IDs (disarm-*) that
+ * aren't in the static sets.
+ * @param {string} actionId
+ * @returns {boolean}
+ */
+function isInstant(actionId) {
+  if (INSTANT_ACTIONS.has(actionId)) return true;
+  if (actionId.startsWith("disarm")) return true;
+  if (!TIMED_ACTIONS.has(actionId)) return true; // unknown actions default to instant
+  return false;
+}
+
+/**
  * Execute a scored action: dispatch it and tick forward if needed.
  *
  * @param {ScoredAction} choice
@@ -44,7 +57,7 @@ export function execute(choice, world, opts = {}) {
   emitEvent("starnet:action", payload);
 
   // Instant actions are done immediately
-  if (!TIMED_ACTIONS.has(choice.action)) {
+  if (isInstant(choice.action)) {
     return { completed: true, interrupted: false, ticksUsed: 0 };
   }
 

@@ -24,6 +24,8 @@ export function runLoop(strategies, opts = {}) {
   let totalTicks = 0;
   /** @type {Set<string>} */
   const failedExploits = new Set();
+  /** @type {Set<string>} Track disarmed node:action pairs to avoid retrying */
+  const completedActions = new Set();
 
   // Track events for stats
   const onDetected = () => { stats.iceDetections++; };
@@ -43,7 +45,7 @@ export function runLoop(strategies, opts = {}) {
       const state = getState();
       if (state.phase !== "playing") break;
 
-      const world = perceive(state, { failedExploits });
+      const world = perceive(state, { failedExploits, completedActions });
 
       // If mission is complete, jack out
       if (world.mission.complete) {
@@ -73,6 +75,11 @@ export function runLoop(strategies, opts = {}) {
       recordAction(stats, choice);
       const result = execute(choice, world);
       totalTicks += result.ticksUsed || 1;
+
+      // Track instant actions that shouldn't repeat (disarm, reconfigure, etc.)
+      if (choice.action.startsWith("disarm") && choice.nodeId) {
+        completedActions.add(`${choice.nodeId}:${choice.action}`);
+      }
 
       // Track failed exploits: if access level didn't change, mark this card+node as failed
       if (choice.action === "exploit" && result.completed && choice.nodeId) {

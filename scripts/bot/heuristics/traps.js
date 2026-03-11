@@ -19,6 +19,9 @@ export function trapsStrategy(world) {
     const actions = world.availableActions.get(nodeId) ?? [];
     for (const action of actions) {
       if (!action.id.startsWith("disarm")) continue;
+      // Skip actions we already completed (they may still appear "available"
+      // due to missing post-conditions on the set-piece definition)
+      if (world.completedActions.has(`${nodeId}:${action.id}`)) continue;
       proposals.push({
         action: action.id,
         nodeId,

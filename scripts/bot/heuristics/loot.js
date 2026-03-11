@@ -22,11 +22,16 @@ export function lootStrategy(world) {
     const node = world.nodes.get(nodeId);
     if (!node) continue;
 
+    // Only propose read/loot if the action is actually available on this node type
+    const actions = world.availableActions.get(nodeId) ?? [];
+    const canRead = actions.some(a => a.id === "read");
+    const canLoot = actions.some(a => a.id === "loot");
+
     const distance = pathDistance(world, nodeId);
     const hasMissionTarget = world.mission.targetNodeId === nodeId;
     const missionBonus = hasMissionTarget ? MISSION_BONUS : 0;
 
-    if (node.read === false) {
+    if (!node.read && canRead) {
       // Needs reading first
       proposals.push({
         action: "read",
@@ -35,7 +40,7 @@ export function lootStrategy(world) {
         reason: `read owned node${hasMissionTarget ? " (MISSION TARGET)" : ""}`,
         strategy: STRATEGY,
       });
-    } else if (node.looted === false && node.macguffins?.length > 0) {
+    } else if (!node.looted && node.macguffins?.length > 0 && canLoot) {
       // Read but not looted
       proposals.push({
         action: "loot",
