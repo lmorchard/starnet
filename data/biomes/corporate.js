@@ -14,6 +14,7 @@ import {
   switchArrangement, multiKeyVault, honeyPot, encryptedVault,
   cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor,
   tamperDetect, serverBank, officeCluster,
+  largeServerBank, vaultCluster, defensePlex, fortifiedGate, dataCenter,
 } from "../../js/core/network/set-pieces.js";
 
 import {
@@ -49,6 +50,12 @@ const catalog = [
   encryptedVault,
   // Defense + puzzle
   tamperDetect,
+  // Scaled variants (higher cost tiers)
+  largeServerBank,
+  vaultCluster,
+  defensePlex,
+  fortifiedGate,
+  dataCenter,
 ];
 
 /** @type {BiomeDef} */
