@@ -90,3 +90,92 @@ Ran the new modular bot against all 3 networks and found 5 bugs + 3 strategy iss
 - **Set-piece design: disarm post-conditions** — The alarm-latch disarm action should
   require `latchEnabled === true` so it self-gates after execution. Currently worked around
   in the bot, but this is a game-side fix that would benefit all consumers.
+
+---
+
+## Session Retro
+
+### What Was Delivered (vs Spec)
+
+All 8 phases from the plan were completed:
+
+1. Shared headless engine — done, `scripts/lib/headless-engine.js`
+2. Bot types and stats — done, `scripts/bot/types.js` + `stats.js`
+3. Perception layer — done, `scripts/bot/perception.js`
+4. Scoring engine — done, `scripts/bot/scoring.js`
+5. Execute layer — done, `scripts/bot/execute.js`
+6. Strategy heuristics (6) — done, `scripts/bot/heuristics/*.js`
+7. Main loop + run + CLI — done, `scripts/bot/{loop,run,cli}.js`
+8. Playtest harness refactor — done, `scripts/playtest.js` uses shared engine
+
+Spec items explicitly deferred and still deferred:
+- Census CLI rebuild (separate session)
+- LLM-driven bot (future)
+- Strategy tuning/weight optimization
+
+### What Worked Well
+
+- **The perception→scoring→execute pipeline is solid.** Cleanly separates
+  concerns. Heuristics are easy to reason about and tune independently. The
+  verbose scoring output was invaluable for debugging.
+
+- **Pluggable strategies.** The spec's vision of composable "personalities"
+  works — different strategy mixes would produce meaningfully different play.
+
+- **Shared headless engine.** The extraction from playtest.js was clean and
+  the two entry points share code without friction.
+
+- **Iterative smoke-testing caught 9 bugs.** Running the bot and reading the
+  verbose output was more effective than unit tests would have been at this
+  stage, because the bugs were integration-level (wrong field names, missing
+  state transitions, action availability mismatches).
+
+### What Didn't Work Well
+
+- **Field name mismatches dominated the bugs.** 3 of 9 bugs were the bot
+  reading the wrong property name from game state objects (`uses` vs
+  `usesRemaining`, `vulnType` vs `targetVulnTypes`, `v.type` vs `v.id`).
+  The JSDoc types in `scripts/bot/types.js` defined a `WorldCard.vulnType`
+  that didn't match the actual `ExploitCard.targetVulnTypes`. These should
+  have been caught by the type checker if the bot files were in the lint
+  scope, or by a simple integration test that verifies card matching.
+
+- **The original implementation (Phase 1-8) shipped with zero working card
+  matching.** Every exploit was a hail-mary. The bot appeared to work (it
+  ran, it produced stats) but was fundamentally broken. This went unnoticed
+  because there was no smoke-test step in the plan.
+
+- **Headless store was a no-op.** The spec mentioned store visits but the
+  headless engine passed `() => {}` for `openDarknetsStore`. The bot needs
+  to call `buyFromStore()` directly — this wasn't in the plan.
+
+- **ICE interrupt re-scoring was spec'd but caused an infinite loop.** The
+  spec described the interrupt as "re-enter the scoring loop" but in practice
+  the re-scored choice was always the same node, causing a tight loop. The
+  fix was to remove the re-score and let the main loop handle it with a
+  cooldown penalty.
+
+### Lessons
+
+- **Add a smoke-test phase to bot/agent plans.** "Run it against each network
+  with verbose output and check the first 20 decisions" would have caught
+  all the field-name bugs immediately.
+
+- **Bot perception should validate against source types.** Either include bot
+  files in `make lint`, or write a small test that asserts `buildHand()`
+  output shape matches `ExploitCard` field names.
+
+- **Test card matching specifically.** A test like "given a hand with
+  `targetVulnTypes: ['weak-auth']` and a node with `vulnerabilities: [{id:
+  'weak-auth'}]`, assert the card appears in `cardMatchesByNode`" would have
+  prevented 2 of the 3 field-name bugs.
+
+### Follow-Up Work
+
+- **Census CLI rebuild** — batch runner for balance analysis across seeds.
+  Separate session.
+- **Bot unit tests** — perception, card matching, heuristic proposals. Would
+  prevent regression on field-name bugs.
+- **corporate-foothold balance** — starting hand generation should consider
+  network vulnerabilities, or the network should provide starting cash.
+- **Disarm post-conditions** — game-side fix to alarm-latch set-piece.
