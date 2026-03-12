@@ -34,6 +34,28 @@
 /** @typedef {import('../node-graph/types.js').Effect} Effect */
 /** @typedef {import('../node-graph/types.js').MessageDescriptor} MessageDescriptor */
 
+// ---------------------------------------------------------------------------
+// Type definitions
+// ---------------------------------------------------------------------------
+
+/**
+ * A typed connection point on a set-piece.
+ * @typedef {Object} Port
+ * @property {string} nodeId              -which internal node is the port
+ * @property {"inbound"|"outbound"|"lateral"} direction
+ * @property {string[]} wantsTags         -tag preferences for what should attach (empty = anything)
+ * @property {boolean} required           -must the generator fill this port?
+ */
+
+/**
+ * A long-range dependency — companion pieces that must be placed elsewhere.
+ * @typedef {Object} Dependency
+ * @property {string} role                -identifier for linking (e.g. quality counter name)
+ * @property {string[]} tags              -what tags the companion piece should have
+ * @property {number} count               -how many companions needed
+ * @property {"deeper"|"shallower"|"any"} placement
+ */
+
 /**
  * A set-piece definition — a self-contained, reusable subgraph.
  * @typedef {Object} SetPieceDef
@@ -42,7 +64,11 @@
  * @property {NodeDef[]} nodes
  * @property {[string, string][]} internalEdges
  * @property {TriggerDef[]} [triggers]
- * @property {string[]} externalPorts   - node IDs that connect to rest of network
+ * @property {string[]} externalPorts     -node IDs that connect to rest of network (legacy)
+ * @property {string[]} [tags]            -role tags (entry, spine, filler, treasure, etc.)
+ * @property {string} [cost]              -grade F through S
+ * @property {Port[]} [ports]             -typed connection points (replaces externalPorts for procgen)
+ * @property {Dependency[]} [requires]    - long-range companion requirements
  */
 
 /**
@@ -51,7 +77,25 @@
  * @property {NodeDef[]} nodes
  * @property {[string, string][]} edges
  * @property {TriggerDef[]} triggers
- * @property {string[]} externalPorts   - prefixed port IDs
+ * @property {string[]} externalPorts     -prefixed port IDs
+ */
+
+/**
+ * A biome definition — a catalog of set-pieces with default budget.
+ * @typedef {Object} BiomeDef
+ * @property {string} id
+ * @property {NetworkSpec} defaultBudget
+ * @property {SetPieceDef[]} catalog
+ */
+
+/**
+ * A network generation request — 4 budget axes as grades.
+ * @typedef {Object} NetworkSpec
+ * @property {string} threat              -grade (S/A/B/C/D/F)
+ * @property {string} wealth              -grade
+ * @property {string} complexity          -grade
+ * @property {string} depth               -grade
+ * @property {{ tags: string[], placement: string }|null} [missionTarget]
  */
 
 // ---------------------------------------------------------------------------
