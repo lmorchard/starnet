@@ -178,6 +178,16 @@ export function generateSkeleton(spec, biome, rng) {
   // Ensure at least one treasure at a leaf
   ensureTreasureLeaf(root, coverage);
 
+  // Ensure defense content when threat is C+ — place early (depth 2) where budget is ample
+  if (gradeToNumber(spec.threat) >= 3) {
+    ensureTagEarly(root, "defense", coverage);
+  }
+
+  // Ensure puzzle content when complexity is C+
+  if (gradeToNumber(spec.complexity) >= 3) {
+    ensureTag(root, "puzzle", coverage);
+  }
+
   return root;
 }
 
@@ -225,6 +235,72 @@ function buildBranches(parent, depth, maxD, spec, coverage, rng, slotBudget) {
       buildBranches(slot, nextDepth, maxD, spec, coverage, rng, slotBudget);
     }
   }
+}
+
+/**
+ * Ensure at least one non-leaf slot has the given tag. If none do, reassign
+ * the first non-entry, non-spine slot to that tag.
+ * @param {SkeletonSlot} root
+ * @param {string} tag
+ * @param {ReturnType<typeof buildTagCoverage>} coverage
+ */
+function ensureTag(root, tag, coverage) {
+  if (!coverage.singleTags.has(tag)) return;
+
+  // Check if any slot already has this tag
+  const allSlots = collectAll(root);
+  if (allSlots.some(s => s.tags.includes(tag))) return;
+
+  // Find a non-leaf slot that isn't entry or spine to reassign
+  const candidate = allSlots.find(s =>
+    !s.isLeaf &&
+    !s.tags.includes("entry") &&
+    !s.tags.includes("spine") &&
+    !s.tags.includes("treasure")
+  );
+  if (candidate) {
+    candidate.tags = [tag];
+  }
+}
+
+/**
+ * Like ensureTag but prefers the shallowest available slot (depth 2 ideally).
+ * This ensures expensive tags get placed early when budget is ample.
+ * @param {SkeletonSlot} root
+ * @param {string} tag
+ * @param {ReturnType<typeof buildTagCoverage>} coverage
+ */
+function ensureTagEarly(root, tag, coverage) {
+  if (!coverage.singleTags.has(tag)) return;
+
+  const allSlots = collectAll(root);
+  if (allSlots.some(s => s.tags.includes(tag))) return;
+
+  // Find shallowest non-entry, non-spine slot
+  const candidates = allSlots
+    .filter(s =>
+      !s.tags.includes("entry") &&
+      !s.tags.includes("spine") &&
+      !s.tags.includes("treasure")
+    )
+    .sort((a, b) => a.depth - b.depth);
+
+  if (candidates.length > 0) {
+    candidates[0].tags = [tag];
+  }
+}
+
+/**
+ * Collect all slots from a skeleton tree.
+ * @param {SkeletonSlot} slot
+ * @returns {SkeletonSlot[]}
+ */
+function collectAll(slot) {
+  const result = [slot];
+  for (const child of slot.children) {
+    result.push(...collectAll(child));
+  }
+  return result;
 }
 
 /**
