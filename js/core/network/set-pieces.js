@@ -28,11 +28,11 @@
  * If you need directed routing the player can see: use graph edges, not destinations.
  */
 
-/** @typedef {import('./types.js').NodeDef} NodeDef */
-/** @typedef {import('./types.js').TriggerDef} TriggerDef */
-/** @typedef {import('./types.js').Condition} Condition */
-/** @typedef {import('./types.js').Effect} Effect */
-/** @typedef {import('./types.js').MessageDescriptor} MessageDescriptor */
+/** @typedef {import('../node-graph/types.js').NodeDef} NodeDef */
+/** @typedef {import('../node-graph/types.js').TriggerDef} TriggerDef */
+/** @typedef {import('../node-graph/types.js').Condition} Condition */
+/** @typedef {import('../node-graph/types.js').Effect} Effect */
+/** @typedef {import('../node-graph/types.js').MessageDescriptor} MessageDescriptor */
 
 /**
  * A set-piece definition — a self-contained, reusable subgraph.

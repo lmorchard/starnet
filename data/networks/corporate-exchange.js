@@ -7,7 +7,7 @@
  * Set-pieces: idsRelayChain, noisySensor, probeBurstAlarm, honeyPot, officeCluster.
  */
 
-import { instantiate, SET_PIECES } from "../../js/core/node-graph/set-pieces.js";
+import { instantiate, SET_PIECES } from "../../js/core/network/set-pieces.js";
 import {
   createGateway, createRouter, createFirewall, createCryptovault,
   createWAN, createGameNode,

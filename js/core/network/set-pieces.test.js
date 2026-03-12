@@ -1,10 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { instantiate, SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect } from "./set-pieces.js";
-import { createGameNode } from "./game-types.js";
-import { NodeGraph } from "./runtime.js";
-import { mockCtx } from "./ctx.js";
-import { createMessage } from "./message.js";
+import { createGameNode } from "../node-graph/game-types.js";
+import { NodeGraph } from "../node-graph/runtime.js";
+import { mockCtx } from "../node-graph/ctx.js";
+import { createMessage } from "../node-graph/message.js";
 
 // ---------------------------------------------------------------------------
 // instantiate() — structural correctness
