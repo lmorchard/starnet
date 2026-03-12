@@ -59,8 +59,10 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
   const crossEdges = [];
   /** @type {Map<string, PlacedPiece>} slotId → placed piece */
   const placed = new Map();
+  /** @type {Set<string>} Track which piece IDs have been used for diversity */
+  const usedPieceIds = new Set();
 
-  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining });
+  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds);
 
   return { pieces, crossEdges, ok };
 }
@@ -76,9 +78,10 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
  * @param {[string, string][]} crossEdges
  * @param {Map<string, PlacedPiece>} placed
  * @param {{ budget: number }} state
+ * @param {Set<string>} usedPieceIds
  * @returns {boolean}
  */
-function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state) {
+function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds) {
   // 1. Filter catalog candidates
   let candidates = findCandidates(slot, parentPiece, biome, state.budget);
 
@@ -93,8 +96,8 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   }
   if (candidates.length === 0) return false;
 
-  // 2. Pick a piece (weighted random — prefer lower cost to conserve budget)
-  const chosen = pickCandidate(candidates, rng);
+  // 2. Pick a piece (weighted random — prefer lower cost + diversity)
+  const chosen = pickCandidate(candidates, rng, usedPieceIds);
 
   // 3. Instantiate
   const prefix = slot.id.replace(/^slot-\d+-/, ""); // clean prefix
@@ -124,10 +127,11 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     outboundNodeIds: outboundPorts.map(p => p.nodeId),
   };
 
-  // 6. Spend budget
+  // 6. Spend budget, track diversity
   state.budget -= gradeToNumber(chosen.cost ?? "F");
   pieces.push(piece);
   placed.set(slot.id, piece);
+  usedPieceIds.add(chosen.id);
 
   // 7. Wire to parent — if parent has no outbound port left, skip this piece
   // entirely to prevent orphan nodes.
@@ -146,7 +150,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   // 8. Fill children
   let outPortIdx = 0;
   for (const child of slot.children) {
-    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state)) {
+    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds)) {
       return false;
     }
   }
@@ -167,7 +171,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     const fillerCandidates = findCandidates(fillerSlot, piece, biome, state.budget);
     if (fillerCandidates.length === 0) break;
 
-    const fillerChosen = pickCandidate(fillerCandidates, rng);
+    const fillerChosen = pickCandidate(fillerCandidates, rng, usedPieceIds);
     const fillerPrefix = fillerSlot.id.replace(/^slot-\d+-/, "");
     const fillerInstance = instantiate(fillerChosen, fillerPrefix);
     const fillerNodes = fillerInstance.nodes.map(n => createGameNode(n));
@@ -255,17 +259,21 @@ function findCandidates(slot, parentPiece, biome, budget) {
 }
 
 /**
- * Pick a candidate, weighted toward lower cost (conserve budget).
+ * Pick a candidate, weighted toward lower cost and diversity.
  * @param {SetPieceDef[]} candidates
  * @param {() => number} rng
+ * @param {Set<string>} [usedPieceIds] - IDs of already-placed pieces (penalized)
  * @returns {SetPieceDef}
  */
-function pickCandidate(candidates, rng) {
+function pickCandidate(candidates, rng, usedPieceIds) {
   if (candidates.length === 1) return candidates[0];
 
-  // Weight: inverse of cost (cheaper = higher weight). This conserves budget
-  // for more variety rather than spending it all on one expensive piece.
-  const weights = candidates.map(c => 7 - gradeToNumber(c.cost ?? "F"));
+  // Weight: inverse of cost × diversity bonus. Already-used pieces get 1/3 weight.
+  const weights = candidates.map(c => {
+    const costWeight = 7 - gradeToNumber(c.cost ?? "F");
+    const diversityMult = (usedPieceIds && usedPieceIds.has(c.id)) ? 0.33 : 1;
+    return Math.max(0.1, costWeight * diversityMult);
+  });
   const total = weights.reduce((s, w) => s + w, 0);
   let roll = rng() * total;
   for (let i = 0; i < candidates.length; i++) {
