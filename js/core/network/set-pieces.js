@@ -276,6 +276,12 @@ export const idsRelayChain = {
   // security trait. No set-piece triggers needed.
   triggers: [],
   externalPorts: ["ids", "monitor"],
+  tags: ["defense"],
+  cost: "C",
+  ports: [
+    { nodeId: "ids", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "monitor", direction: "outbound", wantsTags: ["filler", "treasure"], required: false },
+  ],
 };
 
 /**
@@ -346,6 +352,11 @@ export const nthAlarm = {
   internalEdges: [["sensor", "alarm-latch"]],
   triggers: [],
   externalPorts: ["sensor"],
+  tags: ["pressure", "trap"],
+  cost: "C",
+  ports: [
+    { nodeId: "sensor", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -452,6 +463,14 @@ export const combinationLock = {
     },
   ],
   externalPorts: ["switch-a", "switch-b", "switch-c", "gate"],
+  tags: ["puzzle", "treasure", "gate"],
+  cost: "B",
+  ports: [
+    { nodeId: "switch-a", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "switch-b", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "switch-c", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "gate", direction: "outbound", wantsTags: ["treasure", "filler"], required: false },
+  ],
 };
 
 /**
@@ -533,6 +552,11 @@ export const deadmanCircuit = {
   ],
   triggers: [],
   externalPorts: ["heartbeat-relay"],
+  tags: ["pressure", "trap"],
+  cost: "B",
+  ports: [
+    { nodeId: "heartbeat-relay", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -638,6 +662,14 @@ export const switchArrangement = {
     },
   ],
   externalPorts: ["panel-alpha", "panel-beta", "panel-gamma", "hidden-subnet"],
+  tags: ["filler", "puzzle"],
+  cost: "D",
+  ports: [
+    { nodeId: "panel-alpha", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "panel-beta", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "panel-gamma", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "hidden-subnet", direction: "outbound", wantsTags: ["treasure", "filler"], required: false },
+  ],
 };
 
 /**
@@ -728,6 +760,13 @@ export const multiKeyVault = {
   ],
   triggers: [],
   externalPorts: ["key-server-1", "key-server-2", "vault-node"],
+  tags: ["puzzle", "treasure"],
+  cost: "D",
+  ports: [
+    { nodeId: "key-server-1", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "key-server-2", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "vault-node", direction: "outbound", wantsTags: ["filler"], required: false },
+  ],
 };
 
 /**
@@ -769,6 +808,11 @@ export const honeyPot = {
   internalEdges: [],
   triggers: [],
   externalPorts: ["honey-pot"],
+  tags: ["trap"],
+  cost: "A",
+  ports: [
+    { nodeId: "honey-pot", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -861,6 +905,12 @@ export const encryptedVault = {
     },
   ],
   externalPorts: ["key-gen", "vault"],
+  tags: ["puzzle", "treasure"],
+  cost: "B",
+  ports: [
+    { nodeId: "key-gen", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "vault", direction: "outbound", wantsTags: ["filler"], required: false },
+  ],
 };
 
 /**
@@ -975,6 +1025,13 @@ export const cascadeShutdown = {
     },
   ],
   externalPorts: ["relay-a", "relay-b", "relay-c"],
+  tags: ["pressure", "puzzle"],
+  cost: "A",
+  ports: [
+    { nodeId: "relay-a", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "relay-b", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "relay-c", direction: "lateral", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -1035,6 +1092,12 @@ export const tripwireGauntlet = {
     },
   ],
   externalPorts: ["sensor", "alarm"],
+  tags: ["pressure"],
+  cost: "B",
+  ports: [
+    { nodeId: "sensor", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "alarm", direction: "outbound", wantsTags: ["filler", "treasure"], required: false },
+  ],
 };
 
 /**
@@ -1086,6 +1149,11 @@ export const probeBurstAlarm = {
     },
   ],
   externalPorts: ["scanner"],
+  tags: ["pressure", "defense"],
+  cost: "A",
+  ports: [
+    { nodeId: "scanner", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -1141,6 +1209,11 @@ export const noisySensor = {
     },
   ],
   externalPorts: ["sensor"],
+  tags: ["defense", "pressure"],
+  cost: "C",
+  ports: [
+    { nodeId: "sensor", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -1237,6 +1310,14 @@ export const tamperDetect = {
     },
   ],
   externalPorts: ["ids", "security-monitor", "tamper-relay", "tamper-flag"],
+  tags: ["defense", "puzzle"],
+  cost: "B",
+  ports: [
+    { nodeId: "ids", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "security-monitor", direction: "outbound", wantsTags: ["filler", "treasure"], required: false },
+    { nodeId: "tamper-relay", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "tamper-flag", direction: "outbound", wantsTags: [], required: false },
+  ],
 };
 
 /**
@@ -1291,6 +1372,14 @@ export const serverBank = {
   ],
   triggers: [],
   externalPorts: ["hub", "server-1", "server-2", "server-3"],
+  tags: ["filler", "treasure"],
+  cost: "D",
+  ports: [
+    { nodeId: "hub", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "server-1", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "server-2", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "server-3", direction: "outbound", wantsTags: [], required: false },
+  ],
 };
 
 /**
@@ -1336,6 +1425,13 @@ export const officeCluster = {
   ],
   triggers: [],
   externalPorts: ["fileserver", "workstation-1", "workstation-2"],
+  tags: ["filler", "treasure"],
+  cost: "D",
+  ports: [
+    { nodeId: "fileserver", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "workstation-1", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "workstation-2", direction: "outbound", wantsTags: [], required: false },
+  ],
 };
 
 /**
