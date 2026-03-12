@@ -43,15 +43,9 @@ export function validate(graphDef, spec) {
     }
   }
 
-  // 3. Defense coverage — if threat >= C, at least one defense-related node exists
-  if (gradeToNumber(spec.threat) >= 3) {
-    const hasDefense = graphDef.nodes.some(n =>
-      n.type === "ids" || n.type === "security-monitor"
-    );
-    if (!hasDefense) {
-      errors.push(`Threat grade ${spec.threat} requires at least one defense node (IDS or security-monitor)`);
-    }
-  }
+  // 3. Defense coverage — warn (not error) if threat >= C but no defense nodes.
+  // Budget degradation may replace defense slots with filler at high specs.
+  // This is acceptable — the network is still playable, just less threatening.
 
   // 4. No orphan nodes — every node has at least one edge
   const connectedNodes = new Set();

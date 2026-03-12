@@ -129,8 +129,11 @@ export function costBudget(spec) {
   const w = gradeToNumber(spec.wealth);
   const c = gradeToNumber(spec.complexity);
   const d = gradeToNumber(spec.depth);
-  // Base budget: sum of all axes, scaled. Minimum 6 (enough for entry + spine + 1 leaf).
-  return Math.max(6, Math.round((t + w + c + d) * 1.5));
+  // Budget scales with axes. Higher specs need more expensive pieces,
+  // so the multiplier increases with total magnitude.
+  const sum = t + w + c + d;
+  const multiplier = sum >= 16 ? 2.5 : sum >= 12 ? 2.0 : 1.5;
+  return Math.max(8, Math.round(sum * multiplier));
 }
 
 // ---------------------------------------------------------------------------

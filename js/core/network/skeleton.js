@@ -12,7 +12,7 @@
 /** @typedef {import('./set-pieces.js').BiomeDef} BiomeDef */
 /** @typedef {import('./set-pieces.js').SetPieceDef} SetPieceDef */
 
-import { gradeToNumber, maxDepth, TAG_WEIGHTS } from "./budget.js";
+import { gradeToNumber, maxDepth, TAG_WEIGHTS, costBudget } from "./budget.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -159,15 +159,21 @@ export function generateSkeleton(spec, biome, rng) {
   const coverage = buildTagCoverage(biome.catalog);
   const maxD = maxDepth(spec.depth);
 
+  // Slot budget: limit skeleton size to what the cost budget can fill.
+  // Each slot costs ~2 points on average (mix of F=1 and C/D=2-3 pieces).
+  const slotBudget = { remaining: Math.floor(costBudget(spec) / 2) };
+
   // Root: entry point
   const root = makeSlot("entry", ["entry"], 0, null);
+  slotBudget.remaining--;
 
   // Depth 1: always a spine node
   const spine = makeSlot("spine-0", ["spine"], 1, root.id);
   root.children.push(spine);
+  slotBudget.remaining--;
 
   // Build remaining depth levels
-  buildBranches(spine, 1, maxD, spec, coverage, rng);
+  buildBranches(spine, 1, maxD, spec, coverage, rng, slotBudget);
 
   // Ensure at least one treasure at a leaf
   ensureTreasureLeaf(root, coverage);
@@ -183,13 +189,17 @@ export function generateSkeleton(spec, biome, rng) {
  * @param {NetworkSpec} spec
  * @param {ReturnType<typeof buildTagCoverage>} coverage
  * @param {() => number} rng
+ * @param {{ remaining: number }} slotBudget
  */
-function buildBranches(parent, depth, maxD, spec, coverage, rng) {
-  const numBranches = branchCount(spec, depth, maxD, rng);
+function buildBranches(parent, depth, maxD, spec, coverage, rng, slotBudget) {
+  if (slotBudget.remaining <= 0) return;
+
+  const numBranches = Math.min(branchCount(spec, depth, maxD, rng), slotBudget.remaining);
 
   for (let i = 0; i < numBranches; i++) {
+    if (slotBudget.remaining <= 0) break;
     const nextDepth = depth + 1;
-    const isLeaf = nextDepth >= maxD;
+    const isLeaf = nextDepth >= maxD || slotBudget.remaining <= 1;
 
     // Pick tag for this branch
     let tag;
@@ -209,9 +219,10 @@ function buildBranches(parent, depth, maxD, spec, coverage, rng) {
     const slot = makeSlot(`d${nextDepth}-${i}`, [tag], nextDepth, parent.id);
     slot.isLeaf = isLeaf;
     parent.children.push(slot);
+    slotBudget.remaining--;
 
     if (!isLeaf) {
-      buildBranches(slot, nextDepth, maxD, spec, coverage, rng);
+      buildBranches(slot, nextDepth, maxD, spec, coverage, rng, slotBudget);
     }
   }
 }

@@ -18,7 +18,7 @@
 
 import { instantiate } from "./set-pieces.js";
 import { createGameNode } from "../node-graph/game-types.js";
-import { gradeToNumber } from "./budget.js";
+import { gradeToNumber, costBudget } from "./budget.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,7 +52,7 @@ import { gradeToNumber } from "./budget.js";
  * @returns {{ pieces: PlacedPiece[], crossEdges: [string, string][], ok: boolean }}
  */
 export function fillSkeleton(skeleton, biome, spec, rng) {
-  let budgetRemaining = totalBudget(spec);
+  let budgetRemaining = costBudget(spec);
   /** @type {PlacedPiece[]} */
   const pieces = [];
   /** @type {[string, string][]} */
@@ -80,7 +80,17 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
  */
 function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state) {
   // 1. Filter catalog candidates
-  const candidates = findCandidates(slot, parentPiece, biome, state.budget);
+  let candidates = findCandidates(slot, parentPiece, biome, state.budget);
+
+  // Fallback: if no candidates match the slot's tags at current budget,
+  // try any F-cost piece with an inbound port. Better to degrade the tag
+  // requirement than fail entirely.
+  if (candidates.length === 0 && parentPiece) {
+    candidates = biome.catalog.filter(p => {
+      const cost = gradeToNumber(p.cost ?? "F");
+      return cost <= 1 && p.ports?.some(port => port.direction === "inbound");
+    });
+  }
   if (candidates.length === 0) return false;
 
   // 2. Pick a piece (weighted random — prefer lower cost to conserve budget)
@@ -171,13 +181,13 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
       outboundNodeIds: fillerPorts.filter(p => p.direction === "outbound").map(p => p.nodeId),
     };
 
+    // Only add the filler piece if we can actually wire it to the parent
+    const parentOut = consumeOutboundPort(piece);
+    if (!parentOut || !fillerPiece.inboundNodeId) break;
+
     state.budget -= gradeToNumber(fillerChosen.cost ?? "F");
     pieces.push(fillerPiece);
-
-    const parentOut = consumeOutboundPort(piece);
-    if (parentOut && fillerPiece.inboundNodeId) {
-      crossEdges.push([parentOut, fillerPiece.inboundNodeId]);
-    }
+    crossEdges.push([parentOut, fillerPiece.inboundNodeId]);
   }
 
   return true;
@@ -208,10 +218,12 @@ function findCandidates(slot, parentPiece, biome, budget) {
     );
   }
 
-  // Cost must fit remaining budget
-  candidates = candidates.filter(p =>
-    gradeToNumber(p.cost ?? "F") <= budget
-  );
+  // Cost must fit remaining budget — but F-cost atomics are always allowed
+  // as fallback (they're essentially free structural filler)
+  candidates = candidates.filter(p => {
+    const cost = gradeToNumber(p.cost ?? "F");
+    return cost <= budget || cost <= 1; // F-cost (1) always allowed
+  });
 
   // Compatibility: parent's outbound port wantsTags
   if (parentPiece) {
@@ -272,15 +284,4 @@ function consumeOutboundPort(piece) {
 // Budget
 // ---------------------------------------------------------------------------
 
-/**
- * Compute total cost budget for a spec.
- * @param {NetworkSpec} spec
- * @returns {number}
- */
-function totalBudget(spec) {
-  const t = gradeToNumber(spec.threat ?? "C");
-  const w = gradeToNumber(spec.wealth ?? "C");
-  const c = gradeToNumber(spec.complexity ?? "C");
-  const d = gradeToNumber(spec.depth ?? "C");
-  return Math.max(6, Math.round((t + w + c + d) * 1.5));
-}
+// Use shared costBudget from budget.js (no local copy to get out of sync)
