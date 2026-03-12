@@ -145,8 +145,10 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     }
   }
 
-  // 9. Opportunistically fill extra outbound ports with filler/treasure
-  while (piece.outboundNodeIds.length > 0 && state.budget >= 1) {
+  // 9. Opportunistically fill up to 1 extra outbound port with filler/treasure.
+  // Capped to avoid network bloat from multi-node filler pieces.
+  let extrasAdded = 0;
+  while (piece.outboundNodeIds.length > 0 && state.budget >= 1 && extrasAdded < 1) {
     const fillerSlot = {
       id: `${slot.id}-extra-${piece.outboundNodeIds.length}`,
       tags: [rng() < 0.6 ? "filler" : "treasure"],
@@ -188,6 +190,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     state.budget -= gradeToNumber(fillerChosen.cost ?? "F");
     pieces.push(fillerPiece);
     crossEdges.push([parentOut, fillerPiece.inboundNodeId]);
+    extrasAdded++;
   }
 
   return true;
