@@ -1,4 +1,4 @@
-.PHONY: serve lint test check bundle-vendor census bot-census bot-run ng-playtest
+.PHONY: serve lint test check bundle-vendor census bot-run generate gen-bot
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -33,3 +33,15 @@ NET ?= corporate-foothold
 SEED ?= ""
 bot-run:
 	node scripts/bot/cli.js --network $(NET) $(if $(filter-out "",$(SEED)),--seed $(SEED))
+
+# Generate a network and play it with the bot
+THREAT ?= C
+WEALTH ?= B
+COMPLEXITY ?= C
+DEPTH ?= C
+gen-bot:
+	node scripts/bot/cli.js --generated --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED))
+
+# Generate a network and start a playtest session
+generate:
+	node scripts/playtest.js --generated --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED)) reset

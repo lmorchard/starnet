@@ -187,7 +187,7 @@ function runCmd(raw) {
     resetGame(() => buildNetworkFn(), seedArg ?? undefined);
     const s = getState();
     const nodeCount = Object.keys(s.nodes).length;
-    const networkName = pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? "corporate-foothold");
+    const networkName = generatedArg ? `generated (${threatArg}/${wealthArg}/${complexityArg}/${depthArg})` : pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? "corporate-foothold");
     out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes (${networkName}).`);
     return;
   }

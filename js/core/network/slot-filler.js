@@ -129,11 +129,17 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   pieces.push(piece);
   placed.set(slot.id, piece);
 
-  // 7. Wire to parent
+  // 7. Wire to parent — if parent has no outbound port left, skip this piece
+  // entirely to prevent orphan nodes.
   if (parentPiece && piece.inboundNodeId) {
     const parentOutPort = consumeOutboundPort(parentPiece);
     if (parentOutPort) {
       crossEdges.push([parentOutPort, piece.inboundNodeId]);
+    } else {
+      // Can't wire — remove piece to prevent orphan. Refund budget.
+      pieces.pop();
+      state.budget += gradeToNumber(chosen.cost ?? "F");
+      return true; // continue with siblings (they might not need this parent's ports)
     }
   }
 

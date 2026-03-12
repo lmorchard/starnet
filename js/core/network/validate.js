@@ -60,9 +60,9 @@ export function validate(graphDef, spec) {
     errors.push(`Orphan nodes (no edges): ${realOrphans.map(n => n.id).join(", ")}`);
   }
 
-  // 5. Minimum node count — at least 4 nodes (entry + spine + 1 content + wan)
-  if (graphDef.nodes.length < 4) {
-    errors.push(`Too few nodes: ${graphDef.nodes.length} (minimum 4)`);
+  // 5. Minimum node count — at least 8 nodes for a meaningful network
+  if (graphDef.nodes.length < 8) {
+    errors.push(`Too few nodes: ${graphDef.nodes.length} (minimum 8)`);
   }
 
   return { valid: errors.length === 0, errors };
