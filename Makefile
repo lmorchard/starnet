@@ -1,4 +1,4 @@
-.PHONY: serve lint test check bundle-vendor census bot-census ng-playtest
+.PHONY: serve lint test check bundle-vendor census bot-census bot-run ng-playtest
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -28,9 +28,8 @@ bundle-vendor:
 census:
 	node scripts/network-census.js
 
-# Run bot simulation at B/B (override with: make bot-census TC=S MC=S SEEDS=50)
-TC ?= B
-MC ?= B
-SEEDS ?= 100
-bot-census:
-	node scripts/bot-census.js --time $(TC) --money $(MC) --seeds $(SEEDS)
+# Run bot player against a network (override with: make bot-run NET=research-station SEED=test-1)
+NET ?= corporate-foothold
+SEED ?= ""
+bot-run:
+	node scripts/bot/cli.js --network $(NET) $(if $(filter-out "",$(SEED)),--seed $(SEED))
