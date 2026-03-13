@@ -15,6 +15,7 @@ import {
   cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor,
   tamperDetect, serverBank, officeCluster,
   largeServerBank, vaultCluster, defensePlex, fortifiedGate, dataCenter,
+  scatteredLock1, scatteredLock3, scatteredLock5,
   entryPoint, singleRouter, singleFirewall,
   singleWorkstation, singleFileserver,
 } from "./corporate-pieces.js";
@@ -47,6 +48,10 @@ const catalog = [
   encryptedVault,
   // Defense + puzzle
   tamperDetect,
+  // Scattered variants (nodes distributed across network)
+  scatteredLock1,
+  scatteredLock3,
+  scatteredLock5,
   // Scaled variants (higher cost tiers)
   largeServerBank,
   vaultCluster,

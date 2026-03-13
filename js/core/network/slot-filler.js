@@ -37,6 +37,14 @@ import { gradeToNumber, costBudget } from "./budget.js";
  * @property {string[]} outboundNodeIds - prefixed outbound port node IDs (unconsumed)
  */
 
+/**
+ * A deferred scatter placement — scattered nodes waiting for pass 2.
+ * @typedef {Object} ScatterObligation
+ * @property {string} prefix - parent piece prefix (shared with core)
+ * @property {NodeDef[]} scatteredNodes - instantiated scattered nodes
+ * @property {SetPieceDef} pieceDef - original piece definition
+ */
+
 // ---------------------------------------------------------------------------
 // Slot filler
 // ---------------------------------------------------------------------------
@@ -60,8 +68,18 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
   const placed = new Map();
   /** @type {Set<string>} Track which piece IDs have been used for diversity */
   const usedPieceIds = new Set();
+  /** @type {ScatterObligation[]} Deferred scattered nodes for pass 2 */
+  const scatterObligations = [];
 
-  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds);
+  // Pass 1: fill all skeleton slots
+  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds, scatterObligations);
+  if (!ok) return { pieces, crossEdges, ok: false };
+
+  // Pass 2: place scattered nodes in gate-free slots
+  if (scatterObligations.length > 0) {
+    const scatterOk = placeScatteredNodes(scatterObligations, pieces, skeleton, crossEdges, placed);
+    if (!scatterOk) return { pieces, crossEdges, ok: false };
+  }
 
   return { pieces, crossEdges, ok };
 }
@@ -78,9 +96,10 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
  * @param {Map<string, PlacedPiece>} placed
  * @param {{ budget: number }} state
  * @param {Set<string>} usedPieceIds
+ * @param {ScatterObligation[]} scatterObligations
  * @returns {boolean}
  */
-function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds) {
+function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations) {
   // 1. Filter catalog candidates
   let candidates = findCandidates(slot, parentPiece, biome, state.budget);
 
@@ -102,7 +121,21 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   const prefix = slot.id.replace(/^slot-\d+-/, ""); // clean prefix
   const instance = instantiate(chosen, prefix);
 
-  const gameNodes = instance.nodes;
+  // 4. Separate core nodes from scattered nodes
+  const scatteredIds = new Set(
+    chosen.nodes.filter(n => n.scatter).map(n => `${prefix}/${n.id}`)
+  );
+  let gameNodes = instance.nodes;
+  let gameEdges = instance.edges;
+
+  if (scatteredIds.size > 0) {
+    const scatteredNodes = gameNodes.filter(n => scatteredIds.has(n.id));
+    gameNodes = gameNodes.filter(n => !scatteredIds.has(n.id));
+    // Filter edges — drop any edge referencing a scattered node
+    gameEdges = gameEdges.filter(([a, b]) => !scatteredIds.has(a) && !scatteredIds.has(b));
+    // Record scatter obligation for pass 2
+    scatterObligations.push({ prefix, scatteredNodes, pieceDef: chosen });
+  }
 
   // 5. Build prefixed ports
   const prefixedPorts = (chosen.ports ?? []).map(p => ({
@@ -118,7 +151,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     pieceDef: chosen,
     prefix,
     nodes: gameNodes,
-    edges: instance.edges,
+    edges: gameEdges,
     triggers: instance.triggers,
     ports: prefixedPorts,
     inboundNodeId: inboundPort?.nodeId ?? null,
@@ -148,7 +181,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   // 8. Fill children
   let outPortIdx = 0;
   for (const child of slot.children) {
-    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds)) {
+    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations)) {
       return false;
     }
   }
@@ -298,6 +331,92 @@ function pickCandidate(candidates, rng, usedPieceIds) {
 function consumeOutboundPort(piece) {
   if (piece.outboundNodeIds.length === 0) return null;
   return piece.outboundNodeIds.shift() ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Scatter placement (pass 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute which skeleton slots are reachable from the entry without passing
+ * through any placed piece that contains a puzzle gate (concealed nodes or
+ * scattered nodes that create unsolvable dependencies).
+ *
+ * Regular gate-tagged pieces (routers, firewalls) are NOT blocking — the
+ * player can always hack through them. Only puzzle gates that require solving
+ * a distributed puzzle (concealed vaults, scattered lock cores) block scatter
+ * placement.
+ *
+ * @param {Map<string, PlacedPiece>} placed - slotId → piece
+ * @param {SkeletonSlot} skeleton - root of skeleton tree
+ * @returns {Set<string>} gate-free slot IDs
+ */
+export function computeGateFreeSlots(placed, skeleton) {
+  /** @type {Set<string>} */
+  const gateFree = new Set();
+
+  /**
+   * @param {SkeletonSlot} slot
+   * @param {boolean} blocked - whether an ancestor was a puzzle gate
+   */
+  function walk(slot, blocked) {
+    const piece = placed.get(slot.id);
+    // A piece is a puzzle gate if it has concealed nodes (vault behind a lock)
+    // or if it has scattered nodes (it IS a distributed puzzle core)
+    const isPuzzleGate = piece?.pieceDef?.nodes?.some(
+      n => n.attributes?.concealed || n.scatter
+    ) ?? false;
+    const nowBlocked = blocked || isPuzzleGate;
+
+    if (!nowBlocked) {
+      gateFree.add(slot.id);
+    }
+
+    for (const child of slot.children) {
+      walk(child, nowBlocked);
+    }
+  }
+
+  walk(skeleton, false);
+  return gateFree;
+}
+
+/**
+ * Place all deferred scattered nodes into gate-free slots.
+ *
+ * @param {ScatterObligation[]} obligations
+ * @param {PlacedPiece[]} pieces
+ * @param {SkeletonSlot} skeleton
+ * @param {[string, string][]} crossEdges
+ * @param {Map<string, PlacedPiece>} placed
+ * @returns {boolean} true if all scattered nodes were placed
+ */
+function placeScatteredNodes(obligations, pieces, skeleton, crossEdges, placed) {
+  const gateFreeSlots = computeGateFreeSlots(placed, skeleton);
+
+  for (const obligation of obligations) {
+    for (const scatteredNode of obligation.scatteredNodes) {
+      // Find a piece in a gate-free slot with an unused outbound port
+      let attached = false;
+      for (const piece of pieces) {
+        if (piece.outboundNodeIds.length === 0) continue;
+        if (!gateFreeSlots.has(piece.slot.id)) continue;
+
+        const outPort = consumeOutboundPort(piece);
+        if (!outPort) continue;
+
+        // Add scattered node to the piece's node list and wire it
+        piece.nodes.push(scatteredNode);
+        crossEdges.push([outPort, scatteredNode.id]);
+        attached = true;
+        break;
+      }
+
+      if (!attached) return false; // couldn't place — generation should retry
+    }
+  }
+
+  return true;
 }
 
 // ---------------------------------------------------------------------------
