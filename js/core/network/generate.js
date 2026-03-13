@@ -8,11 +8,12 @@
 /** @typedef {import('./set-pieces.js').NetworkSpec} NetworkSpec */
 /** @typedef {import('./set-pieces.js').BiomeDef} BiomeDef */
 
-import { generateSkeleton } from "./skeleton.js";
+import { generateSkeleton, generateHierarchicalSkeleton } from "./skeleton.js";
 import { fillSkeleton } from "./slot-filler.js";
 import { assembleNetwork } from "./assemble.js";
 import { validate } from "./validate.js";
 import { makeSeededRng } from "../rng.js";
+import { wingCount, hierarchicalBudget } from "./budget.js";
 
 /**
  * Generate a procedural network from a spec and biome catalog.
@@ -41,11 +42,51 @@ export function generateNetwork(seed, spec, biome, opts = {}) {
       console.log(`[GENERATE] Attempt ${attempt + 1}/${maxAttempts} (seed: ${attemptSeed})`);
     }
 
-    // Pass 1: skeleton
-    const skeleton = generateSkeleton(spec, biome, rng);
+    // Decide: flat (F/D) vs hierarchical (C+)
+    const numWings = wingCount(spec.complexity);
+    const useHierarchical = numWings > 0 && biome.recipes?.length > 0;
 
-    // Pass 2: fill slots
-    const { pieces, crossEdges, ok } = fillSkeleton(skeleton, biome, spec, rng);
+    /** @type {import('./skeleton.js').SkeletonSlot} */
+    let skeleton;
+    /** @type {{ pieces: any[], crossEdges: [string, string][], ok: boolean }} */
+    let fillResult;
+
+    if (useHierarchical) {
+      // Hierarchical path: backbone + wings
+      const recipe = biome.recipes.find(r => r.id === spec.recipeId) ?? biome.recipes[0];
+      const result = generateHierarchicalSkeleton(spec, biome, recipe, rng);
+      skeleton = result.root;
+
+      // Fill with per-wing filtering
+      const budgets = hierarchicalBudget(spec, result.wings.length);
+      const subBiomeMap = new Map((biome.subBiomes ?? []).map(sb => [sb.id, sb]));
+      const backbonePalette = biome.backbonePieceIds ? new Set(biome.backbonePieceIds) : null;
+
+      // Build wing palette map: subBiomeId → { palette, requiredPieceIds }
+      /** @type {Map<string, { palette: Set<string>, requiredPieceIds: string[] }>} */
+      const wingPalettes = new Map();
+      for (const w of result.wings) {
+        const sb = w.wingSpec.subBiome;
+        wingPalettes.set(w.slot.id, {
+          palette: new Set(sb.pieceIds),
+          requiredPieceIds: sb.requiredPieceIds,
+        });
+      }
+
+      // Fill the hierarchical skeleton using a unified fill pass.
+      // The slot-filler's palette switching happens via wing entry slot detection.
+      // For now, use the full catalog (wings get all pieces) — we'll thread
+      // per-wing palettes through in a follow-up if needed.
+      fillResult = fillSkeleton(skeleton, biome, spec, rng, {
+        budgetOverride: budgets.total,
+      });
+    } else {
+      // Flat path: existing behavior for F/D networks
+      skeleton = generateSkeleton(spec, biome, rng);
+      fillResult = fillSkeleton(skeleton, biome, spec, rng);
+    }
+
+    const { pieces, crossEdges, ok } = fillResult;
     if (!ok) {
       allErrors.push(`Attempt ${attempt + 1}: slot filling failed`);
       if (verbose) console.log("[GENERATE] Slot filling failed — retrying");
