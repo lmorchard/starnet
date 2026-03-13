@@ -178,18 +178,24 @@ export function initVisualRenderer() {
       const locked = _preRevealNodeIds;
       _preRevealNodeIds = null;
       // Run layout with existing nodes locked in place
-      cy.layout({
+      const layout = cy.layout({
         name: "cola",
         animate: true,
         randomize: false,
-        fit: true,
+        fit: false,
         padding: 50,
         nodeSpacing: 30,
         edgeLength: 120,
         maxSimulationTime: 2000,
         ungrabifyWhileSimulating: true,
         lock: (node) => locked.has(node.id()),
-      }).run();
+      });
+      layout.on("layoutstop", () => {
+        // Re-fit to current selection after new nodes have settled
+        const st = _getState();
+        if (st?.selectedNodeId) syncSelection(st.selectedNodeId, true);
+      });
+      layout.run();
     }, 200);
   });
 
@@ -240,6 +246,7 @@ function syncContextMenu(node, state) {
   const menu = document.getElementById("node-context-menu");
   if (!menu) return;
 
+  const prevNodeId = contextMenuNodeId;
   contextMenuNodeId = node.id;
 
   const actions = getAvailableActions(node, state)
@@ -250,10 +257,10 @@ function syncContextMenu(node, state) {
     return;
   }
 
-  // Skip innerHTML rebuild if the same actions are already rendered — avoids
-  // destroying hover state during timed-action progress ticks.
+  // Skip innerHTML rebuild if the same node + actions are already rendered —
+  // avoids destroying hover state during timed-action progress ticks.
   const actionIdKey = actions.map(a => a.id).join(",");
-  if (actionIdKey === _lastContextMenuActionIds && contextMenuNodeId === node.id) {
+  if (actionIdKey === _lastContextMenuActionIds && prevNodeId === node.id) {
     _positionContextMenu(node.id);
     return;
   }
