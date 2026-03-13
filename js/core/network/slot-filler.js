@@ -174,6 +174,9 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
       // Can't wire — remove piece to prevent orphan. Refund budget.
       pieces.pop();
       state.budget += gradeToNumber(chosen.cost ?? "F");
+      // Also remove any scatter obligation for this piece
+      const oblIdx = scatterObligations.findIndex(o => o.prefix === prefix);
+      if (oblIdx !== -1) scatterObligations.splice(oblIdx, 1);
       return true; // continue with siblings (they might not need this parent's ports)
     }
   }
@@ -401,6 +404,7 @@ export function computeGateFreeSlots(placed, skeleton) {
  */
 function placeScatteredNodes(obligations, pieces, skeleton, crossEdges, placed) {
   const gateFreeSlots = computeGateFreeSlots(placed, skeleton);
+  scatterPlaced.clear();
 
   for (const obligation of obligations) {
     for (const scatteredNode of obligation.scatteredNodes) {
@@ -424,6 +428,7 @@ function attachToFreePort(scatteredNode, pieces, gateFreeSlots, crossEdges) {
 
     piece.nodes.push(scatteredNode);
     crossEdges.push([outPort, scatteredNode.id]);
+    scatterPlaced.add(scatteredNode.id);
     return true;
   }
   return false;
@@ -431,6 +436,9 @@ function attachToFreePort(scatteredNode, pieces, gateFreeSlots, crossEdges) {
 
 /** Replaceable leaf types — cheap filler nodes that can be swapped for scattered nodes. */
 const REPLACEABLE_TYPES = new Set(["workstation", "fileserver"]);
+
+/** Track node IDs that were placed via scatter — can't replace these. */
+const scatterPlaced = new Set();
 
 /**
  * Replace a leaf filler node with a scattered node. The filler node is removed
@@ -443,6 +451,8 @@ function replaceLeafNode(scatteredNode, pieces, gateFreeSlots, crossEdges) {
     if (piece.nodes.length !== 1) continue;
     const candidate = piece.nodes[0];
     if (!REPLACEABLE_TYPES.has(candidate.type)) continue;
+    // Don't replace a node that was already placed via scatter
+    if (scatterPlaced.has(candidate.id)) continue;
     // Don't replace pieces that are the scatter node's own parent
     if (piece.prefix === scatteredNode.id.split("/")[0]) continue;
 
@@ -456,6 +466,7 @@ function replaceLeafNode(scatteredNode, pieces, gateFreeSlots, crossEdges) {
     // Replace: swap the filler node for the scattered node, rewire edge
     piece.nodes[0] = scatteredNode;
     crossEdges[edgeIdx] = [parentPort, scatteredNode.id];
+    scatterPlaced.add(scatteredNode.id);
     return true;
   }
   return false;
