@@ -21,6 +21,7 @@ import {
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
+import { buildNetwork as buildGenerated } from "../data/networks/generated.js";
 import { addLogEntry } from "../js/core/log.js";
 import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
@@ -35,6 +36,8 @@ let seedArg = null;
 let networkArg = null;
 let pieceArg = null;
 let graphFileArg = null;
+let generatedArg = false;
+let threatArg = "C", wealthArg = "B", complexityArg = "C", depthArg = "C";
 
 {
   const argv = process.argv.slice(2);
@@ -49,6 +52,16 @@ let graphFileArg = null;
       pieceArg = argv[++i];
     } else if (argv[i] === "--graph" && argv[i + 1]) {
       graphFileArg = argv[++i];
+    } else if (argv[i] === "--generated" || argv[i] === "-g") {
+      generatedArg = true;
+    } else if (argv[i] === "--threat" && argv[i + 1]) {
+      threatArg = argv[++i];
+    } else if (argv[i] === "--wealth" && argv[i + 1]) {
+      wealthArg = argv[++i];
+    } else if (argv[i] === "--complexity" && argv[i + 1]) {
+      complexityArg = argv[++i];
+    } else if (argv[i] === "--depth" && argv[i + 1]) {
+      depthArg = argv[++i];
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
@@ -63,7 +76,13 @@ const GRAPH_NETWORKS = {
 };
 
 let buildNetworkFn;
-if (pieceArg) {
+if (generatedArg) {
+  // Procedural generation mode
+  const genSeed = seedArg ?? `gen-${Date.now()}`;
+  const spec = { threat: threatArg, wealth: wealthArg, complexity: complexityArg, depth: depthArg };
+  const result = buildGenerated({ seed: genSeed, spec });
+  buildNetworkFn = () => result;
+} else if (pieceArg) {
   // Set-piece mode: wrap in mini-network
   const available = listSetPieces();
   if (!available.includes(pieceArg)) {
@@ -80,7 +99,7 @@ if (pieceArg) {
   const selectedNetwork = networkArg ?? "corporate-foothold";
   buildNetworkFn = GRAPH_NETWORKS[selectedNetwork];
   if (!buildNetworkFn) {
-    console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(GRAPH_NETWORKS).join(", ")}`);
+    console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(GRAPH_NETWORKS).join(", ")}, --generated`);
     process.exit(1);
   }
 }
@@ -168,7 +187,7 @@ function runCmd(raw) {
     resetGame(() => buildNetworkFn(), seedArg ?? undefined);
     const s = getState();
     const nodeCount = Object.keys(s.nodes).length;
-    const networkName = pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? "corporate-foothold");
+    const networkName = generatedArg ? `generated (${threatArg}/${wealthArg}/${complexityArg}/${depthArg})` : pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? "corporate-foothold");
     out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes (${networkName}).`);
     return;
   }

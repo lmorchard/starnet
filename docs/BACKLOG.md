@@ -528,6 +528,36 @@ third time. One case is a data point; a pattern is a signal._
 IDs are already derived from vuln type + counter (e.g. `unpatched-ssh-1`, `kernel-exploit-3`).
 Landed in commit `410c18d`.
 
+### Node Shape Inventory for Graph Visualization
+The Cytoscape graph currently renders all nodes as the same shape. Different node
+types should have distinct visual shapes so the player can read the network topology
+at a glance — routers as diamonds, firewalls as hexagons, fileservers as rectangles,
+etc. The mapping mechanism likely already exists (Cytoscape supports per-node `shape`
+via style selectors keyed on `data.type`); the work is designing the shape inventory
+and wiring it through `graph.js` node styles. Shapes should be meaningful: security
+nodes look different from loot nodes, gate nodes look different from filler.
+
+### Companion Pieces (Long-Range Set-Piece Dependencies)
+The `requires` field exists in the set-piece schema but no piece uses it yet. The
+design: a set-piece can declare companion pieces that must be placed elsewhere in the
+network. Example: a `scatteredVault` declares `requires: [{ pieceId: "scatteredSwitch",
+min: 3, placement: "scattered" }]`. Companions communicate via shared qualities
+(already works). The slot-filler needs a "reservation" mechanism — when placing a piece
+with companions, verify enough open slots exist, then reserve and fill them.
+
+Use case: combination lock where the switches are scattered throughout the LAN instead
+of co-located. The player must explore broadly to find all switches before unlocking
+the vault. Creates a different puzzle feel than the current localized version.
+
+Implementation sketch:
+1. `scatteredSwitch` atomic piece — single switch node, `quality-delta` on activate
+2. `scatteredVault` piece — concealed vault, `quality-gte` trigger
+3. Slot-filler checks `requires` before committing placement, reserves companion slots
+4. Companion placement prefers different branches/depths ("scattered")
+5. If companions can't be placed, piece is ineligible for that slot
+
+_Identified during set-piece jigsaw session phase 2 (2026-03-12)._
+
 ---
 
 ## UI / Visual Polish

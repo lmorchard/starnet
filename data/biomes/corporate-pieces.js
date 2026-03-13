@@ -1,189 +1,13 @@
 // @ts-check
 /**
- * Set-piece library for the reactive node graph runtime.
+ * Corporate biome set-pieces — all puzzle, defense, treasure, and atomic
+ * content for the corporate LAN biome. Each biome has its own pieces file.
  *
- * A set-piece is a self-contained, pre-wired subgraph: nodes with operators,
- * internal edges, triggers, actions, and named external ports. It is the
- * authoring unit for puzzle content. The generator picks set-pieces from a
- * biome palette, instantiates them with a unique prefix, and wires their
- * external ports into the broader network.
- *
- * Usage:
- *   import { instantiate, SET_PIECES } from './set-pieces.js';
- *   const { nodes, edges, triggers, externalPorts } = instantiate(SET_PIECES.combinationLock, 'v1');
- *   const graph = new NodeGraph({ nodes, edges, triggers });
- *
- * ## `destinations` override — appropriate use
- *
- * The `destinations` config on relay/debounce operators hard-wires outgoing message
- * targets, bypassing edge-based adjacency routing. This is only appropriate for
- * **internal set-piece routing** where all targeted nodes are part of the same
- * set-piece and will appear as nodes in the graph.
- *
- * Do NOT use `destinations` to create connections that are invisible to the player.
- * All node-to-node relationships the player needs to reason about must be reflected
- * in `internalEdges` (and thus visible in the rendered graph). Hidden channels make
- * the system illegible — they turn puzzles into gotchas.
- *
- * If you need directed routing the player can see: use graph edges, not destinations.
+ * Infrastructure (instantiate, typedefs) lives in js/core/network/set-pieces.js.
  */
 
-/** @typedef {import('./types.js').NodeDef} NodeDef */
-/** @typedef {import('./types.js').TriggerDef} TriggerDef */
-/** @typedef {import('./types.js').Condition} Condition */
-/** @typedef {import('./types.js').Effect} Effect */
-/** @typedef {import('./types.js').MessageDescriptor} MessageDescriptor */
+/** @typedef {import("../../js/core/network/set-pieces.js").SetPieceDef} SetPieceDef */
 
-/**
- * A set-piece definition — a self-contained, reusable subgraph.
- * @typedef {Object} SetPieceDef
- * @property {string} id
- * @property {string} description
- * @property {NodeDef[]} nodes
- * @property {[string, string][]} internalEdges
- * @property {TriggerDef[]} [triggers]
- * @property {string[]} externalPorts   - node IDs that connect to rest of network
- */
-
-/**
- * An instantiated set-piece, ready to pass to NodeGraph.
- * @typedef {Object} SetPieceInstance
- * @property {NodeDef[]} nodes
- * @property {[string, string][]} edges
- * @property {TriggerDef[]} triggers
- * @property {string[]} externalPorts   - prefixed port IDs
- */
-
-// ---------------------------------------------------------------------------
-// Instantiation
-// ---------------------------------------------------------------------------
-
-/**
- * Prefix a single node ID.
- * @param {string} id
- * @param {string} prefix
- * @returns {string}
- */
-function pfx(id, prefix) {
-  return `${prefix}/${id}`;
-}
-
-/**
- * Rewrite a Condition, prefixing any embedded nodeIds.
- * @param {Condition} cond
- * @param {string} prefix
- * @returns {Condition}
- */
-function rewriteCondition(cond, prefix) {
-  switch (cond.type) {
-    case "node-attr":
-      return cond.nodeId ? { ...cond, nodeId: pfx(cond.nodeId, prefix) } : cond;
-    case "quality-gte":
-    case "quality-eq":
-      return { ...cond, name: pfx(cond.name, prefix) };
-    case "all-of":
-    case "any-of":
-      return { ...cond, conditions: cond.conditions.map((c) => rewriteCondition(c, prefix)) };
-    default:
-      return cond;
-  }
-}
-
-/**
- * Rewrite a MessageDescriptor, prefixing any destination nodeIds.
- * @param {MessageDescriptor} msg
- * @param {string} prefix
- * @returns {MessageDescriptor}
- */
-function rewriteMessage(msg, prefix) {
-  if (!msg.destinations) return msg;
-  return { ...msg, destinations: msg.destinations.map((d) => pfx(d, prefix)) };
-}
-
-/**
- * Rewrite an Effect, prefixing any embedded nodeIds.
- * @param {Effect} effect
- * @param {string} prefix
- * @returns {Effect}
- */
-function rewriteEffect(effect, prefix) {
-  switch (effect.effect) {
-    case "set-node-attr":
-      return { ...effect, nodeId: pfx(effect.nodeId, prefix) };
-    case "reveal-node":
-    case "enable-node":
-      return { ...effect, nodeId: pfx(effect.nodeId, prefix) };
-    case "emit-message":
-      return { ...effect, message: rewriteMessage(effect.message, prefix) };
-    case "quality-delta":
-    case "quality-set":
-      return { ...effect, name: pfx(effect.name, prefix) };
-    default:
-      return effect;
-  }
-}
-
-/**
- * Instantiate a set-piece with a unique prefix.
- * Rewrites all internal node ID references so multiple instances can coexist
- * in the same NodeGraph without ID collisions.
- *
- * @param {SetPieceDef} def
- * @param {string} prefix   - unique string, e.g. "v1", "ids-east", "lock-3"
- * @returns {SetPieceInstance}
- */
-export function instantiate(def, prefix) {
-  const nodes = def.nodes.map((node) => {
-    // Rewrite operator configs that contain node IDs or quality names
-    const operators = (node.operators ?? []).map((cfg) => {
-      let updated = { ...cfg };
-      // Prefix inputs for gate operators
-      if ((cfg.name === "any-of" || cfg.name === "all-of") && cfg.inputs) {
-        updated = { ...updated, inputs: cfg.inputs.map((id) => pfx(id, prefix)) };
-      }
-      // Prefix quality name for tally operator
-      if (cfg.name === "tally" && cfg.quality) {
-        updated = { ...updated, quality: pfx(cfg.quality, prefix) };
-      }
-      // Prefix destinations override (any operator can have one)
-      if (cfg.destinations) {
-        updated = { ...updated, destinations: cfg.destinations.map((d) => pfx(d, prefix)) };
-      }
-      return updated;
-    });
-
-    // Rewrite actions: requires conditions + effects
-    const actions = (node.actions ?? []).map((action) => ({
-      ...action,
-      requires: (action.requires ?? []).map((c) => rewriteCondition(c, prefix)),
-      effects: (action.effects ?? []).map((e) => rewriteEffect(e, prefix)),
-    }));
-
-    return {
-      ...node,
-      id: pfx(node.id, prefix),
-      operators,
-      actions,
-    };
-  });
-
-  const edges = (def.internalEdges ?? []).map(
-    ([a, b]) => /** @type {[string, string]} */ ([pfx(a, prefix), pfx(b, prefix)])
-  );
-
-  const triggers = (def.triggers ?? []).map((t) => ({
-    ...t,
-    id: pfx(t.id, prefix),
-    when: rewriteCondition(t.when, prefix),
-    then: t.then.map((e) => rewriteEffect(e, prefix)),
-  }));
-
-  const externalPorts = def.externalPorts.map((id) => pfx(id, prefix));
-
-  return { nodes, edges, triggers, externalPorts };
-}
-
-// ---------------------------------------------------------------------------
 // Set-piece catalog
 // ---------------------------------------------------------------------------
 
@@ -208,6 +32,7 @@ export const idsRelayChain = {
     {
       id: "ids",
       type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [
@@ -222,6 +47,7 @@ export const idsRelayChain = {
     {
       id: "monitor",
       type: "security-monitor",
+      traits: ["graded", "hackable", "rebootable", "security", "gate"],
       attributes: { accessLevel: "locked", alerted: false },
       operators: [{ name: "flag", on: "alert", attr: "alerted", value: true }],
       actions: [],
@@ -232,6 +58,12 @@ export const idsRelayChain = {
   // security trait. No set-piece triggers needed.
   triggers: [],
   externalPorts: ["ids", "monitor"],
+  tags: ["defense"],
+  cost: "C",
+  ports: [
+    { nodeId: "ids", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "monitor", direction: "outbound", wantsTags: ["filler", "treasure"], required: false },
+  ],
 };
 
 /**
@@ -253,6 +85,7 @@ export const nthAlarm = {
     {
       id: "sensor",
       type: "tripwire-sensor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", threshold: 3, counterEnabled: true },
       operators: [
         {
@@ -275,6 +108,7 @@ export const nthAlarm = {
     {
       id: "alarm-latch",
       type: "alarm-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false, latchEnabled: true },
       operators: [{ name: "latch", enabledAttr: "latchEnabled" }],
       actions: [
@@ -302,6 +136,11 @@ export const nthAlarm = {
   internalEdges: [["sensor", "alarm-latch"]],
   triggers: [],
   externalPorts: ["sensor"],
+  tags: ["pressure", "trap"],
+  cost: "C",
+  ports: [
+    { nodeId: "sensor", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -325,16 +164,21 @@ export const combinationLock = {
     {
       id: "switch-a",
       type: "routing-switch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", activated: false },
       operators: [],
       actions: [
         {
           id: "activate",
           label: "Activate",
-          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "activated", eq: false },
+          ],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
+            { effect: "ctx-call", method: "log", args: ["Switch activated — routing signal sent"] },
           ],
         },
       ],
@@ -342,16 +186,21 @@ export const combinationLock = {
     {
       id: "switch-b",
       type: "routing-switch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", activated: false },
       operators: [],
       actions: [
         {
           id: "activate",
           label: "Activate",
-          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "activated", eq: false },
+          ],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
+            { effect: "ctx-call", method: "log", args: ["Switch activated — routing signal sent"] },
           ],
         },
       ],
@@ -359,16 +208,21 @@ export const combinationLock = {
     {
       id: "switch-c",
       type: "routing-switch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", activated: false },
       operators: [],
       actions: [
         {
           id: "activate",
           label: "Activate",
-          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "activated", eq: false },
+          ],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
+            { effect: "ctx-call", method: "log", args: ["Switch activated — routing signal sent"] },
           ],
         },
       ],
@@ -376,6 +230,7 @@ export const combinationLock = {
     {
       id: "gate",
       type: "logic-gate",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       operators: [{ name: "all-of", inputs: ["switch-a", "switch-b", "switch-c"] }],
       actions: [],
@@ -383,9 +238,24 @@ export const combinationLock = {
     {
       id: "vault",
       type: "cryptovault",
-      attributes: { visible: false, accessLevel: "locked", opened: false },
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", opened: false, concealed: true },
       operators: [{ name: "flag", on: "signal", when: { active: true }, attr: "opened" }],
-      actions: [],
+      actions: [
+        {
+          id: "crack-vault",
+          label: "Crack Vault",
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "opened", eq: true },
+          ],
+          effects: [
+            { effect: "ctx-call", method: "giveReward", args: [1500] },
+            { effect: "set-attr", attr: "opened", value: false },
+            { effect: "ctx-call", method: "log", args: ["Vault cracked — ¥1,500 extracted"] },
+          ],
+        },
+      ],
     },
   ],
   internalEdges: [
@@ -399,15 +269,21 @@ export const combinationLock = {
       id: "vault-reveal",
       when: { type: "node-attr", nodeId: "vault", attr: "opened", eq: true },
       then: [
-        { effect: "set-node-attr", nodeId: "vault", attr: "visible", value: true },
-        { effect: "set-node-attr", nodeId: "vault", attr: "accessLevel", value: "locked" },
-        { effect: "ctx-call", method: "revealNode", args: [] },
+        { effect: "set-node-attr", nodeId: "vault", attr: "concealed", value: false },
+        { effect: "reveal-node", nodeId: "vault" },
         { effect: "ctx-call", method: "log", args: ["Combination lock disengaged — vault accessible"] },
-        { effect: "ctx-call", method: "giveReward", args: [1500] },
       ],
     },
   ],
   externalPorts: ["switch-a", "switch-b", "switch-c", "gate"],
+  tags: ["puzzle", "treasure", "gate"],
+  cost: "B",
+  ports: [
+    { nodeId: "switch-a", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "switch-b", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "switch-c", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "gate", direction: "outbound", wantsTags: ["treasure", "filler"], required: false },
+  ],
 };
 
 /**
@@ -434,6 +310,7 @@ export const deadmanCircuit = {
     {
       id: "heartbeat-clock",
       type: "heartbeat-source",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       // Clock sends heartbeat every 30 ticks (3s) — must be faster than watchdog period
       operators: [{ name: "clock", period: 30 }],
@@ -442,6 +319,7 @@ export const deadmanCircuit = {
     {
       id: "heartbeat-relay",
       type: "heartbeat-monitor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       // Relay forwards heartbeat messages (clock signal arrives as "signal",
       // relay forwards all non-tick messages including signals)
@@ -459,6 +337,7 @@ export const deadmanCircuit = {
     {
       id: "watchdog",
       type: "watchdog-daemon",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       // Watchdog resets on any non-tick message. If no message arrives in
       // 50 ticks (5s), it fires a "set" message to the alarm latch.
@@ -469,6 +348,7 @@ export const deadmanCircuit = {
     {
       id: "alarm-latch",
       type: "alarm-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false },
       operators: [{ name: "latch" }],
       actions: [],
@@ -489,6 +369,12 @@ export const deadmanCircuit = {
   ],
   triggers: [],
   externalPorts: ["heartbeat-relay"],
+  tags: ["pressure", "trap"],
+  cost: "B",
+  minDepth: 3,  // watchdog starts immediately — don't place near entry
+  ports: [
+    { nodeId: "heartbeat-relay", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -512,6 +398,7 @@ export const switchArrangement = {
     {
       id: "panel-alpha",
       type: "routing-panel",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", aligned: false },
       operators: [],
       actions: [
@@ -525,6 +412,7 @@ export const switchArrangement = {
           effects: [
             { effect: "set-attr", attr: "aligned", value: true },
             { effect: "quality-delta", name: "panels-aligned", delta: 1 },
+            { effect: "ctx-call", method: "log", args: ["Panel aligned — routing path adjusted"] },
           ],
         },
       ],
@@ -532,6 +420,7 @@ export const switchArrangement = {
     {
       id: "panel-beta",
       type: "routing-panel",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", aligned: false },
       operators: [],
       actions: [
@@ -545,6 +434,7 @@ export const switchArrangement = {
           effects: [
             { effect: "set-attr", attr: "aligned", value: true },
             { effect: "quality-delta", name: "panels-aligned", delta: 1 },
+            { effect: "ctx-call", method: "log", args: ["Panel aligned — routing path adjusted"] },
           ],
         },
       ],
@@ -552,6 +442,7 @@ export const switchArrangement = {
     {
       id: "panel-gamma",
       type: "routing-panel",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", aligned: false },
       operators: [],
       actions: [
@@ -565,6 +456,7 @@ export const switchArrangement = {
           effects: [
             { effect: "set-attr", attr: "aligned", value: true },
             { effect: "quality-delta", name: "panels-aligned", delta: 1 },
+            { effect: "ctx-call", method: "log", args: ["Panel aligned — routing path adjusted"] },
           ],
         },
       ],
@@ -572,7 +464,8 @@ export const switchArrangement = {
     {
       id: "hidden-subnet",
       type: "hidden-server",
-      attributes: { visible: false, accessLevel: "locked" },
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", concealed: true },
       operators: [],
       actions: [],
     },
@@ -587,13 +480,21 @@ export const switchArrangement = {
       id: "subnet-reveal",
       when: { type: "quality-gte", name: "panels-aligned", value: 3 },
       then: [
-        { effect: "set-node-attr", nodeId: "hidden-subnet", attr: "visible", value: true },
-        { effect: "ctx-call", method: "revealNode", args: [] },
+        { effect: "set-node-attr", nodeId: "hidden-subnet", attr: "concealed", value: false },
+        { effect: "reveal-node", nodeId: "hidden-subnet" },
         { effect: "ctx-call", method: "log", args: ["Routing aligned — hidden subnet accessible"] },
       ],
     },
   ],
   externalPorts: ["panel-alpha", "panel-beta", "panel-gamma", "hidden-subnet"],
+  tags: ["filler", "puzzle"],
+  cost: "D",
+  ports: [
+    { nodeId: "panel-alpha", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "panel-beta", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "panel-gamma", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "hidden-subnet", direction: "outbound", wantsTags: ["treasure", "filler"], required: false },
+  ],
 };
 
 /**
@@ -614,6 +515,7 @@ export const multiKeyVault = {
     {
       id: "key-server-1",
       type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tokenExtracted: false },
       operators: [],
       actions: [
@@ -635,6 +537,7 @@ export const multiKeyVault = {
     {
       id: "key-server-2",
       type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tokenExtracted: false },
       operators: [],
       actions: [
@@ -656,6 +559,7 @@ export const multiKeyVault = {
     {
       id: "vault-node",
       type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
       attributes: { accessLevel: "locked", contents: "corp-secrets", vaultUnlocked: false },
       operators: [],
       actions: [
@@ -684,6 +588,13 @@ export const multiKeyVault = {
   ],
   triggers: [],
   externalPorts: ["key-server-1", "key-server-2", "vault-node"],
+  tags: ["puzzle", "treasure"],
+  cost: "D",
+  ports: [
+    { nodeId: "key-server-1", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "key-server-2", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "vault-node", direction: "outbound", wantsTags: ["filler"], required: false },
+  ],
 };
 
 /**
@@ -708,6 +619,7 @@ export const honeyPot = {
     {
       id: "honey-pot",
       type: "honey-pot",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "owned", contents: "corp-secrets", poisoned: false },
       operators: [{ name: "flag", on: "exploit", attr: "poisoned" }],
       actions: [],
@@ -725,6 +637,11 @@ export const honeyPot = {
   internalEdges: [],
   triggers: [],
   externalPorts: ["honey-pot"],
+  tags: ["trap"],
+  cost: "A",
+  ports: [
+    { nodeId: "honey-pot", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -754,6 +671,7 @@ export const encryptedVault = {
     {
       id: "key-gen",
       type: "key-gen",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", keyReady: false },
       operators: [{ name: "clock", period: 100 }],  // 10s cycle at 100ms/tick
       actions: [
@@ -775,6 +693,7 @@ export const encryptedVault = {
     {
       id: "key-ready-latch",
       type: "signal-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false },
       operators: [{ name: "flag", on: "signal", when: { active: true }, attr: "latched" }],
       actions: [],
@@ -782,6 +701,7 @@ export const encryptedVault = {
     {
       id: "vault",
       type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
       attributes: { accessLevel: "locked", contents: "classified-data" },
       operators: [],
       actions: [
@@ -803,6 +723,7 @@ export const encryptedVault = {
   ],
   internalEdges: [
     ["key-gen", "key-ready-latch"],
+    ["key-gen", "vault"],  // vault must be reachable from key-gen in the graph
   ],
   triggers: [
     {
@@ -817,6 +738,12 @@ export const encryptedVault = {
     },
   ],
   externalPorts: ["key-gen", "vault"],
+  tags: ["puzzle", "treasure"],
+  cost: "B",
+  ports: [
+    { nodeId: "key-gen", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "vault", direction: "outbound", wantsTags: ["filler"], required: false },
+  ],
 };
 
 /**
@@ -837,6 +764,7 @@ export const cascadeShutdown = {
     {
       id: "relay-a",
       type: "data-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
       operators: [],
       actions: [
@@ -856,6 +784,7 @@ export const cascadeShutdown = {
     {
       id: "relay-b",
       type: "data-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
       operators: [],
       actions: [
@@ -875,6 +804,7 @@ export const cascadeShutdown = {
     {
       id: "relay-c",
       type: "data-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
       operators: [],
       actions: [
@@ -894,6 +824,7 @@ export const cascadeShutdown = {
     {
       id: "watchdog",
       type: "watchdog-daemon",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       operators: [{ name: "watchdog", period: 4 }],
       actions: [],
@@ -901,6 +832,7 @@ export const cascadeShutdown = {
     {
       id: "alarm-latch",
       type: "alarm-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false },
       operators: [{ name: "latch" }],
       actions: [],
@@ -931,6 +863,14 @@ export const cascadeShutdown = {
     },
   ],
   externalPorts: ["relay-a", "relay-b", "relay-c"],
+  tags: ["pressure", "puzzle"],
+  cost: "A",
+  minDepth: 3,  // watchdog starts immediately — don't place near entry
+  ports: [
+    { nodeId: "relay-a", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "relay-b", direction: "lateral", wantsTags: [], required: true },
+    { nodeId: "relay-c", direction: "lateral", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -957,6 +897,7 @@ export const tripwireGauntlet = {
     {
       id: "sensor",
       type: "tripwire-sensor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", triggered: false, sensorEnabled: true },
       operators: [
         { name: "flag", on: "probe-noise", attr: "triggered", enabledAttr: "sensorEnabled" },
@@ -974,6 +915,7 @@ export const tripwireGauntlet = {
     {
       id: "alarm",
       type: "alarm",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", triggered: false },
       operators: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
       actions: [],
@@ -991,6 +933,12 @@ export const tripwireGauntlet = {
     },
   ],
   externalPorts: ["sensor", "alarm"],
+  tags: ["pressure"],
+  cost: "B",
+  ports: [
+    { nodeId: "sensor", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "alarm", direction: "outbound", wantsTags: ["filler", "treasure"], required: false },
+  ],
 };
 
 /**
@@ -1016,6 +964,7 @@ export const probeBurstAlarm = {
     {
       id: "scanner",
       type: "traffic-scanner",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tallyEnabled: true },
       operators: [{ name: "tally", on: "probe-noise", quality: "probe-bursts", delta: 1, enabledAttr: "tallyEnabled" }],
       actions: [
@@ -1042,6 +991,11 @@ export const probeBurstAlarm = {
     },
   ],
   externalPorts: ["scanner"],
+  tags: ["pressure", "defense"],
+  cost: "A",
+  ports: [
+    { nodeId: "scanner", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -1064,6 +1018,7 @@ export const noisySensor = {
     {
       id: "sensor",
       type: "traffic-sensor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", debounceEnabled: true },
       operators: [{ name: "debounce", on: "probe-noise", ticks: 4, enabledAttr: "debounceEnabled" }],
       actions: [
@@ -1078,6 +1033,7 @@ export const noisySensor = {
     {
       id: "alarm-flag",
       type: "alarm-flag",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { triggered: false },
       operators: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
       actions: [],
@@ -1097,6 +1053,11 @@ export const noisySensor = {
     },
   ],
   externalPorts: ["sensor"],
+  tags: ["defense", "pressure"],
+  cost: "C",
+  ports: [
+    { nodeId: "sensor", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -1126,6 +1087,7 @@ export const tamperDetect = {
     {
       id: "ids",
       type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [
@@ -1143,6 +1105,7 @@ export const tamperDetect = {
     {
       id: "security-monitor",
       type: "security-monitor",
+      traits: ["graded", "hackable", "rebootable", "security", "gate"],
       attributes: { accessLevel: "locked", alerted: false },
       operators: [{ name: "flag", on: "alert", attr: "alerted" }],
       actions: [],
@@ -1150,6 +1113,7 @@ export const tamperDetect = {
     {
       id: "tamper-relay",
       type: "tamper-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "tamper" }],
       actions: [
@@ -1164,6 +1128,7 @@ export const tamperDetect = {
     {
       id: "tamper-flag",
       type: "tamper-detector",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { triggered: false },
       operators: [{ name: "flag", on: "tamper", attr: "triggered" }],
       actions: [],
@@ -1176,14 +1141,6 @@ export const tamperDetect = {
   ],
   triggers: [
     {
-      id: "alert-reached-monitor",
-      when: { type: "node-attr", nodeId: "security-monitor", attr: "alerted", eq: true },
-      then: [
-        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
-        { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
-      ],
-    },
-    {
       id: "tamper-detected",
       when: { type: "node-attr", nodeId: "tamper-flag", attr: "triggered", eq: true },
       then: [
@@ -1193,6 +1150,14 @@ export const tamperDetect = {
     },
   ],
   externalPorts: ["ids", "security-monitor", "tamper-relay", "tamper-flag"],
+  tags: ["defense", "puzzle"],
+  cost: "B",
+  ports: [
+    { nodeId: "ids", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "security-monitor", direction: "outbound", wantsTags: ["filler", "treasure"], required: false },
+    { nodeId: "tamper-relay", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "tamper-flag", direction: "outbound", wantsTags: [], required: false },
+  ],
 };
 
 /**
@@ -1214,13 +1179,15 @@ export const serverBank = {
     {
       id: "hub",
       type: "router",
-      attributes: { accessLevel: "locked" },
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "compromised" },
       operators: [{ name: "relay" }],
       actions: [],
     },
     {
       id: "server-1",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1228,6 +1195,7 @@ export const serverBank = {
     {
       id: "server-2",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1235,6 +1203,7 @@ export const serverBank = {
     {
       id: "server-3",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1247,6 +1216,14 @@ export const serverBank = {
   ],
   triggers: [],
   externalPorts: ["hub", "server-1", "server-2", "server-3"],
+  tags: ["filler", "treasure"],
+  cost: "D",
+  ports: [
+    { nodeId: "hub", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "server-1", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "server-2", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "server-3", direction: "outbound", wantsTags: [], required: false },
+  ],
 };
 
 /**
@@ -1267,6 +1244,7 @@ export const officeCluster = {
     {
       id: "fileserver",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1274,6 +1252,7 @@ export const officeCluster = {
     {
       id: "workstation-1",
       type: "workstation",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1281,6 +1260,7 @@ export const officeCluster = {
     {
       id: "workstation-2",
       type: "workstation",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1292,6 +1272,239 @@ export const officeCluster = {
   ],
   triggers: [],
   externalPorts: ["fileserver", "workstation-1", "workstation-2"],
+  tags: ["filler", "treasure"],
+  cost: "D",
+  ports: [
+    { nodeId: "fileserver", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "workstation-1", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "workstation-2", direction: "outbound", wantsTags: [], required: false },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// Scaled variants — larger versions of base set-pieces for higher budgets
+// ---------------------------------------------------------------------------
+
+/**
+ * Large Server Bank — 5 fileservers + hub. More loot than the basic server bank.
+ * @type {SetPieceDef}
+ */
+export const largeServerBank = {
+  id: "large-server-bank",
+  description: "Cluster of five lootable fileservers connected to a hub. Rich harvest.",
+  nodes: [
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "compromised" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-4", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-5", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+  ],
+  internalEdges: [
+    ["hub", "server-1"], ["hub", "server-2"], ["hub", "server-3"],
+    ["hub", "server-4"], ["hub", "server-5"],
+  ],
+  triggers: [],
+  externalPorts: ["hub"],
+  tags: ["filler", "treasure"],
+  cost: "C",
+  ports: [
+    { nodeId: "hub", direction: "inbound", wantsTags: [], required: true },
+  ],
+};
+
+/**
+ * Vault Cluster — 3 key-servers feeding 2 vaults. Bigger puzzle, bigger reward.
+ * @type {SetPieceDef}
+ */
+export const vaultCluster = {
+  id: "vault-cluster",
+  description: "Three key-servers feed two vaults. Extract 3 tokens to unlock both.",
+  nodes: [
+    {
+      id: "key-server-1", type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", tokenExtracted: false },
+      operators: [], actions: [{
+        id: "extract-token", label: "Extract Token",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }, { type: "node-attr", attr: "tokenExtracted", eq: false }],
+        effects: [{ effect: "set-attr", attr: "tokenExtracted", value: true }, { effect: "quality-delta", name: "vault-keys", delta: 1 }],
+      }],
+    },
+    {
+      id: "key-server-2", type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", tokenExtracted: false },
+      operators: [], actions: [{
+        id: "extract-token", label: "Extract Token",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }, { type: "node-attr", attr: "tokenExtracted", eq: false }],
+        effects: [{ effect: "set-attr", attr: "tokenExtracted", value: true }, { effect: "quality-delta", name: "vault-keys", delta: 1 }],
+      }],
+    },
+    {
+      id: "key-server-3", type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", tokenExtracted: false },
+      operators: [], actions: [{
+        id: "extract-token", label: "Extract Token",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }, { type: "node-attr", attr: "tokenExtracted", eq: false }],
+        effects: [{ effect: "set-attr", attr: "tokenExtracted", value: true }, { effect: "quality-delta", name: "vault-keys", delta: 1 }],
+      }],
+    },
+    {
+      id: "vault-1", type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
+      attributes: { accessLevel: "locked", vaultUnlocked: false },
+      operators: [], actions: [{
+        id: "unlock-vault", label: "Unlock Vault",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }, { type: "node-attr", attr: "vaultUnlocked", eq: false }, { type: "quality-gte", name: "vault-keys", value: 3 }],
+        effects: [{ effect: "set-attr", attr: "vaultUnlocked", value: true }, { effect: "ctx-call", method: "giveReward", args: [8000] }],
+      }],
+    },
+    {
+      id: "vault-2", type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
+      attributes: { accessLevel: "locked", vaultUnlocked: false },
+      operators: [], actions: [{
+        id: "unlock-vault", label: "Unlock Vault",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }, { type: "node-attr", attr: "vaultUnlocked", eq: false }, { type: "quality-gte", name: "vault-keys", value: 3 }],
+        effects: [{ effect: "set-attr", attr: "vaultUnlocked", value: true }, { effect: "ctx-call", method: "giveReward", args: [8000] }],
+      }],
+    },
+  ],
+  internalEdges: [
+    ["key-server-1", "vault-1"], ["key-server-2", "vault-1"],
+    ["key-server-3", "vault-2"], ["key-server-1", "vault-2"],
+  ],
+  triggers: [],
+  externalPorts: ["key-server-1", "key-server-2", "key-server-3"],
+  tags: ["puzzle", "treasure"],
+  cost: "B",
+  ports: [
+    { nodeId: "key-server-1", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "key-server-2", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "key-server-3", direction: "inbound", wantsTags: [], required: true },
+  ],
+};
+
+/**
+ * Defense Plex — 2 IDS nodes + security monitor. Larger defense footprint.
+ * Both IDS nodes relay to the same monitor. Player must subvert both to
+ * fully sever the alert chain.
+ * @type {SetPieceDef}
+ */
+export const defensePlex = {
+  id: "defense-plex",
+  description: "Two IDS nodes relay alerts to one security monitor. Subvert both to sever the chain.",
+  nodes: [
+    {
+      id: "ids-1", type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
+      attributes: { accessLevel: "locked", forwardingEnabled: true },
+      operators: [{ name: "relay", filter: "alert" }],
+      actions: [{
+        id: "reconfigure", label: "Reconfigure IDS",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+        effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
+      }],
+    },
+    {
+      id: "ids-2", type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
+      attributes: { accessLevel: "locked", forwardingEnabled: true },
+      operators: [{ name: "relay", filter: "alert" }],
+      actions: [{
+        id: "reconfigure", label: "Reconfigure IDS",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+        effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
+      }],
+    },
+    {
+      id: "monitor", type: "security-monitor",
+      traits: ["graded", "hackable", "rebootable", "security", "gate"],
+      attributes: { accessLevel: "locked", alerted: false },
+      operators: [{ name: "flag", on: "alert", attr: "alerted", value: true }],
+      actions: [],
+    },
+  ],
+  internalEdges: [["ids-1", "monitor"], ["ids-2", "monitor"]],
+  triggers: [],
+  externalPorts: ["ids-1", "ids-2", "monitor"],
+  tags: ["defense"],
+  cost: "B",
+  ports: [
+    { nodeId: "ids-1", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "ids-2", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "monitor", direction: "outbound", wantsTags: ["filler", "treasure"], required: false },
+  ],
+};
+
+/**
+ * Fortified Gate — firewall guarded by an IDS. Player must subvert the IDS
+ * before owning the firewall, or alerts escalate.
+ * @type {SetPieceDef}
+ */
+export const fortifiedGate = {
+  id: "fortified-gate",
+  description: "Firewall guarded by IDS. Subvert IDS before owning firewall to avoid alerts.",
+  nodes: [
+    {
+      id: "ids", type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
+      attributes: { accessLevel: "locked", forwardingEnabled: true },
+      operators: [{ name: "relay", filter: "alert" }],
+      actions: [{
+        id: "reconfigure", label: "Reconfigure IDS",
+        requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+        effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
+      }],
+    },
+    {
+      id: "firewall", type: "firewall",
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "owned" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [["ids", "firewall"]],
+  triggers: [],
+  externalPorts: ["ids", "firewall"],
+  tags: ["gate", "defense"],
+  cost: "C",
+  ports: [
+    { nodeId: "ids", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "firewall", direction: "outbound", wantsTags: ["treasure", "puzzle"], required: true },
+  ],
+};
+
+/**
+ * Data Center — hub + 6 fileservers. Jackpot room for high-wealth networks.
+ * @type {SetPieceDef}
+ */
+export const dataCenter = {
+  id: "data-center",
+  description: "Hub connected to six fileservers. Major loot haul for deep runs.",
+  nodes: [
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "compromised" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-4", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-5", type: "cryptovault", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-6", type: "cryptovault", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+  ],
+  internalEdges: [
+    ["hub", "server-1"], ["hub", "server-2"], ["hub", "server-3"],
+    ["hub", "server-4"], ["hub", "server-5"], ["hub", "server-6"],
+  ],
+  triggers: [],
+  externalPorts: ["hub"],
+  tags: ["treasure"],
+  cost: "A",
+  ports: [
+    { nodeId: "hub", direction: "inbound", wantsTags: [], required: true },
+  ],
 };
 
 /**
@@ -1313,4 +1526,175 @@ export const SET_PIECES = {
   tamperDetect,
   serverBank,
   officeCluster,
+  // Scaled variants
+  largeServerBank,
+  vaultCluster,
+  defensePlex,
+  fortifiedGate,
+  dataCenter,
+};
+
+// ---------------------------------------------------------------------------
+// Atomic set-pieces
+// ---------------------------------------------------------------------------
+
+/**
+ * Entry point — gateway + WAN. Exactly one per network.
+ * The gateway is the player's starting node; the WAN provides darknet access.
+ * @type {SetPieceDef}
+ */
+export const entryPoint = {
+  id: "entry-point",
+  description: "Network entry: gateway (player start) + WAN (darknet access).",
+  nodes: [
+    {
+      id: "gateway",
+      type: "gateway",
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", visibility: "accessible" },
+      operators: [],
+      actions: [],
+    },
+    {
+      id: "wan",
+      type: "wan",
+      traits: [],
+      attributes: { accessLevel: "owned", visibility: "accessible" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [["gateway", "wan"]],
+  triggers: [],
+  externalPorts: ["gateway"],
+  tags: ["entry"],
+  cost: "F",
+  ports: [
+    { nodeId: "gateway", direction: "outbound", wantsTags: ["spine", "gate"], required: true },
+  ],
+};
+
+/**
+ * Single router — spine node with multiple outbound ports for branching.
+ * Compromise to reveal the network beyond.
+ * @type {SetPieceDef}
+ */
+export const singleRouter = {
+  id: "single-router",
+  description: "Router node: compromise to reveal connected segments.",
+  nodes: [
+    {
+      id: "router",
+      type: "router",
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "compromised" },
+      operators: [{ name: "relay" }],
+      actions: [],
+    },
+  ],
+  internalEdges: [],
+  triggers: [],
+  externalPorts: ["router"],
+  tags: ["spine", "gate"],
+  cost: "F",
+  ports: [
+    { nodeId: "router", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "router", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "router", direction: "outbound", wantsTags: [], required: false },
+    { nodeId: "router", direction: "outbound", wantsTags: [], required: false },
+  ],
+};
+
+/**
+ * Single firewall — gate node that blocks access to deeper content.
+ * Own to reveal the network beyond. Higher base grade than a router.
+ * @type {SetPieceDef}
+ */
+export const singleFirewall = {
+  id: "single-firewall",
+  description: "Firewall node: own to access deeper network segments.",
+  nodes: [
+    {
+      id: "firewall",
+      type: "firewall",
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "owned" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [],
+  triggers: [],
+  externalPorts: ["firewall"],
+  tags: ["gate"],
+  cost: "D",
+  ports: [
+    { nodeId: "firewall", direction: "inbound", wantsTags: [], required: true },
+    { nodeId: "firewall", direction: "outbound", wantsTags: ["treasure", "puzzle"], required: true },
+  ],
+};
+
+/**
+ * Single workstation — leaf filler node. Cheap exploration target.
+ * @type {SetPieceDef}
+ */
+export const singleWorkstation = {
+  id: "single-workstation",
+  description: "Workstation node: small loot target, exploration filler.",
+  nodes: [
+    {
+      id: "workstation",
+      type: "workstation",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [],
+  triggers: [],
+  externalPorts: ["workstation"],
+  tags: ["filler"],
+  cost: "F",
+  ports: [
+    { nodeId: "workstation", direction: "inbound", wantsTags: [], required: true },
+  ],
+};
+
+/**
+ * Single fileserver — leaf treasure node. Lootable with macguffins.
+ * @type {SetPieceDef}
+ */
+export const singleFileserver = {
+  id: "single-fileserver",
+  description: "Fileserver node: lootable target with data rewards.",
+  nodes: [
+    {
+      id: "fileserver",
+      type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
+      attributes: { accessLevel: "locked" },
+      operators: [],
+      actions: [],
+    },
+  ],
+  internalEdges: [],
+  triggers: [],
+  externalPorts: ["fileserver"],
+  tags: ["filler", "treasure"],
+  cost: "F",
+  ports: [
+    { nodeId: "fileserver", direction: "inbound", wantsTags: [], required: true },
+  ],
+};
+
+/**
+ * All atomic set-pieces.
+ */
+export const ATOMICS = {
+  entryPoint,
+  singleRouter,
+  singleFirewall,
+  singleWorkstation,
+  singleFileserver,
 };

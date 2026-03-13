@@ -156,7 +156,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     userZoomingEnabled: true,
     userPanningEnabled: true,
     boxSelectionEnabled: false,
-    wheelSensitivity: 0.2,
+    wheelSensitivity: 1.0,
     // Clamp so that it's not easy to lose the graph in the void on zoom
     minZoom: 0.5,
     maxZoom: 3.0,

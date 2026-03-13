@@ -228,19 +228,6 @@ const ACCESS_DARKNET_ACTION = {
   ],
 };
 
-// ── Default trait lists per node type ────────────────────────────
-
-/** @type {Record<string, string[]>} */
-const TRAITS_BY_TYPE = {
-  "gateway":          ["graded", "hackable", "rebootable", "gate"],
-  "router":           ["graded", "hackable", "rebootable", "relay", "gate"],
-  "ids":              ["graded", "hackable", "rebootable", "detectable", "gate"],
-  "security-monitor": ["graded", "hackable", "rebootable", "security", "gate"],
-  "fileserver":       ["graded", "hackable", "rebootable", "lootable", "gate"],
-  "cryptovault":      ["graded", "hackable", "rebootable", "lootable", "gate"],
-  "firewall":         ["graded", "hackable", "rebootable", "gate"],
-  "workstation":      ["graded", "hackable", "rebootable", "lootable", "gate"],
-};
 
 // ── Node type factories (optional sugar) ─────────────────────
 
@@ -413,39 +400,6 @@ export function createWAN(id, config = {}) {
   };
 }
 
-// ── Set-piece node composition ───────────────────────────────
-
-/**
- * Create a game-ready node from a set-piece node definition.
- *
- * If the set-piece node already has traits, pass through (trait resolution
- * happens in the NodeGraph constructor).
- *
- * If the set-piece node's type matches a known game type, attach the default
- * trait list for that type. Set-piece operators and actions are preserved as
- * NodeDef-level extras (appended/merged during trait resolution).
- *
- * If the type is unknown (internal set-piece nodes like "alarm-latch"),
- * apply a minimal default trait list.
- *
- * @param {NodeDef} setPieceNode - node from instantiate()
- * @returns {NodeDef}
- */
-export function createGameNode(setPieceNode) {
-  // Already has traits — pass through
-  if (setPieceNode.traits && setPieceNode.traits.length > 0) {
-    return setPieceNode;
-  }
-
-  const defaultTraits = TRAITS_BY_TYPE[setPieceNode.type]
-    || ["graded", "hackable", "gate"]; // fallback for unknown types
-
-  return {
-    ...setPieceNode,
-    traits: defaultTraits,
-  };
-}
-
 
 // ── Export action templates for testing ───────────────────────
 
@@ -465,4 +419,3 @@ export const ACTION_TEMPLATES = {
   ACCESS_DARKNET: ACCESS_DARKNET_ACTION,
 };
 
-export { TRAITS_BY_TYPE };

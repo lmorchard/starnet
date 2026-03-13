@@ -6,7 +6,7 @@ import { resolveTraits } from "./traits.js";
 import {
   createGateway, createRouter, createIDS, createSecurityMonitor,
   createFileserver, createCryptovault, createFirewall, createWAN,
-  ACTION_TEMPLATES, TRAITS_BY_TYPE,
+  ACTION_TEMPLATES,
 } from "./game-types.js";
 
 // Helper: resolve factory output to get full attributes/operators/actions
@@ -73,12 +73,7 @@ describe("traits assignment", () => {
     assert.ok(!wan.traits || wan.traits.length === 0);
   });
 
-  it("TRAITS_BY_TYPE covers all expected types", () => {
-    for (const type of ["gateway", "router", "ids", "security-monitor", "fileserver",
-      "cryptovault", "firewall", "workstation"]) {
-      assert.ok(TRAITS_BY_TYPE[type], `missing TRAITS_BY_TYPE entry for ${type}`);
-    }
-  });
+
 });
 
 // ── Default attributes ───────────────────────────────────────

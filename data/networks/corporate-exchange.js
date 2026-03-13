@@ -7,10 +7,11 @@
  * Set-pieces: idsRelayChain, noisySensor, probeBurstAlarm, honeyPot, officeCluster.
  */
 
-import { instantiate, SET_PIECES } from "../../js/core/node-graph/set-pieces.js";
+import { instantiate } from "../../js/core/network/set-pieces.js";
+import { SET_PIECES } from "../biomes/corporate-pieces.js";
 import {
   createGateway, createRouter, createFirewall, createCryptovault,
-  createWAN, createGameNode,
+  createWAN,
 } from "../../js/core/node-graph/game-types.js";
 
 /**
@@ -34,12 +35,11 @@ export function buildNetwork() {
   const pot = instantiate(SET_PIECES.honeyPot, "pot");
   const office = instantiate(SET_PIECES.officeCluster, "office");
 
-  // Compose set-piece nodes with game-type factories
-  const secNodes = sec.nodes.map(createGameNode);
-  const noiseNodes = noise.nodes.map(createGameNode);
-  const burstNodes = burst.nodes.map(createGameNode);
-  const potNodes = pot.nodes.map(createGameNode);
-  const officeNodes = office.nodes.map(createGameNode);
+  const secNodes = sec.nodes;
+  const noiseNodes = noise.nodes;
+  const burstNodes = burst.nodes;
+  const potNodes = pot.nodes;
+  const officeNodes = office.nodes;
 
   // ── Merge all nodes ──────────────────────────────────
   const nodes = [

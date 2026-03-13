@@ -22,7 +22,7 @@ export function resolveNode(token) {
   if (byId && byId.visibility === "accessible") return byId;
 
   const labelMatches = Object.values(s.nodes).filter(
-    (n) => n.visibility === "accessible" && n.label.toLowerCase().startsWith(lower)
+    (n) => n.visibility === "accessible" && n.label?.toLowerCase().startsWith(lower)
   );
   if (labelMatches.length === 1) return labelMatches[0];
   if (labelMatches.length > 1) {

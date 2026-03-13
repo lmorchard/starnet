@@ -1,4 +1,13 @@
-.PHONY: serve lint test check bundle-vendor census bot-census bot-run ng-playtest
+.PHONY: all serve lint test check bundle-vendor census bot-run generate gen-bot gen-json
+
+# Install dependencies and build vendor bundle
+all: node_modules dist/vendor.js
+
+node_modules: package.json
+	npm install
+
+dist/vendor.js: js/vendor.js node_modules
+	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -33,3 +42,20 @@ NET ?= corporate-foothold
 SEED ?= ""
 bot-run:
 	node scripts/bot/cli.js --network $(NET) $(if $(filter-out "",$(SEED)),--seed $(SEED))
+
+# Generate a network and play it with the bot
+THREAT ?= C
+WEALTH ?= B
+COMPLEXITY ?= C
+DEPTH ?= C
+gen-bot:
+	node scripts/bot/cli.js --generated --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED))
+
+# Generate a network and start a playtest session
+generate:
+	node scripts/playtest.js --generated --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED)) reset
+
+# Generate a network and output JSON (use OPTS for extra flags like --pretty --summary --meta-only)
+OPTS ?=
+gen-json:
+	node scripts/generate-network.js --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED)) $(OPTS)

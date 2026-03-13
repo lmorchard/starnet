@@ -16,6 +16,7 @@ import { initDynamicActions } from "../core/console-commands/dynamic-actions.js"
 import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../../data/networks/corporate-exchange.js";
+import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
 
 /** Available graph-based networks. */
 const NETWORKS = {
@@ -24,10 +25,23 @@ const NETWORKS = {
   "corporate-exchange": buildCorporateExchange,
 };
 
-/** Read network name from URL param, default to corporate-foothold. */
+/** Read network from URL params. Supports hand-crafted networks and generated. */
 function getSelectedNetwork() {
   const p = new URLSearchParams(location.search);
   const name = p.get("network") ?? "corporate-foothold";
+
+  if (name === "generated") {
+    const spec = {
+      threat:     p.get("threat")?.toUpperCase() ?? "C",
+      wealth:     p.get("wealth")?.toUpperCase() ?? "B",
+      complexity: p.get("complexity")?.toUpperCase() ?? "C",
+      depth:      p.get("depth")?.toUpperCase() ?? "C",
+    };
+    const seed = p.get("seed") ?? "gen-" + Date.now();
+    const result = buildGenerated({ seed, spec });
+    return () => result;
+  }
+
   return NETWORKS[name] ?? buildCorporateFoothold;
 }
 
@@ -86,12 +100,12 @@ function init() {
     else resumeTimers();
   });
 
-  // New run button — disabled while procgen is removed; graph networks only for now
+  // New run button — opens level select dialog
   const newRunBtn = document.getElementById("new-run-btn");
   if (newRunBtn) {
-    newRunBtn.style.opacity = "0.3";
-    newRunBtn.style.pointerEvents = "none";
-    newRunBtn.title = "Network selection coming soon";
+    newRunBtn.addEventListener("click", () => {
+      import("./level-select.js").then(m => m.openLevelSelect());
+    });
   }
 
   // Wire HUD pause button

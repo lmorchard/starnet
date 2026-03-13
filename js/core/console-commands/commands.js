@@ -331,10 +331,10 @@ export const COMMANDS = [
         return null;
       }
 
-      if (sub === "own"         && subArgs.length === 0) return fromNodes(state.nodes, partial);
+      if (sub === "own"         && subArgs.length === 0) return fromNodes(state.nodes, partial, { includeAll: true });
       if (sub === "trace"       && subArgs.length === 0) return fromList(CHEAT_TRACE_SUBS, partial);
       if ((sub === "summon-ice" || sub === "teleport-ice") && subArgs.length === 0) {
-        return fromNodes(state.nodes, partial);
+        return fromNodes(state.nodes, partial, { includeAll: true });
       }
 
       return null;
