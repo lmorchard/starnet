@@ -41,6 +41,26 @@ const DISCLOSURE_CHANCE = {
   F: 0.05,
 };
 
+// Rarity multiplier for skip-to-owned chance on successful exploit.
+// Higher rarity = more likely to jump locked → owned in one shot.
+// Target ranges: common-low ~2%, uncommon-mid ~20%, rare-high ~70%.
+const SKIP_TO_OWNED_RARITY_MULT = {
+  common: 0.15,
+  uncommon: 0.4,
+  rare: 1.0,
+};
+
+/**
+ * Chance that a successful exploit jumps from locked directly to owned,
+ * skipping the compromised step. Based on exploit quality and rarity.
+ * @param {ExploitCard} exploit
+ * @returns {number} probability 0-1
+ */
+export function skipToOwnedChance(exploit) {
+  const rarityMult = SKIP_TO_OWNED_RARITY_MULT[exploit.rarity] ?? 0.15;
+  return exploit.quality * 0.75 * rarityMult;
+}
+
 // Patch lag in turns by grade (how quickly vulns get patched after disclosure)
 export const PATCH_LAG = {
   S: 1,
@@ -190,11 +210,23 @@ export function launchExploit(nodeId, exploitId) {
     const prevAccess = node.accessLevel;
 
     if (node.accessLevel === "locked") {
-      setNodeAccessLevel(nodeId, "compromised");
-      setNodeAlertState(nodeId, "green");
-      setNodeVisible(nodeId, "accessible");
-      if ((node.gateAccess ?? "probed") !== "owned") revealNeighbors(nodeId);
-      result.levelChanged = true;
+      // High-quality/rare exploits can skip compromised → owned in one shot
+      const skipChance = skipToOwnedChance(exploit);
+      const skipRoll = random(RNG.COMBAT);
+      if (skipRoll <= skipChance) {
+        setNodeAccessLevel(nodeId, "owned");
+        setNodeAlertState(nodeId, "green");
+        setNodeVisible(nodeId, "accessible");
+        revealNeighbors(nodeId);
+        result.levelChanged = true;
+        result.skippedToOwned = true;
+      } else {
+        setNodeAccessLevel(nodeId, "compromised");
+        setNodeAlertState(nodeId, "green");
+        setNodeVisible(nodeId, "accessible");
+        if ((node.gateAccess ?? "probed") !== "owned") revealNeighbors(nodeId);
+        result.levelChanged = true;
+      }
     } else if (node.accessLevel === "compromised") {
       setNodeAccessLevel(nodeId, "owned");
       setNodeAlertState(nodeId, "green");
