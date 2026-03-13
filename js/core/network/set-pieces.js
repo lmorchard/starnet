@@ -153,6 +153,13 @@ function rewriteEffect(effect, prefix) {
     case "quality-delta":
     case "quality-set":
       return { ...effect, name: pfx(effect.name, prefix) };
+    case "log-template": {
+      const rewritten = effect.template.replace(
+        /\$\{quality:([^}]+)\}/g,
+        (_, name) => `\${quality:${pfx(name, prefix)}}`
+      );
+      return { ...effect, template: rewritten };
+    }
     default:
       return effect;
   }

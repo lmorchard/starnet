@@ -75,6 +75,61 @@ describe("instantiate: external ports are prefixed", () => {
   });
 });
 
+describe("instantiate: log-template quality names are prefixed", () => {
+  it("rewrites ${quality:name} tokens in log-template effects", () => {
+    /** @type {import('./set-pieces.js').SetPieceDef} */
+    const piece = {
+      id: "test-log-tmpl",
+      description: "test",
+      nodes: [{
+        id: "node-a",
+        type: "test",
+        attributes: {},
+        actions: [{
+          id: "scan",
+          label: "Scan",
+          requires: [],
+          effects: [
+            { effect: "log-template", template: "Progress: ${quality:counter}/3 done" },
+          ],
+        }],
+      }],
+      internalEdges: [],
+      externalPorts: ["node-a"],
+    };
+    const inst = instantiate(piece, "t1");
+    const action = inst.nodes[0].actions[0];
+    const tmplEffect = action.effects[0];
+    assert.equal(tmplEffect.template, "Progress: ${quality:t1/counter}/3 done");
+  });
+
+  it("rewrites multiple quality refs in one template", () => {
+    /** @type {import('./set-pieces.js').SetPieceDef} */
+    const piece = {
+      id: "test-multi-tmpl",
+      description: "test",
+      nodes: [{
+        id: "node-a",
+        type: "test",
+        attributes: {},
+        actions: [{
+          id: "scan",
+          label: "Scan",
+          requires: [],
+          effects: [
+            { effect: "log-template", template: "A=${quality:alpha} B=${quality:beta}" },
+          ],
+        }],
+      }],
+      internalEdges: [],
+      externalPorts: ["node-a"],
+    };
+    const inst = instantiate(piece, "p1");
+    const tmplEffect = inst.nodes[0].actions[0].effects[0];
+    assert.equal(tmplEffect.template, "A=${quality:p1/alpha} B=${quality:p1/beta}");
+  });
+});
+
 describe("instantiate: two instances have independent IDs", () => {
   it("inst1 and inst2 have no overlapping node IDs", () => {
     const inst1 = instantiate(combinationLock, "v1");
