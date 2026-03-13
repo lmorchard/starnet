@@ -16,6 +16,7 @@
  * @property {OperatorConfig[]} [operators]
  * @property {ActionDef[]} [actions]
  * @property {TriggerDef[]} [triggers]   - per-node triggers (nodeId filled in at construction)
+ * @property {boolean} [scatter]        - node is placed independently by the generator
  */
 
 /**
