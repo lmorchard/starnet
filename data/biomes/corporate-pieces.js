@@ -1507,6 +1507,123 @@ export const dataCenter = {
   ],
 };
 
+// ---------------------------------------------------------------------------
+// Scattered set-pieces — nodes with scatter:true are placed independently
+// by the generator elsewhere in the network. Quality-based communication.
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a scattered combination lock with N switches.
+ * Switches are scatter:true, communicate with core via "locks-opened" quality.
+ * @param {number} n - number of switches
+ * @param {string} cost - grade
+ * @returns {SetPieceDef}
+ */
+function makeScatteredLock(n, cost) {
+  /** @type {import('../../js/core/node-graph/types.js').NodeDef[]} */
+  const switches = [];
+  for (let i = 0; i < n; i++) {
+    const letter = String.fromCharCode(97 + i); // a, b, c, ...
+    switches.push({
+      id: `switch-${letter}`,
+      scatter: true,
+      type: "routing-switch",
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", activated: false },
+      operators: [],
+      actions: [
+        {
+          id: "activate",
+          label: "Activate",
+          requires: [
+            /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+            /** @type {const} */ ({ type: "node-attr", attr: "activated", eq: false }),
+          ],
+          effects: [
+            /** @type {const} */ ({ effect: "set-attr", attr: "activated", value: true }),
+            /** @type {const} */ ({ effect: "quality-delta", name: "locks-opened", delta: 1 }),
+            /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Switch activated — routing signal sent"] }),
+          ],
+        },
+      ],
+    });
+  }
+
+  return {
+    id: `scattered-lock-${n}`,
+    description: `${n} scattered switches must be activated to reveal a hidden vault.`,
+    nodes: [
+      ...switches,
+      {
+        id: "gate",
+        type: "logic-gate",
+        traits: ["graded", "hackable", "rebootable"],
+        attributes: {},
+        operators: [],
+        actions: [
+          {
+            id: "scan-lock",
+            label: "Scan Lock",
+            requires: [
+              /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+            ],
+            effects: [
+              /** @type {const} */ ({ effect: "log-template", template: `Combination lock: \${quality:locks-opened}/${n} switches activated` }),
+            ],
+          },
+        ],
+      },
+      {
+        id: "vault",
+        type: "cryptovault",
+        traits: ["graded", "hackable", "rebootable"],
+        attributes: { accessLevel: "locked", concealed: true },
+        operators: [],
+        actions: [
+          {
+            id: "crack-vault",
+            label: "Crack Vault",
+            requires: [
+              /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+              /** @type {const} */ ({ type: "quality-gte", name: "locks-opened", value: n }),
+            ],
+            effects: [
+              /** @type {const} */ ({ effect: "ctx-call", method: "giveReward", args: [1500] }),
+              /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Vault cracked — ¥1,500 extracted"] }),
+            ],
+          },
+        ],
+      },
+    ],
+    internalEdges: [["gate", "vault"]],
+    triggers: [
+      {
+        id: "vault-reveal",
+        when: /** @type {const} */ ({ type: "quality-gte", name: "locks-opened", value: n }),
+        then: [
+          /** @type {const} */ ({ effect: "set-node-attr", nodeId: "vault", attr: "concealed", value: false }),
+          /** @type {const} */ ({ effect: "reveal-node", nodeId: "vault" }),
+          /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Combination lock disengaged — vault accessible"] }),
+        ],
+      },
+    ],
+    externalPorts: ["gate"],
+    tags: ["puzzle", "treasure", "gate"],
+    cost,
+    ports: [
+      { nodeId: "gate", direction: "inbound", wantsTags: [], required: true },
+      { nodeId: "vault", direction: "outbound", wantsTags: ["treasure", "filler"], required: false },
+    ],
+  };
+}
+
+/** @type {SetPieceDef} */
+export const scatteredLock1 = makeScatteredLock(1, "D");
+/** @type {SetPieceDef} */
+export const scatteredLock3 = makeScatteredLock(3, "B");
+/** @type {SetPieceDef} */
+export const scatteredLock5 = makeScatteredLock(5, "A");
+
 /**
  * Convenience catalog of all set-pieces.
  */
@@ -1532,6 +1649,10 @@ export const SET_PIECES = {
   defensePlex,
   fortifiedGate,
   dataCenter,
+  // Scattered variants
+  scatteredLock1,
+  scatteredLock3,
+  scatteredLock5,
 };
 
 // ---------------------------------------------------------------------------

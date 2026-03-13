@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { instantiate } from "./set-pieces.js";
-import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect } from "../../../data/biomes/corporate-pieces.js";
+import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect, scatteredLock1, scatteredLock3, scatteredLock5 } from "../../../data/biomes/corporate-pieces.js";
 import { NodeGraph } from "../node-graph/runtime.js";
 import { mockCtx } from "../node-graph/ctx.js";
 import { createMessage } from "../node-graph/message.js";
@@ -748,5 +748,121 @@ describe("tamper-detect: reconfiguring IDS without neutralizing relay triggers t
     graph.sendMessage("td1/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
     assert.equal(graph.getNodeState("td1/security-monitor").alerted, true);
     assert.equal(ctx.calls.setGlobalAlert?.length, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scattered combination lock — quality-based communication
+// ---------------------------------------------------------------------------
+
+describe("scatteredLock3: instantiation prefixes quality names", () => {
+  it("prefixes quality refs in switch actions and core trigger", () => {
+    const inst = instantiate(scatteredLock3, "sl");
+    // Check switch action quality-delta
+    const sw = inst.nodes.find(n => n.id === "sl/switch-a");
+    const activateAction = sw.actions.find(a => a.id === "activate");
+    const qualityEffect = activateAction.effects.find(e => e.effect === "quality-delta");
+    assert.equal(qualityEffect.name, "sl/locks-opened");
+
+    // Check trigger quality-gte
+    const trigger = inst.triggers.find(t => t.id === "sl/vault-reveal");
+    assert.equal(trigger.when.name, "sl/locks-opened");
+
+    // Check scan-lock log-template
+    const gate = inst.nodes.find(n => n.id === "sl/gate");
+    const scanAction = gate.actions.find(a => a.id === "scan-lock");
+    const tmplEffect = scanAction.effects.find(e => e.effect === "log-template");
+    assert.ok(tmplEffect.template.includes("${quality:sl/locks-opened}"));
+  });
+
+  it("scattered nodes have scatter:true attribute", () => {
+    const switches = scatteredLock3.nodes.filter(n => n.scatter);
+    assert.equal(switches.length, 3);
+    const core = scatteredLock3.nodes.filter(n => !n.scatter);
+    assert.equal(core.length, 2); // gate + vault
+  });
+});
+
+describe("scatteredLock3: quality communication in NodeGraph", () => {
+  it("vault not revealed until all 3 switches activated", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredLock3, "sl");
+    const graph = new NodeGraph(inst, ctx);
+
+    // Own all switches
+    for (const sw of ["sl/switch-a", "sl/switch-b", "sl/switch-c"]) {
+      graph._nodes.get(sw).attributes.accessLevel = "owned";
+    }
+
+    // Activate 2 — vault should NOT reveal
+    graph.executeAction("sl/switch-a", "activate");
+    graph.executeAction("sl/switch-b", "activate");
+    assert.equal(ctx.calls.revealNode, undefined);
+
+    // Activate 3rd — vault reveals
+    graph.executeAction("sl/switch-c", "activate");
+    assert.ok(ctx.calls.revealNode?.length > 0);
+    assert.deepEqual(ctx.calls.revealNode[0], ["sl/vault"]);
+    assert.equal(graph.getNodeState("sl/vault").concealed, false);
+  });
+});
+
+describe("scatteredLock3: scan-lock action reports progress", () => {
+  it("reports 0/3 initially, then 1/3 after one activation", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredLock3, "sl");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("sl/gate").attributes.accessLevel = "owned";
+    graph.executeAction("sl/gate", "scan-lock");
+    assert.ok(ctx.calls.log?.some(args => args[0] === "Combination lock: 0/3 switches activated"));
+
+    // Activate one switch
+    graph._nodes.get("sl/switch-a").attributes.accessLevel = "owned";
+    graph.executeAction("sl/switch-a", "activate");
+    graph.executeAction("sl/gate", "scan-lock");
+    assert.ok(ctx.calls.log?.some(args => args[0] === "Combination lock: 1/3 switches activated"));
+  });
+});
+
+describe("scatteredLock3: crack-vault requires all switches + owned", () => {
+  it("gives reward when all switches activated and vault owned", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredLock3, "sl");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (const sw of ["sl/switch-a", "sl/switch-b", "sl/switch-c"]) {
+      graph._nodes.get(sw).attributes.accessLevel = "owned";
+    }
+    graph.executeAction("sl/switch-a", "activate");
+    graph.executeAction("sl/switch-b", "activate");
+    graph.executeAction("sl/switch-c", "activate");
+
+    // Vault not owned — crack-vault unavailable
+    let available = graph.getAvailableActions("sl/vault").map(a => a.id);
+    assert.ok(!available.includes("crack-vault"));
+
+    // Own vault
+    graph._nodes.get("sl/vault").attributes.accessLevel = "owned";
+    available = graph.getAvailableActions("sl/vault").map(a => a.id);
+    assert.ok(available.includes("crack-vault"));
+
+    graph.executeAction("sl/vault", "crack-vault");
+    assert.equal(ctx.calls.giveReward?.length, 1);
+    assert.deepEqual(ctx.calls.giveReward[0], [1500]);
+  });
+});
+
+describe("scatteredLock variants: correct switch counts and thresholds", () => {
+  it("scatteredLock1 has 1 switch", () => {
+    assert.equal(scatteredLock1.nodes.filter(n => n.scatter).length, 1);
+    const trigger = scatteredLock1.triggers[0];
+    assert.equal(trigger.when.value, 1);
+  });
+
+  it("scatteredLock5 has 5 switches", () => {
+    assert.equal(scatteredLock5.nodes.filter(n => n.scatter).length, 5);
+    const trigger = scatteredLock5.triggers[0];
+    assert.equal(trigger.when.value, 5);
   });
 });
