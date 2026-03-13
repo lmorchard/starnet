@@ -1625,6 +1625,186 @@ export const scatteredLock3 = makeScatteredLock(3, "B");
 export const scatteredLock5 = makeScatteredLock(5, "A");
 
 /**
+ * Build a scattered multi-key vault with N key-servers.
+ * Key-servers are scatter:true, communicate with core via "keys-collected" quality.
+ * @param {number} n - number of key-servers
+ * @param {string} cost - grade
+ * @returns {SetPieceDef}
+ */
+function makeScatteredKeyVault(n, cost) {
+  /** @type {import('../../js/core/node-graph/types.js').NodeDef[]} */
+  const keys = [];
+  for (let i = 0; i < n; i++) {
+    keys.push({
+      id: `key-server-${i + 1}`,
+      scatter: true,
+      type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", tokenExtracted: false },
+      operators: [],
+      actions: [
+        {
+          id: "extract-token",
+          label: "Extract Token",
+          requires: [
+            /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+            /** @type {const} */ ({ type: "node-attr", attr: "tokenExtracted", eq: false }),
+          ],
+          effects: [
+            /** @type {const} */ ({ effect: "set-attr", attr: "tokenExtracted", value: true }),
+            /** @type {const} */ ({ effect: "quality-delta", name: "keys-collected", delta: 1 }),
+            /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Auth token extracted"] }),
+          ],
+        },
+      ],
+    });
+  }
+
+  return {
+    id: `scattered-key-vault-${n}`,
+    description: `${n} scattered key-servers must be owned to unlock a central vault.`,
+    nodes: [
+      ...keys,
+      {
+        id: "vault-node",
+        type: "cryptovault",
+        traits: ["graded", "hackable", "rebootable"],
+        attributes: { accessLevel: "locked" },
+        operators: [],
+        actions: [
+          {
+            id: "scan-vault",
+            label: "Scan Vault",
+            requires: [
+              /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+            ],
+            effects: [
+              /** @type {const} */ ({ effect: "log-template", template: `Key vault: \${quality:keys-collected}/${n} tokens collected` }),
+            ],
+          },
+          {
+            id: "unlock-vault",
+            label: "Unlock Vault",
+            requires: [
+              /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+              /** @type {const} */ ({ type: "quality-gte", name: "keys-collected", value: n }),
+            ],
+            effects: [
+              /** @type {const} */ ({ effect: "quality-set", name: "keys-collected", value: 0 }),
+              /** @type {const} */ ({ effect: "ctx-call", method: "giveReward", args: [5000] }),
+              /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Vault unlocked — ¥5,000 extracted"] }),
+            ],
+          },
+        ],
+      },
+    ],
+    internalEdges: [],
+    triggers: [],
+    externalPorts: ["vault-node"],
+    tags: ["puzzle", "treasure"],
+    cost,
+    ports: [
+      { nodeId: "vault-node", direction: "inbound", wantsTags: [], required: true },
+    ],
+  };
+}
+
+/** @type {SetPieceDef} */
+export const scatteredKeyVault2 = makeScatteredKeyVault(2, "C");
+/** @type {SetPieceDef} */
+export const scatteredKeyVault3 = makeScatteredKeyVault(3, "B");
+
+/**
+ * Build a scattered encrypted vault with N key-gen nodes.
+ * Key-gens are scatter:true, communicate with core via "decryption-keys" quality.
+ * @param {number} n - number of key-gens
+ * @param {string} cost - grade
+ * @returns {SetPieceDef}
+ */
+function makeScatteredEncryptedVault(n, cost) {
+  /** @type {import('../../js/core/node-graph/types.js').NodeDef[]} */
+  const keyGens = [];
+  for (let i = 0; i < n; i++) {
+    keyGens.push({
+      id: `key-gen-${i + 1}`,
+      scatter: true,
+      type: "key-gen",
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", keyExtracted: false },
+      operators: [],
+      actions: [
+        {
+          id: "extract-key",
+          label: "Extract Key",
+          requires: [
+            /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+            /** @type {const} */ ({ type: "node-attr", attr: "keyExtracted", eq: false }),
+          ],
+          effects: [
+            /** @type {const} */ ({ effect: "set-attr", attr: "keyExtracted", value: true }),
+            /** @type {const} */ ({ effect: "quality-delta", name: "decryption-keys", delta: 1 }),
+            /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Decryption key extracted"] }),
+          ],
+        },
+      ],
+    });
+  }
+
+  return {
+    id: `scattered-encrypted-vault-${n}`,
+    description: `${n} scattered key-gen nodes must be owned to decrypt a central vault.`,
+    nodes: [
+      ...keyGens,
+      {
+        id: "vault",
+        type: "cryptovault",
+        traits: ["graded", "hackable", "rebootable", "lootable"],
+        attributes: { accessLevel: "locked" },
+        operators: [],
+        actions: [
+          {
+            id: "scan-vault",
+            label: "Scan Vault",
+            requires: [
+              /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+            ],
+            effects: [
+              /** @type {const} */ ({ effect: "log-template", template: `Encrypted vault: \${quality:decryption-keys}/${n} keys collected` }),
+            ],
+          },
+          {
+            id: "decrypt-loot",
+            label: "Decrypt & Loot",
+            requires: [
+              /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
+              /** @type {const} */ ({ type: "quality-gte", name: "decryption-keys", value: n }),
+            ],
+            effects: [
+              /** @type {const} */ ({ effect: "quality-set", name: "decryption-keys", value: 0 }),
+              /** @type {const} */ ({ effect: "ctx-call", method: "giveReward", args: [3000] }),
+              /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Encrypted vault decrypted — ¥3,000 extracted"] }),
+            ],
+          },
+        ],
+      },
+    ],
+    internalEdges: [],
+    triggers: [],
+    externalPorts: ["vault"],
+    tags: ["puzzle", "treasure"],
+    cost,
+    ports: [
+      { nodeId: "vault", direction: "inbound", wantsTags: [], required: true },
+    ],
+  };
+}
+
+/** @type {SetPieceDef} */
+export const scatteredEncryptedVault2 = makeScatteredEncryptedVault(2, "C");
+/** @type {SetPieceDef} */
+export const scatteredEncryptedVault3 = makeScatteredEncryptedVault(3, "B");
+
+/**
  * Convenience catalog of all set-pieces.
  */
 export const SET_PIECES = {
@@ -1653,6 +1833,10 @@ export const SET_PIECES = {
   scatteredLock1,
   scatteredLock3,
   scatteredLock5,
+  scatteredKeyVault2,
+  scatteredKeyVault3,
+  scatteredEncryptedVault2,
+  scatteredEncryptedVault3,
 };
 
 // ---------------------------------------------------------------------------

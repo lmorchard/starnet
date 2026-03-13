@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { instantiate } from "./set-pieces.js";
-import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect, scatteredLock1, scatteredLock3, scatteredLock5 } from "../../../data/biomes/corporate-pieces.js";
+import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect, scatteredLock1, scatteredLock3, scatteredLock5, scatteredKeyVault2, scatteredKeyVault3, scatteredEncryptedVault2, scatteredEncryptedVault3 } from "../../../data/biomes/corporate-pieces.js";
 import { NodeGraph } from "../node-graph/runtime.js";
 import { mockCtx } from "../node-graph/ctx.js";
 import { createMessage } from "../node-graph/message.js";
@@ -864,5 +864,86 @@ describe("scatteredLock variants: correct switch counts and thresholds", () => {
     assert.equal(scatteredLock5.nodes.filter(n => n.scatter).length, 5);
     const trigger = scatteredLock5.triggers[0];
     assert.equal(trigger.when.value, 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scattered multi-key vault — quality-based communication
+// ---------------------------------------------------------------------------
+
+describe("scatteredKeyVault: quality communication", () => {
+  it("scatteredKeyVault2 has 2 scattered key-servers", () => {
+    assert.equal(scatteredKeyVault2.nodes.filter(n => n.scatter).length, 2);
+    assert.equal(scatteredKeyVault2.nodes.filter(n => !n.scatter).length, 1);
+  });
+
+  it("unlock-vault requires all tokens collected", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredKeyVault2, "kv");
+    const graph = new NodeGraph(inst, ctx);
+
+    // Own and extract from both keys
+    for (const ks of ["kv/key-server-1", "kv/key-server-2"]) {
+      graph._nodes.get(ks).attributes.accessLevel = "owned";
+      graph.executeAction(ks, "extract-token");
+    }
+
+    // Own vault and unlock
+    graph._nodes.get("kv/vault-node").attributes.accessLevel = "owned";
+    const available = graph.getAvailableActions("kv/vault-node").map(a => a.id);
+    assert.ok(available.includes("unlock-vault"));
+
+    graph.executeAction("kv/vault-node", "unlock-vault");
+    assert.equal(ctx.calls.giveReward?.length, 1);
+    assert.deepEqual(ctx.calls.giveReward[0], [5000]);
+  });
+
+  it("scan-vault reports progress", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredKeyVault3, "kv");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("kv/vault-node").attributes.accessLevel = "owned";
+    graph.executeAction("kv/vault-node", "scan-vault");
+    assert.ok(ctx.calls.log?.some(args => args[0] === "Key vault: 0/3 tokens collected"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scattered encrypted vault — quality-based communication
+// ---------------------------------------------------------------------------
+
+describe("scatteredEncryptedVault: quality communication", () => {
+  it("scatteredEncryptedVault2 has 2 scattered key-gens", () => {
+    assert.equal(scatteredEncryptedVault2.nodes.filter(n => n.scatter).length, 2);
+    assert.equal(scatteredEncryptedVault2.nodes.filter(n => !n.scatter).length, 1);
+  });
+
+  it("decrypt-loot requires all keys", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredEncryptedVault2, "ev");
+    const graph = new NodeGraph(inst, ctx);
+
+    // Own and extract from both key-gens
+    for (const kg of ["ev/key-gen-1", "ev/key-gen-2"]) {
+      graph._nodes.get(kg).attributes.accessLevel = "owned";
+      graph.executeAction(kg, "extract-key");
+    }
+
+    // Own vault and decrypt
+    graph._nodes.get("ev/vault").attributes.accessLevel = "owned";
+    graph.executeAction("ev/vault", "decrypt-loot");
+    assert.equal(ctx.calls.giveReward?.length, 1);
+    assert.deepEqual(ctx.calls.giveReward[0], [3000]);
+  });
+
+  it("scan-vault reports progress", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredEncryptedVault3, "ev");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("ev/vault").attributes.accessLevel = "owned";
+    graph.executeAction("ev/vault", "scan-vault");
+    assert.ok(ctx.calls.log?.some(args => args[0] === "Encrypted vault: 0/3 keys collected"));
   });
 });
