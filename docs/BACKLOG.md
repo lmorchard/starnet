@@ -36,59 +36,36 @@ tier. A full overhaul will be needed to support:
   dispatch system. This is a significant architectural change — defer until the single-ICE
   prototype is fully playtested and the design is stable.
 
-### Network Branching and Topology Variety
-Generated networks tend toward long, unbranching linear paths — each piece has one
-inbound and one outbound port, creating corridors rather than trees. This is
-especially noticeable when hunting for scattered nodes across the network.
+### Network Branching and Hierarchical Generation — PARTIALLY DONE (2026-03-13)
 
-Approaches to improve branching:
-- **More outbound ports on existing pieces** — add optional second/third outbound
-  ports to puzzle, defense, and treasure pieces (IDS chains, tamper detect,
-  scattered lock cores). The generator already handles multi-port pieces via the
-  opportunistic filler path.
-- **Dedicated branching piece** — a cheap "switch hub" (1 inbound, 3 outbound)
-  the skeleton can place to fork paths, ensuring more tree-like topology.
-- **Lateral ports** — cross-connections between sibling branches, creating loops
-  and alternate routes. The port system already supports `direction: "lateral"`
-  but no piece uses it yet.
-- **Skeleton branching factor tuning** — the skeleton generator's branching
-  heuristic (1-3 branches per depth) may be too conservative. Increasing the
-  minimum branching factor or adding a "topology: branching" spec parameter
-  could produce wider networks.
+Architecture implemented in the network-branching session: hierarchical skeleton
+(backbone + wings), biome recipes, sub-biomes, expanded budgets, multi-port slot
+consumption, select-and-fit camera. See `docs/dev-sessions/2026-03-13-1356-network-branching/`.
 
-_Identified during scattered set-pieces session (2026-03-12): long unbranching
-paths noticed while playtesting scattered switch hunting._
+**Immediate next session (critical completion work):**
+- **Per-wing palette filtering (MUST FIX)** — the slot-filler has `piecePalette`
+  and `requiredPieceIds` support (Phase 3), and `generate.js` builds the
+  `wingPalettes` map (Phase 5), but the hierarchical path never passes them to
+  `fillSkeleton()`. This means sub-biome definitions are inert — a security-ops
+  wing can get fileservers, a server-room wing can get IDS chains. The whole
+  point of sub-biomes (distinct wing flavor) doesn't work yet. Fix is small:
+  thread palette + required pieces into the fillSkeleton call per-wing, or
+  restructure to call fillSkeleton per-wing instead of once for the whole tree.
+- **Wing minimum size enforcement** — wings can be as small as 1 node. Need a
+  floor on per-wing slot count (e.g., min 3 slots) so wings feel like distinct
+  areas, not stubs.
+- **Budget tuning** — high variance at B+ grades (C: 17-31 nodes, A: 14-54).
+  The slot budget conversion (cost/2) is too rough. Needs a better estimator or
+  minimum node count enforcement, and the 1.8x hierarchical multiplier may need
+  adjusting.
 
-### Large Network Generation
-Current networks are 9-16 nodes. Larger networks (40-60+ nodes) would support
-longer runs, multiple security domains, and multiple ICE instances. Design
-considerations:
-
-- **Zone/wing topology** — instead of one linear relay chain, the generator
-  would compose multiple branches: research wing, finance department, server
-  farm, executive subnet. Each zone has its own depth, grade profile, and
-  security infrastructure (dedicated IDS + ICE per zone).
-- **Sub-biome composition** — zones could be topology templates composed within
-  a single biome. A corporate biome might have "office floor" zones (many
-  workstations), "server room" zones (fileservers + cryptovault), and
-  "security operations" zones (monitors + IDS). Different compositions per
-  difficulty or seed.
-- **Generator changes** — the layer-processor would need a concept of zone
-  scoping: spawn a set of layers N times, each instance forming an
-  independent sub-graph connected to the backbone. The relay layer already
-  demonstrates chaining; zones would be a higher-level version of the same
-  pattern.
-- **Spatial gameplay** — larger networks make navigation itself a strategic
-  decision. Which zone to enter first? Clear security in one wing before
-  moving to the next? The player's position in the graph matters more when
-  there are multiple ICE entities patrolling different regions.
-- **Bot validation** — the bot census can test large networks immediately.
-  Key question: does the bot's greedy BFS still work at 50 nodes, or does
-  it need zone-aware planning? Performance is not a concern (6.5ms/run at
-  current sizes; even 10x more nodes should be fine).
-- **Layout** — Cytoscape can handle 50-60 nodes, but the depth-layered
-  layout would need zone-aware positioning. Sub-graphs arranged spatially
-  rather than one tall column.
+**Follow-up work (lower priority):**
+- **Per-wing grade offset in assembly** — node grades should reflect the wing's
+  offset-adjusted spec, not a single global modifier.
+- **More sub-biomes and recipe variants** — currently 4 sub-biomes, 3 recipes.
+  Content authoring to expand variety.
+- **Lateral ports** — cross-connections between sibling branches. Port system
+  supports `direction: "lateral"` but no piece uses it yet.
 
 ### ICE Resident Node Relocation
 Currently ICE starts at the security monitor. The fiction would be cleaner if
@@ -183,234 +160,13 @@ From session-5 design discussion — reframe log verbosity as something the play
 
 ---
 
-## ~~Node System Overhaul~~ ✓ SUBSTANTIALLY DONE
+## ~~Node System Overhaul~~ ✓ DONE
 
 ### ~~Reactive Node Graph Runtime~~ ✓ DONE (2026-03-03)
-
 Integrated in the node-graph-integration session (63 commits, 86 files, +10,763/-4,342).
-The NodeGraph runtime is now the authoritative source of node state and behavior.
-NodeDef-based definitions with operators, actions, triggers, and set-piece circuits
-are live. See `js/core/node-graph/` for the runtime and `data/networks/` for network
-definitions.
-
-**Remaining work from this design (now separate backlog items):**
-- Composable traits system — see below
-- Core mechanics migration into node-graph — see below
-- Qualities system — deferred until traits are stable
-
-The original design document below is retained for reference.
-
-The original node implementation was a mix of hardcoded type behaviors, bespoke
-per-feature logic (IDS → monitor alert chain, ICE resident, etc.), and scattered
-`if (node.type === 'X')` special cases. The node-graph runtime replaced
-this with a data-driven, composable system: nodes as attribute bags, behavior as
-named composable atoms, state propagation via typed message-passing.
-
-#### Design Precedents
-
-Three games are direct inspirations:
-
-- **Rocky's Boots (1982, The Learning Company)** — players build logic circuits by
-  navigating a world of connectable gates. The key insights: signals should be
-  *visually legible as they propagate* (rendered as "liquid orange fire through
-  transparent pipes"); the player is *inside* the circuit, not an external operator
-  (your actions *are* signals injected into the network); the game world and the
-  reactive system are the same object, with no separate editor mode. Early stages
-  teach gates one at a time before opening free composition.
-- **Caves of Qud** — component/data composition. Entities are XML definitions that
-  compose named components; component logic is code, composition is data. Nothing
-  in the world needs special-case engine code. The atom system uses the same pattern.
-- **Sunless Sea / Fallen London (StoryNexus)** — Qualities as the lingua franca for
-  game state. Named counters aggregate signals from many sources; triggers fire when
-  counters reach thresholds. This decouples individual event emitters from
-  multi-source conditions — the "arrange switches just-so" pattern without cross-node
-  wiring.
-
-#### The Primitives
-
-**Nodes as attribute bags.** Each node is schema-validated typed attributes: `grade`,
-`accessLevel`, `alertState`, plus arbitrary extras (`rewardAmount`, `passwordHash`,
-etc.). The node *type* is a human-readable shorthand for an atom bundle — behavior
-comes entirely from the attached atoms, not the type name.
-
-**Behavioral atoms.** Named, self-contained reactive functions that compose onto nodes.
-Atoms in JS, composition in data (ECS-style: functions registered by name; node
-definitions list atom names + configs). Core atoms:
-
-- `relay(filter?)` — forward matching incoming messages to connected nodes; this is
-  the entirety of what an IDS does
-- `invert` — flip `signal.active` before forwarding (NOT gate)
-- `any-of(inputs)` / `all-of(inputs)` / `exactly-one-of(inputs)` — OR / AND / XOR
-  gate atoms; emit when condition over named inputs is satisfied
-- `latch` — `set` / `reset` messages toggle persistent state (flip-flop)
-- `clock(period)` — source atom; emits periodic pulses without an incoming trigger
-- `delay(ticks)` — buffers a message and re-emits after N ticks (repeater)
-- `counter(n, emits)` — after N incoming triggers, emits a different message
-- `ice-resident` — spawn ICE here on init and after reboot
-- `reward-on-loot(amount)` — call `ctx.giveReward(amount)` when looted
-
-**Message-passing edges.** Connections are dumb pipes — no behavior, state, or
-filtering logic. All routing, filtering, and rewriting lives in nodes. Every message
-carries an envelope:
-
-```
-{ type, origin, path: [nodeId, ...], destinations: null | [nodeId, ...], payload }
-```
-
-- `origin` — first emitter; preserved through relays
-- `path` — forwarding history; used for cycle detection and audit tracing
-- `destinations` — null = broadcast; `[id,...]` = multicast or unicast
-
-Because messages carry `origin`, gates can be source-selective — `all-of` can
-require signals from specific named nodes, not just any input; strictly more
-expressive than Redstone.
-
-Core message vocabulary: `probe-noise`, `exploit-noise`, `alert`, `owned`, `unlock`,
-`heartbeat` (periodic keep-alive; absence triggers deadman conditions), `signal`
-(generic on/off for gate use).
-
-**Qualities.** Named integer counters in a network-scoped namespace. Atoms and
-player actions can read and write them. `quality("X") >= N` is a first-class
-predicate. From Fallen London: individual events increment a shared counter; a
-trigger fires at a threshold. Neither the emitter nor the target needs to know
-about the other. Examples: `routing-panels-aligned` (inc/dec by switch actions),
-`auth-tokens-collected` (inc on loot), `security-compromised` (flag on IDS
-subversion).
-
-**Triggers.** Named condition + effects pairs, evaluated after every state change,
-firing once when condition transitions false → true:
-
-```
-{ when: all-of [ node("A").accessLevel == "owned",
-                 node("B").accessLevel == "owned" ],
-  then: [ reveal-node("hidden-vault"), place-macguffin("vault", "corp-secrets") ] }
-
-{ when: quality("routing-panels-aligned") >= 3,
-  then: [ enable-node("deep-subnet"), log("Routing path established.") ] }
-```
-
-**Player actions as data.** Actions are data definitions with preconditions and
-effects, not bespoke handlers — a generalization of what `node-types.js` already
-does:
-
-```
-{ id: "flip-route", label: "Reroute",
-  requires: { accessLevel: "owned" },
-  effects: [ toggle-attr("aligned"), emit-message("route-changed"),
-             quality-delta("routing-panels-aligned", +1 if aligned else -1) ] }
-```
-
-**Game API context.** The boundary between node graph and engine — the finite,
-auditable surface of what atoms can affect: `ctx.startTrace()`,
-`ctx.cancelTrace()`, `ctx.giveReward(amount)`, `ctx.spawnICE(nodeId)`,
-`ctx.setGlobalAlert(level)`, `ctx.enableNode(nodeId)`, `ctx.disableNode(nodeId)`,
-`ctx.revealNode(nodeId)`.
-
-#### Expressive Power
-
-The gate atoms are equivalent to digital logic — if the system can express
-Redstone-equivalent circuits, it can express essentially any cause-and-effect
-puzzle without new engine code. The security monitor is already an OR gate
-(`any-of` IDS inputs → high-alert).
-
-| Redstone | Atom |
-|---|---|
-| Wire / repeater | `relay` / `delay(ticks)` |
-| NOT | `invert` |
-| OR / AND / XOR | `any-of` / `all-of` / `exactly-one-of` |
-| Latch / flip-flop | `latch` |
-| Clock | `clock(period)` |
-| Comparator | `compare(threshold)` |
-
-Gate state lives in the attribute bag (`all-of` tracks per-source signal state).
-Timing requires explicit `delay` atoms rather than emerging from propagation
-distance — less implicit, more intentional.
-
-Puzzle patterns enabled, roughly ordered by complexity:
-
-- **Tripwire** — hidden node; trigger fires `ctx.startTrace()` when node A is owned
-- **Decoy** — lootable node with low reward and `raises-alert-on-loot`; corporate bait
-- **Deadman circuit** — `clock → NOT(heartbeat) → trace-start`; blocking the
-  heartbeat relay fires trace rather than silencing it
-- **ICE visibility tradeoff** — subverting the relay that carries `owned` messages
-  lets you own nodes silently, but if it also carries your log feedback the zone
-  goes dark both ways
-- **N-th access alarm** — `counter(3, emits:alert)`; probing 3 times starts trace
-  regardless of per-probe outcomes
-- **Password gate** — own node A (readable password) to send `unlock` to node B
-- **Progressive unlock chain** — each node's `owned` transition is a trigger
-  condition for the next becoming accessible
-- **Switch arrangement** — switch actions write a quality; trigger reveals hidden
-  subnet when quality reaches target value
-- **Multi-key vault** — loot requires `quality("auth-tokens") >= 2`; tokens from
-  two separate nodes
-- **Combination lock** — `all-of([switch-A, switch-B, switch-C])`; only the correct
-  simultaneous state produces the output signal
-- **Ordered sequence lock** — chain of latches; only correct activation order
-  produces the final signal
-- **Automated defense** — `clock AND compromised-flag → ICE-spawn`; ICE spawns
-  periodically only during active intrusion
-- **Self-resetting trap** — `tripwire → latch → delay(30) → latch-reset`
-
-#### Composition Levels: Atoms, ICs, and Set-Piece PCBs
-
-Three levels of composition, from primitive to prefab:
-
-**Complex ICs** are nodes that encapsulate an internal circuit but present a simple
-external interface — inputs, outputs, a few configurable parameters. A hardened
-firewall might internally combine a grade-threshold comparator, an IDS relay, and
-a latch, but from outside it looks like one node with one configurable behavior.
-The IC abstraction enables **black-box puzzle mechanics**: you can observe what a
-node *does* (external message interface, available actions) without knowing *how*
-(internal atom wiring) until you probe and exploit it deeply. Higher-grade ICs hide
-their internals better — internal structure revealed progressively as access level
-rises, mapping onto the existing probe → exploit → read loop.
-
-**Set-piece PCBs** are prefab subgraphs: a cluster of nodes with predefined
-topology, wiring, and atom configurations, placed into a network as a unit by the
-generator. Examples:
-
-- *Security operations center* — monitor + two IDS nodes + ice-host, pre-wired;
-  the generator places one set-piece rather than four individual nodes
-- *Combination vault* — vault node + three switch nodes + `all-of` gate, pre-wired;
-  author configures reward and combination, drops it in
-- *Deadman perimeter* — clock node + heartbeat relay + NOT gate + trace trigger;
-  a self-contained alarm system the player must carefully disarm
-
-Set-pieces are the authoring unit for puzzle content. The atom/IC layers provide
-the vocabulary; set-pieces are the sentences. The network generator's biome
-templates become catalogs of available set-pieces to compose.
-
-#### Relation to Existing Architecture
-
-`node-types.js` action composition is already a partial step. The full overhaul
-replaces the hardcoded IDS → monitor alert chain, `ice-host`/`iceResident` special
-cases, and scattered type checks in `ice.js` and `combat.js`. Node type becomes a
-named shorthand for an atom bundle; biome templates become atom-palette definitions.
-
-Migration path: current node types re-expressed as atom bundles incrementally — no
-flag-day rewrite. The IDS → monitor alert chain is the natural first pilot.
-
-#### Design Risks / Open Questions
-
-- **Debugging**: minimum tooling needed — a message trace log (type, origin, path,
-  atoms fired) inspectable via console command. The `path` field helps here.
-- **Cycle detection**: a relay that sees its own ID in `path` drops the message.
-- **Atom expressiveness ceiling**: atoms should be pure functions of (node state,
-  incoming message, context) → (mutations, outgoing messages, ctx calls). No loops
-  or closures. Whether this covers all current node types without escaping into
-  bespoke JS is the key question — IDS and ICE resident are the litmus tests.
-- **Quality scope**: global (per-run) is simpler; per-node enables isolated puzzle
-  domains but needs namespacing to avoid collisions.
-- **Trigger evaluation cost**: acceptable for small networks; large networks (40–60
-  nodes) may need a dependency graph to avoid re-evaluating all triggers on every
-  mutation.
-- **Testing**: atoms are individually testable in isolation; triggers as condition +
-  state snapshot pairs.
-
-This is a significant architectural investment that directly enables the large-network
-/ multiple-ICE / zone design and puzzle-heavy dungeon content. Defer until the
-single-ICE prototype is fully playtested and the design is stable.
+See `js/core/node-graph/` for the runtime, `data/networks/` for network definitions,
+and the session notes at `docs/dev-sessions/2026-03-03-1244-node-graph-integration/`
+for the full design rationale.
 
 ---
 
@@ -422,20 +178,14 @@ values. They should scale with the network's grade profile so harder networks fe
 tighter. Requires defining a grade→period mapping and threading it through set-piece
 construction.
 
-### WAN Commands as Node-Specific Actions
-WAN commands (jack-out, store) are currently global console commands. They should be
-node-specific actions available only when the WAN node is selected, consistent with
-the "all actions are node-contextual" pattern established by the node-graph integration.
+### ~~WAN Commands as Node-Specific Actions~~ ✓ DONE
+`access-darknet` is a node-specific action on the WAN node. `jackout` remains global (no node required).
 
-### Bot Player Rebuild for Node-Graph System
-The bot player (`scripts/bot-player.js`) was written against the old static network
-and node-type registry. It needs a rebuild to work with the NodeGraph runtime, dynamic
-node addition, and graph-bridge state sync. Priority: needed before any balance tuning.
+### ~~Bot Player Rebuild for Node-Graph System~~ ✓ DONE
+Full rewrite in `scripts/bot/` with modular strategies, perception layer, and puzzle heuristics.
 
-### MANUAL.md Update (Node-Graph)
-The player manual needs updating to reflect the node-graph integration changes: new
-node types, set-piece behaviors, any changed action semantics. Treat as a checklist
-item before calling the integration "shipped."
+### ~~MANUAL.md Update (Node-Graph)~~ ✓ DONE
+Manual reflects current node types, shapes, actions, and set-piece behaviors.
 
 ### ICE Visual Refinement
 The ICE HTML overlay works but could look better. The overlay is positioned via
@@ -551,14 +301,8 @@ third time. One case is a data point; a pattern is a signal._
 IDs are already derived from vuln type + counter (e.g. `unpatched-ssh-1`, `kernel-exploit-3`).
 Landed in commit `410c18d`.
 
-### Node Shape Inventory for Graph Visualization
-The Cytoscape graph currently renders all nodes as the same shape. Different node
-types should have distinct visual shapes so the player can read the network topology
-at a glance — routers as diamonds, firewalls as hexagons, fileservers as rectangles,
-etc. The mapping mechanism likely already exists (Cytoscape supports per-node `shape`
-via style selectors keyed on `data.type`); the work is designing the shape inventory
-and wiring it through `graph.js` node styles. Shapes should be meaningful: security
-nodes look different from loot nodes, gate nodes look different from filler.
+### ~~Node Shape Inventory~~ ✓ DONE
+NODE_SHAPES mapping in `js/ui/graph.js`, documented in MANUAL.md node types table.
 
 ### Scattered Sub-Set-Pieces (Compound Scatter Groups)
 The current scatter system distributes single atomic nodes. A natural extension:
