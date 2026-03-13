@@ -72,11 +72,45 @@
  */
 
 /**
+ * A sub-biome definition — a curated filter over the biome catalog with
+ * bundled grade tendencies. Used to give wings distinct character.
+ * @typedef {Object} SubBiomeDef
+ * @property {string} id                  -e.g. "security-ops"
+ * @property {string} name                -display name: "Security Operations"
+ * @property {string} description         -flavor text
+ * @property {string[]} pieceIds          -set-piece IDs from the biome catalog (filter)
+ * @property {string[]} requiredPieceIds  -must-place piece IDs (always placed in this wing)
+ * @property {GradeSpec} baseGrades       -before LAN offset
+ */
+
+/**
+ * A recipe definition — a formula for composing a network from sub-biome wings.
+ * @typedef {Object} RecipeDef
+ * @property {string} id                  -e.g. "defense-contractor"
+ * @property {string} name                -"Defense Contractor"
+ * @property {string} description         -flavor text for mission briefing
+ * @property {string[]} mandatoryWings    -sub-biome IDs, always placed
+ * @property {Array<{subBiomeId: string, weight: number}>} optionalPool
+ */
+
+/**
+ * Grade values for the 4 budget axes.
+ * @typedef {Object} GradeSpec
+ * @property {string} threat              -grade (S/A/B/C/D/F)
+ * @property {string} wealth              -grade
+ * @property {string} complexity          -grade
+ * @property {string} depth               -grade
+ */
+
+/**
  * A biome definition — a catalog of set-pieces with default budget.
  * @typedef {Object} BiomeDef
  * @property {string} id
  * @property {NetworkSpec} defaultBudget
  * @property {SetPieceDef[]} catalog
+ * @property {SubBiomeDef[]} [subBiomes]        -available sub-biomes
+ * @property {RecipeDef[]} [recipes]             -available recipe variants
+ * @property {string[]} [backbonePieceIds]       -piece IDs eligible for backbone slots
  */
 
 /**
@@ -87,6 +121,8 @@
  * @property {string} complexity          -grade
  * @property {string} depth               -grade
  * @property {{ tags: string[], placement: string }|null} [missionTarget]
+ * @property {string} [recipeId]          -selected recipe variant (for C+ hierarchical)
+ * @property {string} [lanGrade]          -overall LAN grade for offset
  */
 
 // ---------------------------------------------------------------------------
