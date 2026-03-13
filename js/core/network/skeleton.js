@@ -437,8 +437,10 @@ function resolveWings(recipe, targetCount, subBiomeMap, rng) {
     if (sb) result.push(sb);
   }
 
-  // Fill remaining from optional pool (weighted random)
-  while (result.length < targetCount && recipe.optionalPool.length > 0) {
+  // Fill remaining from optional pool (weighted random).
+  // Guard against infinite loop if pool references invalid sub-biome IDs.
+  let maxAttempts = targetCount * 3;
+  while (result.length < targetCount && recipe.optionalPool.length > 0 && maxAttempts-- > 0) {
     const totalWeight = recipe.optionalPool.reduce((s, o) => s + o.weight, 0);
     let roll = rng() * totalWeight;
     for (const opt of recipe.optionalPool) {

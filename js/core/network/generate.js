@@ -57,26 +57,11 @@ export function generateNetwork(seed, spec, biome, opts = {}) {
       const result = generateHierarchicalSkeleton(spec, biome, recipe, rng);
       skeleton = result.root;
 
-      // Fill with per-wing filtering
+      // Fill the hierarchical skeleton with expanded budget.
+      // TODO: thread per-wing palettes (sub-biome pieceIds) and requiredPieceIds
+      // through to fillSkeleton so wings get sub-biome-flavored content.
+      // Currently all wings draw from the full catalog.
       const budgets = hierarchicalBudget(spec, result.wings.length);
-      const subBiomeMap = new Map((biome.subBiomes ?? []).map(sb => [sb.id, sb]));
-      const backbonePalette = biome.backbonePieceIds ? new Set(biome.backbonePieceIds) : null;
-
-      // Build wing palette map: subBiomeId → { palette, requiredPieceIds }
-      /** @type {Map<string, { palette: Set<string>, requiredPieceIds: string[] }>} */
-      const wingPalettes = new Map();
-      for (const w of result.wings) {
-        const sb = w.wingSpec.subBiome;
-        wingPalettes.set(w.slot.id, {
-          palette: new Set(sb.pieceIds),
-          requiredPieceIds: sb.requiredPieceIds,
-        });
-      }
-
-      // Fill the hierarchical skeleton using a unified fill pass.
-      // The slot-filler's palette switching happens via wing entry slot detection.
-      // For now, use the full catalog (wings get all pieces) — we'll thread
-      // per-wing palettes through in a follow-up if needed.
       fillResult = fillSkeleton(skeleton, biome, spec, rng, {
         budgetOverride: budgets.total,
       });
