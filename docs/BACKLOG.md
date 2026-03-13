@@ -36,6 +36,29 @@ tier. A full overhaul will be needed to support:
   dispatch system. This is a significant architectural change — defer until the single-ICE
   prototype is fully playtested and the design is stable.
 
+### Network Branching and Topology Variety
+Generated networks tend toward long, unbranching linear paths — each piece has one
+inbound and one outbound port, creating corridors rather than trees. This is
+especially noticeable when hunting for scattered nodes across the network.
+
+Approaches to improve branching:
+- **More outbound ports on existing pieces** — add optional second/third outbound
+  ports to puzzle, defense, and treasure pieces (IDS chains, tamper detect,
+  scattered lock cores). The generator already handles multi-port pieces via the
+  opportunistic filler path.
+- **Dedicated branching piece** — a cheap "switch hub" (1 inbound, 3 outbound)
+  the skeleton can place to fork paths, ensuring more tree-like topology.
+- **Lateral ports** — cross-connections between sibling branches, creating loops
+  and alternate routes. The port system already supports `direction: "lateral"`
+  but no piece uses it yet.
+- **Skeleton branching factor tuning** — the skeleton generator's branching
+  heuristic (1-3 branches per depth) may be too conservative. Increasing the
+  minimum branching factor or adding a "topology: branching" spec parameter
+  could produce wider networks.
+
+_Identified during scattered set-pieces session (2026-03-12): long unbranching
+paths noticed while playtesting scattered switch hunting._
+
 ### Large Network Generation
 Current networks are 9-16 nodes. Larger networks (40-60+ nodes) would support
 longer runs, multiple security domains, and multiple ICE instances. Design
