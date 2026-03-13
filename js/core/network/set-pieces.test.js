@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { instantiate, SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect } from "./set-pieces.js";
+import { instantiate } from "./set-pieces.js";
+import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect } from "../../../data/biomes/corporate-pieces.js";
 import { createGameNode } from "../node-graph/game-types.js";
 import { NodeGraph } from "../node-graph/runtime.js";
 import { mockCtx } from "../node-graph/ctx.js";

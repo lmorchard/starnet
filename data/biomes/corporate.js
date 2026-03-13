@@ -15,12 +15,9 @@ import {
   cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor,
   tamperDetect, serverBank, officeCluster,
   largeServerBank, vaultCluster, defensePlex, fortifiedGate, dataCenter,
-} from "../../js/core/network/set-pieces.js";
-
-import {
   entryPoint, singleRouter, singleFirewall,
   singleWorkstation, singleFileserver,
-} from "../../js/core/network/atomics.js";
+} from "./corporate-pieces.js";
 
 /** @type {SetPieceDef[]} */
 const catalog = [

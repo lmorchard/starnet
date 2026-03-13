@@ -7,7 +7,8 @@
  * No ICE.
  */
 
-import { instantiate, SET_PIECES } from "../../js/core/network/set-pieces.js";
+import { instantiate } from "../../js/core/network/set-pieces.js";
+import { SET_PIECES } from "../biomes/corporate-pieces.js";
 import {
   createGateway, createRouter, createWAN, createGameNode,
 } from "../../js/core/node-graph/game-types.js";

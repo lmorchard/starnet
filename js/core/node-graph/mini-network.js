@@ -5,7 +5,8 @@
  * and playtest.js --piece/--graph modes.
  */
 
-import { instantiate, SET_PIECES } from "../network/set-pieces.js";
+import { instantiate } from "../network/set-pieces.js";
+import { SET_PIECES } from "../../../data/biomes/corporate-pieces.js";
 import { createGateway, createWAN, createGameNode } from "./game-types.js";
 
 /**
