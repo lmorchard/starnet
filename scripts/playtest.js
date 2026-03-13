@@ -38,6 +38,7 @@ let pieceArg = null;
 let graphFileArg = null;
 let generatedArg = false;
 let threatArg = "C", wealthArg = "B", complexityArg = "C", depthArg = "C";
+let recipeArg = null, lanGradeArg = null;
 
 {
   const argv = process.argv.slice(2);
@@ -62,6 +63,10 @@ let threatArg = "C", wealthArg = "B", complexityArg = "C", depthArg = "C";
       complexityArg = argv[++i];
     } else if (argv[i] === "--depth" && argv[i + 1]) {
       depthArg = argv[++i];
+    } else if (argv[i] === "--recipe" && argv[i + 1]) {
+      recipeArg = argv[++i];
+    } else if (argv[i] === "--lan-grade" && argv[i + 1]) {
+      lanGradeArg = argv[++i];
     } else if (cmdStr === null) {
       cmdStr = argv[i];
     }
@@ -80,6 +85,8 @@ if (generatedArg) {
   // Procedural generation mode
   const genSeed = seedArg ?? `gen-${Date.now()}`;
   const spec = { threat: threatArg, wealth: wealthArg, complexity: complexityArg, depth: depthArg };
+  if (recipeArg) spec.recipeId = recipeArg;
+  if (lanGradeArg) spec.lanGrade = lanGradeArg;
   const result = buildGenerated({ seed: genSeed, spec });
   buildNetworkFn = () => result;
 } else if (pieceArg) {

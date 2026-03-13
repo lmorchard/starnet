@@ -37,6 +37,10 @@ function getSelectedNetwork() {
       complexity: p.get("complexity")?.toUpperCase() ?? "C",
       depth:      p.get("depth")?.toUpperCase() ?? "C",
     };
+    const recipe = p.get("recipe");
+    const lanGrade = p.get("lanGrade")?.toUpperCase() ?? p.get("lan-grade")?.toUpperCase();
+    if (recipe) spec.recipeId = recipe;
+    if (lanGrade) spec.lanGrade = lanGrade;
     const seed = p.get("seed") ?? "gen-" + Date.now();
     const result = buildGenerated({ seed, spec });
     return () => result;
