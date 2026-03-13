@@ -60,7 +60,16 @@ export function validate(graphDef, spec) {
     errors.push(`Orphan nodes (no edges): ${realOrphans.map(n => n.id).join(", ")}`);
   }
 
-  // 5. Minimum node count — at least 8 nodes for a meaningful network
+  // 5. All nodes reachable from gateway (catches internal set-piece disconnections)
+  if (gateway) {
+    const reachable = bfs(gateway.id, graphDef.edges);
+    const unreachable = graphDef.nodes.filter(n => !reachable.has(n.id));
+    if (unreachable.length > 0) {
+      errors.push(`Unreachable nodes: ${unreachable.map(n => n.id).join(", ")}`);
+    }
+  }
+
+  // 6. Minimum node count — at least 8 nodes for a meaningful network
   if (graphDef.nodes.length < 8) {
     errors.push(`Too few nodes: ${graphDef.nodes.length} (minimum 8)`);
   }

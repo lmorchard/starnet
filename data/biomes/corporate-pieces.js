@@ -672,6 +672,7 @@ export const encryptedVault = {
   ],
   internalEdges: [
     ["key-gen", "key-ready-latch"],
+    ["key-gen", "vault"],  // vault must be reachable from key-gen in the graph
   ],
   triggers: [
     {
