@@ -16,6 +16,7 @@
  * @property {OperatorConfig[]} [operators]
  * @property {ActionDef[]} [actions]
  * @property {TriggerDef[]} [triggers]   - per-node triggers (nodeId filled in at construction)
+ * @property {boolean} [scatter]        - node is placed independently by the generator
  */
 
 /**
@@ -142,7 +143,7 @@
  * Effect — union of supported effect shapes.
  * @typedef {SetAttrEffect | SetNodeAttrEffect | ToggleAttrEffect | EmitMessageEffect |
  *           QualitySetEffect | QualityDeltaEffect | CtxCallEffect | LogEffect |
- *           RevealNodeEffect | EnableNodeEffect} Effect
+ *           LogTemplateEffect | RevealNodeEffect | EnableNodeEffect} Effect
  */
 
 /**
@@ -197,6 +198,12 @@
  * @typedef {Object} LogEffect
  * @property {'log'} effect
  * @property {string} message
+ */
+
+/**
+ * @typedef {Object} LogTemplateEffect - log with ${quality:name} substitution
+ * @property {'log-template'} effect
+ * @property {string} template
  */
 
 /**

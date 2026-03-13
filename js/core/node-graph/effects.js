@@ -23,7 +23,7 @@
  * @param {EffectMutators} mutators
  */
 export function applyEffect(effect, mutators) {
-  const { setNodeAttr, targetNodeId, getNodeAttr, setQuality, deltaQuality, emitFrom, ctx } = mutators;
+  const { setNodeAttr, targetNodeId, getNodeAttr, getQuality, setQuality, deltaQuality, emitFrom, ctx } = mutators;
 
   switch (effect.effect) {
     case "set-attr":
@@ -64,6 +64,15 @@ export function applyEffect(effect, mutators) {
     case "log":
       ctx.log(effect.message);
       break;
+
+    case "log-template": {
+      const resolved = effect.template.replace(
+        /\$\{quality:([^}]+)\}/g,
+        (_, name) => String(getQuality(name) ?? 0)
+      );
+      ctx.log(resolved);
+      break;
+    }
 
     case "reveal-node":
       ctx.revealNode(effect.nodeId);

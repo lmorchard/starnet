@@ -143,6 +143,51 @@ describe("applyEffect: enable-node", () => {
   });
 });
 
+describe("applyEffect: log-template", () => {
+  it("substitutes quality values into the template", () => {
+    const store = makeStore();
+    store.qualities["locks-opened"] = 2;
+    const { ctx, calls } = makeCtx();
+    applyEffect(
+      { effect: "log-template", template: "Lock: ${quality:locks-opened}/3 activated" },
+      { ...store, targetNodeId: null, ctx }
+    );
+    assert.deepEqual(calls.log?.[0], ["Lock: 2/3 activated"]);
+  });
+
+  it("substitutes 0 for missing qualities", () => {
+    const store = makeStore();
+    const { ctx, calls } = makeCtx();
+    applyEffect(
+      { effect: "log-template", template: "Keys: ${quality:missing-quality}/5" },
+      { ...store, targetNodeId: null, ctx }
+    );
+    assert.deepEqual(calls.log?.[0], ["Keys: 0/5"]);
+  });
+
+  it("handles multiple quality references in one template", () => {
+    const store = makeStore();
+    store.qualities["a"] = 1;
+    store.qualities["b"] = 4;
+    const { ctx, calls } = makeCtx();
+    applyEffect(
+      { effect: "log-template", template: "A=${quality:a} B=${quality:b}" },
+      { ...store, targetNodeId: null, ctx }
+    );
+    assert.deepEqual(calls.log?.[0], ["A=1 B=4"]);
+  });
+
+  it("passes through template with no quality refs unchanged", () => {
+    const store = makeStore();
+    const { ctx, calls } = makeCtx();
+    applyEffect(
+      { effect: "log-template", template: "No qualities here" },
+      { ...store, targetNodeId: null, ctx }
+    );
+    assert.deepEqual(calls.log?.[0], ["No qualities here"]);
+  });
+});
+
 describe("applyEffect: unknown type", () => {
   it("throws for unknown effect type", () => {
     const store = makeStore();

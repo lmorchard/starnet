@@ -15,6 +15,9 @@ const INSTANT_ACTIONS = new Set([
   "select", "deselect", "jackout", "reconfigure", "cancel-trace",
   "cancel-probe", "cancel-exploit", "cancel-read", "cancel-loot",
   "eject", "access-darknet",
+  // Set-piece puzzle actions
+  "activate", "scan-lock", "scan-vault", "crack-vault",
+  "unlock-vault", "extract-token", "extract-key", "decrypt-loot",
 ]);
 
 /**

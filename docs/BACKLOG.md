@@ -36,6 +36,29 @@ tier. A full overhaul will be needed to support:
   dispatch system. This is a significant architectural change — defer until the single-ICE
   prototype is fully playtested and the design is stable.
 
+### Network Branching and Topology Variety
+Generated networks tend toward long, unbranching linear paths — each piece has one
+inbound and one outbound port, creating corridors rather than trees. This is
+especially noticeable when hunting for scattered nodes across the network.
+
+Approaches to improve branching:
+- **More outbound ports on existing pieces** — add optional second/third outbound
+  ports to puzzle, defense, and treasure pieces (IDS chains, tamper detect,
+  scattered lock cores). The generator already handles multi-port pieces via the
+  opportunistic filler path.
+- **Dedicated branching piece** — a cheap "switch hub" (1 inbound, 3 outbound)
+  the skeleton can place to fork paths, ensuring more tree-like topology.
+- **Lateral ports** — cross-connections between sibling branches, creating loops
+  and alternate routes. The port system already supports `direction: "lateral"`
+  but no piece uses it yet.
+- **Skeleton branching factor tuning** — the skeleton generator's branching
+  heuristic (1-3 branches per depth) may be too conservative. Increasing the
+  minimum branching factor or adding a "topology: branching" spec parameter
+  could produce wider networks.
+
+_Identified during scattered set-pieces session (2026-03-12): long unbranching
+paths noticed while playtesting scattered switch hunting._
+
 ### Large Network Generation
 Current networks are 9-16 nodes. Larger networks (40-60+ nodes) would support
 longer runs, multiple security domains, and multiple ICE instances. Design
@@ -536,6 +559,30 @@ etc. The mapping mechanism likely already exists (Cytoscape supports per-node `s
 via style selectors keyed on `data.type`); the work is designing the shape inventory
 and wiring it through `graph.js` node styles. Shapes should be meaningful: security
 nodes look different from loot nodes, gate nodes look different from filler.
+
+### Scattered Sub-Set-Pieces (Compound Scatter Groups)
+The current scatter system distributes single atomic nodes. A natural extension:
+scatter entire mini set-pieces (multi-node subgraphs with internal edges and
+structure) rather than lone nodes. Examples:
+
+- **Guarded key-server** — a key-server + IDS guard scattered as a unit. The
+  player must subvert the guard before extracting the token.
+- **Trapped switch** — a routing-switch + tripwire. Activating the switch
+  without disarming the trap triggers an alert.
+- **Encrypted relay** — a key-gen + signal-latch pair that must be cracked
+  in sequence before the quality counter increments.
+
+Implementation: replace `scatter: true` (boolean) with `scatter: "group-name"`
+(string). Nodes sharing the same scatter group are placed together as a mini
+set-piece — their internal edges preserved, placed as a unit with one synthetic
+inbound port. Different groups scatter independently.
+
+This composes with the existing system: quality communication still links
+scattered groups to the core. The generator treats each group like the current
+atomic scattered nodes, but instantiates a subgraph instead of a single node.
+
+_Extension of the scattered set-pieces system (2026-03-12). Noted in spec
+future directions as "scatter groups."_
 
 ### Companion Pieces (Long-Range Set-Piece Dependencies)
 The `requires` field exists in the set-piece schema but no piece uses it yet. The

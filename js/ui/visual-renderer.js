@@ -510,6 +510,8 @@ function updateExploitProgress(progress = null) {
   if (label) label.textContent = `▶ EXECUTING — ${pct}%`;
 }
 
+let _lastHandKey = "";
+
 function syncHandPane(state) {
   const el = document.getElementById("hand-strip");
   if (!el) return;
@@ -522,6 +524,13 @@ function syncHandPane(state) {
   const sortedHand = selectedNode
     ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : state.player.hand;
+
+  // Skip re-render if hand state hasn't changed (prevents flicker from
+  // frequent STATE_CHANGED events destroying and recreating card DOM)
+  const handKey = sortedHand.map(c => `${c.id}:${c.uses}:${c.decayState}`).join("|")
+    + `|sel:${state.selectedNodeId ?? ""}|exec:${exploitingId ?? ""}`;
+  if (handKey === _lastHandKey) return;
+  _lastHandKey = handKey;
 
   const handClass = ["nd-hand", isSelecting ? "selectable" : "", executing ? "exploit-hand-executing" : ""]
     .filter(Boolean).join(" ");

@@ -48,15 +48,6 @@
  */
 
 /**
- * A long-range dependency — companion pieces that must be placed elsewhere.
- * @typedef {Object} Dependency
- * @property {string} role                -identifier for linking (e.g. quality counter name)
- * @property {string[]} tags              -what tags the companion piece should have
- * @property {number} count               -how many companions needed
- * @property {"deeper"|"shallower"|"any"} placement
- */
-
-/**
  * A set-piece definition — a self-contained, reusable subgraph.
  * @typedef {Object} SetPieceDef
  * @property {string} id
@@ -68,7 +59,6 @@
  * @property {string[]} [tags]            -role tags (entry, spine, filler, treasure, etc.)
  * @property {string} [cost]              -grade F through S
  * @property {Port[]} [ports]             -typed connection points (replaces externalPorts for procgen)
- * @property {Dependency[]} [requires]    - long-range companion requirements
  * @property {number} [minDepth]          - minimum depth for placement (pieces with auto-start timers)
  */
 
@@ -163,6 +153,13 @@ function rewriteEffect(effect, prefix) {
     case "quality-delta":
     case "quality-set":
       return { ...effect, name: pfx(effect.name, prefix) };
+    case "log-template": {
+      const rewritten = effect.template.replace(
+        /\$\{quality:([^}]+)\}/g,
+        (_, name) => `\${quality:${pfx(name, prefix)}}`
+      );
+      return { ...effect, template: rewritten };
+    }
     default:
       return effect;
   }

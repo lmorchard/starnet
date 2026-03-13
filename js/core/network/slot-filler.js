@@ -37,6 +37,14 @@ import { gradeToNumber, costBudget } from "./budget.js";
  * @property {string[]} outboundNodeIds - prefixed outbound port node IDs (unconsumed)
  */
 
+/**
+ * A deferred scatter placement — scattered nodes waiting for pass 2.
+ * @typedef {Object} ScatterObligation
+ * @property {string} prefix - parent piece prefix (shared with core)
+ * @property {NodeDef[]} scatteredNodes - instantiated scattered nodes
+ * @property {SetPieceDef} pieceDef - original piece definition
+ */
+
 // ---------------------------------------------------------------------------
 // Slot filler
 // ---------------------------------------------------------------------------
@@ -60,8 +68,18 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
   const placed = new Map();
   /** @type {Set<string>} Track which piece IDs have been used for diversity */
   const usedPieceIds = new Set();
+  /** @type {ScatterObligation[]} Deferred scattered nodes for pass 2 */
+  const scatterObligations = [];
 
-  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds);
+  // Pass 1: fill all skeleton slots
+  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds, scatterObligations);
+  if (!ok) return { pieces, crossEdges, ok: false };
+
+  // Pass 2: place scattered nodes in gate-free slots
+  if (scatterObligations.length > 0) {
+    const scatterOk = placeScatteredNodes(scatterObligations, pieces, skeleton, crossEdges, placed);
+    if (!scatterOk) return { pieces, crossEdges, ok: false };
+  }
 
   return { pieces, crossEdges, ok };
 }
@@ -78,9 +96,10 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
  * @param {Map<string, PlacedPiece>} placed
  * @param {{ budget: number }} state
  * @param {Set<string>} usedPieceIds
+ * @param {ScatterObligation[]} scatterObligations
  * @returns {boolean}
  */
-function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds) {
+function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations) {
   // 1. Filter catalog candidates
   let candidates = findCandidates(slot, parentPiece, biome, state.budget);
 
@@ -102,7 +121,21 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   const prefix = slot.id.replace(/^slot-\d+-/, ""); // clean prefix
   const instance = instantiate(chosen, prefix);
 
-  const gameNodes = instance.nodes;
+  // 4. Separate core nodes from scattered nodes
+  const scatteredIds = new Set(
+    chosen.nodes.filter(n => n.scatter).map(n => `${prefix}/${n.id}`)
+  );
+  let gameNodes = instance.nodes;
+  let gameEdges = instance.edges;
+
+  if (scatteredIds.size > 0) {
+    const scatteredNodes = gameNodes.filter(n => scatteredIds.has(n.id));
+    gameNodes = gameNodes.filter(n => !scatteredIds.has(n.id));
+    // Filter edges — drop any edge referencing a scattered node
+    gameEdges = gameEdges.filter(([a, b]) => !scatteredIds.has(a) && !scatteredIds.has(b));
+    // Record scatter obligation for pass 2
+    scatterObligations.push({ prefix, scatteredNodes, pieceDef: chosen });
+  }
 
   // 5. Build prefixed ports
   const prefixedPorts = (chosen.ports ?? []).map(p => ({
@@ -118,7 +151,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     pieceDef: chosen,
     prefix,
     nodes: gameNodes,
-    edges: instance.edges,
+    edges: gameEdges,
     triggers: instance.triggers,
     ports: prefixedPorts,
     inboundNodeId: inboundPort?.nodeId ?? null,
@@ -141,6 +174,9 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
       // Can't wire — remove piece to prevent orphan. Refund budget.
       pieces.pop();
       state.budget += gradeToNumber(chosen.cost ?? "F");
+      // Also remove any scatter obligation for this piece
+      const oblIdx = scatterObligations.findIndex(o => o.prefix === prefix);
+      if (oblIdx !== -1) scatterObligations.splice(oblIdx, 1);
       return true; // continue with siblings (they might not need this parent's ports)
     }
   }
@@ -148,7 +184,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   // 8. Fill children
   let outPortIdx = 0;
   for (const child of slot.children) {
-    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds)) {
+    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations)) {
       return false;
     }
   }
@@ -166,7 +202,10 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
       isLeaf: true,
       dependency: null,
     };
-    const fillerCandidates = findCandidates(fillerSlot, piece, biome, state.budget);
+    let fillerCandidates = findCandidates(fillerSlot, piece, biome, state.budget);
+    // Exclude scattered pieces from opportunistic filler — they need the
+    // main fill path's scatter separation logic
+    fillerCandidates = fillerCandidates.filter(p => !p.nodes.some(n => n.scatter));
     if (fillerCandidates.length === 0) break;
 
     const fillerChosen = pickCandidate(fillerCandidates, rng, usedPieceIds);
@@ -298,6 +337,139 @@ function pickCandidate(candidates, rng, usedPieceIds) {
 function consumeOutboundPort(piece) {
   if (piece.outboundNodeIds.length === 0) return null;
   return piece.outboundNodeIds.shift() ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Scatter placement (pass 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute which skeleton slots are reachable from the entry without passing
+ * through any placed piece that contains a puzzle gate (concealed nodes or
+ * scattered nodes that create unsolvable dependencies).
+ *
+ * Regular gate-tagged pieces (routers, firewalls) are NOT blocking — the
+ * player can always hack through them. Only puzzle gates that require solving
+ * a distributed puzzle (concealed vaults, scattered lock cores) block scatter
+ * placement.
+ *
+ * @param {Map<string, PlacedPiece>} placed - slotId → piece
+ * @param {SkeletonSlot} skeleton - root of skeleton tree
+ * @returns {Set<string>} gate-free slot IDs
+ */
+export function computeGateFreeSlots(placed, skeleton) {
+  /** @type {Set<string>} */
+  const gateFree = new Set();
+
+  /**
+   * @param {SkeletonSlot} slot
+   * @param {boolean} blocked - whether an ancestor was a puzzle gate
+   */
+  function walk(slot, blocked) {
+    const piece = placed.get(slot.id);
+    // A piece is a puzzle gate if it has concealed nodes (vault behind a lock)
+    // or if it has scattered nodes (it IS a distributed puzzle core)
+    const isPuzzleGate = piece?.pieceDef?.nodes?.some(
+      n => n.attributes?.concealed || n.scatter
+    ) ?? false;
+    const nowBlocked = blocked || isPuzzleGate;
+
+    if (!nowBlocked) {
+      gateFree.add(slot.id);
+    }
+
+    for (const child of slot.children) {
+      walk(child, nowBlocked);
+    }
+  }
+
+  walk(skeleton, false);
+  return gateFree;
+}
+
+/**
+ * Place all deferred scattered nodes into gate-free slots.
+ *
+ * Strategy: first try unused outbound ports, then replace leaf filler nodes
+ * (single workstation/fileserver pieces) with scattered nodes. Replacement
+ * is safe because the scattered node's cost is already included in its parent
+ * piece's budget.
+ *
+ * @param {ScatterObligation[]} obligations
+ * @param {PlacedPiece[]} pieces
+ * @param {SkeletonSlot} skeleton
+ * @param {[string, string][]} crossEdges
+ * @param {Map<string, PlacedPiece>} placed
+ * @returns {boolean} true if all scattered nodes were placed
+ */
+function placeScatteredNodes(obligations, pieces, skeleton, crossEdges, placed) {
+  const gateFreeSlots = computeGateFreeSlots(placed, skeleton);
+  scatterPlaced.clear();
+
+  for (const obligation of obligations) {
+    for (const scatteredNode of obligation.scatteredNodes) {
+      if (attachToFreePort(scatteredNode, pieces, gateFreeSlots, crossEdges)) continue;
+      if (replaceLeafNode(scatteredNode, pieces, gateFreeSlots, crossEdges)) continue;
+      return false; // couldn't place — generation should retry
+    }
+  }
+
+  return true;
+}
+
+/** Try to attach a scattered node to an unused outbound port in a gate-free slot. */
+function attachToFreePort(scatteredNode, pieces, gateFreeSlots, crossEdges) {
+  for (const piece of pieces) {
+    if (piece.outboundNodeIds.length === 0) continue;
+    if (!gateFreeSlots.has(piece.slot.id)) continue;
+
+    const outPort = consumeOutboundPort(piece);
+    if (!outPort) continue;
+
+    piece.nodes.push(scatteredNode);
+    crossEdges.push([outPort, scatteredNode.id]);
+    scatterPlaced.add(scatteredNode.id);
+    return true;
+  }
+  return false;
+}
+
+/** Replaceable leaf types — cheap filler nodes that can be swapped for scattered nodes. */
+const REPLACEABLE_TYPES = new Set(["workstation", "fileserver"]);
+
+/** Track node IDs that were placed via scatter — can't replace these. */
+const scatterPlaced = new Set();
+
+/**
+ * Replace a leaf filler node with a scattered node. The filler node is removed
+ * and the scattered node takes its place in the edge graph.
+ */
+function replaceLeafNode(scatteredNode, pieces, gateFreeSlots, crossEdges) {
+  for (const piece of pieces) {
+    if (!gateFreeSlots.has(piece.slot.id)) continue;
+    // Only replace single-node leaf pieces (atomics)
+    if (piece.nodes.length !== 1) continue;
+    const candidate = piece.nodes[0];
+    if (!REPLACEABLE_TYPES.has(candidate.type)) continue;
+    // Don't replace a node that was already placed via scatter
+    if (scatterPlaced.has(candidate.id)) continue;
+    // Don't replace pieces that are the scatter node's own parent
+    if (piece.prefix === scatteredNode.id.split("/")[0]) continue;
+
+    // Find the cross-edge that wires this piece into the network
+    const inboundId = piece.inboundNodeId;
+    const edgeIdx = crossEdges.findIndex(([, dst]) => dst === inboundId);
+    if (edgeIdx === -1) continue;
+
+    const [parentPort] = crossEdges[edgeIdx];
+
+    // Replace: swap the filler node for the scattered node, rewire edge
+    piece.nodes[0] = scatteredNode;
+    crossEdges[edgeIdx] = [parentPort, scatteredNode.id];
+    scatterPlaced.add(scatteredNode.id);
+    return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
