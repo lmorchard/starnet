@@ -1,4 +1,13 @@
-.PHONY: serve lint test check bundle-vendor census bot-run generate gen-bot
+.PHONY: all serve lint test check bundle-vendor census bot-run generate gen-bot
+
+# Install dependencies and build vendor bundle
+all: node_modules dist/vendor.js
+
+node_modules: package.json
+	npm install
+
+dist/vendor.js: js/vendor.js node_modules
+	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 
 # Start local dev server (open http://localhost:3000)
 serve:

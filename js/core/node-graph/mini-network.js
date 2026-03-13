@@ -7,7 +7,7 @@
 
 import { instantiate } from "../network/set-pieces.js";
 import { SET_PIECES } from "../../../data/biomes/corporate-pieces.js";
-import { createGateway, createWAN, createGameNode } from "./game-types.js";
+import { createGateway, createWAN } from "./game-types.js";
 
 /**
  * Wrap a raw NodeGraphDef in a mini-network with gateway + WAN.
@@ -22,10 +22,7 @@ export function buildMiniNetwork(graphDef, opts = {}) {
   });
   const wan = createWAN("wan");
 
-  // Wrap nodes that don't have traits yet
-  const wrappedNodes = graphDef.nodes.map((n) =>
-    n.traits && n.traits.length > 0 ? n : createGameNode(n)
-  );
+  const wrappedNodes = graphDef.nodes;
 
   // Connect gateway to the first node if there are any
   const entryEdges = wrappedNodes.length > 0
@@ -66,7 +63,7 @@ export function buildSetPieceMiniNetwork(pieceName) {
   }
 
   const instance = instantiate(def, "sp");
-  const wrappedNodes = instance.nodes.map(createGameNode);
+  const wrappedNodes = instance.nodes;
 
   const gateway = createGateway("gateway", {
     attributes: { visibility: "accessible" },

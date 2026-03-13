@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { instantiate } from "./set-pieces.js";
 import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect } from "../../../data/biomes/corporate-pieces.js";
-import { createGameNode } from "../node-graph/game-types.js";
 import { NodeGraph } from "../node-graph/runtime.js";
 import { mockCtx } from "../node-graph/ctx.js";
 import { createMessage } from "../node-graph/message.js";
@@ -104,8 +103,8 @@ describe("instantiate: two instances have independent IDs", () => {
     graph.executeAction("v1/switch-b", "activate");
     graph.executeAction("v1/switch-c", "activate");
 
-    assert.equal(graph.getNodeState("v1/vault").visible, true);
-    assert.equal(graph.getNodeState("v2/vault").visible, false);
+    assert.ok(ctx.calls.revealNode?.length > 0);
+    assert.deepEqual(ctx.calls.revealNode[0], ["v1/vault"]);
     assert.equal(ctx.calls.giveReward?.length, 1);
   });
 });
@@ -118,8 +117,7 @@ describe("ids-relay-chain: alert forwarding and subversion", () => {
   it("alert propagates through IDS to monitor when forwardingEnabled:true", () => {
     const ctx = mockCtx();
     const inst = instantiate(idsRelayChain, "east");
-    // Wrap nodes with createGameNode so traits (including security per-node triggers) apply
-    const nodes = inst.nodes.map(createGameNode);
+    const nodes = inst.nodes;
     const graph = new NodeGraph({ nodes, edges: inst.edges, triggers: inst.triggers }, ctx);
 
     // Send an alert into IDS — relay forwards it to monitor — monitor flags alerted:true
@@ -180,7 +178,7 @@ describe("combination-lock: all three switches must activate", () => {
     graph.executeAction("v1/switch-a", "activate");
     graph.executeAction("v1/switch-b", "activate");
     assert.equal(ctx.calls.giveReward, undefined);
-    assert.equal(graph.getNodeState("v1/vault").visible, false);
+    assert.equal(ctx.calls.revealNode, undefined);
   });
 
   it("vault-reveal fires and giveReward called when all 3 activated", () => {
@@ -197,7 +195,8 @@ describe("combination-lock: all three switches must activate", () => {
 
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [1500]);
-    assert.equal(graph.getNodeState("v1/vault").visible, true);
+    assert.ok(ctx.calls.revealNode?.length > 0);
+    assert.deepEqual(ctx.calls.revealNode[0], ["v1/vault"]);
   });
 });
 
@@ -245,11 +244,11 @@ describe("switch-arrangement: quality-delta reveals hidden subnet", () => {
 
     graph.executeAction("seg1/panel-alpha", "align");
     graph.executeAction("seg1/panel-beta", "align");
-    assert.equal(graph.getNodeState("seg1/hidden-subnet").visible, false);
+    assert.equal(ctx.calls.revealNode, undefined);
 
     graph.executeAction("seg1/panel-gamma", "align");
-    assert.equal(graph.getNodeState("seg1/hidden-subnet").visible, true);
     assert.ok(ctx.calls.revealNode?.length > 0);
+    assert.deepEqual(ctx.calls.revealNode[0], ["seg1/hidden-subnet"]);
   });
 
   it("align action is idempotent — can't align twice", () => {

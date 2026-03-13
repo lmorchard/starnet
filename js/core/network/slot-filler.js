@@ -4,7 +4,7 @@
  * a concrete set-piece from the biome catalog.
  *
  * For each slot: filter catalog by tags + budget + port compatibility,
- * pick a piece, instantiate it, apply createGameNode, wire to parent.
+ * pick a piece, instantiate it, wire to parent.
  */
 
 /** @typedef {import('./set-pieces.js').SetPieceDef} SetPieceDef */
@@ -17,7 +17,6 @@
 /** @typedef {import('../node-graph/types.js').TriggerDef} TriggerDef */
 
 import { instantiate } from "./set-pieces.js";
-import { createGameNode } from "../node-graph/game-types.js";
 import { gradeToNumber, costBudget } from "./budget.js";
 
 // ---------------------------------------------------------------------------
@@ -30,7 +29,7 @@ import { gradeToNumber, costBudget } from "./budget.js";
  * @property {SkeletonSlot} slot
  * @property {SetPieceDef} pieceDef
  * @property {string} prefix
- * @property {NodeDef[]} nodes - game-ready nodes (after createGameNode)
+ * @property {NodeDef[]} nodes - nodes from the instantiated set-piece
  * @property {[string, string][]} edges - internal edges (prefixed)
  * @property {TriggerDef[]} triggers
  * @property {Port[]} ports - prefixed ports
@@ -103,8 +102,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   const prefix = slot.id.replace(/^slot-\d+-/, ""); // clean prefix
   const instance = instantiate(chosen, prefix);
 
-  // 4. Apply createGameNode to each node
-  const gameNodes = instance.nodes.map(n => createGameNode(n));
+  const gameNodes = instance.nodes;
 
   // 5. Build prefixed ports
   const prefixedPorts = (chosen.ports ?? []).map(p => ({
@@ -174,7 +172,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     const fillerChosen = pickCandidate(fillerCandidates, rng, usedPieceIds);
     const fillerPrefix = fillerSlot.id.replace(/^slot-\d+-/, "");
     const fillerInstance = instantiate(fillerChosen, fillerPrefix);
-    const fillerNodes = fillerInstance.nodes.map(n => createGameNode(n));
+    const fillerNodes = fillerInstance.nodes;
     const fillerPorts = (fillerChosen.ports ?? []).map(p => ({
       ...p,
       nodeId: `${fillerPrefix}/${p.nodeId}`,

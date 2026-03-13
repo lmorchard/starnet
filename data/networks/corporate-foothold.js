@@ -10,7 +10,7 @@
 import { instantiate } from "../../js/core/network/set-pieces.js";
 import { SET_PIECES } from "../biomes/corporate-pieces.js";
 import {
-  createGateway, createRouter, createWAN, createGameNode,
+  createGateway, createRouter, createWAN,
 } from "../../js/core/node-graph/game-types.js";
 
 /**
@@ -30,11 +30,10 @@ export function buildNetwork() {
   const vault = instantiate(SET_PIECES.multiKeyVault, "vault");
   const office = instantiate(SET_PIECES.officeCluster, "office");
 
-  // Compose set-piece nodes with game-type factories
-  const secNodes = sec.nodes.map(createGameNode);
-  const alarmNodes = alarm.nodes.map(createGameNode);
-  const vaultNodes = vault.nodes.map(createGameNode);
-  const officeNodes = office.nodes.map(createGameNode);
+  const secNodes = sec.nodes;
+  const alarmNodes = alarm.nodes;
+  const vaultNodes = vault.nodes;
+  const officeNodes = office.nodes;
 
   // ── Merge all nodes ──────────────────────────────────
   const nodes = [

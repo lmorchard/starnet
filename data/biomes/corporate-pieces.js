@@ -32,6 +32,7 @@ export const idsRelayChain = {
     {
       id: "ids",
       type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [
@@ -46,6 +47,7 @@ export const idsRelayChain = {
     {
       id: "monitor",
       type: "security-monitor",
+      traits: ["graded", "hackable", "rebootable", "security", "gate"],
       attributes: { accessLevel: "locked", alerted: false },
       operators: [{ name: "flag", on: "alert", attr: "alerted", value: true }],
       actions: [],
@@ -83,6 +85,7 @@ export const nthAlarm = {
     {
       id: "sensor",
       type: "tripwire-sensor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", threshold: 3, counterEnabled: true },
       operators: [
         {
@@ -105,6 +108,7 @@ export const nthAlarm = {
     {
       id: "alarm-latch",
       type: "alarm-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false, latchEnabled: true },
       operators: [{ name: "latch", enabledAttr: "latchEnabled" }],
       actions: [
@@ -160,6 +164,7 @@ export const combinationLock = {
     {
       id: "switch-a",
       type: "routing-switch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", activated: false },
       operators: [],
       actions: [
@@ -177,6 +182,7 @@ export const combinationLock = {
     {
       id: "switch-b",
       type: "routing-switch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", activated: false },
       operators: [],
       actions: [
@@ -194,6 +200,7 @@ export const combinationLock = {
     {
       id: "switch-c",
       type: "routing-switch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", activated: false },
       operators: [],
       actions: [
@@ -211,6 +218,7 @@ export const combinationLock = {
     {
       id: "gate",
       type: "logic-gate",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       operators: [{ name: "all-of", inputs: ["switch-a", "switch-b", "switch-c"] }],
       actions: [],
@@ -218,7 +226,8 @@ export const combinationLock = {
     {
       id: "vault",
       type: "cryptovault",
-      attributes: { visible: false, accessLevel: "locked", opened: false },
+      traits: ["graded", "hackable", "rebootable", "lootable"],
+      attributes: { accessLevel: "locked", opened: false },
       operators: [{ name: "flag", on: "signal", when: { active: true }, attr: "opened" }],
       actions: [],
     },
@@ -234,9 +243,7 @@ export const combinationLock = {
       id: "vault-reveal",
       when: { type: "node-attr", nodeId: "vault", attr: "opened", eq: true },
       then: [
-        { effect: "set-node-attr", nodeId: "vault", attr: "visible", value: true },
-        { effect: "set-node-attr", nodeId: "vault", attr: "accessLevel", value: "locked" },
-        { effect: "ctx-call", method: "revealNode", args: [] },
+        { effect: "reveal-node", nodeId: "vault" },
         { effect: "ctx-call", method: "log", args: ["Combination lock disengaged — vault accessible"] },
         { effect: "ctx-call", method: "giveReward", args: [1500] },
       ],
@@ -277,6 +284,7 @@ export const deadmanCircuit = {
     {
       id: "heartbeat-clock",
       type: "heartbeat-source",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       // Clock sends heartbeat every 30 ticks (3s) — must be faster than watchdog period
       operators: [{ name: "clock", period: 30 }],
@@ -285,6 +293,7 @@ export const deadmanCircuit = {
     {
       id: "heartbeat-relay",
       type: "heartbeat-monitor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       // Relay forwards heartbeat messages (clock signal arrives as "signal",
       // relay forwards all non-tick messages including signals)
@@ -302,6 +311,7 @@ export const deadmanCircuit = {
     {
       id: "watchdog",
       type: "watchdog-daemon",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       // Watchdog resets on any non-tick message. If no message arrives in
       // 50 ticks (5s), it fires a "set" message to the alarm latch.
@@ -312,6 +322,7 @@ export const deadmanCircuit = {
     {
       id: "alarm-latch",
       type: "alarm-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false },
       operators: [{ name: "latch" }],
       actions: [],
@@ -361,6 +372,7 @@ export const switchArrangement = {
     {
       id: "panel-alpha",
       type: "routing-panel",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", aligned: false },
       operators: [],
       actions: [
@@ -381,6 +393,7 @@ export const switchArrangement = {
     {
       id: "panel-beta",
       type: "routing-panel",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", aligned: false },
       operators: [],
       actions: [
@@ -401,6 +414,7 @@ export const switchArrangement = {
     {
       id: "panel-gamma",
       type: "routing-panel",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", aligned: false },
       operators: [],
       actions: [
@@ -421,7 +435,8 @@ export const switchArrangement = {
     {
       id: "hidden-subnet",
       type: "hidden-server",
-      attributes: { visible: false, accessLevel: "locked" },
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
     },
@@ -436,8 +451,7 @@ export const switchArrangement = {
       id: "subnet-reveal",
       when: { type: "quality-gte", name: "panels-aligned", value: 3 },
       then: [
-        { effect: "set-node-attr", nodeId: "hidden-subnet", attr: "visible", value: true },
-        { effect: "ctx-call", method: "revealNode", args: [] },
+        { effect: "reveal-node", nodeId: "hidden-subnet" },
         { effect: "ctx-call", method: "log", args: ["Routing aligned — hidden subnet accessible"] },
       ],
     },
@@ -471,6 +485,7 @@ export const multiKeyVault = {
     {
       id: "key-server-1",
       type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tokenExtracted: false },
       operators: [],
       actions: [
@@ -492,6 +507,7 @@ export const multiKeyVault = {
     {
       id: "key-server-2",
       type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tokenExtracted: false },
       operators: [],
       actions: [
@@ -513,6 +529,7 @@ export const multiKeyVault = {
     {
       id: "vault-node",
       type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
       attributes: { accessLevel: "locked", contents: "corp-secrets", vaultUnlocked: false },
       operators: [],
       actions: [
@@ -572,6 +589,7 @@ export const honeyPot = {
     {
       id: "honey-pot",
       type: "honey-pot",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "owned", contents: "corp-secrets", poisoned: false },
       operators: [{ name: "flag", on: "exploit", attr: "poisoned" }],
       actions: [],
@@ -623,6 +641,7 @@ export const encryptedVault = {
     {
       id: "key-gen",
       type: "key-gen",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", keyReady: false },
       operators: [{ name: "clock", period: 100 }],  // 10s cycle at 100ms/tick
       actions: [
@@ -644,6 +663,7 @@ export const encryptedVault = {
     {
       id: "key-ready-latch",
       type: "signal-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false },
       operators: [{ name: "flag", on: "signal", when: { active: true }, attr: "latched" }],
       actions: [],
@@ -651,6 +671,7 @@ export const encryptedVault = {
     {
       id: "vault",
       type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
       attributes: { accessLevel: "locked", contents: "classified-data" },
       operators: [],
       actions: [
@@ -713,6 +734,7 @@ export const cascadeShutdown = {
     {
       id: "relay-a",
       type: "data-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
       operators: [],
       actions: [
@@ -732,6 +754,7 @@ export const cascadeShutdown = {
     {
       id: "relay-b",
       type: "data-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
       operators: [],
       actions: [
@@ -751,6 +774,7 @@ export const cascadeShutdown = {
     {
       id: "relay-c",
       type: "data-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true, subverted: false },
       operators: [],
       actions: [
@@ -770,6 +794,7 @@ export const cascadeShutdown = {
     {
       id: "watchdog",
       type: "watchdog-daemon",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: {},
       operators: [{ name: "watchdog", period: 4 }],
       actions: [],
@@ -777,6 +802,7 @@ export const cascadeShutdown = {
     {
       id: "alarm-latch",
       type: "alarm-latch",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { latched: false },
       operators: [{ name: "latch" }],
       actions: [],
@@ -841,6 +867,7 @@ export const tripwireGauntlet = {
     {
       id: "sensor",
       type: "tripwire-sensor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", triggered: false, sensorEnabled: true },
       operators: [
         { name: "flag", on: "probe-noise", attr: "triggered", enabledAttr: "sensorEnabled" },
@@ -858,6 +885,7 @@ export const tripwireGauntlet = {
     {
       id: "alarm",
       type: "alarm",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", triggered: false },
       operators: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
       actions: [],
@@ -906,6 +934,7 @@ export const probeBurstAlarm = {
     {
       id: "scanner",
       type: "traffic-scanner",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tallyEnabled: true },
       operators: [{ name: "tally", on: "probe-noise", quality: "probe-bursts", delta: 1, enabledAttr: "tallyEnabled" }],
       actions: [
@@ -959,6 +988,7 @@ export const noisySensor = {
     {
       id: "sensor",
       type: "traffic-sensor",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", debounceEnabled: true },
       operators: [{ name: "debounce", on: "probe-noise", ticks: 4, enabledAttr: "debounceEnabled" }],
       actions: [
@@ -973,6 +1003,7 @@ export const noisySensor = {
     {
       id: "alarm-flag",
       type: "alarm-flag",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { triggered: false },
       operators: [{ name: "flag", on: "probe-noise", attr: "triggered" }],
       actions: [],
@@ -1026,6 +1057,7 @@ export const tamperDetect = {
     {
       id: "ids",
       type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [
@@ -1043,6 +1075,7 @@ export const tamperDetect = {
     {
       id: "security-monitor",
       type: "security-monitor",
+      traits: ["graded", "hackable", "rebootable", "security", "gate"],
       attributes: { accessLevel: "locked", alerted: false },
       operators: [{ name: "flag", on: "alert", attr: "alerted" }],
       actions: [],
@@ -1050,6 +1083,7 @@ export const tamperDetect = {
     {
       id: "tamper-relay",
       type: "tamper-relay",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "tamper" }],
       actions: [
@@ -1064,6 +1098,7 @@ export const tamperDetect = {
     {
       id: "tamper-flag",
       type: "tamper-detector",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { triggered: false },
       operators: [{ name: "flag", on: "tamper", attr: "triggered" }],
       actions: [],
@@ -1075,14 +1110,6 @@ export const tamperDetect = {
     ["tamper-relay", "tamper-flag"],
   ],
   triggers: [
-    {
-      id: "alert-reached-monitor",
-      when: { type: "node-attr", nodeId: "security-monitor", attr: "alerted", eq: true },
-      then: [
-        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
-        { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
-      ],
-    },
     {
       id: "tamper-detected",
       when: { type: "node-attr", nodeId: "tamper-flag", attr: "triggered", eq: true },
@@ -1122,13 +1149,15 @@ export const serverBank = {
     {
       id: "hub",
       type: "router",
-      attributes: { accessLevel: "locked" },
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "compromised" },
       operators: [{ name: "relay" }],
       actions: [],
     },
     {
       id: "server-1",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1136,6 +1165,7 @@ export const serverBank = {
     {
       id: "server-2",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1143,6 +1173,7 @@ export const serverBank = {
     {
       id: "server-3",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1183,6 +1214,7 @@ export const officeCluster = {
     {
       id: "fileserver",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1190,6 +1222,7 @@ export const officeCluster = {
     {
       id: "workstation-1",
       type: "workstation",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1197,6 +1230,7 @@ export const officeCluster = {
     {
       id: "workstation-2",
       type: "workstation",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1229,12 +1263,12 @@ export const largeServerBank = {
   id: "large-server-bank",
   description: "Cluster of five lootable fileservers connected to a hub. Rich harvest.",
   nodes: [
-    { id: "hub", type: "router", attributes: { accessLevel: "locked" }, operators: [{ name: "relay" }], actions: [] },
-    { id: "server-1", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-2", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-3", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-4", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-5", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "compromised" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-4", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-5", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
   ],
   internalEdges: [
     ["hub", "server-1"], ["hub", "server-2"], ["hub", "server-3"],
@@ -1259,6 +1293,7 @@ export const vaultCluster = {
   nodes: [
     {
       id: "key-server-1", type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tokenExtracted: false },
       operators: [], actions: [{
         id: "extract-token", label: "Extract Token",
@@ -1268,6 +1303,7 @@ export const vaultCluster = {
     },
     {
       id: "key-server-2", type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tokenExtracted: false },
       operators: [], actions: [{
         id: "extract-token", label: "Extract Token",
@@ -1277,6 +1313,7 @@ export const vaultCluster = {
     },
     {
       id: "key-server-3", type: "key-server",
+      traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", tokenExtracted: false },
       operators: [], actions: [{
         id: "extract-token", label: "Extract Token",
@@ -1286,6 +1323,7 @@ export const vaultCluster = {
     },
     {
       id: "vault-1", type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
       attributes: { accessLevel: "locked", vaultUnlocked: false },
       operators: [], actions: [{
         id: "unlock-vault", label: "Unlock Vault",
@@ -1295,6 +1333,7 @@ export const vaultCluster = {
     },
     {
       id: "vault-2", type: "cryptovault",
+      traits: ["graded", "hackable", "rebootable", "lootable"],
       attributes: { accessLevel: "locked", vaultUnlocked: false },
       operators: [], actions: [{
         id: "unlock-vault", label: "Unlock Vault",
@@ -1330,6 +1369,7 @@ export const defensePlex = {
   nodes: [
     {
       id: "ids-1", type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [{
@@ -1340,6 +1380,7 @@ export const defensePlex = {
     },
     {
       id: "ids-2", type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [{
@@ -1350,6 +1391,7 @@ export const defensePlex = {
     },
     {
       id: "monitor", type: "security-monitor",
+      traits: ["graded", "hackable", "rebootable", "security", "gate"],
       attributes: { accessLevel: "locked", alerted: false },
       operators: [{ name: "flag", on: "alert", attr: "alerted", value: true }],
       actions: [],
@@ -1378,6 +1420,7 @@ export const fortifiedGate = {
   nodes: [
     {
       id: "ids", type: "ids",
+      traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [{
@@ -1388,7 +1431,8 @@ export const fortifiedGate = {
     },
     {
       id: "firewall", type: "firewall",
-      attributes: { accessLevel: "locked" },
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "owned" },
       operators: [],
       actions: [],
     },
@@ -1412,13 +1456,13 @@ export const dataCenter = {
   id: "data-center",
   description: "Hub connected to six fileservers. Major loot haul for deep runs.",
   nodes: [
-    { id: "hub", type: "router", attributes: { accessLevel: "locked" }, operators: [{ name: "relay" }], actions: [] },
-    { id: "server-1", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-2", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-3", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-4", type: "fileserver", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-5", type: "cryptovault", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
-    { id: "server-6", type: "cryptovault", attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "compromised" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-4", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-5", type: "cryptovault", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+    { id: "server-6", type: "cryptovault", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
   ],
   internalEdges: [
     ["hub", "server-1"], ["hub", "server-2"], ["hub", "server-3"],
@@ -1476,6 +1520,7 @@ export const entryPoint = {
     {
       id: "gateway",
       type: "gateway",
+      traits: ["graded", "hackable", "rebootable", "gate"],
       attributes: { accessLevel: "locked", visibility: "accessible" },
       operators: [],
       actions: [],
@@ -1483,6 +1528,7 @@ export const entryPoint = {
     {
       id: "wan",
       type: "wan",
+      traits: [],
       attributes: { accessLevel: "owned", visibility: "accessible" },
       operators: [],
       actions: [],
@@ -1510,7 +1556,8 @@ export const singleRouter = {
     {
       id: "router",
       type: "router",
-      attributes: { accessLevel: "locked" },
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "compromised" },
       operators: [{ name: "relay" }],
       actions: [],
     },
@@ -1540,7 +1587,8 @@ export const singleFirewall = {
     {
       id: "firewall",
       type: "firewall",
-      attributes: { accessLevel: "locked" },
+      traits: ["graded", "hackable", "rebootable", "gate"],
+      attributes: { accessLevel: "locked", gateAccess: "owned" },
       operators: [],
       actions: [],
     },
@@ -1567,6 +1615,7 @@ export const singleWorkstation = {
     {
       id: "workstation",
       type: "workstation",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
@@ -1593,6 +1642,7 @@ export const singleFileserver = {
     {
       id: "fileserver",
       type: "fileserver",
+      traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
       attributes: { accessLevel: "locked" },
       operators: [],
       actions: [],
