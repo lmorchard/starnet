@@ -12,7 +12,10 @@
 /** @typedef {import('./set-pieces.js').BiomeDef} BiomeDef */
 /** @typedef {import('./set-pieces.js').SetPieceDef} SetPieceDef */
 
-import { gradeToNumber, maxDepth, TAG_WEIGHTS, costBudget } from "./budget.js";
+import { gradeToNumber, maxDepth, TAG_WEIGHTS, costBudget, wingCount, hierarchicalBudget, lanGradeOffset, applyGradeOffset } from "./budget.js";
+
+/** @typedef {import('./set-pieces.js').SubBiomeDef} SubBiomeDef */
+/** @typedef {import('./set-pieces.js').RecipeDef} RecipeDef */
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,6 +31,7 @@ import { gradeToNumber, maxDepth, TAG_WEIGHTS, costBudget } from "./budget.js";
  * @property {string|null} parentId - parent slot ID
  * @property {boolean} isLeaf - no children expected
  * @property {{ role: string, ownerSlotId: string }|null} [dependency]
+ * @property {string} [subBiomeId] - sub-biome ID (set on wing entry slots)
  */
 
 // ---------------------------------------------------------------------------
@@ -347,6 +351,165 @@ function makeSlot(label, tags, depth, parentId) {
     isLeaf: false,
     dependency: null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Hierarchical skeleton generation (C+ networks)
+// ---------------------------------------------------------------------------
+
+/**
+ * A resolved wing — sub-biome + computed spec after LAN grade offset.
+ * @typedef {Object} WingSpec
+ * @property {SubBiomeDef} subBiome
+ * @property {NetworkSpec} spec - grades after LAN offset
+ * @property {number} budget - cost points for this wing
+ */
+
+/**
+ * Generate a hierarchical skeleton with backbone + wings.
+ *
+ * @param {NetworkSpec} spec - overall network spec
+ * @param {BiomeDef} biome
+ * @param {RecipeDef} recipe
+ * @param {() => number} rng
+ * @returns {{ root: SkeletonSlot, wings: Array<{ slot: SkeletonSlot, wingSpec: WingSpec }> }}
+ */
+export function generateHierarchicalSkeleton(spec, biome, recipe, rng) {
+  _slotCounter = 0;
+
+  // 1. Resolve wings from recipe
+  const numWings = wingCount(spec.complexity);
+  const subBiomeMap = new Map((biome.subBiomes ?? []).map(sb => [sb.id, sb]));
+  const wingSubBiomes = resolveWings(recipe, numWings, subBiomeMap, rng);
+
+  // 2. Compute LAN grade offset
+  const lanGrade = spec.lanGrade ?? spec.complexity;
+  const offset = lanGradeOffset(lanGrade);
+
+  // 3. Compute budgets
+  const budgets = hierarchicalBudget(spec, wingSubBiomes.length);
+
+  // 4. Build wing specs (apply offset to sub-biome base grades)
+  /** @type {WingSpec[]} */
+  const wingSpecs = wingSubBiomes.map(sb => ({
+    subBiome: sb,
+    spec: { ...applyGradeOffset(sb.baseGrades, offset) },
+    budget: budgets.perWingBudget,
+  }));
+
+  // 5. Generate backbone
+  const coverage = buildTagCoverage(biome.catalog);
+  const { root, wingEntrySlots } = generateBackbone(wingSpecs.length, coverage, rng);
+
+  // 6. Generate per-wing sub-skeletons
+  /** @type {Array<{ slot: SkeletonSlot, wingSpec: WingSpec }>} */
+  const wings = [];
+  for (let i = 0; i < wingSpecs.length; i++) {
+    const ws = wingSpecs[i];
+    const entrySlot = wingEntrySlots[i];
+    // Tag the wing entry slot with sub-biome ID for the slot-filler
+    entrySlot.subBiomeId = ws.subBiome.id;
+    generateWingSkeleton(ws, biome, entrySlot, coverage, rng);
+    wings.push({ slot: entrySlot, wingSpec: ws });
+  }
+
+  return { root, wings };
+}
+
+/**
+ * Resolve which sub-biomes to use from a recipe.
+ * Starts with mandatory wings, then picks from the optional pool until
+ * wing count is reached.
+ *
+ * @param {RecipeDef} recipe
+ * @param {number} targetCount
+ * @param {Map<string, SubBiomeDef>} subBiomeMap
+ * @param {() => number} rng
+ * @returns {SubBiomeDef[]}
+ */
+function resolveWings(recipe, targetCount, subBiomeMap, rng) {
+  /** @type {SubBiomeDef[]} */
+  const result = [];
+
+  // Add mandatory wings
+  for (const id of recipe.mandatoryWings) {
+    const sb = subBiomeMap.get(id);
+    if (sb) result.push(sb);
+  }
+
+  // Fill remaining from optional pool (weighted random)
+  while (result.length < targetCount && recipe.optionalPool.length > 0) {
+    const totalWeight = recipe.optionalPool.reduce((s, o) => s + o.weight, 0);
+    let roll = rng() * totalWeight;
+    for (const opt of recipe.optionalPool) {
+      roll -= opt.weight;
+      if (roll <= 0) {
+        const sb = subBiomeMap.get(opt.subBiomeId);
+        if (sb) result.push(sb);
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Generate the backbone skeleton — entry + spine + backbone chain.
+ * Each backbone node has one child slot reserved for a wing.
+ *
+ * @param {number} numWings
+ * @param {ReturnType<typeof buildTagCoverage>} coverage
+ * @param {() => number} rng
+ * @returns {{ root: SkeletonSlot, wingEntrySlots: SkeletonSlot[] }}
+ */
+function generateBackbone(numWings, coverage, rng) {
+  // Entry point (depth 0)
+  const root = makeSlot("entry", ["entry"], 0, null);
+
+  // Spine (depth 1)
+  const spine = makeSlot("spine-0", ["spine"], 1, root.id);
+  root.children.push(spine);
+
+  // Backbone chain — one backbone node per wing
+  /** @type {SkeletonSlot[]} */
+  const wingEntrySlots = [];
+  let current = spine;
+
+  for (let i = 0; i < numWings; i++) {
+    const depth = 2 + i;
+    const bbSlot = makeSlot(`backbone-${i}`, ["backbone"], depth, current.id);
+    current.children.push(bbSlot);
+
+    // Wing entry slot as child of backbone node
+    const wingEntry = makeSlot(`wing-${i}-entry`, ["filler"], depth + 1, bbSlot.id);
+    bbSlot.children.push(wingEntry);
+    wingEntrySlots.push(wingEntry);
+
+    current = bbSlot;
+  }
+
+  return { root, wingEntrySlots };
+}
+
+/**
+ * Generate a sub-skeleton for a single wing.
+ * Fills the wing entry slot with children using the wing's budget and grades.
+ *
+ * @param {WingSpec} wingSpec
+ * @param {BiomeDef} biome
+ * @param {SkeletonSlot} wingEntrySlot
+ * @param {ReturnType<typeof buildTagCoverage>} coverage
+ * @param {() => number} rng
+ */
+function generateWingSkeleton(wingSpec, biome, wingEntrySlot, coverage, rng) {
+  const maxD = wingEntrySlot.depth + maxDepth(wingSpec.spec.depth);
+  const slotBudget = { remaining: Math.floor(wingSpec.budget / 2) };
+
+  buildBranches(wingEntrySlot, wingEntrySlot.depth, maxD, wingSpec.spec, coverage, rng, slotBudget);
+
+  // Ensure at least one treasure leaf in this wing
+  ensureTreasureLeaf(wingEntrySlot, coverage);
 }
 
 // ---------------------------------------------------------------------------
