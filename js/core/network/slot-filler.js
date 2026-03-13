@@ -199,7 +199,10 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
       isLeaf: true,
       dependency: null,
     };
-    const fillerCandidates = findCandidates(fillerSlot, piece, biome, state.budget);
+    let fillerCandidates = findCandidates(fillerSlot, piece, biome, state.budget);
+    // Exclude scattered pieces from opportunistic filler — they need the
+    // main fill path's scatter separation logic
+    fillerCandidates = fillerCandidates.filter(p => !p.nodes.some(n => n.scatter));
     if (fillerCandidates.length === 0) break;
 
     const fillerChosen = pickCandidate(fillerCandidates, rng, usedPieceIds);
@@ -384,6 +387,11 @@ export function computeGateFreeSlots(placed, skeleton) {
 /**
  * Place all deferred scattered nodes into gate-free slots.
  *
+ * Strategy: first try unused outbound ports, then replace leaf filler nodes
+ * (single workstation/fileserver pieces) with scattered nodes. Replacement
+ * is safe because the scattered node's cost is already included in its parent
+ * piece's budget.
+ *
  * @param {ScatterObligation[]} obligations
  * @param {PlacedPiece[]} pieces
  * @param {SkeletonSlot} skeleton
@@ -396,27 +404,61 @@ function placeScatteredNodes(obligations, pieces, skeleton, crossEdges, placed) 
 
   for (const obligation of obligations) {
     for (const scatteredNode of obligation.scatteredNodes) {
-      // Find a piece in a gate-free slot with an unused outbound port
-      let attached = false;
-      for (const piece of pieces) {
-        if (piece.outboundNodeIds.length === 0) continue;
-        if (!gateFreeSlots.has(piece.slot.id)) continue;
-
-        const outPort = consumeOutboundPort(piece);
-        if (!outPort) continue;
-
-        // Add scattered node to the piece's node list and wire it
-        piece.nodes.push(scatteredNode);
-        crossEdges.push([outPort, scatteredNode.id]);
-        attached = true;
-        break;
-      }
-
-      if (!attached) return false; // couldn't place — generation should retry
+      if (attachToFreePort(scatteredNode, pieces, gateFreeSlots, crossEdges)) continue;
+      if (replaceLeafNode(scatteredNode, pieces, gateFreeSlots, crossEdges)) continue;
+      return false; // couldn't place — generation should retry
     }
   }
 
   return true;
+}
+
+/** Try to attach a scattered node to an unused outbound port in a gate-free slot. */
+function attachToFreePort(scatteredNode, pieces, gateFreeSlots, crossEdges) {
+  for (const piece of pieces) {
+    if (piece.outboundNodeIds.length === 0) continue;
+    if (!gateFreeSlots.has(piece.slot.id)) continue;
+
+    const outPort = consumeOutboundPort(piece);
+    if (!outPort) continue;
+
+    piece.nodes.push(scatteredNode);
+    crossEdges.push([outPort, scatteredNode.id]);
+    return true;
+  }
+  return false;
+}
+
+/** Replaceable leaf types — cheap filler nodes that can be swapped for scattered nodes. */
+const REPLACEABLE_TYPES = new Set(["workstation", "fileserver"]);
+
+/**
+ * Replace a leaf filler node with a scattered node. The filler node is removed
+ * and the scattered node takes its place in the edge graph.
+ */
+function replaceLeafNode(scatteredNode, pieces, gateFreeSlots, crossEdges) {
+  for (const piece of pieces) {
+    if (!gateFreeSlots.has(piece.slot.id)) continue;
+    // Only replace single-node leaf pieces (atomics)
+    if (piece.nodes.length !== 1) continue;
+    const candidate = piece.nodes[0];
+    if (!REPLACEABLE_TYPES.has(candidate.type)) continue;
+    // Don't replace pieces that are the scatter node's own parent
+    if (piece.prefix === scatteredNode.id.split("/")[0]) continue;
+
+    // Find the cross-edge that wires this piece into the network
+    const inboundId = piece.inboundNodeId;
+    const edgeIdx = crossEdges.findIndex(([, dst]) => dst === inboundId);
+    if (edgeIdx === -1) continue;
+
+    const [parentPort] = crossEdges[edgeIdx];
+
+    // Replace: swap the filler node for the scattered node, rewire edge
+    piece.nodes[0] = scatteredNode;
+    crossEdges[edgeIdx] = [parentPort, scatteredNode.id];
+    return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
