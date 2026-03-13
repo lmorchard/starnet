@@ -63,7 +63,12 @@ export function buildGameCtx(opts = {}) {
       if (ctx._graph) ctx._graph.setNodeAttr(nodeId, "visibility", "hidden");
     },
     revealNode: (nodeId) => {
-      if (ctx._graph) ctx._graph.setNodeAttr(nodeId, "visibility", "revealed");
+      if (!ctx._graph) return;
+      const current = ctx._graph.getNodeState(nodeId)?.visibility;
+      // Only upgrade visibility — never downgrade from accessible
+      if (current !== "accessible") {
+        ctx._graph.setNodeAttr(nodeId, "visibility", "revealed");
+      }
     },
     log: (message) => emitEvent(E.LOG_ENTRY, { text: message, type: "system" }),
 

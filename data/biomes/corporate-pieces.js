@@ -171,10 +171,14 @@ export const combinationLock = {
         {
           id: "activate",
           label: "Activate",
-          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "activated", eq: false },
+          ],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
+            { effect: "ctx-call", method: "log", args: ["Switch activated — routing signal sent"] },
           ],
         },
       ],
@@ -189,10 +193,14 @@ export const combinationLock = {
         {
           id: "activate",
           label: "Activate",
-          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "activated", eq: false },
+          ],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
+            { effect: "ctx-call", method: "log", args: ["Switch activated — routing signal sent"] },
           ],
         },
       ],
@@ -207,10 +215,14 @@ export const combinationLock = {
         {
           id: "activate",
           label: "Activate",
-          requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "activated", eq: false },
+          ],
           effects: [
             { effect: "set-attr", attr: "activated", value: true },
             { effect: "emit-message", message: { type: "signal", payload: { active: true } } },
+            { effect: "ctx-call", method: "log", args: ["Switch activated — routing signal sent"] },
           ],
         },
       ],
@@ -226,10 +238,24 @@ export const combinationLock = {
     {
       id: "vault",
       type: "cryptovault",
-      traits: ["graded", "hackable", "rebootable", "lootable"],
-      attributes: { accessLevel: "locked", opened: false },
+      traits: ["graded", "hackable", "rebootable"],
+      attributes: { accessLevel: "locked", opened: false, concealed: true },
       operators: [{ name: "flag", on: "signal", when: { active: true }, attr: "opened" }],
-      actions: [],
+      actions: [
+        {
+          id: "crack-vault",
+          label: "Crack Vault",
+          requires: [
+            { type: "node-attr", attr: "accessLevel", eq: "owned" },
+            { type: "node-attr", attr: "opened", eq: true },
+          ],
+          effects: [
+            { effect: "ctx-call", method: "giveReward", args: [1500] },
+            { effect: "set-attr", attr: "opened", value: false },
+            { effect: "ctx-call", method: "log", args: ["Vault cracked — ¥1,500 extracted"] },
+          ],
+        },
+      ],
     },
   ],
   internalEdges: [
@@ -243,9 +269,9 @@ export const combinationLock = {
       id: "vault-reveal",
       when: { type: "node-attr", nodeId: "vault", attr: "opened", eq: true },
       then: [
+        { effect: "set-node-attr", nodeId: "vault", attr: "concealed", value: false },
         { effect: "reveal-node", nodeId: "vault" },
         { effect: "ctx-call", method: "log", args: ["Combination lock disengaged — vault accessible"] },
-        { effect: "ctx-call", method: "giveReward", args: [1500] },
       ],
     },
   ],
@@ -386,6 +412,7 @@ export const switchArrangement = {
           effects: [
             { effect: "set-attr", attr: "aligned", value: true },
             { effect: "quality-delta", name: "panels-aligned", delta: 1 },
+            { effect: "ctx-call", method: "log", args: ["Panel aligned — routing path adjusted"] },
           ],
         },
       ],
@@ -407,6 +434,7 @@ export const switchArrangement = {
           effects: [
             { effect: "set-attr", attr: "aligned", value: true },
             { effect: "quality-delta", name: "panels-aligned", delta: 1 },
+            { effect: "ctx-call", method: "log", args: ["Panel aligned — routing path adjusted"] },
           ],
         },
       ],
@@ -428,6 +456,7 @@ export const switchArrangement = {
           effects: [
             { effect: "set-attr", attr: "aligned", value: true },
             { effect: "quality-delta", name: "panels-aligned", delta: 1 },
+            { effect: "ctx-call", method: "log", args: ["Panel aligned — routing path adjusted"] },
           ],
         },
       ],
@@ -436,7 +465,7 @@ export const switchArrangement = {
       id: "hidden-subnet",
       type: "hidden-server",
       traits: ["graded", "hackable", "rebootable", "gate"],
-      attributes: { accessLevel: "locked" },
+      attributes: { accessLevel: "locked", concealed: true },
       operators: [],
       actions: [],
     },
@@ -451,6 +480,7 @@ export const switchArrangement = {
       id: "subnet-reveal",
       when: { type: "quality-gte", name: "panels-aligned", value: 3 },
       then: [
+        { effect: "set-node-attr", nodeId: "hidden-subnet", attr: "concealed", value: false },
         { effect: "reveal-node", nodeId: "hidden-subnet" },
         { effect: "ctx-call", method: "log", args: ["Routing aligned — hidden subnet accessible"] },
       ],

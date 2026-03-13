@@ -215,7 +215,7 @@ export function getState() {
 export function revealNeighbors(nodeId) {
   (state.adjacency[nodeId] || []).forEach((neighborId) => {
     const neighbor = state.nodes[neighborId];
-    if (neighbor && neighbor.visibility === "hidden") {
+    if (neighbor && neighbor.visibility === "hidden" && !neighbor.concealed) {
       const usedAliases = new Set(Object.values(state.nodes).map(n => n.sigAlias).filter(Boolean));
       let i = 1;
       while (usedAliases.has(`sig-${i}`)) i++;

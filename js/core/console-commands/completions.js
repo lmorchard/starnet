@@ -75,21 +75,21 @@ export function getRevealedAliases(nodes) {
  * @param {string} partial
  * @returns {{ insertTexts: string[], displayTexts: string[] }}
  */
-export function fromNodes(nodes, partial) {
+export function fromNodes(nodes, partial, { includeAll = false } = {}) {
   const lc = partial.toLowerCase();
   const revAliases = getRevealedAliases(nodes);
   const insertTexts = [];
   const displayTexts = [];
   for (const n of Object.values(nodes)) {
-    if (n.visibility === "hidden") continue;
-    if (n.visibility === "revealed") {
+    if (!includeAll && n.visibility === "hidden") continue;
+    if (!includeAll && n.visibility === "revealed") {
       const alias = revAliases.get(n.id) ?? n.id;
       if (alias.toLowerCase().startsWith(lc)) {
         insertTexts.push(alias);
         displayTexts.push(alias);
       }
     } else {
-      if (n.id.toLowerCase().startsWith(lc) || n.label.toLowerCase().startsWith(lc)) {
+      if (n.id.toLowerCase().startsWith(lc) || n.label?.toLowerCase().startsWith(lc)) {
         insertTexts.push(n.id);
         displayTexts.push(n.id);
       }

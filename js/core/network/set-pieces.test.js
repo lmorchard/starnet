@@ -105,7 +105,8 @@ describe("instantiate: two instances have independent IDs", () => {
 
     assert.ok(ctx.calls.revealNode?.length > 0);
     assert.deepEqual(ctx.calls.revealNode[0], ["v1/vault"]);
-    assert.equal(ctx.calls.giveReward?.length, 1);
+    // Reward moved to vault crack-vault action, not the trigger
+    assert.equal(ctx.calls.giveReward, undefined);
   });
 });
 
@@ -181,7 +182,7 @@ describe("combination-lock: all three switches must activate", () => {
     assert.equal(ctx.calls.revealNode, undefined);
   });
 
-  it("vault-reveal fires and giveReward called when all 3 activated", () => {
+  it("vault-reveal fires when all 3 activated, clears concealed", () => {
     const ctx = mockCtx();
     const inst = instantiate(combinationLock, "v1");
     const graph = new NodeGraph(inst, ctx);
@@ -193,10 +194,41 @@ describe("combination-lock: all three switches must activate", () => {
     graph.executeAction("v1/switch-b", "activate");
     graph.executeAction("v1/switch-c", "activate");
 
-    assert.equal(ctx.calls.giveReward?.length, 1);
-    assert.deepEqual(ctx.calls.giveReward[0], [1500]);
+    assert.equal(graph.getNodeState("v1/vault").concealed, false);
     assert.ok(ctx.calls.revealNode?.length > 0);
     assert.deepEqual(ctx.calls.revealNode[0], ["v1/vault"]);
+    // Reward comes from crack-vault action, not the trigger
+    assert.equal(ctx.calls.giveReward, undefined);
+  });
+
+  it("crack-vault action available after opened + owned, gives reward", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(combinationLock, "v1");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (const sw of ["v1/switch-a", "v1/switch-b", "v1/switch-c"]) {
+      graph._nodes.get(sw).attributes.accessLevel = "owned";
+    }
+    graph.executeAction("v1/switch-a", "activate");
+    graph.executeAction("v1/switch-b", "activate");
+    graph.executeAction("v1/switch-c", "activate");
+
+    // Vault is opened but not yet owned — crack-vault unavailable
+    let available = graph.getAvailableActions("v1/vault").map(a => a.id);
+    assert.ok(!available.includes("crack-vault"));
+
+    // Own the vault
+    graph._nodes.get("v1/vault").attributes.accessLevel = "owned";
+    available = graph.getAvailableActions("v1/vault").map(a => a.id);
+    assert.ok(available.includes("crack-vault"));
+
+    graph.executeAction("v1/vault", "crack-vault");
+    assert.equal(ctx.calls.giveReward?.length, 1);
+    assert.deepEqual(ctx.calls.giveReward[0], [1500]);
+
+    // Can't crack twice — opened set back to false
+    available = graph.getAvailableActions("v1/vault").map(a => a.id);
+    assert.ok(!available.includes("crack-vault"));
   });
 });
 
