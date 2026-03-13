@@ -560,6 +560,30 @@ via style selectors keyed on `data.type`); the work is designing the shape inven
 and wiring it through `graph.js` node styles. Shapes should be meaningful: security
 nodes look different from loot nodes, gate nodes look different from filler.
 
+### Scattered Sub-Set-Pieces (Compound Scatter Groups)
+The current scatter system distributes single atomic nodes. A natural extension:
+scatter entire mini set-pieces (multi-node subgraphs with internal edges and
+structure) rather than lone nodes. Examples:
+
+- **Guarded key-server** — a key-server + IDS guard scattered as a unit. The
+  player must subvert the guard before extracting the token.
+- **Trapped switch** — a routing-switch + tripwire. Activating the switch
+  without disarming the trap triggers an alert.
+- **Encrypted relay** — a key-gen + signal-latch pair that must be cracked
+  in sequence before the quality counter increments.
+
+Implementation: replace `scatter: true` (boolean) with `scatter: "group-name"`
+(string). Nodes sharing the same scatter group are placed together as a mini
+set-piece — their internal edges preserved, placed as a unit with one synthetic
+inbound port. Different groups scatter independently.
+
+This composes with the existing system: quality communication still links
+scattered groups to the core. The generator treats each group like the current
+atomic scattered nodes, but instantiates a subgraph instead of a single node.
+
+_Extension of the scattered set-pieces system (2026-03-12). Noted in spec
+future directions as "scatter groups."_
+
 ### Companion Pieces (Long-Range Set-Piece Dependencies)
 The `requires` field exists in the set-piece schema but no piece uses it yet. The
 design: a set-piece can declare companion pieces that must be placed elsewhere in the
