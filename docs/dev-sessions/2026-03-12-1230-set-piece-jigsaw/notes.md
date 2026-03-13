@@ -1,6 +1,6 @@
 # Session Notes: Set-Piece Jigsaw for Procedural Generation
 
-## Session Retro
+## Phase 1 Retro (original session)
 
 ### What Was Delivered (vs Spec)
 
@@ -100,25 +100,150 @@ Plus significant iteration:
   naturally produces repetition. The 0.33x weight for already-used pieces is
   simple and effective.
 
-### What's Left / Follow-Up
+---
 
-- **S-tier set-pieces**: No S-cost content exists. These would be complex
-  multi-node centerpiece puzzles — worth a dedicated design session.
+## Phase 2 Retro (continuation session — 2026-03-12)
 
-- **Activation-on-contact**: Timer set-pieces (watchdog, clock) should ideally
-  not fire until the player enters their subnet. This is a game engine change
-  (proximity-triggered init) not a generator change.
+### Summary
 
-- **Long-range dependencies**: The `requires` field exists in the schema but
-  no set-piece uses it yet. The multiKeyVault is the candidate for testing
-  distributed key placement.
+Bug-fix and polish pass driven by hands-on playtesting of generated networks.
+Roughly 2 hours, ~40 conversation turns. Two commits:
 
-- **Census rebuild**: Batch balance testing across many seeds/specs. Separate
-  session, builds on bot + generator.
+1. `4fcf1d3` — explicit traits on all set-piece nodes, remove createGameNode
+2. `30dd50a` — concealed nodes, switch logging, vault reward action, tab-complete
 
-- **More biomes**: The schema supports multiple biomes. A residential,
-  military, or research biome would be a new set-piece catalog + default
-  budget profile.
+### What Was Delivered
 
-- **PROCGEN.md update**: The old procgen doc describes the deleted layer
-  processor. Should be rewritten to document the jigsaw system.
+**Trait system cleanup:**
+- Added explicit `traits` arrays to all 78+ nodes across 25 set-pieces in
+  `corporate-pieces.js`. Every node now declares exactly what it is — no
+  implicit type-based injection.
+- Removed `createGameNode()` and `TRAITS_BY_TYPE` from `game-types.js`.
+  All 8 call sites updated to use `instance.nodes` directly.
+- Internal/puzzle nodes (alarm-latch, logic-gate, routing-switch, etc.) now
+  get `["graded", "hackable", "rebootable"]` — players can hack circuit
+  internals to subvert puzzles.
+
+**gateAccess fixes:**
+- Routers now require `compromised` to reveal neighbors (was defaulting to
+  `probed`, showing everything on first scan).
+- Firewalls require `owned` to reveal neighbors.
+
+**Trigger fixes:**
+- `combinationLock` and `switchArrangement` had broken `ctx-call revealNode`
+  effects (passed undefined nodeId). Replaced with proper `reveal-node`
+  effect which gets prefixed correctly during instantiate.
+- Removed duplicate `alert-reached-monitor` trigger from `tamperDetect`
+  (the `security` trait already handles alert escalation).
+
+**Concealment system (new first-class pattern):**
+- Added `concealed: true` attribute for nodes that should resist normal
+  neighbor-reveal mechanics. `revealNeighbors()` skips concealed nodes.
+- Puzzle triggers clear `concealed` then `reveal-node` to unlock access.
+- Used by `combinationLock` vault and `switchArrangement` hidden-subnet.
+- `revealNode()` no longer downgrades `accessible` → `revealed` (was
+  clobbering already-navigated nodes).
+
+**Vault reward redesign:**
+- Moved `combinationLock` reward from trigger to `crack-vault` action
+  (requires owned + opened, one-time use via `opened` reset).
+- Removed `lootable` trait from vault (no read/loot — crack-vault is
+  the interaction).
+
+**Switch UX:**
+- `activate` and `align` actions now log messages when executed.
+- `activate` action disappears after use (`activated: false` requires).
+
+**Tab completion + null safety:**
+- `cheat own` and `cheat summon-ice` now tab-complete all nodes including
+  hidden ones (`includeAll` flag on `fromNodes`).
+- Fixed null `label` crash in `resolveNode` and `fromNodes`.
+
+**Misc:**
+- Makefile: added default `all` target (npm install + bundle-vendor).
+- Graph zoom: `wheelSensitivity` increased to 1.0.
+
+### What Diverged from the Original Plan
+
+This entire phase was unplanned — it emerged from hands-on playtesting.
+The original session was "done" after Phase 1. This continuation was
+driven by Les playing a generated network and finding real UX/behavior
+issues.
+
+The `concealed` attribute was an emergent design discovery: the set-piece
+system had no way to say "this node should stay hidden even when its
+neighbors are owned." The existing `visibility: hidden` was overridden
+by normal neighbor-reveal mechanics. `concealed` is a distinct concern
+from visibility — it's a puzzle lock on discoverability.
+
+The `createGameNode` removal wasn't in any plan — it fell out naturally
+once all nodes had explicit traits.
+
+### Key Insights
+
+- **Playtesting generated networks reveals different bugs than playtesting
+  hand-crafted ones.** The `gateAccess` default (`"probed"`) was fine when
+  the designer controlled placement. In procgen, every router immediately
+  exposed the entire subtree on first probe — breaking puzzle pacing.
+
+- **`concealed` is a first-class game pattern, not a one-off fix.** Gating
+  exploration is a core mechanic: "solve puzzle X to discover node Y."
+  This needs to be a documented, reliable pattern that set-piece authors
+  can use. Current users: combinationLock vault, switchArrangement
+  hidden-subnet. Future: any puzzle that gates access to deeper network.
+
+- **Trigger effects need careful prefix awareness.** `ctx-call` effects
+  don't get their args prefixed during `instantiate()`. `reveal-node` and
+  `set-node-attr` DO get their `nodeId` prefixed. Using the wrong effect
+  type produces silent failures. This is a footgun worth documenting.
+
+- **Removing dead code has compounding value.** `TRAITS_BY_TYPE` →
+  `createGameNode` → all the `.map(createGameNode)` call sites — each
+  removal simplified the next. The codebase lost ~40 lines of indirection
+  with zero behavior change.
+
+### Efficiency Notes
+
+- ~40 conversation turns over ~2 hours
+- Heavy use of headless playtest harness for verification — much faster
+  than browser testing for this kind of work
+- The `cheat own` command was essential for quickly navigating deep into
+  generated networks during testing
+- Context window compacted once mid-session (conversation summary preserved
+  continuity well)
+
+### Process Improvements
+
+- **Document the `concealed` pattern in CLAUDE.md or MANUAL.md** as a
+  supported set-piece mechanism. Set-piece authors need to know about it.
+
+- **Add a playtest smoke test to the Makefile** — something like
+  `make playtest-smoke` that resets a generated network and runs basic
+  commands. Would have caught the gateAccess bug automatically.
+
+- **The trigger effect prefix rules should be documented.** Which effects
+  prefix their nodeId args and which don't is non-obvious. A table in
+  CLAUDE.md or a code comment in `set-pieces.js` would prevent future
+  `ctx-call` vs `reveal-node` confusion.
+
+### Follow-Up
+
+- **Companion pieces / scattered switches**: Design a system where
+  set-pieces can require companion pieces placed elsewhere in the network.
+  Uses quality-based communication (already works) + slot-filler
+  coordination (new — "reservation" mechanism for companion slots).
+  This is the `requires` field from the spec, finally getting implemented.
+  **Track as a new session.**
+
+- **Document `concealed` pattern** in MANUAL.md and/or CLAUDE.md.
+
+- **Audit other set-pieces for similar gateAccess / concealment needs.**
+  Any piece with a "hidden reward" node connected to hackable nodes may
+  have the same premature-reveal problem.
+
+- Items carried forward from Phase 1:
+  - S-tier set-pieces
+  - Activation-on-contact for timer pieces
+  - Census rebuild
+  - More biomes
+  - PROCGEN.md rewrite
