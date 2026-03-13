@@ -14,6 +14,7 @@ import { securityStrategy } from "./heuristics/security.js";
 import { trapsStrategy } from "./heuristics/traps.js";
 import { evasionStrategy } from "./heuristics/evasion.js";
 import { cardsStrategy } from "./heuristics/cards.js";
+import { puzzleStrategy, resetPuzzleTracking } from "./heuristics/puzzles.js";
 
 /** @type {Strategy[]} */
 const DEFAULT_STRATEGIES = [
@@ -23,6 +24,7 @@ const DEFAULT_STRATEGIES = [
   trapsStrategy,
   evasionStrategy,
   cardsStrategy,
+  puzzleStrategy,
 ];
 
 let engineInitialized = false;
@@ -41,6 +43,7 @@ export function runBot(buildNetworkFn, opts = {}) {
   }
 
   resetGame(buildNetworkFn, opts.seed);
+  resetPuzzleTracking();
 
   const strategies = opts.strategies ?? DEFAULT_STRATEGIES;
   return runLoop(strategies, {
