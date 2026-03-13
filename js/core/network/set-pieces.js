@@ -69,6 +69,7 @@
  * @property {string} [cost]              -grade F through S
  * @property {Port[]} [ports]             -typed connection points (replaces externalPorts for procgen)
  * @property {Dependency[]} [requires]    - long-range companion requirements
+ * @property {number} [minDepth]          - minimum depth for placement (pieces with auto-start timers)
  */
 
 /**
@@ -554,6 +555,7 @@ export const deadmanCircuit = {
   externalPorts: ["heartbeat-relay"],
   tags: ["pressure", "trap"],
   cost: "B",
+  minDepth: 3,  // watchdog starts immediately — don't place near entry
   ports: [
     { nodeId: "heartbeat-relay", direction: "inbound", wantsTags: [], required: true },
   ],
@@ -1027,6 +1029,7 @@ export const cascadeShutdown = {
   externalPorts: ["relay-a", "relay-b", "relay-c"],
   tags: ["pressure", "puzzle"],
   cost: "A",
+  minDepth: 3,  // watchdog starts immediately — don't place near entry
   ports: [
     { nodeId: "relay-a", direction: "inbound", wantsTags: [], required: true },
     { nodeId: "relay-b", direction: "lateral", wantsTags: [], required: true },

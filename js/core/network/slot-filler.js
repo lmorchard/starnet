@@ -231,6 +231,11 @@ function findCandidates(slot, parentPiece, biome, budget) {
     );
   }
 
+  // Respect minDepth — don't place pieces with auto-start timers near entry
+  candidates = candidates.filter(p =>
+    !p.minDepth || slot.depth >= p.minDepth
+  );
+
   // Cost must fit remaining budget — but F-cost atomics are always allowed
   // as fallback (they're essentially free structural filler)
   candidates = candidates.filter(p => {
