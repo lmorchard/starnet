@@ -1,4 +1,4 @@
-.PHONY: all serve lint test check bundle-vendor census bot-run generate gen-bot
+.PHONY: all serve lint test check bundle-vendor census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundle
 all: node_modules dist/vendor.js
@@ -54,3 +54,8 @@ gen-bot:
 # Generate a network and start a playtest session
 generate:
 	node scripts/playtest.js --generated --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED)) reset
+
+# Generate a network and output JSON (use OPTS for extra flags like --pretty --summary --meta-only)
+OPTS ?=
+gen-json:
+	node scripts/generate-network.js --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED)) $(OPTS)
