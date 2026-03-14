@@ -128,7 +128,7 @@ export const executiveSuite = {
   description: "High-value targets behind strong access controls.",
   pieceIds: [
     "fortified-gate", "combination-lock", "encrypted-vault", "vault-cluster",
-    "single-firewall", "single-workstation", "multi-key-vault",
+    "single-firewall", "single-router", "single-workstation", "multi-key-vault",
   ],
   requiredPieceIds: [],
   baseGrades: { threat: "C", wealth: "A", complexity: "B", depth: "C" },

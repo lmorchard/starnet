@@ -484,7 +484,7 @@ function generateBackbone(numWings, coverage, rng) {
     current.children.push(bbSlot);
 
     // Wing entry slot as child of backbone node
-    const wingEntry = makeSlot(`wing-${i}-entry`, ["filler"], depth + 1, bbSlot.id);
+    const wingEntry = makeSlot(`wing-${i}-entry`, ["spine"], depth + 1, bbSlot.id);
     bbSlot.children.push(wingEntry);
     wingEntrySlots.push(wingEntry);
 

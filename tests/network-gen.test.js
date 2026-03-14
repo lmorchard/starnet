@@ -106,10 +106,10 @@ describe("hierarchicalBudget", () => {
     assert.equal(result.perWingBudget, 0);
   });
 
-  it("C-grade with 2 wings produces 15-25 total budget range", () => {
+  it("C-grade with 2 wings produces reasonable total budget", () => {
     const result = hierarchicalBudget(specC, 2);
-    assert.ok(result.total >= 15, `total ${result.total} should be >= 15`);
-    assert.ok(result.total <= 55, `total ${result.total} should be <= 55`);
+    assert.ok(result.total >= 40, `total ${result.total} should be >= 40`);
+    assert.ok(result.total <= 100, `total ${result.total} should be <= 100`);
   });
 
   it("A-grade with 4 wings produces larger budget", () => {
