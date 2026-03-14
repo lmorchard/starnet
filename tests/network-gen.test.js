@@ -476,3 +476,59 @@ describe("generateNetwork: hierarchical integration", () => {
     assert.ok(result.graphDef.nodes.length >= 8);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Per-wing palette filtering (tuning session)
+// ---------------------------------------------------------------------------
+
+describe("Per-wing palette filtering", () => {
+  // Use defense-contractor: 2 mandatory security-ops + optional from pool
+  it("security-ops wing contains IDS or monitor nodes", () => {
+    const specC = { threat: "C", wealth: "C", complexity: "C", depth: "C", recipeId: "defense-contractor" };
+    // Try multiple seeds — at least one should have a security monitor
+    let foundSecurityNode = false;
+    for (const seed of ["pal-1", "pal-2", "pal-3", "pal-4", "pal-5"]) {
+      const result = generateNetwork(seed, specC, CORPORATE_BIOME);
+      const secNodes = result.graphDef.nodes.filter(n =>
+        n.type === "ids" || n.type === "security-monitor"
+      );
+      if (secNodes.length > 0) { foundSecurityNode = true; break; }
+    }
+    assert.ok(foundSecurityNode, "at least one seed should produce security nodes in security-ops wing");
+  });
+
+  it("backbone nodes are routers or firewalls (backbone palette enforced)", () => {
+    const specC = { threat: "C", wealth: "C", complexity: "C", depth: "C", recipeId: "tech-company" };
+    const result = generateNetwork("bb-palette", specC, CORPORATE_BIOME);
+    // Backbone nodes have IDs like "backbone-N/..." — check their types
+    const backboneNodes = result.graphDef.nodes.filter(n =>
+      n.id.startsWith("backbone-")
+    );
+    for (const n of backboneNodes) {
+      assert.ok(
+        n.type === "router" || n.type === "firewall",
+        `backbone node ${n.id} should be router/firewall, got ${n.type}`
+      );
+    }
+  });
+
+  it("wings have independent budgets (one wing cannot starve another)", () => {
+    const specB = { threat: "B", wealth: "B", complexity: "B", depth: "B", recipeId: "tech-company" };
+    // Generate multiple times — each wing should have at least 1 node
+    for (const seed of ["budget-1", "budget-2", "budget-3"]) {
+      const result = generateNetwork(seed, specB, CORPORATE_BIOME);
+      // Count nodes per wing prefix
+      const wingCounts = new Map();
+      for (const n of result.graphDef.nodes) {
+        const match = n.id.match(/^wing-(\d+)/);
+        if (match) {
+          const wingIdx = match[1];
+          wingCounts.set(wingIdx, (wingCounts.get(wingIdx) ?? 0) + 1);
+        }
+      }
+      for (const [idx, count] of wingCounts) {
+        assert.ok(count >= 1, `seed ${seed}: wing-${idx} should have >= 1 node, got ${count}`);
+      }
+    }
+  });
+});

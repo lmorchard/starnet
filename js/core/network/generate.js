@@ -9,11 +9,11 @@
 /** @typedef {import('./set-pieces.js').BiomeDef} BiomeDef */
 
 import { generateSkeleton, generateHierarchicalSkeleton } from "./skeleton.js";
-import { fillSkeleton } from "./slot-filler.js";
+import { fillSkeleton, consumeOutboundPort, placeScatteredNodes } from "./slot-filler.js";
 import { assembleNetwork } from "./assemble.js";
 import { validate } from "./validate.js";
 import { makeSeededRng } from "../rng.js";
-import { wingCount, hierarchicalBudget } from "./budget.js";
+import { wingCount, hierarchicalBudget, gradeModifier } from "./budget.js";
 
 /**
  * Generate a procedural network from a spec and biome catalog.
@@ -52,19 +52,81 @@ export function generateNetwork(seed, spec, biome, opts = {}) {
     let fillResult;
 
     if (useHierarchical) {
-      // Hierarchical path: backbone + wings
+      // Hierarchical path: backbone + per-wing filling
       const recipe = biome.recipes.find(r => r.id === spec.recipeId) ?? biome.recipes[0];
       const result = generateHierarchicalSkeleton(spec, biome, recipe, rng);
       skeleton = result.root;
-
-      // Fill the hierarchical skeleton with expanded budget.
-      // TODO: thread per-wing palettes (sub-biome pieceIds) and requiredPieceIds
-      // through to fillSkeleton so wings get sub-biome-flavored content.
-      // Currently all wings draw from the full catalog.
       const budgets = hierarchicalBudget(spec, result.wings.length);
-      fillResult = fillSkeleton(skeleton, biome, spec, rng, {
-        budgetOverride: budgets.total,
+
+      // Step 1: Fill backbone (entry + spine + backbone slots) — skip wing entry slots
+      const backbonePalette = new Set(biome.backbonePieceIds ?? []);
+      backbonePalette.add("entry-point");
+      backbonePalette.add("single-router"); // spine piece
+      const bbFill = fillSkeleton(skeleton, biome, spec, rng, {
+        piecePalette: backbonePalette,
+        budgetOverride: budgets.backboneBudget,
+        skipSubBiomeSlots: true,
+        skipScatterPlacement: true,
       });
+      if (!bbFill.ok) { fillResult = bbFill; }
+      else {
+        // Step 2: Fill each wing with its sub-biome palette
+        /** @type {import('./slot-filler.js').PlacedPiece[]} */
+        const allPieces = [...bbFill.pieces];
+        /** @type {[string, string][]} */
+        const allCrossEdges = [...bbFill.crossEdges];
+        /** @type {import('./slot-filler.js').ScatterObligation[]} */
+        const allScatter = [...(bbFill.scatterObligations ?? [])];
+        let allOk = true;
+
+        for (const wing of result.wings) {
+          const sb = wing.wingSpec.subBiome;
+          const wingPalette = new Set(sb.pieceIds);
+          // Compute per-wing grade offset for piece tagging
+          const wingGradeOffset = gradeModifier(wing.wingSpec.spec);
+
+          const wingFill = fillSkeleton(wing.slot, biome, wing.wingSpec.spec, rng, {
+            piecePalette: wingPalette,
+            requiredPieceIds: sb.requiredPieceIds,
+            budgetOverride: budgets.perWingBudget,
+            skipScatterPlacement: true,
+          });
+
+          if (!wingFill.ok) { allOk = false; break; }
+
+          // Tag wing pieces with grade offset for assembly
+          for (const p of wingFill.pieces) {
+            p.gradeOffset = wingGradeOffset;
+          }
+
+          allPieces.push(...wingFill.pieces);
+          allCrossEdges.push(...wingFill.crossEdges);
+          allScatter.push(...(wingFill.scatterObligations ?? []));
+
+          // Wire backbone → wing: find the backbone piece that parents this wing
+          // entry slot and connect its outbound port to the wing's inbound port
+          const parentSlotId = wing.slot.parentId;
+          const bbPiece = bbFill.pieces.find(p => p.slot.id === parentSlotId);
+          const wingEntryPiece = wingFill.pieces[0]; // first piece fills the wing entry slot
+          if (bbPiece && wingEntryPiece?.inboundNodeId) {
+            const outPort = consumeOutboundPort(bbPiece);
+            if (outPort) {
+              allCrossEdges.push([outPort, wingEntryPiece.inboundNodeId]);
+            }
+          }
+        }
+
+        // Step 3: Place scattered nodes across ALL pieces (cross-wing scattering)
+        if (allOk && allScatter.length > 0) {
+          /** @type {Map<string, import('./slot-filler.js').PlacedPiece>} */
+          const placedMap = new Map();
+          for (const p of allPieces) placedMap.set(p.slot.id, p);
+          const scatterOk = placeScatteredNodes(allScatter, allPieces, skeleton, allCrossEdges, placedMap);
+          if (!scatterOk) allOk = false;
+        }
+
+        fillResult = { pieces: allPieces, crossEdges: allCrossEdges, ok: allOk };
+      }
     } else {
       // Flat path: existing behavior for F/D networks
       skeleton = generateSkeleton(spec, biome, rng);
