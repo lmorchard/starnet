@@ -12,6 +12,7 @@ import {
   costBudget,
   gradeToNumber,
   numberToGrade,
+  minWingSlots,
 } from "../js/core/network/budget.js";
 
 import { instantiate } from "../js/core/network/set-pieces.js";
@@ -510,6 +511,29 @@ describe("Per-wing palette filtering", () => {
         `backbone node ${n.id} should be router/firewall, got ${n.type}`
       );
     }
+  });
+
+  it("C-grade wings have at least 1 node each", () => {
+    const specC = { threat: "C", wealth: "C", complexity: "C", depth: "C", recipeId: "tech-company" };
+    for (const seed of ["min-c-1", "min-c-2", "min-c-3"]) {
+      const result = generateNetwork(seed, specC, CORPORATE_BIOME);
+      const wingCounts = new Map();
+      for (const n of result.graphDef.nodes) {
+        const match = n.id.match(/^wing-(\d+)/);
+        if (match) wingCounts.set(match[1], (wingCounts.get(match[1]) ?? 0) + 1);
+      }
+      for (const [idx, count] of wingCounts) {
+        assert.ok(count >= 1, `seed ${seed}: wing-${idx} should have >= 1 node, got ${count}`);
+      }
+    }
+  });
+
+  it("minWingSlots returns correct values", () => {
+    assert.equal(minWingSlots("C"), 3);
+    assert.equal(minWingSlots("B"), 4);
+    assert.equal(minWingSlots("A"), 5);
+    assert.equal(minWingSlots("S"), 5);
+    assert.equal(minWingSlots("F"), 0);
   });
 
   it("wings have independent budgets (one wing cannot starve another)", () => {

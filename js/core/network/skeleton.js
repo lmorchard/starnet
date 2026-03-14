@@ -12,7 +12,7 @@
 /** @typedef {import('./set-pieces.js').BiomeDef} BiomeDef */
 /** @typedef {import('./set-pieces.js').SetPieceDef} SetPieceDef */
 
-import { gradeToNumber, maxDepth, TAG_WEIGHTS, costBudget, wingCount, hierarchicalBudget, lanGradeOffset, applyGradeOffset } from "./budget.js";
+import { gradeToNumber, maxDepth, TAG_WEIGHTS, costBudget, wingCount, hierarchicalBudget, lanGradeOffset, applyGradeOffset, minWingSlots } from "./budget.js";
 
 /** @typedef {import('./set-pieces.js').SubBiomeDef} SubBiomeDef */
 /** @typedef {import('./set-pieces.js').RecipeDef} RecipeDef */
@@ -506,12 +506,51 @@ function generateBackbone(numWings, coverage, rng) {
  */
 function generateWingSkeleton(wingSpec, biome, wingEntrySlot, coverage, rng) {
   const maxD = wingEntrySlot.depth + maxDepth(wingSpec.spec.depth);
-  const slotBudget = { remaining: Math.floor(wingSpec.budget / 2) };
+  const minSlots = minWingSlots(wingSpec.spec.complexity);
+  // Ensure budget can support minimum slots (at ~2 cost per slot)
+  const effectiveBudget = Math.max(wingSpec.budget, minSlots * 2);
+  const slotBudget = { remaining: Math.floor(effectiveBudget / 2) };
 
   buildBranches(wingEntrySlot, wingEntrySlot.depth, maxD, wingSpec.spec, coverage, rng, slotBudget);
 
+  // Enforce minimum slot count: add filler branches at shallowest non-leaf slots
+  let slotCount = countChildren(wingEntrySlot);
+  while (slotCount < minSlots && slotBudget.remaining > 0) {
+    // Find shallowest non-leaf slot to add a child
+    const expandable = collectExpandable(wingEntrySlot, maxD);
+    if (expandable.length === 0) break;
+    const target = expandable[0]; // shallowest
+    const tag = rng() < 0.6 ? "treasure" : "filler";
+    const slot = makeSlot(`wing-fill-${slotCount}`, [tag], target.depth + 1, target.id);
+    slot.isLeaf = true;
+    target.children.push(slot);
+    slotBudget.remaining--;
+    slotCount++;
+  }
+
   // Ensure at least one treasure leaf in this wing
   ensureTreasureLeaf(wingEntrySlot, coverage);
+}
+
+/** Count all descendant slots (not including the root). */
+function countChildren(slot) {
+  let count = 0;
+  for (const child of slot.children) {
+    count += 1 + countChildren(child);
+  }
+  return count;
+}
+
+/** Collect slots that can accept new children (depth < maxD, sorted shallowest first). */
+function collectExpandable(root, maxD) {
+  const result = [];
+  function walk(slot) {
+    if (slot.depth < maxD - 1) result.push(slot);
+    for (const child of slot.children) walk(child);
+  }
+  walk(root);
+  result.sort((a, b) => a.depth - b.depth);
+  return result;
 }
 
 // ---------------------------------------------------------------------------

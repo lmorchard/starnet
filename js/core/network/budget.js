@@ -185,6 +185,22 @@ export function wingCount(complexityGrade) {
 }
 
 // ---------------------------------------------------------------------------
+// Wing minimum slot count: scales with complexity grade
+// ---------------------------------------------------------------------------
+
+/** @type {Record<string, number>} */
+const MIN_WING_SLOTS_TABLE = { F: 0, D: 0, C: 3, B: 4, A: 5, S: 5 };
+
+/**
+ * Get the minimum slot count per wing for a complexity grade.
+ * @param {string} complexityGrade
+ * @returns {number}
+ */
+export function minWingSlots(complexityGrade) {
+  return MIN_WING_SLOTS_TABLE[complexityGrade] ?? 3;
+}
+
+// ---------------------------------------------------------------------------
 // Hierarchical budget: expanded budget split between backbone and wings
 // ---------------------------------------------------------------------------
 
