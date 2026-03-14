@@ -198,6 +198,8 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   cy.on("pan zoom", onPanZoom);
   onPanZoom();
 
+  _trackUserViewportInteractions();
+
   return cy;
 }
 
@@ -520,10 +522,76 @@ export function getCy() {
   return cy;
 }
 
-export function syncSelection(nodeId) {
+/** Debounce timer for select-and-fit. */
+let _selectFitTimer = null;
+
+/** Timestamp of last user-initiated pan/zoom (mouse drag, scroll wheel, pinch). */
+let _lastUserViewportInteraction = 0;
+const USER_VIEWPORT_COOLDOWN_MS = 1000;
+
+/** Call once after cy is created to track user viewport interactions. */
+function _trackUserViewportInteractions() {
+  const container = document.getElementById("cy");
+  if (!container) return;
+  const mark = () => { _lastUserViewportInteraction = Date.now(); };
+  // Wheel = scroll zoom (clear viewport intent)
+  container.addEventListener("wheel", mark, { passive: true });
+  // Track drag (pan) via pointermove with distance threshold — plain clicks
+  // involve tiny sub-pixel movement that should NOT suppress auto-fit.
+  let dragStart = null;
+  const DRAG_THRESHOLD = 5; // px — must move at least this far to count as a drag
+  container.addEventListener("pointerdown", (e) => { dragStart = { x: e.clientX, y: e.clientY }; });
+  container.addEventListener("pointermove", (e) => {
+    if (!dragStart) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) mark();
+  });
+  container.addEventListener("pointerup", () => { dragStart = null; });
+  container.addEventListener("pointercancel", () => { dragStart = null; });
+  // Pinch zoom on touch
+  container.addEventListener("touchmove", mark, { passive: true });
+}
+
+/**
+ * @param {string|null} nodeId
+ * @param {boolean} [forceRefit] - re-run fit even if selection hasn't changed (e.g. after node reveal)
+ */
+export function syncSelection(nodeId, forceRefit = false) {
   if (!cy) return;
+  const prevSelected = currentSelectedNodeId;
   currentSelectedNodeId = nodeId || null;
   syncReticle();
+
+  // Select-and-fit: pan + zoom to fit selected node + 2-hop neighborhood.
+  // Yields to manual control — skips if user panned/zoomed within cooldown.
+  // Only clear/set the timer when selection actually changes to a new node,
+  // unless forceRefit is set (e.g. after new nodes settle from a reveal).
+  const selectionChanged = nodeId && nodeId !== prevSelected;
+  if ((selectionChanged || forceRefit) && nodeId && cy.getElementById(nodeId).length > 0) {
+    if (_selectFitTimer) clearTimeout(_selectFitTimer);
+    _selectFitTimer = setTimeout(() => {
+      _selectFitTimer = null;
+      if (!cy || currentSelectedNodeId !== nodeId) return;
+      // Respect manual viewport control
+      if (Date.now() - _lastUserViewportInteraction < USER_VIEWPORT_COOLDOWN_MS) return;
+      const node = cy.getElementById(nodeId);
+      if (!node || node.length === 0) return;
+      // Collect selected node + 2 hops of visible neighbors for context
+      const visible = "node.accessible, node.revealed";
+      let neighborhood = node.neighborhood(visible).add(node);
+      const hop2 = neighborhood.neighborhood(visible);
+      neighborhood = neighborhood.add(hop2);
+      if (neighborhood.length > 0) {
+        cy.stop();
+        cy.animate({
+          fit: { eles: neighborhood, padding: 50 },
+          duration: 400,
+          easing: "ease-in-out-cubic",
+        });
+      }
+    }, 150);
+  }
 }
 
 function syncReticle() {
@@ -1219,7 +1287,7 @@ const LAYOUTS = {
     edgeLength: 120,
     padding: 50,
     maxSimulationTime: 4000,
-    fit: true,
+    fit: false,
   }),
   dagre: (animate) => ({
     name: "dagre",

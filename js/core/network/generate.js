@@ -8,11 +8,12 @@
 /** @typedef {import('./set-pieces.js').NetworkSpec} NetworkSpec */
 /** @typedef {import('./set-pieces.js').BiomeDef} BiomeDef */
 
-import { generateSkeleton } from "./skeleton.js";
+import { generateSkeleton, generateHierarchicalSkeleton } from "./skeleton.js";
 import { fillSkeleton } from "./slot-filler.js";
 import { assembleNetwork } from "./assemble.js";
 import { validate } from "./validate.js";
 import { makeSeededRng } from "../rng.js";
+import { wingCount, hierarchicalBudget } from "./budget.js";
 
 /**
  * Generate a procedural network from a spec and biome catalog.
@@ -41,11 +42,36 @@ export function generateNetwork(seed, spec, biome, opts = {}) {
       console.log(`[GENERATE] Attempt ${attempt + 1}/${maxAttempts} (seed: ${attemptSeed})`);
     }
 
-    // Pass 1: skeleton
-    const skeleton = generateSkeleton(spec, biome, rng);
+    // Decide: flat (F/D) vs hierarchical (C+)
+    const numWings = wingCount(spec.complexity);
+    const useHierarchical = numWings > 0 && biome.recipes?.length > 0;
 
-    // Pass 2: fill slots
-    const { pieces, crossEdges, ok } = fillSkeleton(skeleton, biome, spec, rng);
+    /** @type {import('./skeleton.js').SkeletonSlot} */
+    let skeleton;
+    /** @type {{ pieces: any[], crossEdges: [string, string][], ok: boolean }} */
+    let fillResult;
+
+    if (useHierarchical) {
+      // Hierarchical path: backbone + wings
+      const recipe = biome.recipes.find(r => r.id === spec.recipeId) ?? biome.recipes[0];
+      const result = generateHierarchicalSkeleton(spec, biome, recipe, rng);
+      skeleton = result.root;
+
+      // Fill the hierarchical skeleton with expanded budget.
+      // TODO: thread per-wing palettes (sub-biome pieceIds) and requiredPieceIds
+      // through to fillSkeleton so wings get sub-biome-flavored content.
+      // Currently all wings draw from the full catalog.
+      const budgets = hierarchicalBudget(spec, result.wings.length);
+      fillResult = fillSkeleton(skeleton, biome, spec, rng, {
+        budgetOverride: budgets.total,
+      });
+    } else {
+      // Flat path: existing behavior for F/D networks
+      skeleton = generateSkeleton(spec, biome, rng);
+      fillResult = fillSkeleton(skeleton, biome, spec, rng);
+    }
+
+    const { pieces, crossEdges, ok } = fillResult;
     if (!ok) {
       allErrors.push(`Attempt ${attempt + 1}: slot filling failed`);
       if (verbose) console.log("[GENERATE] Slot filling failed — retrying");

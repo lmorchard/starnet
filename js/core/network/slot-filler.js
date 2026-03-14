@@ -56,10 +56,16 @@ import { gradeToNumber, costBudget } from "./budget.js";
  * @param {BiomeDef} biome
  * @param {NetworkSpec} spec
  * @param {() => number} rng
+ * @param {Object} [opts]
+ * @param {Set<string>|null} [opts.piecePalette] - restrict to these piece IDs (null = full catalog)
+ * @param {string[]} [opts.requiredPieceIds] - piece IDs that must be placed
+ * @param {number} [opts.budgetOverride] - override computed budget
  * @returns {{ pieces: PlacedPiece[], crossEdges: [string, string][], ok: boolean }}
  */
-export function fillSkeleton(skeleton, biome, spec, rng) {
-  let budgetRemaining = costBudget(spec);
+export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
+  const budgetRemaining = opts.budgetOverride ?? costBudget(spec);
+  const piecePalette = opts.piecePalette ?? null;
+  const requiredPieceIds = opts.requiredPieceIds ?? [];
   /** @type {PlacedPiece[]} */
   const pieces = [];
   /** @type {[string, string][]} */
@@ -71,8 +77,12 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
   /** @type {ScatterObligation[]} Deferred scattered nodes for pass 2 */
   const scatterObligations = [];
 
+  // Pre-assign required pieces to compatible slots
+  /** @type {Map<string, SetPieceDef>} slotId → required piece */
+  const preAssigned = preAssignRequired(requiredPieceIds, skeleton, biome);
+
   // Pass 1: fill all skeleton slots
-  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds, scatterObligations);
+  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds, scatterObligations, piecePalette, preAssigned);
   if (!ok) return { pieces, crossEdges, ok: false };
 
   // Pass 2: place scattered nodes in gate-free slots
@@ -97,25 +107,35 @@ export function fillSkeleton(skeleton, biome, spec, rng) {
  * @param {{ budget: number }} state
  * @param {Set<string>} usedPieceIds
  * @param {ScatterObligation[]} scatterObligations
+ * @param {Set<string>|null} piecePalette
+ * @param {Map<string, SetPieceDef>} preAssigned
  * @returns {boolean}
  */
-function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations) {
-  // 1. Filter catalog candidates
-  let candidates = findCandidates(slot, parentPiece, biome, state.budget);
+function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned) {
+  /** @type {SetPieceDef} */
+  let chosen;
 
-  // Fallback: if no candidates match the slot's tags at current budget,
-  // try any F-cost piece with an inbound port. Better to degrade the tag
-  // requirement than fail entirely.
-  if (candidates.length === 0 && parentPiece) {
-    candidates = biome.catalog.filter(p => {
-      const cost = gradeToNumber(p.cost ?? "F");
-      return cost <= 1 && p.ports?.some(port => port.direction === "inbound");
-    });
+  // Check for pre-assigned required piece
+  if (preAssigned.has(slot.id)) {
+    chosen = /** @type {SetPieceDef} */ (preAssigned.get(slot.id));
+  } else {
+    // 1. Filter catalog candidates
+    let candidates = findCandidates(slot, parentPiece, biome, state.budget, piecePalette);
+
+    // Fallback: if no candidates match the slot's tags at current budget,
+    // try any F-cost piece with an inbound port. Better to degrade the tag
+    // requirement than fail entirely.
+    if (candidates.length === 0 && parentPiece) {
+      candidates = filterByPalette(biome.catalog, piecePalette).filter(p => {
+        const cost = gradeToNumber(p.cost ?? "F");
+        return cost <= 1 && p.ports?.some(port => port.direction === "inbound");
+      });
+    }
+    if (candidates.length === 0) return false;
+
+    // 2. Pick a piece (weighted random — prefer lower cost + diversity)
+    chosen = pickCandidate(candidates, rng, usedPieceIds);
   }
-  if (candidates.length === 0) return false;
-
-  // 2. Pick a piece (weighted random — prefer lower cost + diversity)
-  const chosen = pickCandidate(candidates, rng, usedPieceIds);
 
   // 3. Instantiate
   const prefix = slot.id.replace(/^slot-\d+-/, ""); // clean prefix
@@ -182,17 +202,14 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
   }
 
   // 8. Fill children
-  let outPortIdx = 0;
   for (const child of slot.children) {
-    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations)) {
+    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned)) {
       return false;
     }
   }
 
-  // 9. Opportunistically fill up to 1 extra outbound port with filler/treasure.
-  // Capped to avoid network bloat from multi-node filler pieces.
-  let extrasAdded = 0;
-  while (piece.outboundNodeIds.length > 0 && state.budget >= 1 && extrasAdded < 1) {
+  // 9. Opportunistically fill extra outbound ports with filler/treasure.
+  while (piece.outboundNodeIds.length > 0 && state.budget >= 1) {
     const fillerSlot = {
       id: `${slot.id}-extra-${piece.outboundNodeIds.length}`,
       tags: [rng() < 0.6 ? "filler" : "treasure"],
@@ -202,7 +219,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
       isLeaf: true,
       dependency: null,
     };
-    let fillerCandidates = findCandidates(fillerSlot, piece, biome, state.budget);
+    let fillerCandidates = findCandidates(fillerSlot, piece, biome, state.budget, piecePalette);
     // Exclude scattered pieces from opportunistic filler — they need the
     // main fill path's scatter separation logic
     fillerCandidates = fillerCandidates.filter(p => !p.nodes.some(n => n.scatter));
@@ -237,7 +254,6 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
     state.budget -= gradeToNumber(fillerChosen.cost ?? "F");
     pieces.push(fillerPiece);
     crossEdges.push([parentOut, fillerPiece.inboundNodeId]);
-    extrasAdded++;
   }
 
   return true;
@@ -248,16 +264,29 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
 // ---------------------------------------------------------------------------
 
 /**
+ * Filter a catalog by a piece palette (set of allowed IDs).
+ * @param {SetPieceDef[]} catalog
+ * @param {Set<string>|null} palette - null means use all
+ * @returns {SetPieceDef[]}
+ */
+function filterByPalette(catalog, palette) {
+  if (!palette) return catalog;
+  return catalog.filter(p => palette.has(p.id));
+}
+
+/**
  * Find catalog pieces that match a slot's requirements.
  * @param {SkeletonSlot} slot
  * @param {PlacedPiece|null} parentPiece
  * @param {BiomeDef} biome
  * @param {number} budget
+ * @param {Set<string>|null} [piecePalette] - restrict to these piece IDs
  * @returns {SetPieceDef[]}
  */
-function findCandidates(slot, parentPiece, biome, budget) {
+function findCandidates(slot, parentPiece, biome, budget, piecePalette = null) {
+  const pool = filterByPalette(biome.catalog, piecePalette);
   // Primary: piece must have ALL slot tags
-  let candidates = biome.catalog.filter(p =>
+  let candidates = pool.filter(p =>
     p.tags && slot.tags.every(t => p.tags.includes(t))
   );
 
@@ -323,6 +352,69 @@ function pickCandidate(candidates, rng, usedPieceIds) {
     if (roll <= 0) return candidates[i];
   }
   return candidates[candidates.length - 1];
+}
+
+// ---------------------------------------------------------------------------
+// Required piece pre-assignment
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-assign required pieces to compatible skeleton slots.
+ * Finds the best-fit slot for each required piece based on tag overlap.
+ * @param {string[]} requiredPieceIds
+ * @param {SkeletonSlot} skeleton
+ * @param {BiomeDef} biome
+ * @returns {Map<string, SetPieceDef>} slotId → piece
+ */
+function preAssignRequired(requiredPieceIds, skeleton, biome) {
+  /** @type {Map<string, SetPieceDef>} */
+  const assignments = new Map();
+  if (requiredPieceIds.length === 0) return assignments;
+
+  const catalogMap = new Map(biome.catalog.map(p => [p.id, p]));
+  const allSlots = collectSlots(skeleton);
+  const usedSlots = new Set();
+
+  for (const pieceId of requiredPieceIds) {
+    const piece = catalogMap.get(pieceId);
+    if (!piece) continue;
+
+    // Find best slot: prefer slots where tags overlap, skip entry/spine
+    let bestSlot = null;
+    let bestScore = -1;
+    for (const slot of allSlots) {
+      if (usedSlots.has(slot.id)) continue;
+      if (slot.tags.includes("entry") || slot.tags.includes("spine")) continue;
+      // Score by tag overlap
+      const overlap = slot.tags.filter(t => piece.tags?.includes(t)).length;
+      if (overlap > bestScore) {
+        bestScore = overlap;
+        bestSlot = slot;
+      }
+    }
+    if (bestSlot) {
+      assignments.set(bestSlot.id, piece);
+      usedSlots.add(bestSlot.id);
+    }
+  }
+  return assignments;
+}
+
+/**
+ * Collect all slots from a skeleton tree into a flat array.
+ * @param {SkeletonSlot} root
+ * @returns {SkeletonSlot[]}
+ */
+function collectSlots(root) {
+  /** @type {SkeletonSlot[]} */
+  const result = [];
+  /** @param {SkeletonSlot} slot */
+  function walk(slot) {
+    result.push(slot);
+    for (const child of slot.children) walk(child);
+  }
+  walk(root);
+  return result;
 }
 
 // ---------------------------------------------------------------------------

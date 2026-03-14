@@ -148,6 +148,7 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
   // Create the state object
   state = {
     seed: getSeed(),
+    spec: meta.spec ?? null,
     moneyCost: meta.moneyCost ?? "F",
     nodes,
     adjacency,

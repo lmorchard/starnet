@@ -121,6 +121,11 @@ export function cmdStatusFull() {
   }
 
   lines.push(`### NETWORK`);
+  const totalNodes = Object.keys(s.nodes).length;
+  const specStr = s.spec ? `T:${s.spec.threat} W:${s.spec.wealth} C:${s.spec.complexity} D:${s.spec.depth}` : "—";
+  const recipeStr = s.spec?.recipeId ?? "flat";
+  const lanGradeStr = s.spec?.lanGrade ?? "—";
+  lines.push(`- spec: ${specStr}  recipe: ${recipeStr}  LAN: ${lanGradeStr}  nodes: ${totalNodes}`);
   const accessible = Object.values(s.nodes).filter((n) => n.visibility === "accessible");
   const revealed = Object.values(s.nodes).filter((n) => n.visibility === "revealed");
 

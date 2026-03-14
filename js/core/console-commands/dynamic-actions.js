@@ -62,9 +62,12 @@ function syncDynamicActions() {
       verb: actionId,
       complete: completeNodeArg,
       execute: () => {
+        // Read current state at execution time, not registration time —
+        // selection may have changed since the command was registered.
+        const current = getState();
         emitEvent("starnet:action", {
           actionId,
-          nodeId: s.selectedNodeId,
+          nodeId: current.selectedNodeId,
           fromConsole: true,
         });
       },

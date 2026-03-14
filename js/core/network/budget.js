@@ -137,6 +137,80 @@ export function costBudget(spec) {
 }
 
 // ---------------------------------------------------------------------------
+// LAN grade offset: how the overall LAN grade raises wing base grades
+// ---------------------------------------------------------------------------
+
+/** @type {Record<string, number>} */
+const LAN_OFFSET_TABLE = { F: 0, D: 0, C: 1, B: 1, A: 2, S: 2 };
+
+/**
+ * Get the grade offset for a LAN-level grade.
+ * @param {string} lanGrade
+ * @returns {number}
+ */
+export function lanGradeOffset(lanGrade) {
+  return LAN_OFFSET_TABLE[lanGrade] ?? 0;
+}
+
+/**
+ * Apply a grade offset to a set of base grades, capping at S.
+ * @param {import('./set-pieces.js').GradeSpec} baseGrades
+ * @param {number} offset
+ * @returns {import('./set-pieces.js').GradeSpec}
+ */
+export function applyGradeOffset(baseGrades, offset) {
+  return {
+    threat: shiftGrade(baseGrades.threat, offset),
+    wealth: shiftGrade(baseGrades.wealth, offset),
+    complexity: shiftGrade(baseGrades.complexity, offset),
+    depth: shiftGrade(baseGrades.depth, offset),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Wing count: how many wings based on complexity grade
+// ---------------------------------------------------------------------------
+
+/** @type {Record<string, number>} */
+const WING_COUNT_TABLE = { F: 0, D: 0, C: 2, B: 3, A: 4, S: 5 };
+
+/**
+ * Get the number of wings for a complexity grade.
+ * F/D return 0 (flat mode — no hierarchical generation).
+ * @param {string} complexityGrade
+ * @returns {number}
+ */
+export function wingCount(complexityGrade) {
+  return WING_COUNT_TABLE[complexityGrade] ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Hierarchical budget: expanded budget split between backbone and wings
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute budget allocation for hierarchical (C+) networks.
+ * Returns total budget, backbone slice, and per-wing budget.
+ * @param {NetworkSpec} spec
+ * @param {number} numWings
+ * @returns {{ total: number, backboneBudget: number, perWingBudget: number }}
+ */
+export function hierarchicalBudget(spec, numWings) {
+  if (numWings <= 0) {
+    return { total: costBudget(spec), backboneBudget: costBudget(spec), perWingBudget: 0 };
+  }
+  // Expanded total: scale up from base cost budget
+  const base = costBudget(spec);
+  // Hierarchical networks get ~1.5-2x the flat budget to fill wings
+  const total = Math.round(base * 1.8);
+  // Backbone gets a fixed slice: 2 cost points per wing (for backbone routers)
+  const backboneBudget = Math.max(4, numWings * 2);
+  const remaining = total - backboneBudget;
+  const perWingBudget = Math.max(4, Math.floor(remaining / numWings));
+  return { total, backboneBudget, perWingBudget };
+}
+
+// ---------------------------------------------------------------------------
 // Re-exports for convenience
 // ---------------------------------------------------------------------------
 

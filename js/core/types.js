@@ -268,6 +268,7 @@
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
  *   nodeGraph?: any,
+ *   spec?: Object|null,
  * }} GameState
  */
 
