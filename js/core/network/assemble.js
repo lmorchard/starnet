@@ -47,13 +47,15 @@ export function assembleNetwork(pieces, crossEdges, spec, biome, seed) {
   // Add cross-piece edges
   allEdges.push(...crossEdges);
 
-  // 2. Grade scaling — shift all node grades based on network spec
-  const modifier = gradeModifier(spec);
-  if (modifier !== 0) {
-    for (const node of allNodes) {
+  // 2. Grade scaling — per-piece offsets (wing-specific) or global modifier
+  const globalModifier = gradeModifier(spec);
+  for (const piece of pieces) {
+    // Wing pieces have gradeOffset set; backbone/flat pieces use global modifier
+    const offset = piece.gradeOffset ?? globalModifier;
+    if (offset === 0) continue;
+    for (const node of piece.nodes) {
       if (node.attributes?.grade) {
-        const gradeIdx = GRADE_INDEX[node.attributes.grade] ?? 0;
-        node.attributes.grade = shiftGrade(node.attributes.grade, modifier);
+        node.attributes.grade = shiftGrade(node.attributes.grade, offset);
       }
     }
   }

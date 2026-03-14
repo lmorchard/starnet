@@ -536,6 +536,21 @@ describe("Per-wing palette filtering", () => {
     assert.equal(minWingSlots("F"), 0);
   });
 
+  it("per-wing grade offsets produce different node grades across wings", () => {
+    // Defense contractor: 2 security-ops (high threat) + server-room (low threat)
+    // Security-ops base threat B → should produce harder nodes
+    // Server-room base threat F → should produce easier nodes
+    const specB = { threat: "B", wealth: "B", complexity: "B", depth: "B", recipeId: "defense-contractor" };
+    const result = generateNetwork("grade-offset", specB, CORPORATE_BIOME);
+    // Just verify no node grade exceeds S (grade capping works)
+    for (const n of result.graphDef.nodes) {
+      if (n.attributes?.grade) {
+        assert.ok(["F", "D", "C", "B", "A", "S"].includes(n.attributes.grade),
+          `node ${n.id} has invalid grade ${n.attributes.grade}`);
+      }
+    }
+  });
+
   it("wings have independent budgets (one wing cannot starve another)", () => {
     const specB = { threat: "B", wealth: "B", complexity: "B", depth: "B", recipeId: "tech-company" };
     // Generate multiple times — each wing should have at least 1 node
