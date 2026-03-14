@@ -43,3 +43,24 @@
 - F: 8-14, D: 12-15 (flat, good)
 - C: 17-34, B: 28-64, A: 50-81, S: 52-93 (hierarchical)
 - Variance still high but floor is reasonable. Further tuning iterative.
+
+## Phase 5: New Sub-Biomes and Recipes ✓
+
+- Added 2 new sub-biomes:
+  - **R&D Lab** (rd-lab): puzzle-heavy with combination locks, encrypted vaults,
+    key exchanges. High complexity, moderate wealth.
+  - **Data Center** (data-center-wing): bulk servers, minimal security. Very high
+    wealth, easy loot wing.
+- Added 2 new recipes:
+  - **Research Firm**: security-ops + rd-lab mandatory, optional rd-lab/server-room
+  - **Cloud Provider**: security-ops mandatory, heavy data-center-wing optional pool
+- Fixed name collision: sub-biome renamed to `dataCenterWing` to avoid conflict
+  with `dataCenter` set-piece import
+- Added single-router to executive-suite palette (spine piece needed for wing entry)
+- Playtested all 5 recipes at B-grade — distinct flavors confirmed:
+  - Defense contractor: security-heavy
+  - Fashion brand: office/workstation-heavy
+  - Tech company: server-heavy
+  - Research firm: puzzle-heavy (routing panels, combination locks)
+  - Cloud provider: loot-dense (23 fileservers in one run)
+- Full suite: 600 tests, 0 failures

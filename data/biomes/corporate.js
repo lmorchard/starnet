@@ -134,8 +134,37 @@ export const executiveSuite = {
   baseGrades: { threat: "C", wealth: "A", complexity: "B", depth: "C" },
 };
 
+/** @type {SubBiomeDef} */
+export const rdLab = {
+  id: "rd-lab",
+  name: "R&D Laboratory",
+  description: "Puzzle-heavy research wing. Encrypted vaults and combination locks protect experimental data.",
+  pieceIds: [
+    "combination-lock", "encrypted-vault", "multi-key-vault",
+    "switch-arrangement", "vault-cluster",
+    "single-router", "single-fileserver", "single-workstation",
+    "fortified-gate",
+  ],
+  requiredPieceIds: [],
+  baseGrades: { threat: "D", wealth: "C", complexity: "B", depth: "C" },
+};
+
+/** @type {SubBiomeDef} */
+export const dataCenterWing = {
+  id: "data-center-wing",
+  name: "Data Center",
+  description: "Bulk server infrastructure. Dense with data, minimal active security.",
+  pieceIds: [
+    "server-bank", "large-server-bank", "data-center",
+    "single-fileserver", "single-router", "single-workstation",
+    "office-cluster",
+  ],
+  requiredPieceIds: [],
+  baseGrades: { threat: "F", wealth: "A", complexity: "F", depth: "D" },
+};
+
 /** @type {SubBiomeDef[]} */
-export const SUB_BIOMES = [securityOps, serverRoom, officeFloor, executiveSuite];
+export const SUB_BIOMES = [securityOps, serverRoom, officeFloor, executiveSuite, rdLab, dataCenterWing];
 
 // ---------------------------------------------------------------------------
 // Recipes — formulas for composing networks from sub-biome wings
@@ -179,8 +208,34 @@ export const techCompany = {
   ],
 };
 
+/** @type {RecipeDef} */
+export const researchFirm = {
+  id: "research-firm",
+  name: "Research Firm",
+  description: "Puzzle-heavy R&D with encrypted data stores. Cracking the locks is the challenge.",
+  mandatoryWings: ["security-ops", "rd-lab"],
+  optionalPool: [
+    { subBiomeId: "rd-lab", weight: 3 },
+    { subBiomeId: "server-room", weight: 2 },
+    { subBiomeId: "data-center-wing", weight: 1 },
+  ],
+};
+
+/** @type {RecipeDef} */
+export const cloudProvider = {
+  id: "cloud-provider",
+  name: "Cloud Provider",
+  description: "Massive data center infrastructure. Light security, dense with loot.",
+  mandatoryWings: ["security-ops"],
+  optionalPool: [
+    { subBiomeId: "data-center-wing", weight: 4 },
+    { subBiomeId: "server-room", weight: 2 },
+    { subBiomeId: "office-floor", weight: 1 },
+  ],
+};
+
 /** @type {RecipeDef[]} */
-export const RECIPES = [defenseContractor, fashionBrand, techCompany];
+export const RECIPES = [defenseContractor, fashionBrand, techCompany, researchFirm, cloudProvider];
 
 // ---------------------------------------------------------------------------
 // Biome definition
