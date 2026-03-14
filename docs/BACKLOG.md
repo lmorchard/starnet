@@ -64,8 +64,20 @@ consumption, select-and-fit camera. See `docs/dev-sessions/2026-03-13-1356-netwo
   offset-adjusted spec, not a single global modifier.
 - **More sub-biomes and recipe variants** — currently 4 sub-biomes, 3 recipes.
   Content authoring to expand variety.
-- **Lateral ports** — cross-connections between sibling branches. Port system
-  supports `direction: "lateral"` but no piece uses it yet.
+- **Lateral ports and cross-wing connections** — the port system declares
+  `direction: "lateral"` but nothing in the skeleton or slot-filler handles
+  them. Design directions explored in brainstorming (2026-03-13):
+  - **Cross-wing backdoors** — a lateral port on a backbone node connects to a
+    node inside a different wing, bypassing the chokepoint firewall. Creates
+    tactical choice: crack the firewall head-on or find the back door.
+  - **Intra-wing loops** — lateral ports within a wing connect sibling branches,
+    making wing topology more interesting than a pure tree.
+  - **Insecure back-connections** — a heavily firewalled fileserver with an
+    insecure lateral connection from a workstation in a low-security wing.
+    "Someone left a back door" — the fiction of real corporate network mistakes.
+  - Implementation needs: skeleton or post-fill pass for lateral wiring, rules
+    for what can connect laterally (depth, wing, probability), set pieces that
+    declare lateral ports.
 
 ### ICE Resident Node Relocation
 Currently ICE starts at the security monitor. The fiction would be cleaner if
