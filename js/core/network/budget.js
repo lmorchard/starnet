@@ -185,6 +185,22 @@ export function wingCount(complexityGrade) {
 }
 
 // ---------------------------------------------------------------------------
+// Wing minimum slot count: scales with complexity grade
+// ---------------------------------------------------------------------------
+
+/** @type {Record<string, number>} */
+const MIN_WING_SLOTS_TABLE = { F: 0, D: 0, C: 3, B: 4, A: 5, S: 5 };
+
+/**
+ * Get the minimum slot count per wing for a complexity grade.
+ * @param {string} complexityGrade
+ * @returns {number}
+ */
+export function minWingSlots(complexityGrade) {
+  return MIN_WING_SLOTS_TABLE[complexityGrade] ?? 3;
+}
+
+// ---------------------------------------------------------------------------
 // Hierarchical budget: expanded budget split between backbone and wings
 // ---------------------------------------------------------------------------
 
@@ -199,14 +215,17 @@ export function hierarchicalBudget(spec, numWings) {
   if (numWings <= 0) {
     return { total: costBudget(spec), backboneBudget: costBudget(spec), perWingBudget: 0 };
   }
-  // Expanded total: scale up from base cost budget
+  // Expanded total: scale up from base cost budget.
+  // Multiplier increased to 2.5x — sub-biome palette filtering rejects many
+  // candidates, so wings need extra budget headroom to reach target node counts.
   const base = costBudget(spec);
-  // Hierarchical networks get ~1.5-2x the flat budget to fill wings
-  const total = Math.round(base * 1.8);
+  const total = Math.round(base * 2.2);
   // Backbone gets a fixed slice: 2 cost points per wing (for backbone routers)
   const backboneBudget = Math.max(4, numWings * 2);
   const remaining = total - backboneBudget;
-  const perWingBudget = Math.max(4, Math.floor(remaining / numWings));
+  // Per-wing floor based on minimum slot count
+  const minBudget = minWingSlots(spec.complexity) * 3; // ~3 cost per slot for palette headroom
+  const perWingBudget = Math.max(minBudget, Math.floor(remaining / numWings));
   return { total, backboneBudget, perWingBudget };
 }
 

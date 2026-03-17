@@ -35,6 +35,7 @@ import { gradeToNumber, costBudget } from "./budget.js";
  * @property {Port[]} ports - prefixed ports
  * @property {string|null} inboundNodeId - prefixed inbound port node ID
  * @property {string[]} outboundNodeIds - prefixed outbound port node IDs (unconsumed)
+ * @property {number} [gradeOffset] - per-wing grade offset for assembly (set by generate.js)
  */
 
 /**
@@ -60,12 +61,16 @@ import { gradeToNumber, costBudget } from "./budget.js";
  * @param {Set<string>|null} [opts.piecePalette] - restrict to these piece IDs (null = full catalog)
  * @param {string[]} [opts.requiredPieceIds] - piece IDs that must be placed
  * @param {number} [opts.budgetOverride] - override computed budget
- * @returns {{ pieces: PlacedPiece[], crossEdges: [string, string][], ok: boolean }}
+ * @param {boolean} [opts.skipScatterPlacement] - return scatter obligations without placing them
+ * @param {boolean} [opts.skipSubBiomeSlots] - skip slots that have subBiomeId (for backbone-only filling)
+ * @returns {{ pieces: PlacedPiece[], crossEdges: [string, string][], ok: boolean, scatterObligations?: ScatterObligation[] }}
  */
 export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
   const budgetRemaining = opts.budgetOverride ?? costBudget(spec);
   const piecePalette = opts.piecePalette ?? null;
   const requiredPieceIds = opts.requiredPieceIds ?? [];
+  const skipScatter = opts.skipScatterPlacement ?? false;
+  const skipSubBiome = opts.skipSubBiomeSlots ?? false;
   /** @type {PlacedPiece[]} */
   const pieces = [];
   /** @type {[string, string][]} */
@@ -82,16 +87,16 @@ export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
   const preAssigned = preAssignRequired(requiredPieceIds, skeleton, biome);
 
   // Pass 1: fill all skeleton slots
-  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds, scatterObligations, piecePalette, preAssigned);
+  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome);
   if (!ok) return { pieces, crossEdges, ok: false };
 
-  // Pass 2: place scattered nodes in gate-free slots
-  if (scatterObligations.length > 0) {
+  // Pass 2: place scattered nodes (unless caller wants to handle them)
+  if (!skipScatter && scatterObligations.length > 0) {
     const scatterOk = placeScatteredNodes(scatterObligations, pieces, skeleton, crossEdges, placed);
     if (!scatterOk) return { pieces, crossEdges, ok: false };
   }
 
-  return { pieces, crossEdges, ok };
+  return { pieces, crossEdges, ok, scatterObligations: skipScatter ? scatterObligations : [] };
 }
 
 /**
@@ -109,9 +114,13 @@ export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
  * @param {ScatterObligation[]} scatterObligations
  * @param {Set<string>|null} piecePalette
  * @param {Map<string, SetPieceDef>} preAssigned
+ * @param {boolean} [skipSubBiome]
  * @returns {boolean}
  */
-function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned) {
+function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome = false) {
+  // Skip wing entry slots when filling backbone only
+  if (skipSubBiome && slot.subBiomeId) return true;
+
   /** @type {SetPieceDef} */
   let chosen;
 
@@ -203,7 +212,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
 
   // 8. Fill children
   for (const child of slot.children) {
-    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned)) {
+    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome)) {
       return false;
     }
   }
@@ -426,7 +435,7 @@ function collectSlots(root) {
  * @param {PlacedPiece} piece
  * @returns {string|null}
  */
-function consumeOutboundPort(piece) {
+export function consumeOutboundPort(piece) {
   if (piece.outboundNodeIds.length === 0) return null;
   return piece.outboundNodeIds.shift() ?? null;
 }
@@ -494,7 +503,7 @@ export function computeGateFreeSlots(placed, skeleton) {
  * @param {Map<string, PlacedPiece>} placed
  * @returns {boolean} true if all scattered nodes were placed
  */
-function placeScatteredNodes(obligations, pieces, skeleton, crossEdges, placed) {
+export function placeScatteredNodes(obligations, pieces, skeleton, crossEdges, placed) {
   const gateFreeSlots = computeGateFreeSlots(placed, skeleton);
   scatterPlaced.clear();
 
