@@ -459,7 +459,7 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     const graph = new NodeGraph(inst, ctx);
 
     graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
-    graph.tick(100); // clock period is 5
+    graph.tick(120); // clock period is 120 at grade D
     const actions = graph.getAvailableActions("ev1/key-gen").map((a) => a.id);
     assert.ok(actions.includes("extract-key"), "key ready after clock fires");
   });
@@ -476,7 +476,7 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("fetch"));
 
     // Fire clock, extract key, then fetch
-    graph.tick(100);
+    graph.tick(120);
     graph.executeAction("ev1/key-gen", "extract-key");
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
@@ -498,12 +498,12 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     graph._nodes.get("ev1/vault").attributes.accessLevel = "owned";
 
     // First clock cycle: extract the key
-    graph.tick(100);
+    graph.tick(120);
     graph.executeAction("ev1/key-gen", "extract-key");
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
     // Don't loot — let next clock cycle fire and expire the key
-    graph.tick(100);
+    graph.tick(120);
     assert.equal(graph.getQuality("ev1/decryption-key"), 0);
     assert.equal(graph.getNodeState("ev1/key-gen").keyReady, true); // new key ready
     assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("loot"));
@@ -552,15 +552,15 @@ describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
     graph._nodes.get("cs1/relay-a").attributes.accessLevel = "owned";
     // Subvert only relay-a — the subvert action uses emit-message to send
     // subvert-ping directly to watchdog (bypassing relay-a's own operators),
-    // which resets the watchdog timer. Need 4 more ticks for it to expire.
+    // which resets the watchdog timer. Need 5 more ticks for it to expire (grade D).
     graph.executeAction("cs1/relay-a", "subvert");
-    graph.tick(4); // watchdog period elapses without further messages
+    graph.tick(5); // watchdog period elapses without further messages (grade D)
 
     assert.equal(ctx.calls.startTrace?.length, 1);
   });
 });
 
-describe("tripwire-gauntlet: 6-tick delay from probe to alarm", () => {
+describe("tripwire-gauntlet: 8-tick delay from probe to alarm (grade D)", () => {
   it("sensor flags triggered immediately on probe-noise", () => {
     const ctx = mockCtx();
     const inst = instantiate(tripwireGauntlet, "tg1");
@@ -572,24 +572,24 @@ describe("tripwire-gauntlet: 6-tick delay from probe to alarm", () => {
     assert.equal(ctx.calls.startTrace, undefined);
   });
 
-  it("alarm does not fire before 6 ticks", () => {
+  it("alarm does not fire before 8 ticks (grade D)", () => {
     const ctx = mockCtx();
     const inst = instantiate(tripwireGauntlet, "tg1");
     const graph = new NodeGraph(inst, ctx);
 
     graph.sendMessage("tg1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    graph.tick(5); // one tick short of the full 6-tick delay
+    graph.tick(7); // one tick short of the full 8-tick delay
     assert.equal(graph.getNodeState("tg1/alarm").triggered, false);
     assert.equal(ctx.calls.startTrace, undefined);
   });
 
-  it("alarm fires and trace starts on tick 6", () => {
+  it("alarm fires and trace starts on tick 8 (grade D)", () => {
     const ctx = mockCtx();
     const inst = instantiate(tripwireGauntlet, "tg1");
     const graph = new NodeGraph(inst, ctx);
 
     graph.sendMessage("tg1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
-    graph.tick(6);
+    graph.tick(8);
     assert.equal(graph.getNodeState("tg1/alarm").triggered, true);
     assert.equal(ctx.calls.startTrace?.length, 1);
   });
@@ -681,7 +681,7 @@ describe("noisy-sensor: first probe per window raises alert, subsequent suppress
     assert.equal(ctx.calls.setGlobalAlert?.length, 1);
   });
 
-  it("raises alert again after cooldown expires (4 ticks)", () => {
+  it("raises alert again after cooldown expires (5 ticks, grade D)", () => {
     const ctx = mockCtx();
     const inst = instantiate(noisySensor, "ns1");
     const graph = new NodeGraph(inst, ctx);
@@ -689,7 +689,7 @@ describe("noisy-sensor: first probe per window raises alert, subsequent suppress
     graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
     assert.equal(ctx.calls.setGlobalAlert?.length, 1);
 
-    graph.tick(4); // expire the 4-tick cooldown
+    graph.tick(5); // expire the 5-tick cooldown (grade D)
     graph.sendMessage("ns1/sensor", createMessage({ type: "probe-noise", origin: "player", payload: {} }));
     assert.equal(ctx.calls.setGlobalAlert?.length, 2); // second window, second alert
   });

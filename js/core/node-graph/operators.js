@@ -17,6 +17,24 @@
  * @typedef {(config: OperatorConfig, nodeAttributes: Record<string, any>, message: Message | null, ctx: CtxInterface) => OperatorResult} OperatorFn
  */
 
+/**
+ * Resolve a timing value from a grade table or fall back to a fixed value.
+ * Operators can declare e.g. `periodTable: { S: 20, A: 25, B: 30, C: 40, D: 50, F: 60 }`
+ * alongside `period: 30`. If the table exists, the node's grade selects the value.
+ * @param {Record<string, any>} config - operator config
+ * @param {Record<string, any>} attrs - node attributes (must include `grade`)
+ * @param {string} field - base field name (e.g. "period", "ticks")
+ * @returns {number}
+ */
+function resolveGradedTiming(config, attrs, field) {
+  const table = config[field + "Table"];
+  if (table) {
+    const grade = attrs.grade ?? "D";
+    return table[grade] ?? table["D"] ?? config[field] ?? 1;
+  }
+  return config[field] ?? 1;
+}
+
 /** @type {Map<string, OperatorFn>} */
 const _registry = new Map();
 
@@ -172,7 +190,7 @@ registerOperator("latch", (_config, _attrs, message, _ctx) => {
  */
 registerOperator("clock", (config, attrs, message, _ctx) => {
   if (!message || message.type !== "tick") return {};
-  const period = config.period ?? 1;
+  const period = resolveGradedTiming(config, attrs, "period");
   const ticks = (attrs._clock_ticks ?? 0) + 1;
   if (ticks >= period) {
     return {
@@ -193,7 +211,7 @@ registerOperator("clock", (config, attrs, message, _ctx) => {
 registerOperator("delay", (config, attrs, message, _ctx) => {
   if (!message) return {};
 
-  const delayTicks = config.ticks ?? 1;
+  const delayTicks = resolveGradedTiming(config, attrs, "ticks");
   /** @type {Array<{type: string, payload: Record<string,any>, destinations: string[]|null, remaining: number}>} */
   const queue = (attrs._delay_queue ?? []).map((/** @type {any} */ e) => ({ ...e }));
 
@@ -273,7 +291,7 @@ registerOperator("flag", (config, _attrs, message, _ctx) => {
  */
 registerOperator("watchdog", (config, attrs, message, _ctx) => {
   if (!message) return {};
-  const period = config.period ?? 5;
+  const period = resolveGradedTiming(config, attrs, "period");
   if (message.type === "tick") {
     const ticks = (attrs._watchdog_ticks ?? 0) + 1;
     if (ticks >= period) {
@@ -439,7 +457,7 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
 
 registerOperator("debounce", (config, attrs, message, _ctx) => {
   if (!message) return {};
-  const ticks = config.ticks ?? 1;
+  const ticks = resolveGradedTiming(config, attrs, "ticks");
 
   if (message.type === "tick") {
     const cooldown = attrs._debounce_cooldown ?? 0;
