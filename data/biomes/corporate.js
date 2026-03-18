@@ -23,6 +23,7 @@ import {
   scatteredEncryptedVault2, scatteredEncryptedVault3,
   entryPoint, singleRouter, singleFirewall,
   singleWorkstation, singleFileserver,
+  workstationArray, luckyBreak, securityTheater,
   backboneRouter, backboneFirewall, backboneHub,
 } from "./corporate-pieces.js";
 
@@ -38,6 +39,10 @@ const catalog = [
   serverBank,
   officeCluster,
   switchArrangement,
+  workstationArray,
+  // Scenario (grade asymmetry)
+  luckyBreak,
+  securityTheater,
   // Defense
   idsRelayChain,
   noisySensor,
@@ -103,6 +108,7 @@ export const serverRoom = {
     "server-bank", "large-server-bank", "data-center", "vault-cluster",
     "single-fileserver", "single-router",
     "encrypted-vault", "multi-key-vault",
+    "lucky-break", "security-theater",
   ],
   requiredPieceIds: [],
   baseGrades: { threat: "F", wealth: "B", complexity: "D", depth: "C" },
@@ -116,6 +122,7 @@ export const officeFloor = {
   pieceIds: [
     "office-cluster", "single-workstation", "single-fileserver",
     "single-router", "switch-arrangement",
+    "workstation-array", "security-theater",
   ],
   requiredPieceIds: [],
   baseGrades: { threat: "F", wealth: "D", complexity: "F", depth: "D" },
@@ -129,6 +136,7 @@ export const executiveSuite = {
   pieceIds: [
     "fortified-gate", "combination-lock", "encrypted-vault", "vault-cluster",
     "single-firewall", "single-router", "single-workstation", "multi-key-vault",
+    "lucky-break",
   ],
   requiredPieceIds: [],
   baseGrades: { threat: "C", wealth: "A", complexity: "B", depth: "C" },
@@ -157,7 +165,7 @@ export const dataCenterWing = {
   pieceIds: [
     "server-bank", "large-server-bank", "data-center",
     "single-fileserver", "single-router", "single-workstation",
-    "office-cluster",
+    "office-cluster", "workstation-array",
   ],
   requiredPieceIds: [],
   baseGrades: { threat: "F", wealth: "A", complexity: "F", depth: "D" },
