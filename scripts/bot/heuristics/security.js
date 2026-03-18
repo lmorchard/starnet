@@ -4,6 +4,8 @@
 /** @typedef {import('../types.js').WorldModel} WorldModel */
 /** @typedef {import('../types.js').ScoredAction} ScoredAction */
 
+import { A } from "../../../js/core/action-ids.js";
+
 const STRATEGY = "security";
 const BASE_RECONFIGURE = 70;
 const CANCEL_TRACE_SCORE = 900;
@@ -25,9 +27,9 @@ export function securityStrategy(world) {
       if (!node) continue;
       if (node.type === "security-monitor" && node.accessLevel === "owned") {
         const actions = world.availableActions.get(nodeId) ?? [];
-        if (actions.some(a => a.id === "cancel-trace")) {
+        if (actions.some(a => a.id === A.CANCEL_TRACE)) {
           proposals.push({
-            action: "cancel-trace",
+            action: A.CANCEL_TRACE,
             nodeId,
             score: CANCEL_TRACE_SCORE,
             reason: "EMERGENCY: cancel active trace",
@@ -53,19 +55,19 @@ export function securityStrategy(world) {
     if (node.accessLevel === "owned") {
       // Own it — reconfigure
       const actions = world.availableActions.get(nodeId) ?? [];
-      if (actions.some(a => a.id === "reconfigure")) {
+      if (actions.some(a => a.id === A.CORRUPT)) {
         proposals.push({
-          action: "reconfigure",
+          action: A.CORRUPT,
           nodeId,
           score: BASE_RECONFIGURE,
-          reason: "reconfigure IDS to sever alert chain",
+          reason: "corrupt IDS to sever alert chain",
           strategy: STRATEGY,
         });
       }
     } else if (!node.probed) {
       // Need to probe first
       proposals.push({
-        action: "probe",
+        action: A.PROBE,
         nodeId,
         score: BASE_RECONFIGURE + 2 - alertPenalty,
         reason: "probe IDS for subversion",
@@ -79,7 +81,7 @@ export function securityStrategy(world) {
         const matchingIds = world.cardMatchesByNode.get(nodeId) ?? [];
         const isMatch = matchingIds.includes(card.id);
         proposals.push({
-          action: "exploit",
+          action: A.XPLOIT,
           nodeId,
           score: (isMatch ? BASE_RECONFIGURE + 1 : BASE_RECONFIGURE - 30) - alertPenalty,
           reason: isMatch ? "exploit IDS for subversion" : "hail-mary exploit on IDS",

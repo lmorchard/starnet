@@ -9,6 +9,7 @@
  */
 
 import { on, E } from "./events.js";
+import { A } from "./action-ids.js";
 import { getState } from "./state.js";
 import { createMessage } from "./node-graph/message.js";
 
@@ -22,14 +23,14 @@ export function initGraphBridge() {
     const graph = getState().nodeGraph;
     if (!graph) return;
 
-    if (action === "probe") {
+    if (action === A.PROBE) {
       // Probe completed → send "probe-noise" to the probed node's neighbors.
       const msg = createMessage({ type: "probe-noise", origin: nodeId, payload: { nodeId } });
       const adj = getState().adjacency[nodeId] || [];
       for (const neighborId of adj) {
         try { graph.sendMessage(neighborId, msg); } catch (_) { }
       }
-    } else if (action === "exploit") {
+    } else if (action === A.XPLOIT) {
       // Exploit attempt → send "exploit" message to the node.
       const msg = createMessage({ type: "exploit", origin: nodeId, payload: { nodeId, success } });
       try { graph.sendMessage(nodeId, msg); } catch (_) { }

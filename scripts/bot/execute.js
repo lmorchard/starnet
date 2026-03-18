@@ -6,15 +6,15 @@
 
 import { emitEvent, on, off, E, tick, getState } from "../lib/headless-engine.js";
 import { buyFromStore } from "../../js/core/store-logic.js";
+import { A } from "../../js/core/action-ids.js";
 
 /** Actions that start a timed process and need tick-forward */
-const TIMED_ACTIONS = new Set(["probe", "exploit", "read", "loot", "reboot"]);
+const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT]);
 
 /** Actions that are instant (no ticking needed) */
 const INSTANT_ACTIONS = new Set([
-  "select", "deselect", "jackout", "reconfigure", "cancel-trace",
-  "cancel-probe", "cancel-exploit", "cancel-read", "cancel-loot",
-  "eject", "access-darknet",
+  A.TARGET, A.UNTARGET, A.JACKOUT, A.CORRUPT, A.CANCEL_TRACE,
+  A.ABORT, A.EJECT, A.ACCESS_DARKNET,
   // Set-piece puzzle actions
   "activate", "scan-lock", "scan-vault", "crack-vault",
   "unlock-vault", "extract-token", "extract-key", "decrypt-loot",
@@ -46,8 +46,8 @@ export function execute(choice, world, opts = {}) {
   const state = getState();
 
   // If we need to select a different node first
-  if (choice.nodeId && choice.nodeId !== state.selectedNodeId && choice.action !== "select") {
-    emitEvent("starnet:action", { actionId: "select", nodeId: choice.nodeId });
+  if (choice.nodeId && choice.nodeId !== state.selectedNodeId && choice.action !== A.TARGET) {
+    emitEvent("starnet:action", { actionId: A.TARGET, nodeId: choice.nodeId });
   }
 
   // Bot-only action: buy a card directly from the store (headless)
@@ -134,11 +134,10 @@ function tickUntilResolved(choice, budget) {
     off(E.RUN_ENDED, onRunEnded);
   }
 
-  // If interrupted by ICE, cancel the current action and deselect
+  // If interrupted by ICE, abort the current action and untarget
   if (interrupted && !resolved && !runEnded) {
-    const cancelAction = `cancel-${choice.action}`;
-    emitEvent("starnet:action", { actionId: cancelAction, nodeId: targetNodeId });
-    emitEvent("starnet:action", { actionId: "deselect" });
+    emitEvent("starnet:action", { actionId: A.ABORT, nodeId: targetNodeId });
+    emitEvent("starnet:action", { actionId: A.UNTARGET });
   }
 
   return { completed: resolved || runEnded, interrupted, ticksUsed };

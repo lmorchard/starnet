@@ -201,6 +201,29 @@ export class NodeGraph {
   }
 
   /**
+   * Find the active timed-action on a node, if any.
+   * Scans timed-action operators and returns the first whose activeAttr is true.
+   * @param {string} nodeId
+   * @returns {{ action: string, activeAttr: string, progressAttr: string, durationAttr: string } | null}
+   */
+  getActiveTimedAction(nodeId) {
+    const node = this._requireNode(nodeId);
+    for (const op of node.operators) {
+      if (op.name !== "timed-action") continue;
+      const activeAttr = op.activeAttr;
+      if (!activeAttr || !node.attributes[activeAttr]) continue;
+      const action = op.action ?? "unknown";
+      return {
+        action,
+        activeAttr,
+        progressAttr: op.progressAttr ?? `_ta_${action}_progress`,
+        durationAttr: op.durationAttr ?? `_ta_${action}_duration`,
+      };
+    }
+    return null;
+  }
+
+  /**
    * Return a node's full data: id, type, and all attributes.
    * Useful for populating game state objects.
    * @param {string} nodeId

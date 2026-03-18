@@ -4,6 +4,8 @@
 /** @typedef {import('../types.js').WorldModel} WorldModel */
 /** @typedef {import('../types.js').ScoredAction} ScoredAction */
 
+import { A } from "../../../js/core/action-ids.js";
+
 const STRATEGY = "explore";
 const BASE_SELECT_REVEALED = 42;
 const BASE_PROBE = 50;
@@ -30,7 +32,7 @@ export function exploreStrategy(world) {
     const node = world.nodes.get(nodeId);
     const dangerPenalty = (node && DANGEROUS_TYPES.has(node.type)) ? DANGEROUS_PENALTY : 0;
     proposals.push({
-      action: "select",
+      action: A.TARGET,
       nodeId,
       score: BASE_SELECT_REVEALED - dangerPenalty,
       reason: "select revealed node to make accessible",
@@ -46,7 +48,7 @@ export function exploreStrategy(world) {
     const selectedBonus = (nodeId === world.player.selectedNodeId) ? SELECTED_BONUS : 0;
     const cooldownPenalty = world.iceCooldown.has(nodeId) ? ICE_COOLDOWN_PENALTY : 0;
     proposals.push({
-      action: "probe",
+      action: A.PROBE,
       nodeId,
       score: BASE_PROBE + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - cooldownPenalty,
       reason: `probe unprobed node${missionBonus ? " (mission path)" : ""}`,
@@ -70,7 +72,7 @@ export function exploreStrategy(world) {
     const matchPenalty = matchingIds.includes(card.id) ? 0 : 5;
 
     proposals.push({
-      action: "exploit",
+      action: A.XPLOIT,
       nodeId,
       score: BASE_EXPLOIT + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - matchPenalty - cooldownPenalty,
       reason: `exploit with ${card.name}${missionBonus ? " (mission path)" : ""}${matchPenalty ? " (hail-mary)" : ""}`,

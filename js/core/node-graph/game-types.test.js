@@ -149,7 +149,7 @@ describe("operators", () => {
       const def = resolve(factory("test"));
       // hackable trait provides timed-action operators for probe + exploit
       assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "probe"));
-      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "exploit"));
+      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "xploit"));
     }
   });
 
@@ -180,59 +180,59 @@ describe("action availability", () => {
     const gw = createGateway("gw", { attributes: { visibility: "accessible" } });
     const graph = new NodeGraph({ nodes: [gw], edges: [] });
     const actions = graph.getAvailableActions("gw");
-    assert.ok(actions.some(a => a.id === "exploit"));
+    assert.ok(actions.some(a => a.id === "xploit"));
   });
 
   it("exploit not available on hidden node", () => {
     const gw = createGateway("gw");
     const graph = new NodeGraph({ nodes: [gw], edges: [] });
     const actions = graph.getAvailableActions("gw");
-    assert.ok(!actions.some(a => a.id === "exploit"));
+    assert.ok(!actions.some(a => a.id === "xploit"));
   });
 
-  it("read available on compromised unread fileserver", () => {
+  it("dump available on compromised unread fileserver", () => {
     const fs = createFileserver("fs", {
       attributes: { visibility: "accessible", accessLevel: "compromised" },
     });
     const graph = new NodeGraph({ nodes: [fs], edges: [] });
     const actions = graph.getAvailableActions("fs");
-    assert.ok(actions.some(a => a.id === "read"));
+    assert.ok(actions.some(a => a.id === "dump"));
   });
 
-  it("loot available on owned read fileserver", () => {
+  it("fetch available on owned read fileserver", () => {
     const fs = createFileserver("fs", {
       attributes: { visibility: "accessible", accessLevel: "owned", read: true },
     });
     const graph = new NodeGraph({ nodes: [fs], edges: [] });
     const actions = graph.getAvailableActions("fs");
-    assert.ok(actions.some(a => a.id === "loot"));
+    assert.ok(actions.some(a => a.id === "fetch"));
   });
 
-  it("loot not available when already looted", () => {
+  it("fetch not available when already looted", () => {
     const fs = createFileserver("fs", {
       attributes: { visibility: "accessible", accessLevel: "owned", read: true, looted: true },
     });
     const graph = new NodeGraph({ nodes: [fs], edges: [] });
     const actions = graph.getAvailableActions("fs");
-    assert.ok(!actions.some(a => a.id === "loot"));
+    assert.ok(!actions.some(a => a.id === "fetch"));
   });
 
-  it("reconfigure available on compromised IDS with forwarding enabled", () => {
+  it("corrupt available on compromised IDS with forwarding enabled", () => {
     const ids = createIDS("ids-1", {
       attributes: { visibility: "accessible", accessLevel: "compromised" },
     });
     const graph = new NodeGraph({ nodes: [ids], edges: [] });
     const actions = graph.getAvailableActions("ids-1");
-    assert.ok(actions.some(a => a.id === "reconfigure"));
+    assert.ok(actions.some(a => a.id === "corrupt"));
   });
 
-  it("reconfigure not available when forwarding already disabled", () => {
+  it("corrupt not available when forwarding already disabled", () => {
     const ids = createIDS("ids-1", {
       attributes: { visibility: "accessible", accessLevel: "owned", forwardingEnabled: false },
     });
     const graph = new NodeGraph({ nodes: [ids], edges: [] });
     const actions = graph.getAvailableActions("ids-1");
-    assert.ok(!actions.some(a => a.id === "reconfigure"));
+    assert.ok(!actions.some(a => a.id === "corrupt"));
   });
 
   it("cancel-trace available on owned security-monitor", () => {
@@ -262,13 +262,13 @@ describe("action availability", () => {
     assert.ok(actions.some(a => a.id === "reboot"));
   });
 
-  it("cancel-probe available when probing flag set", () => {
+  it("abort available when probing flag set", () => {
     const gw = createGateway("gw", {
       attributes: { visibility: "accessible", probing: true },
     });
     const graph = new NodeGraph({ nodes: [gw], edges: [] });
     const actions = graph.getAvailableActions("gw");
-    assert.ok(actions.some(a => a.id === "cancel-probe"));
+    assert.ok(actions.some(a => a.id === "abort"));
   });
 });
 
@@ -283,13 +283,13 @@ describe("action execution", () => {
     assert.equal(graph.getNodeState("gw").probing, true);
   });
 
-  it("reconfigure action sets forwardingEnabled false and calls ctx", () => {
+  it("corrupt action sets forwardingEnabled false and calls ctx", () => {
     const ctx = mockCtx();
     const ids = createIDS("ids-1", {
       attributes: { visibility: "accessible", accessLevel: "owned" },
     });
     const graph = new NodeGraph({ nodes: [ids], edges: [] }, ctx);
-    graph.executeAction("ids-1", "reconfigure");
+    graph.executeAction("ids-1", "corrupt");
     assert.equal(graph.getNodeState("ids-1").forwardingEnabled, false);
     assert.equal(ctx.calls.reconfigureNode?.length, 1);
     assert.deepEqual(ctx.calls.reconfigureNode[0], ["ids-1"]);
@@ -338,23 +338,22 @@ describe("action templates", () => {
 // ── Lootable type distinction ────────────────────────────────
 
 describe("lootable types", () => {
-  it("fileserver and cryptovault have read/loot actions (resolved)", () => {
+  it("fileserver and cryptovault have dump/fetch actions (resolved)", () => {
     for (const factory of [createFileserver, createCryptovault]) {
       const def = resolve(factory("test"));
       const actionIds = def.actions.map(a => a.id);
-      assert.ok(actionIds.includes("read"), `${def.type} missing read`);
-      assert.ok(actionIds.includes("loot"), `${def.type} missing loot`);
-      assert.ok(actionIds.includes("cancel-read"), `${def.type} missing cancel-read`);
-      assert.ok(actionIds.includes("cancel-loot"), `${def.type} missing cancel-loot`);
+      assert.ok(actionIds.includes("dump"), `${def.type} missing dump`);
+      assert.ok(actionIds.includes("fetch"), `${def.type} missing fetch`);
+      assert.ok(actionIds.includes("abort"), `${def.type} missing abort`);
     }
   });
 
-  it("non-lootable types do not have read/loot actions (resolved)", () => {
+  it("non-lootable types do not have dump/fetch actions (resolved)", () => {
     for (const factory of [createGateway, createRouter, createFirewall]) {
       const def = resolve(factory("test"));
       const actionIds = def.actions.map(a => a.id);
-      assert.ok(!actionIds.includes("read"), `${def.type} should not have read`);
-      assert.ok(!actionIds.includes("loot"), `${def.type} should not have loot`);
+      assert.ok(!actionIds.includes("dump"), `${def.type} should not have dump`);
+      assert.ok(!actionIds.includes("fetch"), `${def.type} should not have fetch`);
     }
   });
 });

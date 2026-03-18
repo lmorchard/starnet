@@ -13,6 +13,7 @@
 /** @typedef {import('../types.js').GameState} GameState */
 
 import { getGlobalActions } from "./global-actions.js";
+import { A } from "../action-ids.js";
 
 /**
  * Returns all available actions for the given node and game state.
@@ -31,7 +32,7 @@ export function getAvailableActions(node, state) {
   // Apply global state filters the graph can't check
   const filtered = graphActions.filter(action => {
     // Eject requires ICE attention at this specific node
-    if (action.id === "eject") {
+    if (action.id === A.EJECT) {
       return !!(state.ice?.active && state.ice.attentionNodeId === node.id);
     }
     return true;
@@ -58,7 +59,7 @@ function wrapGraphAction(ga) {
       // Exploit special case: needs exploitId from payload to compute duration.
       // Call the game-ctx's startExploit directly (sets graph attributes for the
       // timed-action operator to pick up).
-      if (ga.id === "exploit") {
+      if (ga.id === A.XPLOIT) {
         const exploitId = payload?.exploitId;
         if (exploitId && state.nodeGraph?._ctx?.startExploit) {
           state.nodeGraph._ctx.startExploit(node.id, exploitId);

@@ -5,6 +5,7 @@
 /** @typedef {import('../types.js').ScoredAction} ScoredAction */
 
 import { getStoreCatalog } from "../../../js/core/exploits.js";
+import { A } from "../../../js/core/action-ids.js";
 
 const STRATEGY = "cards";
 const BUY_CARD_SCORE = 55;
@@ -53,7 +54,7 @@ export function cardsStrategy(world) {
   // Jack out if we're truly stuck: no usable cards left and can't buy more
   if (!hasAnyUsableCard && !pickVulnToBuy(world)) {
     proposals.push({
-      action: "jackout",
+      action: A.JACKOUT,
       nodeId: null,
       score: NO_CARDS_JACKOUT,
       reason: "no usable cards, can't buy — jack out",

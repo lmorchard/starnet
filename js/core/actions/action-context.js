@@ -11,6 +11,7 @@ import { navigateTo, navigateAway } from "../navigation.js";
 import { cancelTraceCountdown } from "../alert.js";
 import { getAvailableActions } from "./node-actions.js";
 import { on, emitEvent, E } from "../events.js";
+import { A } from "../action-ids.js";
 import { pauseTimers, resumeTimers } from "../timers.js";
 
 /**
@@ -43,10 +44,10 @@ export function buildNodeClickHandler() {
     const s = getState();
     const node = s.nodes[nodeId];
     if (!node || node.visibility === "hidden") return;
-    const isDeselect = s.selectedNodeId === nodeId;
+    const isUntarget = s.selectedNodeId === nodeId;
     emitEvent("starnet:action", {
-      actionId: isDeselect ? "deselect" : "select",
-      ...(isDeselect ? {} : { nodeId }),
+      actionId: isUntarget ? A.UNTARGET : A.TARGET,
+      ...(isUntarget ? {} : { nodeId }),
     });
   };
 }
@@ -71,8 +72,8 @@ export function initActionDispatcher(ctx) {
     }
     if (!fromConsole) {
       // For exploit, log the card reference rather than the nodeId (matches console output)
-      const logStr = (actionId === "exploit" && (payload.cardIndex ?? payload.exploitId))
-        ? `exploit ${payload.cardIndex ?? payload.exploitId}`
+      const logStr = (actionId === A.XPLOIT && (payload.cardIndex ?? payload.exploitId))
+        ? `xploit ${payload.cardIndex ?? payload.exploitId}`
         : actionId + (nodeId ? ` ${nodeId}` : "");
       emitEvent(E.COMMAND_ISSUED, { cmd: logStr });
     }

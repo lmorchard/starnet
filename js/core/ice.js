@@ -11,6 +11,7 @@ import { setIceAttention, setIceDetectedAt, setIceDwellTimer, setIceActive, setL
 import { propagateAlertEvent, recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
+import { A } from "./action-ids.js";
 import { RNG, randomPick } from "./rng.js";
 
 // Called whenever ICE vacates a node for any reason: normal movement, eject, or reboot.
@@ -74,7 +75,7 @@ export function initIceHandlers() {
   // fraction to a noise tick count (10 milestones over duration) and compare
   // against the ICE grade threshold.
   on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, progress }) => {
-    if (action !== "exploit" || phase !== "progress") return;
+    if (action !== A.XPLOIT || phase !== "progress") return;
     const s = getState();
     if (!s.ice?.active || s.phase !== "playing") return;
     const noiseTick = Math.floor(progress * 10);

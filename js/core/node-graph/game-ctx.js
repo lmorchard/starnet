@@ -13,6 +13,7 @@
 
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
+import { A } from "../action-ids.js";
 import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
 import { addCash, setMissionComplete } from "../state/player.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
@@ -76,7 +77,7 @@ export function buildGameCtx(opts = {}) {
     // Probe, read, loot start/cancel now handled by action effects (set-attr)
     // in the trait-based action system. These stubs remain for backward compat.
     startProbe: (_nodeId) => { /* now handled by timed-action operator */ },
-    cancelProbe: () => { /* now handled by cancel-probe action effects */ },
+    cancelProbe: () => { /* now handled by abort action */ },
     startExploit: (nodeId, exploitId) => {
       // Exploit is special: needs exploitId from event payload to compute duration.
       // Set node attributes so the timed-action operator drives the lifecycle.
@@ -90,11 +91,11 @@ export function buildGameCtx(opts = {}) {
       if (ctx._graph) {
         ctx._graph.setNodeAttr(nodeId, "exploiting", true);
         ctx._graph.setNodeAttr(nodeId, "activeExploitId", exploitId);
-        ctx._graph.setNodeAttr(nodeId, "_ta_exploit_progress", 0);
-        ctx._graph.setNodeAttr(nodeId, "_ta_exploit_duration", durationTicks);
+        ctx._graph.setNodeAttr(nodeId, "_ta_xploit_progress", 0);
+        ctx._graph.setNodeAttr(nodeId, "_ta_xploit_duration", durationTicks);
       }
       // Emit start feedback immediately (operator skips start for pre-set durations)
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "exploit", phase: "start", progress: 0, durationTicks });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.XPLOIT, phase: "start", progress: 0, durationTicks });
       // Alert ICE immediately
       setLastDisturbedNode(nodeId);
     },
@@ -105,11 +106,29 @@ export function buildGameCtx(opts = {}) {
       if (!exploitingNode) return;
       if (ctx._graph) {
         ctx._graph.setNodeAttr(exploitingNode.id, "exploiting", false);
-        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_exploit_progress", 0);
-        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_exploit_duration", 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_xploit_progress", 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_xploit_duration", 0);
         ctx._graph.setNodeAttr(exploitingNode.id, "activeExploitId", null);
       }
-      emitEvent(E.ACTION_FEEDBACK, { nodeId: exploitingNode.id, action: "exploit", phase: "cancel", progress: 0 });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId: exploitingNode.id, action: A.XPLOIT, phase: "cancel", progress: 0 });
+    },
+    abortTimedAction: (nodeId) => {
+      // Unified abort — query the node's timed-action operators to find whichever
+      // one is active, then clear it generically. No hardcoded action list.
+      if (!ctx._graph) return;
+      const active = ctx._graph.getActiveTimedAction(nodeId);
+      if (!active) return;
+
+      // Exploit is special — has extra attributes (activeExploitId) beyond the
+      // standard activeAttr/progressAttr/durationAttr pattern.
+      if (active.action === A.XPLOIT) {
+        ctx.cancelExploit();
+        return;
+      }
+
+      ctx._graph.setNodeAttr(nodeId, active.activeAttr, false);
+      ctx._graph.setNodeAttr(nodeId, active.progressAttr, 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: active.action, phase: "cancel", progress: 0 });
     },
     startRead: (_nodeId) => { /* now handled by timed-action operator */ },
     cancelRead: () => { /* now handled by cancel-read action effects */ },
@@ -123,7 +142,7 @@ export function buildGameCtx(opts = {}) {
       const s = getState();
       const node = s.nodes[nodeId];
       if (!node) return;
-      emitEvent(E.ACTION_RESOLVED, { action: "reconfigure", nodeId, label: node.label });
+      emitEvent(E.ACTION_RESOLVED, { action: A.CORRUPT, nodeId, label: node.label });
     },
 
     startReboot: (nodeId) => {
@@ -181,7 +200,7 @@ export function buildGameCtx(opts = {}) {
         setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
       }
 
-      emitEvent(E.ACTION_RESOLVED, { action: "probe", nodeId, label: node.label });
+      emitEvent(E.ACTION_RESOLVED, { action: A.PROBE, nodeId, label: node.label });
       const newAlert = getState().nodes[nodeId]?.alertState;
       if (newAlert && newAlert !== prevAlert) {
         emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: newAlert });
@@ -202,7 +221,7 @@ export function buildGameCtx(opts = {}) {
       if (!node || node.read) return;
 
       setNodeRead(nodeId);
-      emitEvent(E.ACTION_RESOLVED, { action: "read", nodeId, label: node.label, detail: { macguffinCount: (node.macguffins ?? []).length } });
+      emitEvent(E.ACTION_RESOLVED, { action: A.DUMP, nodeId, label: node.label, detail: { macguffinCount: (node.macguffins ?? []).length } });
     },
 
     resolveLoot: (nodeId) => {
@@ -218,7 +237,7 @@ export function buildGameCtx(opts = {}) {
 
       setNodeLooted(nodeId);
       addCash(total);
-      emitEvent(E.ACTION_RESOLVED, { action: "loot", nodeId, label: node.label, detail: { items: items.length, total } });
+      emitEvent(E.ACTION_RESOLVED, { action: A.FETCH, nodeId, label: node.label, detail: { items: items.length, total } });
 
       if (s.mission && !s.mission.complete) {
         const gotMission = items.some((m) => m.id === s.mission.targetMacguffinId);
@@ -300,24 +319,24 @@ on(E.PLAYER_NAVIGATED, () => {
     if (attrs.probing) {
       graph.setNodeAttr(nodeId, "probing", false);
       graph.setNodeAttr(nodeId, "_ta_probe_progress", 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "probe", phase: "cancel", progress: 0 });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.PROBE, phase: "cancel", progress: 0 });
     }
     if (attrs.exploiting) {
       graph.setNodeAttr(nodeId, "exploiting", false);
-      graph.setNodeAttr(nodeId, "_ta_exploit_progress", 0);
-      graph.setNodeAttr(nodeId, "_ta_exploit_duration", 0);
+      graph.setNodeAttr(nodeId, "_ta_xploit_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_xploit_duration", 0);
       graph.setNodeAttr(nodeId, "activeExploitId", null);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "exploit", phase: "cancel", progress: 0 });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.XPLOIT, phase: "cancel", progress: 0 });
     }
     if (attrs.reading) {
       graph.setNodeAttr(nodeId, "reading", false);
       graph.setNodeAttr(nodeId, "_ta_read_progress", 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "read", phase: "cancel", progress: 0 });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.DUMP, phase: "cancel", progress: 0 });
     }
     if (attrs.looting) {
       graph.setNodeAttr(nodeId, "looting", false);
       graph.setNodeAttr(nodeId, "_ta_loot_progress", 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: "loot", phase: "cancel", progress: 0 });
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.FETCH, phase: "cancel", progress: 0 });
     }
   }
 });

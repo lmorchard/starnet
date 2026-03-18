@@ -33,6 +33,7 @@
 /** @typedef {import('../core/types.js').RunEndedPayload} RunEndedPayload */
 
 import { on, emitEvent, E } from "../core/events.js";
+import { A } from "../core/action-ids.js";
 import { initLog, addLogEntry as _addLogEntry, getRecentLog } from "../core/log.js";
 import { getState as _getState } from "../core/state.js";
 
@@ -74,23 +75,23 @@ export function initLogRenderer() {
     const label = s?.nodes[nodeId]?.label ?? nodeId;
     if (phase === "start") {
       const secs = Math.round((durationTicks ?? 0) / 10);
-      const prefixes = { probe: "PROBE", exploit: "EXPLOIT", read: "READ", loot: "LOOT" };
-      const verbs = { probe: "scanning", exploit: "executing", read: "extracting data", loot: "extracting" };
+      const prefixes = { probe: "PROBE", xploit: "EXPLOIT", dump: "DUMP", fetch: "FETCH" };
+      const verbs = { probe: "scanning", xploit: "executing", dump: "extracting data", fetch: "extracting" };
       const prefix = prefixes[action] ?? action.toUpperCase();
       const verb = verbs[action] ?? "running";
       add(`[${prefix}] ${label}: ${verb} (${secs}s)...`, "info");
     } else if (phase === "cancel") {
-      const msgs = { probe: "scan cancelled", exploit: "interrupted", read: "extraction cancelled", loot: "extraction cancelled" };
-      const prefix = action === "exploit" ? "EXPLOIT" : action.toUpperCase();
+      const msgs = { probe: "scan cancelled", xploit: "interrupted", dump: "extraction cancelled", fetch: "extraction cancelled" };
+      const prefix = action === A.XPLOIT ? "EXPLOIT" : action.toUpperCase();
       add(`[${prefix}] ${label}: ${msgs[action] ?? "cancelled"}.`, "info");
     }
   });
 
   // ── Action resolution log entries (via ACTION_RESOLVED) ──
   on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
-    if (action === "probe") {
+    if (action === A.PROBE) {
       add(`[NODE] ${label}: vulnerabilities scanned.`, "info");
-    } else if (action === "exploit") {
+    } else if (action === A.XPLOIT) {
       const d = detail ?? {};
       if (success) {
         add(`[EXPLOIT] ${label} — ${d.flavor}`, "success");
@@ -99,12 +100,12 @@ export function initLogRenderer() {
         add(`[EXPLOIT] ${label} — ${d.flavor}`, "error");
         add(`[EXPLOIT] Roll: ${d.roll} vs ${d.successChance}%${d.matchingVulns?.length > 0 ? " (vuln match)" : ""}`, "meta");
       }
-    } else if (action === "read") {
+    } else if (action === A.DUMP) {
       const mc = detail?.macguffinCount ?? 0;
       add(mc > 0 ? `[NODE] ${label}: ${mc} item(s) found.` : `[NODE] ${label}: nothing of value found.`, "info");
-    } else if (action === "loot") {
+    } else if (action === A.FETCH) {
       add(`[NODE] ${label}: looted ${detail?.items} item(s). +¥${(detail?.total ?? 0).toLocaleString()}`, "success");
-    } else if (action === "reconfigure") {
+    } else if (action === A.CORRUPT) {
       add(`[NODE] ${label}: event forwarding disabled.`, "success");
     } else if (action === "reboot-start") {
       add(`[NODE] ${label}: REBOOTING — offline temporarily.`, "info");

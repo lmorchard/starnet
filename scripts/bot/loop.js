@@ -5,6 +5,7 @@
 /** @typedef {import('./types.js').BotRunStats} BotRunStats */
 
 import { getState, emitEvent, on, off, E, tick } from "../lib/headless-engine.js";
+import { A } from "../../js/core/action-ids.js";
 import { perceive } from "./perception.js";
 import { score } from "./scoring.js";
 import { execute } from "./execute.js";
@@ -51,7 +52,7 @@ export function runLoop(strategies, opts = {}) {
 
       // If mission is complete, jack out
       if (world.mission.complete) {
-        emitEvent("starnet:action", { actionId: "jackout" });
+        emitEvent("starnet:action", { actionId: A.JACKOUT });
         break;
       }
 
@@ -61,7 +62,7 @@ export function runLoop(strategies, opts = {}) {
         // Nothing to do — jack out
         if (verbose) console.log("[BOT] No proposals — jacking out.");
         stats.failReason = "stuck";
-        emitEvent("starnet:action", { actionId: "jackout" });
+        emitEvent("starnet:action", { actionId: A.JACKOUT });
         break;
       }
 
@@ -70,7 +71,7 @@ export function runLoop(strategies, opts = {}) {
       }
 
       // Snapshot access level before execute for exploit tracking
-      const accessBefore = choice.action === "exploit" && choice.nodeId
+      const accessBefore = choice.action === A.XPLOIT && choice.nodeId
         ? getState().nodes[choice.nodeId]?.accessLevel
         : null;
 
@@ -92,7 +93,7 @@ export function runLoop(strategies, opts = {}) {
       }
 
       // Track failed exploits: if access level didn't change, mark this card+node as failed
-      if (choice.action === "exploit" && result.completed && choice.nodeId) {
+      if (choice.action === A.XPLOIT && result.completed && choice.nodeId) {
         const accessAfter = getState().nodes[choice.nodeId]?.accessLevel;
         const cardId = choice.payload?.exploitId;
         if (cardId && accessAfter === accessBefore) {
@@ -119,7 +120,7 @@ export function runLoop(strategies, opts = {}) {
 
     if (totalTicks >= tickBudget && getState().phase === "playing") {
       stats.failReason = "tick-cap";
-      emitEvent("starnet:action", { actionId: "jackout" });
+      emitEvent("starnet:action", { actionId: A.JACKOUT });
     }
   } finally {
     off(E.ICE_DETECTED, onDetected);

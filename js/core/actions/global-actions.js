@@ -12,10 +12,12 @@
 /** @typedef {import('../types.js').NodeState} NodeState */
 /** @typedef {import('../types.js').GameState} GameState */
 
+import { A } from "../action-ids.js";
+
 /** @type {readonly ActionDef[]} */
 export const GLOBAL_ACTIONS = Object.freeze([
   {
-    id: "jackout",
+    id: A.JACKOUT,
     label: "JACK OUT",
     available: (_node, state) => state.phase === "playing",
     desc: () => "Disconnect and end run.",
@@ -23,8 +25,8 @@ export const GLOBAL_ACTIONS = Object.freeze([
   },
 
   {
-    id: "select",
-    label: "SELECT",
+    id: A.TARGET,
+    label: "TARGET",
     available: (_node, state) =>
       Object.values(state.nodes).some(
         (n) =>
@@ -38,8 +40,8 @@ export const GLOBAL_ACTIONS = Object.freeze([
   },
 
   {
-    id: "deselect",
-    label: "DESELECT",
+    id: A.UNTARGET,
+    label: "UNTARGET",
     available: (_node, state) => state.selectedNodeId !== null,
     desc: () => "Clear selection.",
     execute: (_node, _state, ctx) => ctx.deselectNode(),

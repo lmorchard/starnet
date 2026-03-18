@@ -170,7 +170,7 @@ registerTrait("hackable", {
     },
     {
       name: "timed-action",
-      action: "exploit",
+      action: "xploit",
       activeAttr: "exploiting",
       // No durationTable — ctx.startExploit sets duration from card quality
       onComplete: [{ effect: "ctx-call", method: "resolveExploit", args: ["$nodeId"] }],
@@ -182,9 +182,8 @@ registerTrait("hackable", {
   ],
   actions: [
     ACTION_TEMPLATES.PROBE,
-    ACTION_TEMPLATES.CANCEL_PROBE,
+    ACTION_TEMPLATES.ABORT,
     ACTION_TEMPLATES.EXPLOIT,
-    ACTION_TEMPLATES.CANCEL_EXPLOIT,
   ],
 });
 
@@ -200,24 +199,22 @@ registerTrait("lootable", {
   operators: [
     {
       name: "timed-action",
-      action: "read",
+      action: "dump",
       activeAttr: "reading",
       durationTable: { S: 40, A: 35, B: 25, C: 15, D: 15, F: 8 },
       onComplete: [{ effect: "ctx-call", method: "resolveRead", args: ["$nodeId"] }],
     },
     {
       name: "timed-action",
-      action: "loot",
+      action: "fetch",
       activeAttr: "looting",
       durationTable: { S: 30, A: 25, B: 20, C: 12, D: 10, F: 6 },
       onComplete: [{ effect: "ctx-call", method: "resolveLoot", args: ["$nodeId"] }],
     },
   ],
   actions: [
-    ACTION_TEMPLATES.READ,
-    ACTION_TEMPLATES.CANCEL_READ,
-    ACTION_TEMPLATES.LOOT,
-    ACTION_TEMPLATES.CANCEL_LOOT,
+    ACTION_TEMPLATES.DUMP,
+    ACTION_TEMPLATES.FETCH,
   ],
 });
 
@@ -320,8 +317,8 @@ registerTrait("encrypted", {
   attributes: { encryptionKey: "default-key" },
   operators: [],
   actions: [{
-    id: "read",
-    label: "READ",
+    id: "dump",
+    label: "DUMP",
     desc: "Scan encrypted node contents (requires decryption key).",
     requires: [
       { type: "any-of", conditions: [

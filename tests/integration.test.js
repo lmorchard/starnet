@@ -289,7 +289,7 @@ describe("Alert flow: ids alert escalates global alert", () => {
 
 // ── Action availability ───────────────────────────────────────────────────────
 
-describe("Action availability: reconfigure on ids", () => {
+describe("Action availability: corrupt on ids", () => {
   before(() => {
     clearAll();
     initGame(() => buildAlertLAN());
@@ -301,7 +301,7 @@ describe("Action availability: reconfigure on ids", () => {
     graph.setNodeAttr("ids-1", "accessLevel", "compromised");
     graph.setNodeAttr("ids-1", "forwardingEnabled", true);
     const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
-    assert.ok(actionIds.includes("reconfigure"));
+    assert.ok(actionIds.includes("corrupt"));
   });
 
   it("not available when forwardingEnabled is false", () => {
@@ -310,7 +310,7 @@ describe("Action availability: reconfigure on ids", () => {
     graph.setNodeAttr("ids-1", "accessLevel", "compromised");
     graph.setNodeAttr("ids-1", "forwardingEnabled", false);
     const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
-    assert.ok(!actionIds.includes("reconfigure"));
+    assert.ok(!actionIds.includes("corrupt"));
   });
 
   it("not available when locked (even if forwarding enabled)", () => {
@@ -319,7 +319,7 @@ describe("Action availability: reconfigure on ids", () => {
     graph.setNodeAttr("ids-1", "accessLevel", "locked");
     graph.setNodeAttr("ids-1", "forwardingEnabled", true);
     const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
-    assert.ok(!actionIds.includes("reconfigure"));
+    assert.ok(!actionIds.includes("corrupt"));
   });
 
   it("available when owned and forwarding still enabled", () => {
@@ -328,7 +328,7 @@ describe("Action availability: reconfigure on ids", () => {
     graph.setNodeAttr("ids-1", "accessLevel", "owned");
     graph.setNodeAttr("ids-1", "forwardingEnabled", true);
     const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
-    assert.ok(actionIds.includes("reconfigure"));
+    assert.ok(actionIds.includes("corrupt"));
   });
 });
 
@@ -657,7 +657,7 @@ describe("WAN node", () => {
     const s = getState();
     const wan = s.nodes["wan"];
     const actions = getAvailableActions(wan, s);
-    const blocked = ["probe", "exploit", "read", "loot", "reboot"];
+    const blocked = ["probe", "xploit", "dump", "fetch", "reboot"];
     for (const id of blocked) {
       assert.ok(!actions.some((a) => a.id === id), `${id} should not be on WAN`);
     }
