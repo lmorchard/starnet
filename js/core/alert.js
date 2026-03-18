@@ -10,6 +10,7 @@ import { setNodeAlertState } from "./state/node.js";
 import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
 import { setIceDetectedAt, incrementIceDetectionCount } from "./state/ice.js";
 import { emitEvent, on, E } from "./events.js";
+import { A } from "./action-ids.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
 
 /** @type {GlobalAlertLevel[]} */
@@ -49,7 +50,7 @@ export function initAlertHandlers() {
   });
 
   on(E.ACTION_RESOLVED, ({ action }) => {
-    if (action === "reconfigure") recomputeGlobalAlert();
+    if (action === A.CORRUPT) recomputeGlobalAlert();
   });
 }
 

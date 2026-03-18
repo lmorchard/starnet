@@ -22,6 +22,7 @@ import { buildNetwork as buildCorporateFoothold } from "../data/networks/corpora
 import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { buildNetwork as buildGenerated } from "../data/networks/generated.js";
+import { A } from "../js/core/action-ids.js";
 import { addLogEntry } from "../js/core/log.js";
 import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
@@ -113,10 +114,10 @@ if (generatedArg) {
 
 if (!cmdStr) {
   console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] [--force-piece <id>] <command>");
-  console.error("Commands: reset  tick <n>  select <node>  deselect");
-  console.error("          probe [node]  exploit <node> <card>  read [node]");
-  console.error("          loot [node]  reconfigure [node]  jackout");
-  console.error("          eject  reboot [node]  cancel-trace");
+  console.error("Commands: reset  tick <n>  target <node>  untarget");
+  console.error("          probe [node]  xploit <node> <card>  dump [node]");
+  console.error("          fetch [node]  corrupt [node]  jackout");
+  console.error("          abort  eject  reboot [node]  cancel-trace");
   console.error("          status [summary|full|ice|hand|node|alert|mission]");
   console.error("          actions  log [n]  help  cheat ...");
   process.exit(1);
@@ -146,21 +147,21 @@ on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
   const label = s.nodes[nodeId]?.label ?? nodeId;
   if (phase === "start") {
     const secs = Math.round((durationTicks ?? 0) / 10);
-    out(`[${action.toUpperCase()}] ${label}: ${action === "exploit" ? "executing" : "running"} (${secs}s)...`);
+    out(`[${action.toUpperCase()}] ${label}: ${action === A.XPLOIT ? "executing" : "running"} (${secs}s)...`);
   } else if (phase === "cancel") {
     out(`[${action.toUpperCase()}] ${label}: cancelled.`);
   }
 });
 // Action resolutions
 on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
-  if (action === "probe") out(`[NODE] ${label}: vulnerabilities scanned.`);
-  else if (action === "exploit") {
+  if (action === A.PROBE) out(`[NODE] ${label}: vulnerabilities scanned.`);
+  else if (action === A.XPLOIT) {
     const d = detail ?? {};
     out(`[EXPLOIT] ${label} — ${d.exploitName}: ${success ? "SUCCESS" : "FAIL"} (roll ${d.roll} vs ${d.successChance}%)`);
   }
-  else if (action === "read") out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
-  else if (action === "loot") out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
-  else if (action === "reconfigure") out(`[NODE] ${label}: event forwarding disabled.`);
+  else if (action === A.DUMP) out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
+  else if (action === A.FETCH) out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
+  else if (action === A.CORRUPT) out(`[NODE] ${label}: event forwarding disabled.`);
   else if (action === "reboot-start") out(`[NODE] ${label}: rebooting.`);
   else if (action === "reboot-complete") out(`[NODE] ${label}: online.`);
 });

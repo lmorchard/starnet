@@ -40,7 +40,7 @@ scripts/bot/
   types.js          — JSDoc typedefs (WorldModel, ScoredAction, etc.)
   heuristics/
     explore.js      — probe unprobed nodes, exploit probed ones
-    loot.js         — read and loot owned nodes
+    loot.js         — dump and fetch owned nodes
     security.js     — subvert IDS, cancel trace
     traps.js        — disarm set-piece traps on owned nodes
     evasion.js      — avoid ICE, jack out under trace
@@ -59,7 +59,7 @@ Each main-loop iteration:
 2. **Score** — every strategy heuristic returns `ScoredAction[]` proposals. The
    scoring engine picks the highest by score magnitude.
 3. **Execute** — dispatch the winning action. Instant actions return immediately.
-   Timed actions (probe, exploit, read, loot) tick forward until resolution,
+   Timed actions (probe, xploit, dump, fetch) tick forward until resolution,
    ICE interruption, or tick budget.
 4. **Track** — record stats, update failed-exploit memory, ICE cooldowns, and
    completed-action sets.
@@ -82,8 +82,8 @@ ranges establish natural priority:
 | 800–900 | Emergency (ICE on node, cancel-trace) |
 | 100 | Trace jackout |
 | 55–70 | Security subversion, buy cards, disarm traps |
-| 42–58 | Normal exploration (select, probe, exploit) |
-| 15 | Deselect (reduce exposure) |
+| 42–58 | Normal exploration (target, probe, xploit) |
+| 15 | Untarget (reduce exposure) |
 | 10 | Stuck jackout |
 
 ### explore
@@ -96,13 +96,13 @@ security-monitor nodes.
 
 ### loot
 
-Read owned unread nodes (base 60), loot read nodes (base 62). Only proposes
-if the `read`/`loot` action is actually available (checks `availableActions`).
+Dump owned unread nodes (base 60), fetch dumped nodes (base 62). Only proposes
+if the `dump`/`fetch` action is actually available (checks `availableActions`).
 Mission target bonus (+20).
 
 ### security
 
-Reconfigure owned IDS (70). Probe/exploit IDS for subversion (72/71). Cancel
+Corrupt owned IDS (70). Probe/xploit IDS for subversion (72/71). Cancel
 active trace (900 — emergency). Green-alert penalty (-35) delays security
 work until alert pressure exists.
 
@@ -113,14 +113,14 @@ infinite retry (set-piece disarm actions lack post-conditions).
 
 ### evasion
 
-ICE on selected node → deselect (800). Trace active → jackout (100).
-Idle selection → deselect (15).
+ICE on targeted node → untarget (800). Trace active → jackout (100).
+Idle targeting → untarget (15).
 
 ### cards
 
-Buy matching card from darknet store (55) when no cards match exploitable
-nodes. Uses `buyFromStore()` directly (headless — no browser store UI).
-Jack out (10) when no usable cards remain and can't afford store.
+Buy matching card from darknet (55) when no cards match exploitable
+nodes. Uses `buyFromStore()` directly (headless — no browser darknet UI).
+Jack out (10) when no usable cards remain and can't afford darknet.
 
 ---
 
@@ -129,7 +129,7 @@ Jack out (10) when no usable cards remain and can't afford store.
 ### Interrupt During Timed Actions
 
 If ICE arrives at the player's node mid-action, `execute.js` cancels the
-action and deselects. The main loop adds the node to `iceCooldown` — a
+action and untargets. The main loop adds the node to `iceCooldown` — a
 one-cycle score penalty (-20) that encourages the bot to try a different
 node before retrying.
 
@@ -170,7 +170,7 @@ The bot drives the game clock via `tick()`. After dispatching a timed action,
 `tickUntilResolved()` advances in 1-tick increments until:
 
 - `ACTION_RESOLVED` fires for the target node/action
-- `ICE_MOVED` to the selected node (interrupted)
+- `ICE_MOVED` to the targeted node (interrupted)
 - `RUN_ENDED` fires
 - Per-action tick budget (500) exhausted
 
@@ -193,7 +193,7 @@ Each `runBot()` call returns a `BotRunStats` object:
 |-------|------|-------------|
 | `cardsUsed` | number | Total exploit attempts |
 | `cardsBurned` | number | Cards fully depleted or disclosed |
-| `storeVisits` | number | Darknet store purchases |
+| `storeVisits` | number | Darknet purchases |
 | `cashSpent` | number | Total darknet expenditure |
 | `cashRemaining` | number | Cash at jackout |
 

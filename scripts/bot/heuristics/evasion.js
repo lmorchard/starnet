@@ -4,6 +4,8 @@
 /** @typedef {import('../types.js').WorldModel} WorldModel */
 /** @typedef {import('../types.js').ScoredAction} ScoredAction */
 
+import { A } from "../../../js/core/action-ids.js";
+
 const STRATEGY = "evasion";
 const ICE_ON_NODE_CANCEL = 800;
 const TRACE_JACKOUT = 100;
@@ -20,7 +22,7 @@ export function evasionStrategy(world) {
   // If ICE is on the currently selected node, propose deselecting
   if (world.ice.isOnSelectedNode && world.player.selectedNodeId) {
     proposals.push({
-      action: "deselect",
+      action: A.UNTARGET,
       nodeId: null,
       score: ICE_ON_NODE_CANCEL,
       reason: "ICE on current node — hide",
@@ -32,7 +34,7 @@ export function evasionStrategy(world) {
   // with cancel-trace if the bot owns a security monitor)
   if (world.player.traceActive) {
     proposals.push({
-      action: "jackout",
+      action: A.JACKOUT,
       nodeId: null,
       score: TRACE_JACKOUT,
       reason: "trace active — jack out to save progress",
@@ -47,7 +49,7 @@ export function evasionStrategy(world) {
     const node = world.nodes.get(nodeId);
     if (node && !node.probing && !node.exploiting && !node.reading && !node.looting) {
       proposals.push({
-        action: "deselect",
+        action: A.UNTARGET,
         nodeId: null,
         score: POST_ACTION_DESELECT,
         reason: "deselect to reduce ICE exposure",

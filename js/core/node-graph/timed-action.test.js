@@ -106,10 +106,10 @@ describe("timed-action operator", () => {
       id: "n1",
       type: "test",
       attributes: { label: "n1", grade: "D", active: false, visibility: "accessible",
-        _ta_exploit_duration: 5 },
+        _ta_xploit_duration: 5 },
       operators: [{
         name: "timed-action",
-        action: "exploit",
+        action: "xploit",
         activeAttr: "active",
         // No durationTable — duration pre-set via attribute
         onComplete: [{ effect: "ctx-call", method: "resolveExploit", args: ["$nodeId"] }],
@@ -143,7 +143,7 @@ describe("timed-action operator", () => {
       attributes: { label: "n1", grade: "F", active: false, visibility: "accessible" },
       operators: [{
         name: "timed-action",
-        action: "exploit",
+        action: "xploit",
         activeAttr: "active",
         durationTable: { F: 10 },
         onComplete: [],

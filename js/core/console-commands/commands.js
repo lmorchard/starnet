@@ -12,6 +12,7 @@ import {
 import {
   resolveNode, resolveImplicitNode, resolveCard, dispatch, resolveWanAccess,
 } from "./resolvers.js";
+import { A } from "../action-ids.js";
 import {
   cmdStatusSummary, cmdStatusFull, cmdStatusIce, cmdStatusHand,
   cmdStatusNode, cmdStatusAlert, cmdStatusMission,
@@ -33,18 +34,18 @@ export const COMMANDS = [
 
   // ── Node-arg commands ──────────────────────────────────────────────────────
 
-  { verb: "select",
+  { verb: "target",
     complete: completeNodeArg,
     execute(args) {
-      if (args.length < 1) { addLogEntry("Usage: select <node>", "error"); return; }
+      if (args.length < 1) { addLogEntry("Usage: target <node>", "error"); return; }
       const node = resolveNode(args[0]);
       if (!node) return;
-      dispatch("select", { nodeId: node.id });
+      dispatch(A.TARGET, { nodeId: node.id });
     },
   },
 
-  { verb: "deselect",
-    execute() { dispatch("deselect"); },
+  { verb: "untarget",
+    execute() { dispatch(A.UNTARGET); },
   },
 
   // probe, read, loot, reconfigure, reboot, cancel-*, eject, cancel-trace,
@@ -53,7 +54,7 @@ export const COMMANDS = [
 
   // ── exploit ────────────────────────────────────────────────────────────────
 
-  { verb: "exploit",
+  { verb: "xploit",
     complete(args, partial, state) {
       if (args.length === 0 && state.selectedNodeId) return fromCards(state.player.hand, partial);
       if (args.length === 0) return fromNodes(state.nodes, partial);
@@ -67,15 +68,15 @@ export const COMMANDS = [
         if (!node) return;
         const card = resolveCard(args.slice(1).join(" "));
         if (!card) return;
-        dispatch("exploit", { nodeId: node.id, exploitId: card.id });
+        dispatch(A.XPLOIT, { nodeId: node.id, exploitId: card.id });
       } else if (args.length === 1 && s.selectedNodeId) {
         const node = resolveImplicitNode();
         if (!node) return;
         const card = resolveCard(args[0]);
         if (!card) return;
-        dispatch("exploit", { nodeId: node.id, exploitId: card.id });
+        dispatch(A.XPLOIT, { nodeId: node.id, exploitId: card.id });
       } else {
-        addLogEntry("Usage: exploit <node> <card>  (or select a node first: exploit <card>)", "error");
+        addLogEntry("Usage: xploit <node> <card>  (or select a node first: xploit <card>)", "error");
       }
     },
   },
@@ -85,7 +86,7 @@ export const COMMANDS = [
   // ── jackout ────────────────────────────────────────────────────────────────
 
   { verb: "jackout",
-    execute() { dispatch("jackout"); },
+    execute() { dispatch(A.JACKOUT); },
   },
 
   // ── actions ────────────────────────────────────────────────────────────────
@@ -98,11 +99,11 @@ export const COMMANDS = [
       const has = new Set(actions.map((a) => a.id));
       const lines = ["AVAILABLE ACTIONS", "─────────────────"];
 
-      if (has.has("jackout")) {
+      if (has.has(A.JACKOUT)) {
         lines.push("  jackout                  — disconnect and end run");
       }
 
-      if (has.has("select")) {
+      if (has.has(A.TARGET)) {
         const accessible = Object.values(s.nodes)
           .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
         const revealed = Object.values(s.nodes)
@@ -111,27 +112,25 @@ export const COMMANDS = [
         const parts = [];
         if (accessible.length > 0) parts.push(`accessible: ${accessible.map((n) => n.id).join(", ")}`);
         if (revealed.length > 0) parts.push(`traverse: ${revealed.map((n) => revAliases.get(n.id) ?? n.id).join(", ")}`);
-        lines.push(`  select <nodeId>          — ${parts.join("  |  ")}`);
+        lines.push(`  target <nodeId>          — ${parts.join("  |  ")}`);
       }
 
       if (sel) {
-        if (has.has("deselect")) lines.push("  deselect                 — clear selection");
+        if (has.has(A.UNTARGET)) lines.push("  untarget                 — clear selection");
 
-        if (has.has("cancel-probe")) {
-          lines.push(`  cancel-probe             — abort vulnerability scan`);
-        } else if (has.has("probe")) {
+        if (has.has(A.ABORT)) {
+          lines.push(`  abort                    — cancel current action`);
+        }
+        if (has.has(A.PROBE)) {
           lines.push(`  probe                    — scan ${sel.id} for vulnerabilities`);
         }
 
-        if (has.has("cancel-exploit")) {
-          const execCard = s.player.hand.find((c) => c.id === /** @type {any} */ (sel)?.activeExploitId);
-          lines.push(`  cancel-exploit           — abort ${execCard?.name ?? "exploit"} execution`);
-        } else if (has.has("exploit")) {
+        if (has.has(A.XPLOIT)) {
           const sorted = [...s.player.hand].sort(
             (a, b) => exploitSortKey(a, sel) - exploitSortKey(b, sel)
           );
           if (sorted.length > 0) {
-            lines.push(`  exploit <n>              — attack ${sel.id} (${sel.accessLevel}):`);
+            lines.push(`  xploit <n>               — attack ${sel.id} (${sel.accessLevel}):`);
             sorted.forEach((card, i) => {
               const knownVulnIds = sel.probed
                 ? sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id)
@@ -145,24 +144,21 @@ export const COMMANDS = [
           }
         }
 
-        if (has.has("cancel-read")) {
-          lines.push(`  cancel-read              — abort data extraction`);
-        } else if (has.has("read")) {
-          lines.push(`  read                     — scan ${sel.id} contents`);
+        if (has.has(A.DUMP)) {
+          lines.push(`  dump                     — scan ${sel.id} contents`);
         }
-        if (has.has("cancel-loot")) {
-          lines.push(`  cancel-loot              — abort extraction`);
-        } else if (has.has("loot")) {
-          lines.push(`  loot                     — extract items from ${sel.id}`);
+        if (has.has(A.FETCH)) {
+          lines.push(`  fetch                    — extract items from ${sel.id}`);
         }
-        if (has.has("eject"))  lines.push(`  eject                    — push ICE to adjacent node`);
-        if (has.has("reboot")) lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
+        if (has.has(A.EJECT))  lines.push(`  eject                    — push ICE to adjacent node`);
+        if (has.has(A.REBOOT)) lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
 
         // Type-specific actions (reconfigure, cancel-trace, access-darknet)
         // are now included in getAvailableActions via graph path
+        const standardIds = /** @type {string[]} */ ([A.PROBE, A.ABORT, A.XPLOIT, A.DUMP,
+            A.FETCH, A.EJECT, A.REBOOT, A.JACKOUT, A.TARGET, A.UNTARGET]);
         const typeSpecific = getAvailableActions(sel, s).filter(a =>
-          !["probe", "cancel-probe", "exploit", "cancel-exploit", "read", "cancel-read",
-            "loot", "cancel-loot", "eject", "reboot", "jackout", "select", "deselect"].includes(a.id)
+          !standardIds.includes(a.id)
         );
         typeSpecific.forEach((a) => {
           const desc = typeof a.desc === "function" ? a.desc(sel, s) : (a.desc || a.label);
@@ -170,7 +166,7 @@ export const COMMANDS = [
         });
 
         if (sel.type === "wan") {
-          lines.push(`  store                    — list darknet broker catalog`);
+          lines.push(`  darknet                  — list darknet broker catalog`);
           lines.push(`  buy <index>              — purchase exploit card from broker`);
         }
 
@@ -216,7 +212,7 @@ export const COMMANDS = [
 
   // ── store / buy ────────────────────────────────────────────────────────────
 
-  { verb: "store",
+  { verb: "darknet",
     execute() {
       if (!resolveWanAccess()) return;
       const s = getState();
@@ -273,24 +269,21 @@ export const COMMANDS = [
     execute() {
       const lines = [
         "[SYS] Available commands:",
-        "  select <node>             Set active node (by id or label prefix)",
-        "  deselect                  Clear node selection",
+        "  target <node>             Set active node (by id or label prefix)",
+        "  untarget                  Clear node selection",
         "  probe [node]              Reveal vulnerabilities. Raises local alert.",
-        "  exploit [node] <card>     Launch exploit. Card by index, id, or name prefix.",
-        "  read [node]               Scan node contents.",
-        "  loot [node]               Collect macguffins from owned node.",
-        "  reconfigure [node]        Disable IDS event forwarding.",
-        "  cancel-probe              Abort an in-progress probe scan.",
-        "  cancel-read               Abort an in-progress data extraction.",
-        "  cancel-loot               Abort an in-progress loot extraction.",
-        "  cancel-exploit            Abort an in-progress exploit execution (no card decay).",
+        "  xploit [node] <card>      Launch exploit. Card by index, id, or name prefix.",
+        "  dump [node]               Scan node contents.",
+        "  fetch [node]              Collect macguffins from owned node.",
+        "  corrupt [node]            Disable IDS event forwarding.",
+        "  abort                     Cancel the current timed action (probe, xploit, dump, fetch).",
         "  cancel-trace              Abort trace countdown (requires owned security-monitor selected).",
         "  eject                     Push ICE attention to adjacent node.",
         "  reboot [node]             Send ICE home. Node offline briefly.",
         "  jackout                   Disconnect and end run.",
         "  actions                   List all currently valid actions with context.",
         "  status [noun]             Game state. Nouns: summary ice hand node alert mission",
-        "  store                     List darknet broker catalog (requires WAN selected).",
+        "  darknet                   List darknet broker catalog (requires WAN selected).",
         "  buy <index>               Purchase exploit card from broker (requires WAN selected).",
         "  log [n]                   Replay last n log entries (default: 20).",
         "  help                      Show this listing.",

@@ -11,6 +11,7 @@
 /** @typedef {import('../core/types.js').NodeAccessedPayload} NodeAccessedPayload */
 
 import { on, emitEvent, E } from "../core/events.js";
+import { A } from "../core/action-ids.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep, relayout } from "./graph.js";
@@ -74,7 +75,7 @@ export function initVisualRenderer() {
   let activeLootNodeId = null;
 
   on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, progress }) => {
-    if (action === "probe") {
+    if (action === A.PROBE) {
       if (phase === "start") {
         activeProbeNodeId = nodeId;
       } else if (phase === "progress" && activeProbeNodeId) {
@@ -83,7 +84,7 @@ export function initVisualRenderer() {
         clearProbeSweep();
         activeProbeNodeId = null;
       }
-    } else if (action === "exploit") {
+    } else if (action === A.XPLOIT) {
       if (phase === "start") {
         activeExploitNodeId = nodeId;
         execStartTime = Date.now();
@@ -99,7 +100,7 @@ export function initVisualRenderer() {
         }
         activeExploitNodeId = null;
       }
-    } else if (action === "read") {
+    } else if (action === A.DUMP) {
       if (phase === "start") {
         activeReadNodeId = nodeId;
       } else if (phase === "progress" && activeReadNodeId) {
@@ -108,7 +109,7 @@ export function initVisualRenderer() {
         clearReadSectors();
         activeReadNodeId = null;
       }
-    } else if (action === "loot") {
+    } else if (action === A.FETCH) {
       if (phase === "start") {
         activeLootNodeId = nodeId;
       } else if (phase === "progress" && activeLootNodeId) {
@@ -122,7 +123,7 @@ export function initVisualRenderer() {
 
   // Exploit result flash — driven by ACTION_RESOLVED
   on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
-    if (action === "exploit") flashNode(nodeId, success ? "success" : "failure");
+    if (action === A.XPLOIT) flashNode(nodeId, success ? "success" : "failure");
   });
 
   on(E.RUN_STARTED, () => {
@@ -250,7 +251,7 @@ function syncContextMenu(node, state) {
   contextMenuNodeId = node.id;
 
   const actions = getAvailableActions(node, state)
-    .filter((a) => !a.noSidebar && a.id !== "select" && a.id !== "jackout" && a.id !== "deselect" && a.id !== "cancel-exploit");
+    .filter((a) => !a.noSidebar && a.id !== A.TARGET && a.id !== A.JACKOUT && a.id !== A.UNTARGET && a.id !== A.ABORT);
 
   if (!actions.length) {
     clearContextMenu();
@@ -459,7 +460,7 @@ function renderSidebarNode(sidebarNode, node, state) {
       <div class="nd-header">
         <span class="nd-type">[${node.type.toUpperCase()}]</span>
         <span class="nd-label">${node.label}</span>
-        <button class="deselect-btn" data-action="deselect">[ DESELECT ]</button>
+        <button class="untarget-btn" data-action="untarget">[ UNTARGET ]</button>
       </div>
       <div class="nd-row">
         <span class="nd-key">GRADE</span>
@@ -496,8 +497,8 @@ function renderSidebarNode(sidebarNode, node, state) {
 
   syncIceTimers(sidebarNode);
 
-  sidebarNode.querySelector(".deselect-btn")?.addEventListener("click", () => {
-    emitEvent("starnet:action", { actionId: "deselect" });
+  sidebarNode.querySelector(".untarget-btn")?.addEventListener("click", () => {
+    emitEvent("starnet:action", { actionId: A.UNTARGET });
   });
 }
 
@@ -560,14 +561,14 @@ function syncHandPane(state) {
       cardEl.addEventListener("click", () => {
         const exploitId = /** @type {HTMLElement} */ (cardEl).dataset.exploitId;
         const cardIndex = /** @type {HTMLElement} */ (cardEl).dataset.cardIndex;
-        emitEvent("starnet:action", { actionId: "exploit", nodeId: state.selectedNodeId, exploitId, cardIndex });
+        emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: state.selectedNodeId, exploitId, cardIndex });
       });
     });
   }
 
   if (executing) {
     el.querySelector(".ec-cancel-overlay")?.addEventListener("click", () => {
-      emitEvent("starnet:action", { actionId: "cancel-exploit" });
+      emitEvent("starnet:action", { actionId: A.ABORT });
     });
   }
 }

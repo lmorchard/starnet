@@ -37,8 +37,8 @@ export const idsRelayChain = {
       operators: [{ name: "relay", filter: "alert" }],
       actions: [
         {
-          id: "reconfigure",
-          label: "Reconfigure IDS",
+          id: "corrupt",
+          label: "Corrupt IDS",
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
         },
@@ -98,8 +98,8 @@ export const nthAlarm = {
       ],
       actions: [
         {
-          id: "recalibrate",
-          label: "Recalibrate Sensor",
+          id: "spoof",
+          label: "Spoof Sensor",
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [{ effect: "set-attr", attr: "counterEnabled", value: false }],
         },
@@ -706,8 +706,8 @@ export const encryptedVault = {
       operators: [],
       actions: [
         {
-          id: "loot",
-          label: "Loot Vault",
+          id: "fetch",
+          label: "Fetch Vault",
           requires: [
             { type: "node-attr", attr: "accessLevel", eq: "owned" },
             { type: "quality-gte", name: "decryption-key", value: 1 },
@@ -1092,8 +1092,8 @@ export const tamperDetect = {
       operators: [{ name: "relay", filter: "alert" }],
       actions: [
         {
-          id: "reconfigure",
-          label: "Reconfigure IDS",
+          id: "corrupt",
+          label: "Corrupt IDS",
           requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
           effects: [
             { effect: "set-attr", attr: "forwardingEnabled", value: false },
@@ -1403,7 +1403,7 @@ export const defensePlex = {
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [{
-        id: "reconfigure", label: "Reconfigure IDS",
+        id: "corrupt", label: "Corrupt IDS",
         requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
         effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
       }],
@@ -1414,7 +1414,7 @@ export const defensePlex = {
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [{
-        id: "reconfigure", label: "Reconfigure IDS",
+        id: "corrupt", label: "Corrupt IDS",
         requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
         effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
       }],
@@ -1454,7 +1454,7 @@ export const fortifiedGate = {
       attributes: { accessLevel: "locked", forwardingEnabled: true },
       operators: [{ name: "relay", filter: "alert" }],
       actions: [{
-        id: "reconfigure", label: "Reconfigure IDS",
+        id: "corrupt", label: "Corrupt IDS",
         requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
         effects: [{ effect: "set-attr", attr: "forwardingEnabled", value: false }],
       }],

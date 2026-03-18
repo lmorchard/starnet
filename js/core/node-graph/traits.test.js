@@ -209,9 +209,8 @@ describe("Built-in traits", () => {
     assert.deepStrictEqual(t.attributes.vulnerabilities, []);
     const actionIds = t.actions.map(a => a.id);
     assert.ok(actionIds.includes("probe"));
-    assert.ok(actionIds.includes("cancel-probe"));
-    assert.ok(actionIds.includes("exploit"));
-    assert.ok(actionIds.includes("cancel-exploit"));
+    assert.ok(actionIds.includes("abort"));
+    assert.ok(actionIds.includes("xploit"));
   });
 
   it("lootable provides read, looted, macguffins, actions", () => {
@@ -219,8 +218,8 @@ describe("Built-in traits", () => {
     assert.equal(t.attributes.read, false);
     assert.equal(t.attributes.looted, false);
     const actionIds = t.actions.map(a => a.id);
-    assert.ok(actionIds.includes("read"));
-    assert.ok(actionIds.includes("loot"));
+    assert.ok(actionIds.includes("dump"));
+    assert.ok(actionIds.includes("fetch"));
   });
 
   it("rebootable provides rebooting and eject/reboot actions", () => {
@@ -237,13 +236,13 @@ describe("Built-in traits", () => {
     assert.equal(t.operators[0].name, "relay");
   });
 
-  it("detectable provides forwardingEnabled, alert operators, reconfigure action", () => {
+  it("detectable provides forwardingEnabled, alert operators, corrupt action", () => {
     const t = getTrait("detectable");
     assert.equal(t.attributes.forwardingEnabled, true);
     assert.equal(t.attributes.alerted, false);
     assert.ok(t.operators.some(o => o.name === "relay" && o.filter === "alert"));
     assert.ok(t.operators.some(o => o.name === "flag"));
-    assert.ok(t.actions.some(a => a.id === "reconfigure"));
+    assert.ok(t.actions.some(a => a.id === "corrupt"));
   });
 
   it("security provides alert flag operator and cancel-trace action", () => {
@@ -300,9 +299,9 @@ describe("Built-in traits", () => {
     });
     const actionIds = result.actions.map(a => a.id);
     assert.ok(actionIds.includes("probe"));
-    assert.ok(actionIds.includes("exploit"));
-    assert.ok(actionIds.includes("read"));
-    assert.ok(actionIds.includes("loot"));
+    assert.ok(actionIds.includes("xploit"));
+    assert.ok(actionIds.includes("dump"));
+    assert.ok(actionIds.includes("fetch"));
     assert.ok(actionIds.includes("eject"));
     assert.ok(actionIds.includes("reboot"));
   });
@@ -329,7 +328,7 @@ describe("Built-in traits", () => {
   it("encrypted overrides read action with quality-from-attr condition", () => {
     const t = getTrait("encrypted");
     assert.equal(t.actions.length, 1);
-    assert.equal(t.actions[0].id, "read");
+    assert.equal(t.actions[0].id, "dump");
     const qualCond = t.actions[0].requires.find(r => r.type === "quality-from-attr");
     assert.ok(qualCond, "read action should have quality-from-attr condition");
   });
@@ -341,7 +340,7 @@ describe("Built-in traits", () => {
       attributes: { encryptionKey: "test-key" },
     });
     // encrypted's read should override lootable's read (last-wins by ID)
-    const readAction = result.actions.find(a => a.id === "read");
+    const readAction = result.actions.find(a => a.id === "dump");
     assert.ok(readAction);
     const qualCond = readAction.requires.find(r => r.type === "quality-from-attr");
     assert.ok(qualCond, "composed read should have quality gate");

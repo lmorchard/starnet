@@ -11,11 +11,13 @@
 /** @typedef {import('./types.js').ActionDef} ActionDef */
 /** @typedef {import('./types.js').NodeDef} NodeDef */
 
+import { A } from "../action-ids.js";
+
 // ── Shared action templates ──────────────────────────────────
 
 /** @type {ActionDef} */
 const PROBE_ACTION = {
-  id: "probe",
+  id: A.PROBE,
   label: "PROBE",
   desc: "Reveal vulnerabilities. Raises local alert.",
   requires: [
@@ -30,18 +32,27 @@ const PROBE_ACTION = {
   ],
 };
 
+// Abort: unified cancel for any timed action. The execution is generic
+// (queries timed-action operators at runtime), but the requires list must
+// enumerate activeAttr flags so the action system knows when to show it.
+// When adding a new timed action, add its activeAttr here.
 /** @type {ActionDef} */
-const CANCEL_PROBE_ACTION = {
-  id: "cancel-probe",
-  label: "CANCEL PROBE",
-  desc: "Abort vulnerability scan.",
+const ABORT_ACTION = {
+  id: A.ABORT,
+  label: "ABORT",
+  desc: "Cancel the current timed action.",
   requires: [
-    { type: "node-attr", attr: "probing", eq: true },
+    {
+      type: "any-of", conditions: [
+        { type: "node-attr", attr: "probing", eq: true },
+        { type: "node-attr", attr: "exploiting", eq: true },
+        { type: "node-attr", attr: "reading", eq: true },
+        { type: "node-attr", attr: "looting", eq: true },
+      ],
+    },
   ],
   effects: [
-    { effect: "set-attr", attr: "probing", value: false },
-    { effect: "set-attr", attr: "_ta_probe_progress", value: 0 },
-    { effect: "ctx-call", method: "emitActionFeedback", args: ["$nodeId", "probe", "cancel", "0"] },
+    { effect: "ctx-call", method: "abortTimedAction", args: ["$nodeId"] },
   ],
 };
 
@@ -53,8 +64,8 @@ const CANCEL_PROBE_ACTION = {
  * @type {ActionDef}
  */
 const EXPLOIT_ACTION = {
-  id: "exploit",
-  label: "EXPLOIT",
+  id: A.XPLOIT,
+  label: "XPLOIT",
   desc: "Attack with an exploit card.",
   noSidebar: true,
   requires: [
@@ -71,25 +82,12 @@ const EXPLOIT_ACTION = {
   ],
 };
 
-/** @type {ActionDef} */
-const CANCEL_EXPLOIT_ACTION = {
-  id: "cancel-exploit",
-  label: "CANCEL EXPLOIT",
-  desc: "Abort exploit execution.",
-  requires: [
-    { type: "node-attr", attr: "exploiting", eq: true },
-  ],
-  effects: [
-    { effect: "ctx-call", method: "cancelExploit", args: [] },
-  ],
-};
-// Note: cancel-exploit still uses ctx-call because it needs to find the exploiting
-// node and clear multiple attributes. The ctx method handles this.
+// cancel-xploit removed — absorbed into unified ABORT_ACTION
 
 /** @type {ActionDef} */
-const READ_ACTION = {
-  id: "read",
-  label: "READ",
+const DUMP_ACTION = {
+  id: A.DUMP,
+  label: "DUMP",
   desc: "Scan node contents for loot or connections.",
   requires: [
     {
@@ -108,25 +106,12 @@ const READ_ACTION = {
   ],
 };
 
-/** @type {ActionDef} */
-const CANCEL_READ_ACTION = {
-  id: "cancel-read",
-  label: "CANCEL READ",
-  desc: "Abort data extraction.",
-  requires: [
-    { type: "node-attr", attr: "reading", eq: true },
-  ],
-  effects: [
-    { effect: "set-attr", attr: "reading", value: false },
-    { effect: "set-attr", attr: "_ta_read_progress", value: 0 },
-    { effect: "ctx-call", method: "emitActionFeedback", args: ["$nodeId", "read", "cancel", "0"] },
-  ],
-};
+// cancel-dump removed — absorbed into unified ABORT_ACTION
 
 /** @type {ActionDef} */
-const LOOT_ACTION = {
-  id: "loot",
-  label: "LOOT",
+const FETCH_ACTION = {
+  id: A.FETCH,
+  label: "FETCH",
   desc: "Extract macguffins for cash.",
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
@@ -141,24 +126,11 @@ const LOOT_ACTION = {
   ],
 };
 
-/** @type {ActionDef} */
-const CANCEL_LOOT_ACTION = {
-  id: "cancel-loot",
-  label: "CANCEL LOOT",
-  desc: "Abort extraction.",
-  requires: [
-    { type: "node-attr", attr: "looting", eq: true },
-  ],
-  effects: [
-    { effect: "set-attr", attr: "looting", value: false },
-    { effect: "set-attr", attr: "_ta_loot_progress", value: 0 },
-    { effect: "ctx-call", method: "emitActionFeedback", args: ["$nodeId", "loot", "cancel", "0"] },
-  ],
-};
+// cancel-fetch removed — absorbed into unified ABORT_ACTION
 
 /** @type {ActionDef} */
 const EJECT_ACTION = {
-  id: "eject",
+  id: A.EJECT,
   label: "EJECT",
   desc: "Boot ICE attention to a random adjacent node.",
   requires: [
@@ -171,7 +143,7 @@ const EJECT_ACTION = {
 
 /** @type {ActionDef} */
 const REBOOT_ACTION = {
-  id: "reboot",
+  id: A.REBOOT,
   label: "REBOOT",
   desc: "Force ICE home and take node offline 1-3s.",
   requires: [
@@ -186,8 +158,8 @@ const REBOOT_ACTION = {
 
 /** @type {ActionDef} */
 const RECONFIGURE_ACTION = {
-  id: "reconfigure",
-  label: "RECONFIGURE",
+  id: A.CORRUPT,
+  label: "CORRUPT",
   desc: "Disable event forwarding to security monitor.",
   requires: [
     {
@@ -206,7 +178,7 @@ const RECONFIGURE_ACTION = {
 
 /** @type {ActionDef} */
 const CANCEL_TRACE_ACTION = {
-  id: "cancel-trace",
+  id: A.CANCEL_TRACE,
   label: "CANCEL TRACE",
   desc: "Abort trace countdown.",
   requires: [
@@ -219,7 +191,7 @@ const CANCEL_TRACE_ACTION = {
 
 /** @type {ActionDef} */
 const ACCESS_DARKNET_ACTION = {
-  id: "access-darknet",
+  id: A.ACCESS_DARKNET,
   label: "ACCESS DARKNET",
   desc: "Access the darknet broker to purchase exploit cards.",
   requires: [],
@@ -405,13 +377,10 @@ export function createWAN(id, config = {}) {
 
 export const ACTION_TEMPLATES = {
   PROBE: PROBE_ACTION,
-  CANCEL_PROBE: CANCEL_PROBE_ACTION,
+  ABORT: ABORT_ACTION,
   EXPLOIT: EXPLOIT_ACTION,
-  CANCEL_EXPLOIT: CANCEL_EXPLOIT_ACTION,
-  READ: READ_ACTION,
-  CANCEL_READ: CANCEL_READ_ACTION,
-  LOOT: LOOT_ACTION,
-  CANCEL_LOOT: CANCEL_LOOT_ACTION,
+  DUMP: DUMP_ACTION,
+  FETCH: FETCH_ACTION,
   EJECT: EJECT_ACTION,
   REBOOT: REBOOT_ACTION,
   RECONFIGURE: RECONFIGURE_ACTION,

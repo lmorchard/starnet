@@ -7,15 +7,16 @@
 /** @typedef {import('../types.js').WorldModel} WorldModel */
 /** @typedef {import('../types.js').ScoredAction} ScoredAction */
 
+import { A } from "../../../js/core/action-ids.js";
+
 const STRATEGY = "puzzle";
 const BASE_PUZZLE = 60;
 
 /** Actions the bot already handles via other heuristics */
 const KNOWN_ACTIONS = new Set([
-  "probe", "exploit", "read", "loot", "reboot",
-  "select", "deselect", "jackout", "reconfigure", "cancel-trace",
-  "cancel-probe", "cancel-exploit", "cancel-read", "cancel-loot",
-  "eject", "access-darknet",
+  A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT,
+  A.TARGET, A.UNTARGET, A.JACKOUT, A.CORRUPT, A.CANCEL_TRACE,
+  A.ABORT, A.EJECT, A.ACCESS_DARKNET,
 ]);
 
 /** Track "nodeId:actionId" pairs we've already proposed to avoid loops */

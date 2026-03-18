@@ -10,7 +10,7 @@
 // Pattern:
 //   actions(() => getCommand("probe").execute(["gateway"]))
 //     → captured starnet:action payloads
-//   logs(() => getCommand("select").execute([]))
+//   logs(() => getCommand("target").execute([]))
 //     → captured E.LOG_ENTRY payloads
 
 import { describe, it, beforeEach } from "node:test";
@@ -54,9 +54,9 @@ beforeEach(() => {
 
 describe("registry", () => {
   it("getCommand returns a CommandDef with execute for a known verb", () => {
-    const cmd = getCommand("exploit");
+    const cmd = getCommand("xploit");
     assert.ok(cmd, "expected a CommandDef");
-    assert.equal(cmd.verb, "exploit");
+    assert.equal(cmd.verb, "xploit");
     assert.equal(typeof cmd.execute, "function");
   });
 
@@ -74,21 +74,21 @@ describe("registry", () => {
   });
 
   it("registerCommand override is reflected in getCommand immediately", () => {
-    const orig = getCommand("deselect");
-    const stub = { verb: "deselect", execute() {} };
+    const orig = getCommand("untarget");
+    const stub = { verb: "untarget", execute() {} };
     registerCommand(stub);
-    assert.strictEqual(getCommand("deselect"), stub);
+    assert.strictEqual(getCommand("untarget"), stub);
     registerCommand(orig); // restore
   });
 });
 
-// ── select ────────────────────────────────────────────────────────────────────
+// ── target ────────────────────────────────────────────────────────────────────
 
-describe("select", () => {
-  it("dispatches select with the correct nodeId", () => {
-    const evts = actions(() => getCommand("select").execute(["gateway"]));
+describe("target", () => {
+  it("dispatches target with the correct nodeId", () => {
+    const evts = actions(() => getCommand("target").execute(["gateway"]));
     assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "select");
+    assert.equal(evts[0].actionId, "target");
     assert.equal(evts[0].nodeId, "gateway");
     assert.equal(evts[0].fromConsole, true);
   });
@@ -96,14 +96,14 @@ describe("select", () => {
   it("resolves node by label prefix (case-insensitive)", () => {
     // Find whatever the gateway's label starts with
     const label = getState().nodes["gateway"].label;
-    const evts = actions(() => getCommand("select").execute([label.slice(0, 4)]));
+    const evts = actions(() => getCommand("target").execute([label.slice(0, 4)]));
     assert.equal(evts.length, 1);
     assert.equal(evts[0].nodeId, "gateway");
   });
 
   it("logs error and does not dispatch when no args given", () => {
-    const evts = actions(() => logs(() => getCommand("select").execute([])));
-    const ls = logs(() => getCommand("select").execute([]));
+    const evts = actions(() => logs(() => getCommand("target").execute([])));
+    const ls = logs(() => getCommand("target").execute([]));
     assert.ok(ls.some((l) => l.type === "error"), "expected an error log entry");
     assert.equal(evts.length, 0);
   });
@@ -111,20 +111,20 @@ describe("select", () => {
   it("logs error and does not dispatch for an unknown node", () => {
     let evts;
     const ls = logs(() => {
-      evts = actions(() => getCommand("select").execute(["no-such-node"]));
+      evts = actions(() => getCommand("target").execute(["no-such-node"]));
     });
     assert.ok(ls.some((l) => l.type === "error" && l.text.includes("no-such-node")));
     assert.equal(evts.length, 0);
   });
 });
 
-// ── deselect ──────────────────────────────────────────────────────────────────
+// ── untarget ──────────────────────────────────────────────────────────────────
 
-describe("deselect", () => {
-  it("dispatches deselect", () => {
-    const evts = actions(() => getCommand("deselect").execute([]));
+describe("untarget", () => {
+  it("dispatches untarget", () => {
+    const evts = actions(() => getCommand("untarget").execute([]));
     assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "deselect");
+    assert.equal(evts[0].actionId, "untarget");
   });
 });
 
@@ -133,7 +133,7 @@ describe("deselect", () => {
 
 // ── exploit ───────────────────────────────────────────────────────────────────
 
-describe("exploit", () => {
+describe("xploit", () => {
   it("dispatches exploit in implicit form: selected node + card by 1-based index", () => {
     navigateTo("gateway");
     const card = generateExploit();
@@ -145,9 +145,9 @@ describe("exploit", () => {
       (a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode)
     );
     const idx = String(sorted.findIndex((c) => c.id === card.id) + 1);
-    const evts = actions(() => getCommand("exploit").execute([idx]));
+    const evts = actions(() => getCommand("xploit").execute([idx]));
     assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "exploit");
+    assert.equal(evts[0].actionId, "xploit");
     assert.equal(evts[0].nodeId, "gateway");
     assert.equal(evts[0].exploitId, card.id);
   });
@@ -156,7 +156,7 @@ describe("exploit", () => {
     navigateTo("gateway");
     const card = generateExploit();
     addCardToHand(card);
-    const evts = actions(() => getCommand("exploit").execute([card.id]));
+    const evts = actions(() => getCommand("xploit").execute([card.id]));
     assert.equal(evts.length, 1);
     assert.equal(evts[0].exploitId, card.id);
   });
@@ -164,21 +164,21 @@ describe("exploit", () => {
   it("dispatches exploit in explicit form: node id + card id", () => {
     const card = generateExploit();
     addCardToHand(card);
-    const evts = actions(() => getCommand("exploit").execute(["gateway", card.id]));
+    const evts = actions(() => getCommand("xploit").execute(["gateway", card.id]));
     assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "exploit");
+    assert.equal(evts[0].actionId, "xploit");
     assert.equal(evts[0].nodeId, "gateway");
     assert.equal(evts[0].exploitId, card.id);
   });
 
   it("logs usage error when single arg given with no node selected", () => {
-    const ls = logs(() => getCommand("exploit").execute(["some-card"]));
+    const ls = logs(() => getCommand("xploit").execute(["some-card"]));
     assert.ok(ls.some((l) => l.type === "error" && l.text.includes("Usage")));
   });
 
   it("logs error for an unknown card", () => {
     navigateTo("gateway");
-    const ls = logs(() => getCommand("exploit").execute(["no-such-card"]));
+    const ls = logs(() => getCommand("xploit").execute(["no-such-card"]));
     assert.ok(ls.some((l) => l.type === "error"));
   });
 });
@@ -258,7 +258,7 @@ describe("help", () => {
   it("produces a listing that includes key verbs", () => {
     const ls = logs(() => getCommand("help").execute([]));
     const text = ls.map((l) => l.text).join("\n");
-    for (const verb of ["select", "probe", "exploit", "jackout", "status", "cheat"]) {
+    for (const verb of ["target", "probe", "xploit", "jackout", "status", "cheat"]) {
       assert.ok(text.includes(verb), `expected help to mention "${verb}"`);
     }
   });
@@ -266,9 +266,9 @@ describe("help", () => {
 
 // ── store / buy (WAN guard) ───────────────────────────────────────────────────
 
-describe("store / buy — WAN access guard", () => {
-  it("store logs error when no WAN node is selected", () => {
-    const ls = logs(() => getCommand("store").execute([]));
+describe("darknet / buy — WAN access guard", () => {
+  it("darknet logs error when no WAN node is selected", () => {
+    const ls = logs(() => getCommand("darknet").execute([]));
     assert.ok(ls.some((l) => l.type === "error"));
   });
 
@@ -277,11 +277,11 @@ describe("store / buy — WAN access guard", () => {
     assert.ok(ls.some((l) => l.type === "error"));
   });
 
-  it("store produces catalog output when WAN node is selected", () => {
+  it("darknet produces catalog output when WAN node is selected", () => {
     const wanId = Object.values(getState().nodes).find((n) => n.type === "wan")?.id;
     if (!wanId) return; // skip if no WAN in network
     navigateTo(wanId);
-    const ls = logs(() => getCommand("store").execute([]));
+    const ls = logs(() => getCommand("darknet").execute([]));
     assert.ok(ls.some((l) => l.text.includes("DARKNET BROKER")));
   });
 });

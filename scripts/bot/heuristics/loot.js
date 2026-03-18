@@ -4,6 +4,8 @@
 /** @typedef {import('../types.js').WorldModel} WorldModel */
 /** @typedef {import('../types.js').ScoredAction} ScoredAction */
 
+import { A } from "../../../js/core/action-ids.js";
+
 const STRATEGY = "loot";
 const BASE_READ = 60;
 const BASE_LOOT = 62;
@@ -24,8 +26,8 @@ export function lootStrategy(world) {
 
     // Only propose read/loot if the action is actually available on this node type
     const actions = world.availableActions.get(nodeId) ?? [];
-    const canRead = actions.some(a => a.id === "read");
-    const canLoot = actions.some(a => a.id === "loot");
+    const canRead = actions.some(a => a.id === A.DUMP);
+    const canLoot = actions.some(a => a.id === A.FETCH);
 
     const distance = pathDistance(world, nodeId);
     const hasMissionTarget = world.mission.targetNodeId === nodeId;
@@ -34,7 +36,7 @@ export function lootStrategy(world) {
     if (!node.read && canRead) {
       // Needs reading first
       proposals.push({
-        action: "read",
+        action: A.DUMP,
         nodeId,
         score: BASE_READ + missionBonus - (distance * DISTANCE_PENALTY),
         reason: `read owned node${hasMissionTarget ? " (MISSION TARGET)" : ""}`,
@@ -43,7 +45,7 @@ export function lootStrategy(world) {
     } else if (!node.looted && node.macguffins?.length > 0 && canLoot) {
       // Read but not looted
       proposals.push({
-        action: "loot",
+        action: A.FETCH,
         nodeId,
         score: BASE_LOOT + missionBonus - (distance * DISTANCE_PENALTY),
         reason: `loot ${node.macguffins.length} item(s)${hasMissionTarget ? " (MISSION TARGET)" : ""}`,

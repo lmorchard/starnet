@@ -44,10 +44,10 @@ And when they find you, the clock starts.
 Unknown nodes appear as `???`. ICE appears as a red diamond when it moves onto a node
 you control.
 
-**Node Info Panel** — Details for your selected node: type, grade, access level, alert
+**Node Info Panel** — Details for your targeted node: type, grade, access level, alert
 state, vulnerabilities (after probing), and available actions.
 
-**Exploit Hand** — Your five exploit cards. When a node is selected, matching cards
+**Exploit Hand** — Your five exploit cards. When a node is targeted, matching cards
 highlight in cyan. Click a card or type its number to use it.
 
 **Log** — The full event record of your run. Every system event, every exploit roll,
@@ -103,9 +103,9 @@ LOCKED  →  COMPROMISED  →  OWNED
 **Locked** — No access. You can probe it to reveal vulnerabilities.
 
 **Compromised** — Partial access. You can read contents and attempt to escalate.
-An IDS at this level can be reconfigured to stop forwarding alerts.
+An IDS at this level can be corrupted to stop forwarding alerts.
 
-**Owned** — Full control. You can loot macguffins, reboot the node, or eject ICE.
+**Owned** — Full control. You can fetch macguffins, reboot the node, or eject ICE.
 
 ---
 
@@ -113,8 +113,8 @@ An IDS at this level can be reconfigured to stop forwarding alerts.
 
 ### 1. Select a Node
 
-Click a node on the graph or type `select <node-id>`. Only nodes you have access to
-are selectable. Unknown `???` nodes appear on the graph when you exploit a neighboring
+Click a node on the graph or type `target <node-id>`. Only nodes you have access to
+are targetable. Unknown `???` nodes appear on the graph when you exploit a neighboring
 node — click one to connect to it and begin working.
 
 ### 2. Probe
@@ -125,7 +125,7 @@ node — click one to connect to it and begin working.
 
 Scanning a node reveals its **vulnerabilities** — the specific weaknesses in its software
 you can exploit. Probing takes time — higher-grade nodes take longer to scan. A clockwise
-sweep animation shows progress. You can cancel a scan in progress with `cancel-probe`,
+sweep animation shows progress. You can cancel a scan in progress with `abort`,
 and navigating away from the node cancels it automatically.
 
 For most node types, probing also reveals **neighboring connections** — you'll see new
@@ -142,7 +142,7 @@ an IDS, that alert will propagate.
 Click an exploit card from your hand, or type:
 
 ```
-> exploit <card-number>
+> xploit <card-number>
 ```
 
 There is no sidebar button for exploiting — the hand strip is the interface. Each card targets one or more vulnerability types.
@@ -155,29 +155,29 @@ If a card matches a known vulnerability on the selected node, your odds improve 
 - Success: node access level rises (locked → compromised, compromised → owned)
 - Failure: local alert rises; IDS nodes forward the alert event upstream
 
-### 4. Read
+### 4. Dump
 
 ```
-> read
+> dump
 ```
 
-On a compromised or owned node, `read` extracts data from the node's filesystem —
+On a compromised or owned node, `dump` extracts data from the node's filesystem —
 data packages, files, anything of value. This takes time, scaled by node grade.
 A random pie-sector animation fills the node as data is extracted. You can cancel
-with `cancel-read`, and navigating away cancels automatically.
+with `abort`, and navigating away cancels automatically.
 
 Once complete, you'll see what macguffins are present and whether your mission
 target is here.
 
-### 5. Loot
+### 5. Fetch
 
 ```
-> loot
+> fetch
 ```
 
-On an owned node with contents, `loot` begins extracting all macguffins. This takes
+On an owned node with contents, `fetch` begins extracting all macguffins. This takes
 time, scaled by node grade. Concentric rings ripple outward from the node as data
-is siphoned. You can cancel with `cancel-loot`, and navigating away cancels
+is siphoned. You can cancel with `abort`, and navigating away cancels
 automatically. Once complete, all items are credited to your wallet. Your mission
 target, if found, is flagged as collected.
 
@@ -214,12 +214,12 @@ base success chances, especially on unprobed or high-grade nodes.
   rendering the card useless for further escalation attempts. Disclosed cards stay in your hand
   but cannot be played.
 
-When a node is selected, your hand re-sorts: matching cards first, then usable cards,
+When a node is targeted, your hand re-sorts: matching cards first, then usable cards,
 then worn, then disclosed. Cards that match the selected node's known vulnerabilities
 highlight in cyan.
 
 The numbers shown next to cards in `status hand` are the numbers to use with
-`exploit <n>` — the sort order changes with your selection, so always check
+`xploit <n>` — the sort order changes with your selection, so always check
 `status hand` to confirm which card is at which position.
 
 ---
@@ -236,10 +236,10 @@ sidebar). **The LAN pauses while you shop** — ICE stops moving, timers freeze.
 can browse without the clock running.
 
 ```
-> select wan
-> store           # list available cards and prices
+> target wan
+> darknet         # list available cards and prices
 > buy <index>     # purchase the card at that position
-> deselect        # or select another node to resume
+> untarget        # or target another node to resume
 ```
 
 ### When to Use It
@@ -302,10 +302,10 @@ To stop it: **jack out** before zero, or **own the security monitor** and use th
 
 ### Subverting the IDS
 
-If you can compromise and then **reconfigure** an IDS node:
+If you can compromise and then **corrupt** an IDS node:
 
 ```
-> reconfigure
+> corrupt
 ```
 
 Event forwarding from that IDS to its connected security monitor is severed. Subsequent
@@ -345,20 +345,20 @@ When your deck connects to a LAN, it begins in **passive mode** — monitoring n
 traffic and signals without announcing itself. In this state you are effectively a
 ghost: observing, not present. ICE cannot detect you.
 
-**Selecting a node** shifts you into **active mode**. Your deck is now actively coupled
+**Targeting a node** shifts you into **active mode**. Your deck is now actively coupled
 to that node — maintaining a live connection, probing its service stack. This is when
 you become visible. ICE on that node can sense your presence and the detection clock
-can start. The reticle around a selected node represents this active coupling.
+can start. The reticle around a targeted node represents this active coupling.
 
-**Deselecting** returns you to passive mode. Your signal drops to background noise.
+**Untargeting** returns you to passive mode. Your signal drops to background noise.
 Unless a trace is already running, you become undetectable again.
 
-The implication: **staying selected on a node costs you exposure.** Do your work,
+The implication: **staying targeted on a node costs you exposure.** Do your work,
 then pull back.
 
 ### Detection
 
-If ICE **dwells on your currently selected node** long enough, a detection countdown begins.
+If ICE **dwells on your currently targeted node** long enough, a detection countdown begins.
 The sidebar shows the timer: `⚠ ICE DETECTION: Xs`. When it hits zero, ICE locks your signal
 and the global alert escalates by one level.
 
@@ -371,18 +371,18 @@ detections before the trace countdown begins depends on ICE grade:
 | B, C  | 2                   | First detection raises alert; second starts the clock|
 | D, F  | 3                   | Slow to commit — three strikes before trace          |
 
-Each visit by ICE to your selected node is a fresh detection opportunity. If ICE leaves
+Each visit by ICE to your targeted node is a fresh detection opportunity. If ICE leaves
 your node and returns, the dwell timer resets and another detection cycle begins.
 
 **Counters:**
 
-- **Deselect** the node or select a different one — drops back to passive, cancels the dwell timer
+- **Untarget** the node or target a different one — drops back to passive, cancels the dwell timer
 - **Eject** (owned nodes) — boots ICE to a random adjacent node: `> eject`
 - **Reboot** (owned nodes) — forces ICE back to its resident node and takes your node
   offline briefly: `> reboot`
 
-ICE on a node you've deselected continues its movement pattern but cannot detect you
-unless you select that node again.
+ICE on a node you've untargeted continues its movement pattern but cannot detect you
+unless you target that node again.
 
 ---
 
@@ -391,7 +391,7 @@ unless you select that node again.
 Each run has an optional mission: retrieve a specific **macguffin** from somewhere in the
 network. The mission target is named in the sidebar at the start of the run.
 
-You won't know which node holds the target until you `read` it. Once you loot the mission
+You won't know which node holds the target until you `dump` it. Once you fetch the mission
 target, the sidebar marks the mission complete. Mission completion is tracked separately
 from your cash score.
 
@@ -403,16 +403,14 @@ Actions depend on the selected node's type and access level:
 
 | Action            | Available when...                              | Effect |
 |-------------------|------------------------------------------------|--------|
-| `access-darknet`  | WAN node is selected                           | Opens the darknet broker store; pauses the LAN while shopping |
+| `access-darknet`  | WAN node is targeted                           | Opens the darknet broker store; pauses the LAN while shopping |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
-| `cancel-probe`    | Probe scan in progress on selected node        | Aborts the probe scan |
-| `exploit <n>`  | Node is locked/compromised + probed — use hand card by clicking it or typing `exploit <n>` | Attempt to raise access level |
-| `cancel-exploit`  | Exploit executing on selected node             | Aborts the exploit (no card decay) |
-| `read`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
-| `cancel-read`  | Read scan in progress on selected node         | Aborts the data extraction |
-| `loot`         | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
-| `cancel-loot`  | Loot extraction in progress on selected node   | Aborts the extraction |
-| `reconfigure`  | IDS node is compromised or owned               | Severs event forwarding to security monitor |
+| `abort`           | Timed action in progress on targeted node      | Aborts the current action (probe, xploit, dump, or fetch) |
+| `xploit <n>`  | Node is locked/compromised + probed — use hand card by clicking it or typing `xploit <n>` | Attempt to raise access level |
+| `dump`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
+| `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
+| `corrupt`      | IDS node is compromised or owned               | Severs event forwarding to security monitor |
+| `spoof`        | Security-monitor node, compromised or owned    | Recalibrates security monitor |
 | `eject`        | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
 | `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown |
@@ -425,24 +423,22 @@ Actions depend on the selected node's type and access level:
 The console accepts the following commands. Tab-complete works on node IDs.
 
 ```
-select <node>          Select a node. Alias: s
-deselect               Deselect current node.
-probe [node]           Probe selected or specified node.
-cancel-probe           Abort an in-progress probe scan.
-exploit <#|name>       Use exploit card by number or name on selected node.
-cancel-exploit         Abort an in-progress exploit execution (no card decay).
-read [node]            Read contents of selected/specified node.
-cancel-read            Abort an in-progress data extraction.
-loot [node]            Extract macguffins from owned node.
-cancel-loot            Abort an in-progress loot extraction.
-reconfigure [node]     Disable IDS event forwarding.
+target <node>          Target a node. Alias: t
+untarget               Untarget current node.
+probe [node]           Probe targeted or specified node.
+abort                  Abort any in-progress timed action on targeted node.
+xploit <#|name>        Use exploit card by number or name on targeted node.
+dump [node]            Dump contents of targeted/specified node.
+fetch [node]           Extract macguffins from owned node.
+corrupt [node]         Disable IDS event forwarding.
+spoof [node]           Recalibrate security monitor.
 eject                  Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
 cancel-trace           Abort trace (requires owned security-monitor).
 jackout                End run.
 
-store                  List darknet broker catalog (requires WAN selected).
-buy <index>            Purchase exploit card from broker (requires WAN selected).
+darknet                List darknet broker catalog (requires WAN targeted).
+buy <index>            Purchase exploit card from broker (requires WAN targeted).
 
 status                 Summary status (alias: status summary)
 status full            Complete state dump
@@ -471,7 +467,7 @@ reveals more of the network than hammering on a hardened chokepoint.
 
 **Watch the IDS chain.** Before you start hammering on nodes deep in the network,
 find the IDS nodes and figure out which security monitor they feed. If you can
-compromise and reconfigure the IDS first, you can work quietly behind it.
+compromise and corrupt the IDS first, you can work quietly behind it.
 
 **ICE is predictable once you understand its grade.** A grade-C ICE is drawn to
 disturbances — it will come to where the action is. If you're making noise in one

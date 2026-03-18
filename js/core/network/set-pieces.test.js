@@ -183,36 +183,36 @@ describe("ids-relay-chain: alert forwarding and subversion", () => {
     assert.deepEqual(ctx.calls.setGlobalAlert[0], ["yellow"]);
   });
 
-  it("reconfigure action requires owned", () => {
+  it("corrupt action requires owned", () => {
     const ctx = mockCtx();
     const inst = instantiate(idsRelayChain, "east");
     const graph = new NodeGraph(inst, ctx);
 
     // Not owned — action unavailable
     const available = graph.getAvailableActions("east/ids");
-    assert.ok(!available.map((a) => a.id).includes("reconfigure"));
+    assert.ok(!available.map((a) => a.id).includes("corrupt"));
   });
 
-  it("reconfigure action available when owned; sets forwardingEnabled:false", () => {
+  it("corrupt action available when owned; sets forwardingEnabled:false", () => {
     const ctx = mockCtx();
     const inst = instantiate(idsRelayChain, "east");
     const graph = new NodeGraph(inst, ctx);
 
     graph._nodes.get("east/ids").attributes.accessLevel = "owned";
     const available = graph.getAvailableActions("east/ids");
-    assert.ok(available.map((a) => a.id).includes("reconfigure"));
+    assert.ok(available.map((a) => a.id).includes("corrupt"));
 
-    graph.executeAction("east/ids", "reconfigure");
+    graph.executeAction("east/ids", "corrupt");
     assert.equal(graph.getNodeState("east/ids").forwardingEnabled, false);
   });
 
-  it("reconfigure severs the chain — alert no longer reaches monitor", () => {
+  it("corrupt severs the chain — alert no longer reaches monitor", () => {
     const ctx = mockCtx();
     const inst = instantiate(idsRelayChain, "east");
     const graph = new NodeGraph(inst, ctx);
 
     graph._nodes.get("east/ids").attributes.accessLevel = "owned";
-    graph.executeAction("east/ids", "reconfigure");
+    graph.executeAction("east/ids", "corrupt");
 
     graph.sendMessage("east/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
     assert.equal(graph.getNodeState("east/monitor").alerted, false);
@@ -464,7 +464,7 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     assert.ok(actions.includes("extract-key"), "key ready after clock fires");
   });
 
-  it("loot unavailable without extracted key; available after extraction", () => {
+  it("fetch unavailable without extracted key; available after extraction", () => {
     const ctx = mockCtx();
     const inst = instantiate(encryptedVault, "ev1");
     const graph = new NodeGraph(inst, ctx);
@@ -472,18 +472,18 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
     graph._nodes.get("ev1/vault").attributes.accessLevel = "owned";
 
-    // Before clock: no key → loot unavailable
-    assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("loot"));
+    // Before clock: no key → fetch unavailable
+    assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("fetch"));
 
-    // Fire clock, extract key, then loot
+    // Fire clock, extract key, then fetch
     graph.tick(100);
     graph.executeAction("ev1/key-gen", "extract-key");
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
     const available = graph.getAvailableActions("ev1/vault").map((a) => a.id);
-    assert.ok(available.includes("loot"));
+    assert.ok(available.includes("fetch"));
 
-    graph.executeAction("ev1/vault", "loot");
+    graph.executeAction("ev1/vault", "fetch");
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [3000]);
     assert.equal(graph.getQuality("ev1/decryption-key"), 0);
@@ -698,15 +698,15 @@ describe("noisy-sensor: first probe per window raises alert, subsequent suppress
 // ---------------------------------------------------------------------------
 // tamper-detect: sequencing puzzle — neutralize relay before reconfiguring IDS
 // ---------------------------------------------------------------------------
-describe("tamper-detect: reconfiguring IDS without neutralizing relay triggers trace", () => {
-  it("reconfiguring IDS without neutralizing triggers tamper trace", () => {
+describe("tamper-detect: corrupting IDS without neutralizing relay triggers trace", () => {
+  it("corrupting IDS without neutralizing triggers tamper trace", () => {
     const ctx = mockCtx();
     const inst = instantiate(tamperDetect, "td1");
     const graph = new NodeGraph(inst, ctx);
 
-    // Give player ownership so reconfigure is available
+    // Give player ownership so corrupt is available
     graph._nodes.get("td1/ids").attributes.accessLevel = "owned";
-    graph.executeAction("td1/ids", "reconfigure");
+    graph.executeAction("td1/ids", "corrupt");
 
     assert.equal(graph.getNodeState("td1/tamper-flag").triggered, true);
     assert.equal(ctx.calls.startTrace?.length, 1);
@@ -721,7 +721,7 @@ describe("tamper-detect: reconfiguring IDS without neutralizing relay triggers t
     assert.ok(edgePairs.some((e) => e.includes("td1/tamper-relay") && e.includes("td1/tamper-flag")));
   });
 
-  it("neutralizing tamper relay before reconfigure prevents trace", () => {
+  it("neutralizing tamper relay before corrupt prevents trace", () => {
     const ctx = mockCtx();
     const inst = instantiate(tamperDetect, "td1");
     const graph = new NodeGraph(inst, ctx);
@@ -731,9 +731,9 @@ describe("tamper-detect: reconfiguring IDS without neutralizing relay triggers t
     graph.executeAction("td1/tamper-relay", "neutralize");
     assert.equal(graph.getNodeState("td1/tamper-relay").forwardingEnabled, false);
 
-    // Now reconfigure the IDS safely
+    // Now corrupt the IDS safely
     graph._nodes.get("td1/ids").attributes.accessLevel = "owned";
-    graph.executeAction("td1/ids", "reconfigure");
+    graph.executeAction("td1/ids", "corrupt");
 
     assert.equal(graph.getNodeState("td1/tamper-flag").triggered, false);
     assert.equal(ctx.calls.startTrace, undefined);

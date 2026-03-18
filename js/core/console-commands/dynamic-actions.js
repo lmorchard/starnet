@@ -14,6 +14,7 @@
  */
 
 import { getState } from "../state.js";
+import { A } from "../action-ids.js";
 import { on, E, emitEvent } from "../events.js";
 import { registry, registerCommand } from "./registry.js";
 import { completeNodeArg } from "./completions.js";
@@ -21,8 +22,8 @@ import { completeNodeArg } from "./completions.js";
 // Action IDs with custom argument handling that stay as static console commands.
 // Everything else is dynamically discovered from the graph's available actions.
 const STATIC_ACTION_IDS = new Set([
-  "exploit",  // needs card argument from payload
-  "select", "deselect", "jackout",  // global actions, not node-specific
+  A.XPLOIT,  // needs card argument from payload
+  A.TARGET, A.UNTARGET, A.JACKOUT,  // global actions, not node-specific
 ]);
 
 /** Track which dynamic commands we've registered so we can remove them. */

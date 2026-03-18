@@ -4,6 +4,8 @@
 /** @typedef {import('./types.js').BotRunStats} BotRunStats */
 /** @typedef {import('./types.js').ScoredAction} ScoredAction */
 
+import { A } from "../../js/core/action-ids.js";
+
 const ALERT_RANK = { green: 0, yellow: 1, red: 2 };
 
 /**
@@ -41,7 +43,7 @@ export function recordAction(stats, action) {
   const name = action.strategy ?? "unknown";
   stats.strategyCounts[name] = (stats.strategyCounts[name] ?? 0) + 1;
 
-  if (action.action === "exploit") stats.cardsUsed++;
+  if (action.action === A.XPLOIT) stats.cardsUsed++;
   if (action.action === "buy-card") stats.storeVisits++;
   if (action.action?.startsWith("disarm")) stats.disarmActionsUsed++;
 }

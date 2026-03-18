@@ -117,11 +117,11 @@ Rules:
 
 1. Player starts at gateway node (accessible); neighbors revealed as `???`
 2. **Probe** a node → reveals vulnerabilities, raises local alert
-3. **Exploit** → pick a card → resolve success/failure vs node grade + vuln match
+3. **Xploit** → pick a card → resolve success/failure vs node grade + vuln match
 4. On success: node access level rises (locked → compromised → owned)
-5. **Read** a compromised/owned node → reveals macguffins
-6. **Loot** an owned node → collects macguffins, adds cash to wallet
-7. **Reconfigure** an IDS node → disables alert event forwarding to security monitor
+5. **Dump** a compromised/owned node → reveals macguffins
+6. **Fetch** from an owned node → collects macguffins, adds cash to wallet
+7. **Corrupt** an IDS node → disables alert event forwarding to security monitor
 8. Global alert rises as detection nodes fire events to security monitors
 9. At TRACE: 60-second countdown begins — jack out or lose your score
 
@@ -187,10 +187,10 @@ Most recent session: `docs/dev-sessions/2026-02-27-1423-wan-node-darknet-store/`
 node scripts/playtest.js reset                         # fresh game, saves to scripts/playtest-state.json
 node scripts/playtest.js "status"                      # print current state summary
 node scripts/playtest.js "status full"                 # full state dump (network, hand, ICE, mission)
-node scripts/playtest.js "select gateway"              # select a node
-node scripts/playtest.js "probe"                       # probe selected node
-node scripts/playtest.js "exploit 2"                   # exploit with card #2 (selected node)
-node scripts/playtest.js "exploit ids-1 AuthBrute"    # explicit node + card
+node scripts/playtest.js "target gateway"              # target a node
+node scripts/playtest.js "probe"                       # probe targeted node
+node scripts/playtest.js "xploit 2"                   # xploit with card #2 (targeted node)
+node scripts/playtest.js "xploit ids-1 AuthBrute"    # explicit node + card
 node scripts/playtest.js "tick 100"                    # advance 100 virtual ticks (10 real-seconds)
 node scripts/playtest.js "actions"                     # list all valid actions with context
 node scripts/playtest.js "jackout"                     # end run
@@ -226,10 +226,10 @@ status node <id>  — single node detail
 ```bash
 node scripts/playtest.js reset
 node scripts/playtest.js "status full"
-node scripts/playtest.js "select gateway"
+node scripts/playtest.js "target gateway"
 node scripts/playtest.js "probe"
 node scripts/playtest.js "actions"          # see what cards match
-node scripts/playtest.js "exploit 4"        # use card #4
+node scripts/playtest.js "xploit 4"        # use card #4
 node scripts/playtest.js "status summary"
 node scripts/playtest.js "tick 50"          # let ICE move
 node scripts/playtest.js "status ice"
@@ -372,7 +372,7 @@ This is a soft convention, not enforced by code — but new animations should fo
 
 - Single static LAN dungeon, hand-crafted
 - Freeform macguffin hunting (no mission objectives)
-- Probe → Exploit → Read → Loot → Jack Out loop
+- Probe → Xploit → Dump → Fetch → Jack Out loop
 - Two-layer alert system with IDS subversion puzzle
 - Exploit card decay (use/disclosure)
 

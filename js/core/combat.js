@@ -14,6 +14,7 @@ import {
 import { setLastDisturbedNode } from "./state/ice.js";
 import { applyCardDecay as applyCardDecayState } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
+import { A } from "./action-ids.js";
 
 // Success chance modifier by node security grade
 export const GRADE_MODIFIER = {
@@ -238,7 +239,7 @@ export function launchExploit(nodeId, exploitId) {
     setLastDisturbedNode(null);
 
     emitEvent(E.ACTION_RESOLVED, {
-      action: "exploit", nodeId, label: node.label, success: true,
+      action: A.XPLOIT, nodeId, label: node.label, success: true,
       detail: { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
         successChance: result.successChance, matchingVulns: result.matchingVulns },
     });
@@ -266,7 +267,7 @@ export function launchExploit(nodeId, exploitId) {
     setLastDisturbedNode(nodeId);
 
     emitEvent(E.ACTION_RESOLVED, {
-      action: "exploit", nodeId, label: node.label, success: false,
+      action: A.XPLOIT, nodeId, label: node.label, success: false,
       detail: { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
         successChance: result.successChance, matchingVulns: result.matchingVulns },
     });

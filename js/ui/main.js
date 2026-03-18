@@ -79,7 +79,7 @@ function init() {
 
   initLogRenderer();
   const cy = initGraph(cytoscapeNetwork, buildNodeClickHandler(), () => {
-    emitEvent("starnet:action", { actionId: "deselect" });
+    emitEvent("starnet:action", { actionId: "untarget" });
   });
   initConsole();
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED

@@ -246,6 +246,7 @@
  * @property {() => void} cancelRead
  * @property {(nodeId: string) => void} startLoot
  * @property {() => void} cancelLoot
+ * @property {(nodeId: string) => void} abortTimedAction
  * @property {() => void} ejectIce
  * @property {(nodeId: string) => void} rebootNode
  * @property {(nodeId: string) => void} reconfigureNode

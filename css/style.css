@@ -391,7 +391,7 @@ html, body {
   position: relative;
 }
 
-.deselect-btn {
+.untarget-btn {
   position: absolute;
   top: 0;
   right: 0;
@@ -406,7 +406,7 @@ html, body {
   transition: color 0.15s, border-color 0.15s;
 }
 
-.deselect-btn:hover {
+.untarget-btn:hover {
   color: var(--cyan);
   border-color: var(--cyan);
 }
