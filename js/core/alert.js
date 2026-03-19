@@ -130,9 +130,15 @@ export function raiseGlobalAlert() {
 
 // ── Trace countdown ───────────────────────────────────────
 
+/** Trace countdown duration scales with network threat grade. */
+const TRACE_SECONDS = { S: 30, A: 40, B: 45, C: 60, D: 75, F: 90 };
+
 export function startTraceCountdown() {
-  setTraceCountdown(60);
-  emitEvent(E.ALERT_TRACE_STARTED, { seconds: 60 });
+  const s = getState();
+  const threat = s.spec?.threat ?? "C";
+  const seconds = TRACE_SECONDS[threat] ?? 60;
+  setTraceCountdown(seconds);
+  emitEvent(E.ALERT_TRACE_STARTED, { seconds });
   const timerId = scheduleRepeating(TIMER.TRACE_TICK, 1000);
   setTraceTimerId(timerId);
 }

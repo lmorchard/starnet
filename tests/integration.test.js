@@ -16,8 +16,9 @@ import assert from "node:assert/strict";
 
 import {
   createGateway, createRouter, createIDS, createSecurityMonitor,
-  createFileserver, createWAN,
+  createFileserver, createFirewall, createWAN,
 } from "../js/core/node-graph/game-types.js";
+import { buildSetPieceMiniNetwork } from "../js/core/node-graph/mini-network.js";
 import { initGame, getState, isIceVisible, buyExploit } from "../js/core/state.js";
 import { navigateTo, navigateAway } from "../js/core/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/core/ice.js";
@@ -742,5 +743,172 @@ describe("Exploit success: neighbor visibility", () => {
       assert.equal(s.nodes[nid].visibility, "revealed",
         `${nid} should be revealed (???) after exploit, not immediately accessible`);
     }
+  });
+});
+
+// ── gate-access: nodes behind gates are inaccessible until conditions met ────
+
+/**
+ * LAN with a firewall (gateAccess: "owned") between gateway and a fileserver.
+ * gateway → firewall → fileserver
+ */
+function buildFirewallGateLAN({ startCash = 0 } = {}) {
+  return {
+    graphDef: {
+      nodes: [
+        createGateway("gateway", { attributes: { visibility: "accessible" } }),
+        createFirewall("firewall-1", { attributes: { grade: "D" } }),
+        createFileserver("hidden-fs"),
+      ],
+      edges: [["gateway", "firewall-1"], ["firewall-1", "hidden-fs"]],
+      triggers: [],
+    },
+    meta: { startNode: "gateway", startCash, moneyCost: "C", ice: null },
+  };
+}
+
+/**
+ * LAN with a router (gateAccess: "compromised") between gateway and a fileserver.
+ * gateway → router → fileserver
+ */
+function buildRouterGateLAN({ startCash = 0 } = {}) {
+  return {
+    graphDef: {
+      nodes: [
+        createGateway("gateway", { attributes: { visibility: "accessible" } }),
+        createRouter("router-gate"),
+        createFileserver("behind-router"),
+      ],
+      edges: [["gateway", "router-gate"], ["router-gate", "behind-router"]],
+      triggers: [],
+    },
+    meta: { startNode: "gateway", startCash, moneyCost: "C", ice: null },
+  };
+}
+
+describe("gate-access: nodes behind gates are inaccessible until conditions met", () => {
+
+  describe("firewall gate (gateAccess: 'owned')", () => {
+    beforeEach(() => {
+      clearAll();
+      initGame(() => buildFirewallGateLAN());
+    });
+
+    it("node behind firewall is hidden before any exploit", () => {
+      const s = getState();
+      assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
+        "fileserver behind firewall should start hidden");
+    });
+
+    it("compromising the firewall does NOT reveal nodes behind it", () => {
+      const s = getState();
+      // Force exploit to succeed (roll=0 always succeeds)
+      _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0);
+      launchExploit("firewall-1", s.player.hand[0].id);
+
+      assert.equal(s.nodes["firewall-1"].accessLevel, "compromised",
+        "firewall should be compromised after first successful exploit");
+      assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
+        "fileserver behind owned-gated firewall must remain hidden when firewall is only compromised");
+    });
+
+    it("owning the firewall DOES reveal nodes behind it", () => {
+      const s = getState();
+
+      // First exploit: locked → compromised
+      _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0);
+      launchExploit("firewall-1", s.player.hand[0].id);
+      assert.equal(s.nodes["firewall-1"].accessLevel, "compromised");
+      assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
+        "precondition: still hidden after compromised");
+
+      // Second exploit: compromised → owned
+      _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0);
+      launchExploit("firewall-1", s.player.hand[1].id);
+      assert.equal(s.nodes["firewall-1"].accessLevel, "owned",
+        "firewall should be owned after second exploit");
+      assert.equal(s.nodes["hidden-fs"].visibility, "revealed",
+        "fileserver behind firewall must be revealed once firewall is owned");
+    });
+  });
+
+  describe("router gate (gateAccess: 'compromised')", () => {
+    beforeEach(() => {
+      clearAll();
+      initGame(() => buildRouterGateLAN());
+    });
+
+    it("node behind router is hidden before exploit", () => {
+      const s = getState();
+      assert.equal(s.nodes["behind-router"].visibility, "hidden",
+        "fileserver behind router should start hidden");
+    });
+
+    it("compromising the router reveals nodes behind it", () => {
+      const s = getState();
+
+      // Force exploit success
+      _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0);
+      launchExploit("router-gate", s.player.hand[0].id);
+
+      assert.equal(s.nodes["router-gate"].accessLevel, "compromised",
+        "router should be compromised after first successful exploit");
+      assert.equal(s.nodes["behind-router"].visibility, "revealed",
+        "fileserver behind compromised-gated router should be revealed on compromise");
+    });
+  });
+
+  describe("concealed node (quality-based gate via combination lock)", () => {
+    beforeEach(() => {
+      clearAll();
+      initGame(() => buildSetPieceMiniNetwork("combinationLock"));
+    });
+
+    it("vault starts concealed and hidden", () => {
+      const s = getState();
+      const vault = s.nodes["sp/vault"];
+      assert.ok(vault, "vault node should exist in state");
+      assert.equal(vault.concealed, true, "vault should start concealed");
+      assert.equal(vault.visibility, "hidden", "vault should start hidden");
+    });
+
+    it("vault remains hidden even when gateway neighbors are revealed", () => {
+      const s = getState();
+
+      // Probe the gateway to reveal its neighbors (the switches and gate)
+      // The vault is connected to the gate, not directly to gateway,
+      // but even if we reveal everything around it, concealed blocks it.
+      // First, exploit gateway to reveal neighbors
+      _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0);
+      launchExploit("gateway", s.player.hand[0].id);
+
+      // Vault should still be hidden because it's concealed
+      const vault = s.nodes["sp/vault"];
+      assert.equal(vault.concealed, true, "vault must remain concealed");
+      assert.equal(vault.visibility, "hidden", "concealed vault must stay hidden");
+    });
+
+    it("vault becomes visible after all combination lock switches are activated", () => {
+      const s = getState();
+      const graph = s.nodeGraph;
+
+      // Activate all 3 switches via the node graph (same pattern as set-pieces.test.js)
+      for (const sw of ["sp/switch-a", "sp/switch-b", "sp/switch-c"]) {
+        graph.setNodeAttr(sw, "accessLevel", "owned");
+        graph.executeAction(sw, "activate");
+      }
+
+      const vault = s.nodes["sp/vault"];
+      assert.equal(vault.concealed, false,
+        "vault should no longer be concealed after all switches activated");
+      // The revealNode ctx call sets visibility to "revealed"
+      assert.notEqual(vault.visibility, "hidden",
+        "vault should be visible (revealed or accessible) after trigger fires");
+    });
   });
 });
