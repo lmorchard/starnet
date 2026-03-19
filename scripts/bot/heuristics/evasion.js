@@ -7,6 +7,7 @@
 import { A } from "../../../js/core/action-ids.js";
 
 const STRATEGY = "evasion";
+const ICE_ON_NODE_EJECT = 850;
 const ICE_ON_NODE_CANCEL = 800;
 const TRACE_JACKOUT = 100;
 const POST_ACTION_DESELECT = 15;
@@ -19,8 +20,21 @@ export function evasionStrategy(world) {
   /** @type {ScoredAction[]} */
   const proposals = [];
 
-  // If ICE is on the currently selected node, propose deselecting
+  // If ICE is on the currently selected node:
+  // - If we own the node, eject ICE (keeps us in position)
+  // - Otherwise, untarget to hide
   if (world.ice.isOnSelectedNode && world.player.selectedNodeId) {
+    const nodeId = world.player.selectedNodeId;
+    const node = world.nodes.get(nodeId);
+    if (node && node.accessLevel === "owned") {
+      proposals.push({
+        action: A.EJECT,
+        nodeId,
+        score: ICE_ON_NODE_EJECT,
+        reason: "ICE on owned node — eject to stay in position",
+        strategy: STRATEGY,
+      });
+    }
     proposals.push({
       action: A.UNTARGET,
       nodeId: null,
