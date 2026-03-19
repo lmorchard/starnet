@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>STARNET — Visual Preview Harness</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0a0a0f;
+      color: #00ff41;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+    }
+    #preview-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* ── Graph panel ───────────────────────────── */
+    #graph-panel {
+      flex: 1 1 65%;
+      position: relative;
+      overflow: hidden;
+      background: #0a0a0f;
+    }
+    #graph-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    #cy {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Control panel ─────────────────────────── */
+    #control-panel {
+      flex: 0 0 320px;
+      overflow-y: auto;
+      padding: 12px 16px;
+      border-left: 1px solid #1a3333;
+      background: #0d0d14;
+    }
+    #control-panel h1 {
+      font-size: 14px;
+      color: #00ffff;
+      margin: 0 0 12px 0;
+      letter-spacing: 0.15em;
+    }
+    .section {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #112222;
+    }
+    .section:last-child { border-bottom: none; }
+    .section h2 {
+      font-size: 11px;
+      color: #00ffff;
+      margin: 0 0 6px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid #003333;
+      padding-bottom: 3px;
+    }
+    .section h3 {
+      font-size: 10px;
+      color: #888;
+      margin: 8px 0 4px 0;
+    }
+
+    /* Slider */
+    .effect-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 4px 0;
+    }
+    .effect-row label {
+      flex: 0 0 50px;
+      font-size: 10px;
+      color: #668866;
+    }
+    .effect-row input[type="range"] {
+      flex: 1;
+      accent-color: #00ffff;
+      height: 4px;
+    }
+    .effect-row .val {
+      flex: 0 0 32px;
+      font-size: 10px;
+      color: #00ff41;
+      text-align: right;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 4px;
+      margin: 4px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: none;
+      border: 1px solid #1a3333;
+      color: #668866;
+      font-family: inherit;
+      font-size: 10px;
+      padding: 3px 8px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+    }
+    button:hover {
+      color: #00ffff;
+      border-color: #00ffff;
+    }
+    button.active {
+      color: #00ffff;
+      border-color: #00ffff;
+    }
+
+    /* Speed control */
+    .speed-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 6px 0;
+    }
+    .speed-row label { font-size: 10px; color: #668866; }
+    .speed-row select {
+      background: #0a0a0f;
+      color: #00ff41;
+      border: 1px solid #1a3333;
+      font-family: inherit;
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="preview-layout">
+    <div id="graph-panel">
+      <div id="graph-container">
+        <div id="cy"></div>
+        <!-- SVG overlay elements (same as index.html) -->
+        <svg id="probe-sweep"
+             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
+          <path id="probe-sweep-fill" fill="rgba(0,255,255,0.18)" />
+          <circle id="probe-sweep-ring" fill="none" stroke="#00ffff" stroke-width="1" stroke-opacity="0.45" />
+        </svg>
+        <svg id="ice-detect-sweep"
+             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
+          <path id="ice-detect-arc" fill="none" stroke="#ff00aa" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+        <svg id="loot-rings"
+             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
+        </svg>
+        <svg id="read-sectors"
+             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
+          <path id="read-sectors-fill" fill="rgba(0,255,65,0.15)" />
+          <circle id="read-sectors-ring" fill="none" stroke="#00ff41" stroke-width="1" stroke-opacity="0.45" />
+        </svg>
+        <svg id="exploit-brackets"
+             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
+          <defs>
+            <filter id="zap-bloom" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <line id="bracket-tl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="bracket-tl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="bracket-tr-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="bracket-tr-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="bracket-br-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="bracket-br-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="bracket-bl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="bracket-bl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          <line id="zap-tl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+          <line id="zap-tr" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+          <line id="zap-br" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+          <line id="zap-bl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
+        </svg>
+        <svg id="selection-reticle"
+             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;">
+          <g id="reticle-group">
+            <circle id="reticle-ring" cx="30" cy="30" r="28"
+                    fill="none"
+                    stroke="#cc00cc"
+                    stroke-width="1.5"
+                    stroke-dasharray="6 3"
+                    stroke-opacity="0.75"/>
+            <line id="reticle-tick-n" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="reticle-tick-s" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="reticle-tick-e" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+            <line id="reticle-tick-w" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div id="control-panel">
+      <h1>STARNET PREVIEW</h1>
+
+      <!-- Global controls -->
+      <div class="section">
+        <div class="speed-row">
+          <label>Speed:</label>
+          <select id="speed-select">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+          <button id="btn-play-all">PLAY ALL</button>
+          <button id="btn-reset-all">RESET ALL</button>
+        </div>
+      </div>
+
+      <!-- SVG Overlay Effects -->
+      <div class="section">
+        <h2>Overlay Effects</h2>
+
+        <h3>Probe Sweep</h3>
+        <div class="effect-row">
+          <label>progress</label>
+          <input type="range" id="slider-probe" min="0" max="1" step="0.01" value="0">
+          <span class="val" id="val-probe">0.00</span>
+        </div>
+        <div class="btn-row">
+          <button id="btn-probe-play">PLAY</button>
+          <button id="btn-probe-reset">RESET</button>
+        </div>
+
+        <h3>Read Sectors</h3>
+        <div class="effect-row">
+          <label>progress</label>
+          <input type="range" id="slider-read" min="0" max="1" step="0.01" value="0">
+          <span class="val" id="val-read">0.00</span>
+        </div>
+        <div class="btn-row">
+          <button id="btn-read-play">PLAY</button>
+          <button id="btn-read-reset">RESET</button>
+        </div>
+
+        <h3>Loot Rings</h3>
+        <div class="effect-row">
+          <label>progress</label>
+          <input type="range" id="slider-loot" min="0" max="1" step="0.01" value="0">
+          <span class="val" id="val-loot">0.00</span>
+        </div>
+        <div class="btn-row">
+          <button id="btn-loot-play">PLAY</button>
+          <button id="btn-loot-reset">RESET</button>
+        </div>
+
+        <h3>Exploit Brackets</h3>
+        <div class="effect-row">
+          <label>progress</label>
+          <input type="range" id="slider-exploit" min="0" max="1" step="0.01" value="0">
+          <span class="val" id="val-exploit">0.00</span>
+        </div>
+        <div class="btn-row">
+          <button id="btn-exploit-play">PLAY</button>
+          <button id="btn-exploit-reset">RESET</button>
+        </div>
+
+        <h3>ICE Detection</h3>
+        <div class="effect-row">
+          <label>progress</label>
+          <input type="range" id="slider-ice" min="0" max="1" step="0.01" value="0">
+          <span class="val" id="val-ice">0.00</span>
+        </div>
+        <div class="btn-row">
+          <button id="btn-ice-play">PLAY</button>
+          <button id="btn-ice-reset">RESET</button>
+        </div>
+
+        <h3>Selection Reticle</h3>
+        <div class="btn-row">
+          <button id="btn-reticle-toggle">TOGGLE</button>
+        </div>
+      </div>
+
+      <!-- Node Flash -->
+      <div class="section">
+        <h2>Node Flash</h2>
+        <div class="btn-row">
+          <button id="btn-flash-success">SUCCESS</button>
+          <button id="btn-flash-failure">FAILURE</button>
+          <button id="btn-flash-reveal">REVEAL</button>
+        </div>
+      </div>
+
+      <!-- Node Shapes (display only) -->
+      <div class="section">
+        <h2>Node Shape Gallery</h2>
+        <p style="color:#445544; font-size:10px; margin:2px 0;">Shapes + grade border colors shown in graph</p>
+      </div>
+
+      <!-- Alert States (display only) -->
+      <div class="section">
+        <h2>Alert States</h2>
+        <p style="color:#445544; font-size:10px; margin:2px 0;">Green / Yellow / Red / Rebooting shown in graph</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="dist/vendor.js"></script>
+  <script type="module" src="js/ui/preview.js"></script>
+</body>
+</html>
