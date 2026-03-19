@@ -293,8 +293,8 @@ upstream to its security monitor. The security monitor raises the global alert.
 
 ### The TRACE Countdown
 
-When global alert hits red and security monitors confirm active intrusion, a **60-second
-TRACE countdown** begins. The countdown shows in the HUD and sidebar. If it reaches zero,
+When global alert hits red and security monitors confirm active intrusion, a **TRACE
+countdown** begins (30–90 seconds depending on network threat grade). The countdown shows in the HUD and sidebar. If it reaches zero,
 your tether is traced back to your home node — run over, score lost.
 
 To stop it: **jack out** before zero, or **own the security monitor** and use the

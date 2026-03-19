@@ -123,7 +123,7 @@ Rules:
 6. **Fetch** from an owned node → collects macguffins, adds cash to wallet
 7. **Corrupt** an IDS node → disables alert event forwarding to security monitor
 8. Global alert rises as detection nodes fire events to security monitors
-9. At TRACE: 60-second countdown begins — jack out or lose your score
+9. At TRACE: countdown begins (30–90s by threat grade) — jack out or lose your score
 
 ## Alert System (Two-Layer)
 
