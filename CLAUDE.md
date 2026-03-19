@@ -52,6 +52,7 @@ When you notice a command being run frequently during development, consider addi
 
 ```
 index.html              — entry point, layout, loads dist/vendor.js + main.js
+preview.html            — visual preview harness (effects, shapes, alerts — no game engine)
 css/style.css           — all styles (cyberpunk vector phosphene aesthetic)
 js/
   types.js              — JSDoc @typedef definitions (no runtime code)
@@ -348,6 +349,8 @@ it is set is not testing the circuit — it's testing that assignment works.
 ---
 
 ## Design Principles
+
+- **New visual effects must be added to the preview harness.** When adding an SVG overlay, node animation, or other graph-level visual effect, add a demo node and controls for it in `preview.html` / `js/ui/preview.js`. The harness lets us test and tune effects without playing through to the right game state.
 
 - **Every visual game event must have a corresponding console log entry.** If the player can see something happen on the graph or HUD, there must be a matching textual record in the log. This is both an accessibility and a game-feel requirement — the log is the player's "decker readout" and should be a complete record of what the system is doing.
 
