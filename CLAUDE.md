@@ -21,6 +21,7 @@ make lint          — run tsc type checker (JSDoc annotations, no emit)
 make test          — run unit + integration tests
 make check         — lint + test (run both)
 make bundle-vendor — build dist/vendor.js (Cytoscape + layout extensions)
+make census        — run bot census (50 seeds, default grades; override with SEEDS=100 THREAT=B)
 ```
 
 **`dist/vendor.js` must be built before opening the game in a browser.** It is
@@ -198,6 +199,10 @@ node scripts/playtest.js "jackout"                     # end run
 # Named state files — start from a checkpoint, run parallel scenarios
 node scripts/playtest.js --state /tmp/scenario.json reset
 node scripts/playtest.js --state /tmp/scenario.json "probe gateway"
+
+# JSON mode — structured output for scripts and LLMs
+node scripts/playtest.js --json "status"              # { events, state, log }
+node scripts/playtest.js --json "tick 50"             # captures all events during ticks
 ```
 
 ### How it works
