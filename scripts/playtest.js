@@ -40,11 +40,14 @@ let graphFileArg = null;
 let generatedArg = false;
 let threatArg = "C", wealthArg = "B", complexityArg = "C", depthArg = "C";
 let recipeArg = null, lanGradeArg = null;
+let jsonMode = false;
 
 {
   const argv = process.argv.slice(2);
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--state" && argv[i + 1]) {
+    if (argv[i] === "--json") {
+      jsonMode = true;
+    } else if (argv[i] === "--state" && argv[i + 1]) {
       stateFile = argv[++i];
     } else if (argv[i] === "--seed" && argv[i + 1]) {
       seedArg = argv[++i];
@@ -131,57 +134,98 @@ initHeadlessEngine({
 
 // ── Event → output ─────────────────────────────────────────
 
+// In text mode: lines collects human-readable output, printed at end.
+// In JSON mode: capturedEvents/capturedLog collect structured data for the envelope.
 const lines = [];
-function out(msg) { lines.push(String(msg)); }
+/** @type {{ type: string, payload: any }[]} */
+const capturedEvents = [];
+/** @type {{ text: string, type: string }[]} */
+const capturedLog = [];
 
-// All LOG_ENTRY events → output (covers console.js command output + direct emits)
-on(E.LOG_ENTRY, ({ text }) => out(text));
+function out(msg) {
+  if (jsonMode) {
+    capturedLog.push({ text: String(msg), type: "system" });
+  } else {
+    lines.push(String(msg));
+  }
+}
 
-// Game events not covered by log-renderer (which isn't loaded in the harness)
-on(E.NODE_ALERT_RAISED,    ({ label, prev, next })     => out(`[NODE] ${label}: alert ${prev} → ${next}.`));
-on(E.NODE_ACCESSED,        ({ label, prev, next })     => out(`[NODE] ${label}: ${prev} → ${next.toUpperCase()}.`));
-on(E.NODE_REVEALED,        ({ label, unlocked })       => { if (unlocked) out(`[NODE] ${label}: node accessible.`); });
-// Timed action lifecycle
-on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
-  const s = getState();
-  const label = s.nodes[nodeId]?.label ?? nodeId;
-  if (phase === "start") {
-    const secs = Math.round((durationTicks ?? 0) / 10);
-    out(`[${action.toUpperCase()}] ${label}: ${action === A.XPLOIT ? "executing" : "running"} (${secs}s)...`);
-  } else if (phase === "cancel") {
-    out(`[${action.toUpperCase()}] ${label}: cancelled.`);
+// LOG_ENTRY: always capture (text mode → lines, json mode → capturedLog)
+on(E.LOG_ENTRY, ({ text, type }) => {
+  if (jsonMode) {
+    capturedLog.push({ text, type: type ?? "system" });
+  } else {
+    out(text);
   }
 });
-// Action resolutions
-on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
-  if (action === A.PROBE) out(`[NODE] ${label}: vulnerabilities scanned.`);
-  else if (action === A.XPLOIT) {
-    const d = detail ?? {};
-    out(`[EXPLOIT] ${label} — ${d.exploitName}: ${success ? "SUCCESS" : "FAIL"} (roll ${d.roll} vs ${d.successChance}%)`);
+
+if (jsonMode) {
+  // JSON mode: capture raw events into structured array
+  const CAPTURE_EVENTS = [
+    E.NODE_REVEALED, E.NODE_ACCESSED, E.NODE_ALERT_RAISED,
+    E.EXPLOIT_DISCLOSED, E.EXPLOIT_PARTIAL_BURN, E.EXPLOIT_SURFACE,
+    E.ALERT_GLOBAL_RAISED, E.ALERT_TRACE_STARTED, E.ALERT_TRACE_CANCELLED, E.ALERT_PROPAGATED,
+    E.PLAYER_NAVIGATED,
+    E.ICE_MOVED, E.ICE_DETECT_PENDING, E.ICE_DETECTED, E.ICE_EJECTED, E.ICE_REBOOTED, E.ICE_DISABLED,
+    E.MISSION_STARTED, E.MISSION_COMPLETE,
+    E.ACTION_FEEDBACK, E.ACTION_RESOLVED,
+    E.RUN_STARTED, E.RUN_ENDED,
+  ];
+  for (const eventType of CAPTURE_EVENTS) {
+    on(eventType, (payload) => {
+      // Clone payload to avoid circular refs from live state objects
+      try {
+        capturedEvents.push({ type: eventType, payload: JSON.parse(JSON.stringify(payload)) });
+      } catch {
+        capturedEvents.push({ type: eventType, payload: String(payload) });
+      }
+    });
   }
-  else if (action === A.DUMP) out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
-  else if (action === A.FETCH) out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
-  else if (action === A.CORRUPT) out(`[NODE] ${label}: event forwarding disabled.`);
-  else if (action === "reboot-start") out(`[NODE] ${label}: rebooting.`);
-  else if (action === "reboot-complete") out(`[NODE] ${label}: online.`);
-});
-on(E.EXPLOIT_DISCLOSED,    ({ exploitName })           => out(`[EXPLOIT] ${exploitName}: disclosed.`));
-on(E.EXPLOIT_PARTIAL_BURN, ({ exploitName, usesRemaining }) =>
-  out(`[EXPLOIT] ${exploitName}: partial burn (${usesRemaining} uses left).`));
-on(E.ALERT_GLOBAL_RAISED,  ({ prev, next })            => out(`[ALERT] Global: ${prev} → ${next.toUpperCase()}`));
-on(E.ALERT_TRACE_STARTED,   ({ seconds })               => out(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s`));
-on(E.ALERT_TRACE_CANCELLED, ()                          => out(`[ALERT] Trace cancelled. Alert: RED`));
-on(E.ALERT_PROPAGATED,     ({ fromLabel, toLabel })    => out(`[ALERT] ${fromLabel} → ${toLabel}: alert propagated.`));
-on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
-  if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
-});
-on(E.ICE_DETECTED,         ({ label })                 => out(`[ICE] ⚠ Detected at ${label}.`));
-on(E.ICE_EJECTED,          ({ fromId, toId })          => out(`[ICE] Ejected: ${fromId} → ${toId}.`));
-on(E.ICE_REBOOTED,         ({ residentLabel })         => out(`[ICE] Rebooted to ${residentLabel}.`));
-on(E.ICE_DISABLED,         ()                          => out(`[ICE] Disabled.`));
-on(E.MISSION_STARTED,      ({ targetName })            => out(`[MISSION] Target: ${targetName}`));
-on(E.MISSION_COMPLETE,     ({ targetName })            => out(`[MISSION] ★ Complete: ${targetName}`));
-on(E.RUN_ENDED,            ({ outcome })               => out(`[RUN] ${outcome.toUpperCase()}`));
+} else {
+  // Text mode: human-readable event handlers (same as before)
+  on(E.NODE_ALERT_RAISED,    ({ label, prev, next })     => out(`[NODE] ${label}: alert ${prev} → ${next}.`));
+  on(E.NODE_ACCESSED,        ({ label, prev, next })     => out(`[NODE] ${label}: ${prev} → ${next.toUpperCase()}.`));
+  on(E.NODE_REVEALED,        ({ label, unlocked })       => { if (unlocked) out(`[NODE] ${label}: node accessible.`); });
+  on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, durationTicks }) => {
+    const s = getState();
+    const label = s.nodes[nodeId]?.label ?? nodeId;
+    if (phase === "start") {
+      const secs = Math.round((durationTicks ?? 0) / 10);
+      out(`[${action.toUpperCase()}] ${label}: ${action === A.XPLOIT ? "executing" : "running"} (${secs}s)...`);
+    } else if (phase === "cancel") {
+      out(`[${action.toUpperCase()}] ${label}: cancelled.`);
+    }
+  });
+  on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
+    if (action === A.PROBE) out(`[NODE] ${label}: vulnerabilities scanned.`);
+    else if (action === A.XPLOIT) {
+      const d = detail ?? {};
+      out(`[EXPLOIT] ${label} — ${d.exploitName}: ${success ? "SUCCESS" : "FAIL"} (roll ${d.roll} vs ${d.successChance}%)`);
+    }
+    else if (action === A.DUMP) out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
+    else if (action === A.FETCH) out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
+    else if (action === A.CORRUPT) out(`[NODE] ${label}: event forwarding disabled.`);
+    else if (action === "reboot-start") out(`[NODE] ${label}: rebooting.`);
+    else if (action === "reboot-complete") out(`[NODE] ${label}: online.`);
+  });
+  on(E.EXPLOIT_DISCLOSED,    ({ exploitName })           => out(`[EXPLOIT] ${exploitName}: disclosed.`));
+  on(E.EXPLOIT_PARTIAL_BURN, ({ exploitName, usesRemaining }) =>
+    out(`[EXPLOIT] ${exploitName}: partial burn (${usesRemaining} uses left).`));
+  on(E.ALERT_GLOBAL_RAISED,  ({ prev, next })            => out(`[ALERT] Global: ${prev} → ${next.toUpperCase()}`));
+  on(E.ALERT_TRACE_STARTED,   ({ seconds })               => out(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s`));
+  on(E.ALERT_TRACE_CANCELLED, ()                          => out(`[ALERT] Trace cancelled. Alert: RED`));
+  on(E.ALERT_PROPAGATED,     ({ fromLabel, toLabel })    => out(`[ALERT] ${fromLabel} → ${toLabel}: alert propagated.`));
+  on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
+    if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
+  });
+  on(E.ICE_DETECTED,         ({ label })                 => out(`[ICE] ⚠ Detected at ${label}.`));
+  on(E.ICE_EJECTED,          ({ fromId, toId })          => out(`[ICE] Ejected: ${fromId} → ${toId}.`));
+  on(E.ICE_REBOOTED,         ({ residentLabel })         => out(`[ICE] Rebooted to ${residentLabel}.`));
+  on(E.ICE_DISABLED,         ()                          => out(`[ICE] Disabled.`));
+  on(E.MISSION_STARTED,      ({ targetName })            => out(`[MISSION] Target: ${targetName}`));
+  on(E.MISSION_COMPLETE,     ({ targetName })            => out(`[MISSION] ★ Complete: ${targetName}`));
+  on(E.RUN_ENDED,            ({ outcome })               => out(`[RUN] ${outcome.toUpperCase()}`));
+}
 
 // ── Main dispatch ──────────────────────────────────────────
 
@@ -246,4 +290,13 @@ try {
   out(`[SYS] Failed to save state: ${e.message}`);
 }
 
-lines.forEach((line) => console.log(line));
+if (jsonMode) {
+  const envelope = {
+    events: capturedEvents,
+    state: serializeState(),
+    log: capturedLog,
+  };
+  console.log(JSON.stringify(envelope, null, 2));
+} else {
+  lines.forEach((line) => console.log(line));
+}
