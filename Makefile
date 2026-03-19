@@ -33,9 +33,16 @@ check: lint test
 bundle-vendor:
 	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 
-# Run network census report across all difficulty combos
+# Shared grade defaults for bot/census/generate targets
+THREAT ?= C
+WEALTH ?= B
+COMPLEXITY ?= C
+DEPTH ?= C
+SEEDS ?= 50
+
+# Run bot census — aggregate stats across many seeds (override: make census SEEDS=100 THREAT=B)
 census:
-	node scripts/network-census.js
+	@node scripts/bot/census.js --seeds $(SEEDS) --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH)
 
 # Run bot player against a network (override with: make bot-run NET=research-station SEED=test-1)
 NET ?= corporate-foothold
@@ -44,10 +51,6 @@ bot-run:
 	node scripts/bot/cli.js --network $(NET) $(if $(filter-out "",$(SEED)),--seed $(SEED))
 
 # Generate a network and play it with the bot
-THREAT ?= C
-WEALTH ?= B
-COMPLEXITY ?= C
-DEPTH ?= C
 gen-bot:
 	node scripts/bot/cli.js --generated --threat $(THREAT) --wealth $(WEALTH) --complexity $(COMPLEXITY) --depth $(DEPTH) $(if $(filter-out "",$(SEED)),--seed $(SEED))
 

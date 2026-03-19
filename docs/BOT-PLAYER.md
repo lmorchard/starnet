@@ -24,6 +24,27 @@ node scripts/bot/cli.js --network research-station --seed test-1 --verbose
 
 Output is a JSON `BotRunStats` object (see Stats Collected below).
 
+### Census (Aggregate Stats)
+
+```bash
+# Run 50 seeds at default grades (C/B/C/C), output JSON summary
+node scripts/bot/census.js --seeds 50
+
+# Override grades
+node scripts/bot/census.js --seeds 100 --threat B --wealth A
+
+# Include per-seed raw stats in output
+node scripts/bot/census.js --seeds 20 --threat S --wealth S --full
+
+# Via Makefile (uses shared THREAT/WEALTH/etc vars)
+make census SEEDS=100 THREAT=B
+```
+
+Output is JSON with `config`, `summary` (aggregates), and optionally `runs` (per-seed
+stats). Summary includes success rate, fail reason distribution, averages for cash/nodes/
+cards/ICE encounters, and peak alert distribution. Use for balance testing across
+difficulty grades.
+
 ---
 
 ## Architecture
