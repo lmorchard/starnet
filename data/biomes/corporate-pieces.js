@@ -312,8 +312,8 @@ export const deadmanCircuit = {
       type: "heartbeat-source",
       traits: ["graded", "hackable", "rebootable"],
       attributes: {},
-      // Clock sends heartbeat every 30 ticks (3s) — must be faster than watchdog period
-      operators: [{ name: "clock", period: 30 }],
+      // Clock sends heartbeat — must be faster than watchdog period
+      operators: [{ name: "clock", period: 30, periodTable: { S: 15, A: 20, B: 25, C: 30, D: 40, F: 50 } }],
       actions: [],
     },
     {
@@ -339,10 +339,9 @@ export const deadmanCircuit = {
       type: "watchdog-daemon",
       traits: ["graded", "hackable", "rebootable"],
       attributes: {},
-      // Watchdog resets on any non-tick message. If no message arrives in
-      // 50 ticks (5s), it fires a "set" message to the alarm latch.
-      // Player has ~5s after subverting the relay before the alarm fires.
-      operators: [{ name: "watchdog", period: 50 }],
+      // Watchdog resets on any non-tick message. If no message arrives within
+      // the period, it fires a "set" message to the alarm latch.
+      operators: [{ name: "watchdog", period: 50, periodTable: { S: 25, A: 30, B: 40, C: 50, D: 60, F: 80 } }],
       actions: [],
     },
     {
@@ -673,7 +672,7 @@ export const encryptedVault = {
       type: "key-gen",
       traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", keyReady: false },
-      operators: [{ name: "clock", period: 100 }],  // 10s cycle at 100ms/tick
+      operators: [{ name: "clock", period: 100, periodTable: { S: 50, A: 60, B: 80, C: 100, D: 120, F: 150 } }],
       actions: [
         {
           id: "extract-key",
@@ -826,7 +825,7 @@ export const cascadeShutdown = {
       type: "watchdog-daemon",
       traits: ["graded", "hackable", "rebootable"],
       attributes: {},
-      operators: [{ name: "watchdog", period: 4 }],
+      operators: [{ name: "watchdog", period: 4, periodTable: { S: 2, A: 3, B: 3, C: 4, D: 5, F: 6 } }],
       actions: [],
     },
     {
@@ -901,7 +900,7 @@ export const tripwireGauntlet = {
       attributes: { accessLevel: "locked", triggered: false, sensorEnabled: true },
       operators: [
         { name: "flag", on: "probe-noise", attr: "triggered", enabledAttr: "sensorEnabled" },
-        { name: "delay", ticks: 6, enabledAttr: "sensorEnabled" },
+        { name: "delay", ticks: 6, ticksTable: { S: 3, A: 4, B: 5, C: 6, D: 8, F: 10 }, enabledAttr: "sensorEnabled" },
       ],
       actions: [
         {
@@ -1020,7 +1019,7 @@ export const noisySensor = {
       type: "traffic-sensor",
       traits: ["graded", "hackable", "rebootable"],
       attributes: { accessLevel: "locked", debounceEnabled: true },
-      operators: [{ name: "debounce", on: "probe-noise", ticks: 4, enabledAttr: "debounceEnabled" }],
+      operators: [{ name: "debounce", on: "probe-noise", ticks: 4, ticksTable: { S: 2, A: 3, B: 3, C: 4, D: 5, F: 7 }, enabledAttr: "debounceEnabled" }],
       actions: [
         {
           id: "muffle",

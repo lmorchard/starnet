@@ -28,7 +28,9 @@
  * @property {string[]} [inputs]      - any-of / all-of: list of origin nodeIds to track
  * @property {string[] | null} [destinations] - relay/debounce: override outgoing destinations (null = broadcast)
  * @property {number} [period]        - clock / watchdog: emit / timeout every N ticks
+ * @property {Record<string, number>} [periodTable] - clock / watchdog: grade → period ticks
  * @property {number} [ticks]         - delay / debounce: re-emit after / suppress for N ticks
+ * @property {Record<string, number>} [ticksTable]  - delay / debounce: grade → ticks
  * @property {number} [n]             - counter: emit after N triggers
  * @property {MessageDescriptor} [emits] - counter: message to emit when threshold reached
  * @property {string} [on]            - flag / tally / debounce: message type to react to
