@@ -134,10 +134,17 @@ function tickUntilResolved(choice, budget) {
     off(E.RUN_ENDED, onRunEnded);
   }
 
-  // If interrupted by ICE, abort the current action and untarget
+  // If interrupted by ICE: eject if we own the node (keeps action going),
+  // otherwise abort and untarget to hide.
   if (interrupted && !resolved && !runEnded) {
-    emitEvent("starnet:action", { actionId: A.ABORT, nodeId: targetNodeId });
-    emitEvent("starnet:action", { actionId: A.UNTARGET });
+    const s = getState();
+    const node = targetNodeId ? s.nodes[targetNodeId] : null;
+    if (node && node.accessLevel === "owned" && s.ice?.active && s.ice.attentionNodeId === targetNodeId) {
+      emitEvent("starnet:action", { actionId: A.EJECT, nodeId: targetNodeId });
+    } else {
+      emitEvent("starnet:action", { actionId: A.ABORT, nodeId: targetNodeId });
+      emitEvent("starnet:action", { actionId: A.UNTARGET });
+    }
   }
 
   return { completed: resolved || runEnded, interrupted, ticksUsed };
