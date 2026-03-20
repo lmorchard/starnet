@@ -32,10 +32,11 @@ The GitHub Pages deploy workflow runs `make bundle-vendor` automatically.
 
 ### Bundling philosophy
 
-- **Vendor code (`js/vendor.js` → `dist/vendor.js`)** — bundled with esbuild.
-  Cytoscape and its layout extensions are npm packages loaded as a single IIFE
-  that sets `window.cytoscape`. Bundling eliminates CDN round-trips, pins
-  versions, and reduces requests from 13 to 1.
+- **Vendor code** — bundled with esbuild into `dist/`:
+  - `js/vendor.js` → `dist/vendor.js` (IIFE) — Cytoscape.js + layout extensions.
+    Sets `window.cytoscape`.
+  - `js/lit-vendor.js` → `dist/lit.js` (ESM) — Lit library + directives
+    (`repeat`, `classMap`, `ifDefined`). Components import from `/dist/lit.js`.
 
 - **Game code (`js/`)** — **not bundled.** The game is plain ES modules with no
   npm dependencies. The browser handles a few dozen small files fine over HTTP/2,
@@ -67,9 +68,21 @@ js/
     game.js             — game-level state mutations (selection, phase, cheating)
   main.js               — app init, action event wiring (@ts-nocheck)
   graph.js              — Cytoscape.js init and node style sync (@ts-nocheck)
-  visual-renderer.js    — subscribes to events, drives graph + HUD rendering
-  log-renderer.js       — subscribes to events, owns log buffer + pane
+  visual-renderer.js    — event→component property bridge (graph overlays + component sync)
+  log-renderer.js       — subscribes to events, sets <starnet-log> entries
   console.js            — keyboard input, command dispatch, tab completion
+  components/
+    starnet-element.js  — LitElement base class (light DOM, no shadow DOM)
+    starnet-log.js      — log pane
+    starnet-hud.js      — header bar (alert, wallet, trace, buttons)
+    starnet-context-menu.js — action menu overlay on graph
+    starnet-mission-pane.js — mission briefing sidebar
+    starnet-node-panel.js   — sidebar node detail (contains ice-timers)
+    starnet-ice-timers.js   — timer display in sidebar
+    starnet-hand.js     — exploit card hand
+    starnet-end-screen.js   — game over overlay
+    starnet-store.js    — darknet broker modal
+    starnet-level-select.js — new run form
   exploits.js           — vulnerability types, exploit card generator
   combat.js             — exploit vs node resolution (probability + flavor)
   loot.js               — macguffin types and node assignment

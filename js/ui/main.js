@@ -104,46 +104,37 @@ function init() {
     else resumeTimers();
   });
 
-  // New run button — opens level select dialog
-  const newRunBtn = document.getElementById("new-run-btn");
-  if (newRunBtn) {
-    newRunBtn.addEventListener("click", () => {
-      import("./level-select.js").then(m => m.openLevelSelect());
-    });
-  }
+  // Bridge: forward DOM CustomEvents from web components to the event bus.
+  // Components dispatch "starnet:action" as DOM events (bubbling); the action
+  // dispatcher listens on the event bus. This listener connects the two.
+  document.addEventListener("starnet:action", (e) => {
+    emitEvent("starnet:action", e.detail);
+  });
 
-  // Wire HUD pause button
+  // Wire HUD actions via <starnet-hud> custom events
   let _userPaused = false;
-  const pauseBtn = document.getElementById("pause-btn");
-  pauseBtn.addEventListener("click", () => {
-    _userPaused = !_userPaused;
-    if (_userPaused) {
-      pauseTimers();
-      pauseBtn.textContent = "[ RESUME ]";
-      pauseBtn.classList.add("active");
-    } else {
-      resumeTimers();
-      pauseBtn.textContent = "[ PAUSE ]";
-      pauseBtn.classList.remove("active");
+  const hudEl = document.getElementById("hud");
+  hudEl.addEventListener("hud-action", (e) => {
+    const { action, file } = e.detail;
+    switch (action) {
+      case "new-run":
+        import("./level-select.js").then(m => m.openLevelSelect());
+        break;
+      case "pause":
+        _userPaused = !_userPaused;
+        if (_userPaused) pauseTimers(); else resumeTimers();
+        hudEl.paused = _userPaused;
+        break;
+      case "save":
+        import("./save-load.js").then(({ saveGame }) => saveGame());
+        break;
+      case "load":
+        if (file) import("./save-load.js").then(({ restoreFromFile }) => restoreFromFile(file, { openDarknetsStore }));
+        break;
+      case "jackout":
+        emitEvent("starnet:action", { actionId: "jackout" });
+        break;
     }
-  });
-
-  // Wire HUD jack-out button
-  document.getElementById("jack-out-btn").addEventListener("click", () => {
-    emitEvent("starnet:action", { actionId: "jackout" });
-  });
-
-  // Wire save/load buttons
-  document.getElementById("save-btn").addEventListener("click", () => {
-    import("./save-load.js").then(({ saveGame }) => saveGame());
-  });
-  // Load uses a <label> wrapping a file input — clicking the label natively
-  // triggers the file picker without programmatic .click() (most reliable).
-  document.getElementById("load-file-input").addEventListener("change", (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    import("./save-load.js").then(({ restoreFromFile }) => restoreFromFile(file));
-    e.target.value = ""; // reset so the same file can be loaded again
   });
 
   const ctx = buildActionContext(openDarknetsStore);
@@ -154,13 +145,16 @@ function init() {
   on(TIMER.TRACE_TICK,   () => handleTraceTick());
   // Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
-  on("starnet:action:run-again", () => {
+  // Run-again: from end screen component (custom event) or legacy event bus
+  const runAgainHandler = () => {
     initGame(() => buildNetworkFn(), undefined, { openDarknetsStore });
     const cy = getCy();
     if (cy) fitGraph(cy);
     addIceNode();
     startIce();
-  });
+  };
+  on("starnet:action:run-again", runAgainHandler);
+  document.getElementById("end-screen")?.addEventListener("run-again", runAgainHandler);
 }
 
 document.addEventListener("DOMContentLoaded", init);
