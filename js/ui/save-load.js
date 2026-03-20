@@ -19,12 +19,14 @@ export function saveGame() {
   addLogEntry("[SYS] Game state saved.", "info");
 }
 
-/** Restore game state from a File object. */
-export function restoreFromFile(file) {
+/** Restore game state from a File object.
+ * @param {File} file
+ * @param {{ openDarknetsStore?: (state: any) => void }} [opts] */
+export function restoreFromFile(file, opts = {}) {
   file.text().then((text) => {
     try {
       const snapshot = JSON.parse(text);
-      deserializeState(snapshot);
+      deserializeState(snapshot, opts);
       emitEvent(E.STATE_CHANGED, getState());
       addLogEntry(`[SYS] Game state loaded from ${file.name}.`, "info");
     } catch (e) {

@@ -4,13 +4,10 @@
 
 /** @typedef {import('../core/types.js').GameState} GameState */
 /** @typedef {import('../core/types.js').NodeState} NodeState */
-/** @typedef {import('../core/types.js').ExploitCard} ExploitCard */
-/** @typedef {import('../core/types.js').ExploitSuccessPayload} ExploitSuccessPayload */
-/** @typedef {import('../core/types.js').ExploitFailurePayload} ExploitFailurePayload */
 /** @typedef {import('../core/types.js').NodeRevealedPayload} NodeRevealedPayload */
 /** @typedef {import('../core/types.js').NodeAccessedPayload} NodeAccessedPayload */
 
-import { on, emitEvent, E } from "../core/events.js";
+import { on, E } from "../core/events.js";
 import { A } from "../core/action-ids.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
@@ -23,14 +20,8 @@ import { exploitSortKey } from "../core/exploits.js";
 // queue overlapping cy.animate() calls that fight each other.
 let revealFitTimer = null;
 
-// Exploit execution timing — used for card progress % display fallback.
-let execStartTime = null;
-let execTotalMs = null;
-
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
-// Cache the last-rendered action ID set to avoid flickering re-renders during timed actions.
-let _lastContextMenuActionIds = "";
 
 export function initVisualRenderer() {
   // ── Event-driven node style updates from NodeGraph ──────
@@ -87,13 +78,11 @@ export function initVisualRenderer() {
     } else if (action === A.XPLOIT) {
       if (phase === "start") {
         activeExploitNodeId = nodeId;
-        execStartTime = Date.now();
       } else if (phase === "progress" && activeExploitNodeId) {
         syncExploitBrackets(activeExploitNodeId, progress);
         updateExploitProgress(progress);
       } else if (phase === "complete" || phase === "cancel") {
         clearExploitBrackets();
-        execStartTime = null; execTotalMs = null;
         if (phase === "complete") {
           // Flash success/failure based on exploit result
           // (EXPLOIT_SUCCESS/FAILURE events are still emitted by resolveExploit → launchExploit)
@@ -131,7 +120,6 @@ export function initVisualRenderer() {
     clearIceDetectSweep();
     activeProbeNodeId = null; activeExploitNodeId = null;
     activeReadNodeId = null; activeLootNodeId = null;
-    execStartTime = null; execTotalMs = null;
   });
 
   // ICE detection sweep — clear immediately on any event that ends a detection dwell.
@@ -145,10 +133,8 @@ export function initVisualRenderer() {
   // Action progress no longer driven here — ACTION_FEEDBACK handles it.
   on(E.TIMERS_UPDATED, (/** @type {GameState} */ state) => {
     syncIceTimers();
-    const countdown = document.getElementById("trace-countdown");
-    if (countdown && state.traceSecondsRemaining !== null) {
-      countdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
-    }
+    const hudEl = /** @type {any} */ (document.getElementById("hud"));
+    if (hudEl) hudEl.traceSeconds = state.traceSecondsRemaining;
     // ICE detection sweep — driven by timer presence; self-clears when timer is gone
     const iceDetect = getVisibleTimers().find((t) => t.label === "ICE DETECTION");
     if (iceDetect) {
@@ -244,10 +230,9 @@ function _positionContextMenu(nodeId) {
 }
 
 function syncContextMenu(node, state) {
-  const menu = document.getElementById("node-context-menu");
+  const menu = /** @type {any} */ (document.getElementById("node-context-menu"));
   if (!menu) return;
 
-  const prevNodeId = contextMenuNodeId;
   contextMenuNodeId = node.id;
 
   const actions = getAvailableActions(node, state)
@@ -258,28 +243,10 @@ function syncContextMenu(node, state) {
     return;
   }
 
-  // Skip innerHTML rebuild if the same node + actions are already rendered —
-  // avoids destroying hover state during timed-action progress ticks.
-  const actionIdKey = actions.map(a => a.id).join(",");
-  if (actionIdKey === _lastContextMenuActionIds && prevNodeId === node.id) {
-    _positionContextMenu(node.id);
-    return;
-  }
-  _lastContextMenuActionIds = actionIdKey;
-
-  menu.innerHTML = actions.map((a) => {
-    const desc = a.desc(node, state);
-    return `<button class="ctx-item" data-action="${a.id}">
-      [ ${a.label} ]${desc ? `<span class="ctx-item-desc">${desc}</span>` : ""}
-    </button>`;
-  }).join("");
-
-  menu.querySelectorAll(".ctx-item[data-action]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const actionId = /** @type {HTMLElement} */ (btn).dataset.action;
-      emitEvent("starnet:action", { actionId, nodeId: node.id });
-    });
-  });
+  // Pre-compute desc strings for the component (desc is a function on ActionDef)
+  menu.actions = actions.map((a) => ({ id: a.id, label: a.label, desc: a.desc(node, state) }));
+  menu.nodeId = node.id;
+  menu.visible = true;
 
   _positionContextMenu(node.id);
   menu.style.opacity = "1";
@@ -288,9 +255,9 @@ function syncContextMenu(node, state) {
 
 function clearContextMenu() {
   contextMenuNodeId = null;
-  _lastContextMenuActionIds = "";
-  const menu = document.getElementById("node-context-menu");
+  const menu = /** @type {any} */ (document.getElementById("node-context-menu"));
   if (!menu) return;
+  menu.visible = false;
   menu.style.opacity = "0";
   menu.style.pointerEvents = "none";
 }
@@ -317,86 +284,51 @@ function syncOverlays(state) {
 // ── HUD sync ──────────────────────────────────────────────
 
 function syncHud(state) {
-  document.getElementById("wallet").textContent =
-    `¥${state.player.cash.toLocaleString()}`;
+  const hudEl = /** @type {any} */ (document.getElementById("hud"));
+  if (hudEl) {
+    hudEl.alert = state.globalAlert;
+    hudEl.cash = state.player.cash;
+    hudEl.traceSeconds = state.traceSecondsRemaining;
+    hudEl.isCheating = state.isCheating;
+    hudEl.phase = state.phase;
 
-  const dot = document.getElementById("alert-dot");
-  const levelEl = document.getElementById("alert-level");
-  const level = state.globalAlert;
-  dot.className = "alert-dot" + (level !== "green" ? ` ${level}` : "");
-  levelEl.textContent = level.toUpperCase();
-  levelEl.style.color =
-    level === "green"  ? "var(--green)" :
-    level === "yellow" ? "var(--yellow)" :
-                         "var(--red)";
-
-  // Trace countdown in HUD
-  const existingCountdown = document.getElementById("trace-countdown");
-  if (state.traceSecondsRemaining !== null && state.phase === "playing") {
-    if (existingCountdown) {
-      existingCountdown.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
-    } else {
-      const el = document.createElement("span");
-      el.id = "trace-countdown";
-      el.className = "hud-value trace-countdown";
-      el.textContent = `TRACE: ${state.traceSecondsRemaining}s`;
-      document.getElementById("jack-out-btn").before(el);
-    }
-  } else if (existingCountdown) {
-    existingCountdown.remove();
-  }
-
-  /** @type {HTMLButtonElement} */ (document.getElementById("jack-out-btn")).disabled = state.phase !== "playing";
-
-  // Connection status indicator
-  const connDot = document.getElementById("conn-dot");
-  const connStatus = document.getElementById("conn-status");
-  if (connDot && connStatus) {
+    // Connection status
     const detecting = getVisibleTimers().some((t) => t.label === "ICE DETECTION");
     if (detecting) {
-      connDot.className = "hud-conn-dot detecting";
-      connStatus.className = "detecting";
-      connStatus.textContent = `ACTIVE: ${state.selectedNodeId}`;
+      hudEl.connectionStatus = "detecting";
+      hudEl.connectionLabel = `ACTIVE: ${state.selectedNodeId}`;
     } else if (state.selectedNodeId) {
-      connDot.className = "hud-conn-dot active";
-      connStatus.className = "active";
-      connStatus.textContent = `ACTIVE: ${state.selectedNodeId}`;
+      hudEl.connectionStatus = "active";
+      hudEl.connectionLabel = `ACTIVE: ${state.selectedNodeId}`;
     } else {
-      connDot.className = "hud-conn-dot";
-      connStatus.className = "";
-      connStatus.textContent = "PASSIVE SCAN";
+      hudEl.connectionStatus = "";
+      hudEl.connectionLabel = "PASSIVE SCAN";
     }
-  }
-
-  // Cheat mode indicator
-  const existingCheatLabel = document.getElementById("cheat-label");
-  if (state.isCheating && !existingCheatLabel) {
-    const el = document.createElement("span");
-    el.id = "cheat-label";
-    el.className = "hud-cheat-label";
-    el.textContent = "// CHEAT";
-    document.getElementById("hud").appendChild(el);
   }
 
   syncMissionPane(state);
 
   // End screen
   if (state.phase === "ended") {
-    document.getElementById("sidebar-node").innerHTML = "";
-    document.getElementById("hand-strip").innerHTML = "";
+    /** @type {any} */ (document.getElementById("sidebar-node")).node = null;
+    /** @type {any} */ (document.getElementById("sidebar-node")).selectedNodeId = "";
+    const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
+    handEl.cards = [];
+    handEl.executingCardId = null;
+    handEl.execProgress = 0;
+    handEl.isSelecting = false;
+    handEl.selectedNode = null;
+    handEl.selectedNodeId = "";
     renderEndScreen(state);
     return;
   }
 
   // Sidebar node panel
-  const sidebarNode = document.getElementById("sidebar-node");
-  if (state.selectedNodeId) {
-    renderSidebarNode(sidebarNode, state.nodes[state.selectedNodeId], state);
-  } else {
-    sidebarNode.innerHTML = `<div class="sidebar-placeholder">
-      &gt; SELECT A NODE<br />&gt; TO BEGIN INTRUSION
-    </div>`;
-  }
+  const nodePanelEl = /** @type {any} */ (document.getElementById("sidebar-node"));
+  nodePanelEl.selectedNodeId = state.selectedNodeId || "";
+  // Shallow-copy: state mutates nodes in place, so the reference doesn't change.
+  // Lit needs a new reference to trigger re-render.
+  nodePanelEl.node = state.selectedNodeId ? { ...state.nodes[state.selectedNodeId] } : null;
 
   syncHandPane(state);
 }
@@ -405,126 +337,24 @@ function syncHud(state) {
 
 function syncMissionPane(state) {
   const el = document.getElementById("sidebar-mission");
-  if (!el || !state.mission) return;
-
-  let statusClass, statusText;
-  if (state.mission.complete) {
-    statusClass = "mission-status-complete";
-    statusText = "STATUS: ██ COMPLETE";
-  } else if (state.phase === "ended") {
-    statusClass = "mission-status-failed";
-    statusText = "STATUS: ░░ FAILED";
-  } else {
-    statusClass = "mission-status-active";
-    statusText = "STATUS: ▶ ACTIVE";
-  }
-
-  el.innerHTML = `
-    <div class="mission-label">// MISSION</div>
-    <div class="mission-target">⬡ ${state.mission.targetName}</div>
-    <div class="${statusClass}">${statusText}</div>`;
+  if (!el) return;
+  /** @type {any} */ (el).mission = state.mission ? { ...state.mission } : null;
+  /** @type {any} */ (el).phase = state.phase;
 }
 
-// ── Sidebar node panel ────────────────────────────────────
-
-function renderSidebarNode(sidebarNode, node, state) {
-  if (node.visibility === "revealed") {
-    sidebarNode.innerHTML = `<div class="sidebar-placeholder">
-      [???] UNKNOWN NODE<br /><br />
-      Signal detected on network.<br />
-      Gain access to a connected node<br />to probe further.
-    </div>`;
-    return;
-  }
-
-  const alertColor =
-    node.alertState === "green"  ? "var(--green)" :
-    node.alertState === "yellow" ? "var(--yellow)" :
-                                   "var(--red)";
-
-  const visibleVulns = node.vulnerabilities.filter((v) => !v.hidden);
-  const vulnSection = node.probed
-    ? `<div class="nd-section-label">VULNERABILITIES</div>
-       <div class="nd-vulns">
-         ${visibleVulns.map((v) =>
-           `<div class="nd-vuln ${v.patched ? "patched" : ""}">
-              <span class="vuln-name">${v.name}</span>
-              <span class="vuln-rarity rarity-${v.rarity}">[${v.rarity.toUpperCase()}]</span>
-            </div>`
-         ).join("")}
-       </div>`
-    : `<div class="nd-dim nd-indent">Run PROBE to reveal vulnerabilities.</div>`;
-
-  sidebarNode.innerHTML = `
-    <div class="node-detail">
-      <div class="nd-header">
-        <span class="nd-type">[${node.type.toUpperCase()}]</span>
-        <span class="nd-label">${node.label}</span>
-        <button class="untarget-btn" data-action="untarget">[ UNTARGET ]</button>
-      </div>
-      <div class="nd-row">
-        <span class="nd-key">GRADE</span>
-        <span class="nd-val grade-${node.grade}">${node.grade}</span>
-      </div>
-      <div class="nd-row">
-        <span class="nd-key">ACCESS</span>
-        <span class="nd-val">${node.accessLevel.toUpperCase()}</span>
-      </div>
-      <div class="nd-row">
-        <span class="nd-key">ALERT</span>
-        <span class="nd-val" style="color:${alertColor}">● ${node.alertState.toUpperCase()}</span>
-      </div>
-      <div class="nd-divider">──────────────────</div>
-      ${vulnSection}
-      ${node.read && node.macguffins.length > 0 ? `
-      <div class="nd-divider">──────────────────</div>
-      <div class="nd-section-label">CONTENTS</div>
-      <div class="nd-macguffins">
-        ${node.macguffins.map((m) => `
-          <div class="macguffin ${m.collected ? "collected" : ""} ${m.isMission ? "mission-target" : ""}">
-            <span class="mg-name">${m.name}</span>
-            ${m.isMission && !m.collected ? `<span class="mg-mission-tag">★ MISSION</span>` : ""}
-            <span class="mg-value ${m.collected ? "mg-collected" : ""}">
-              ${m.collected ? "EXTRACTED" : `¥${m.cashValue.toLocaleString()}`}
-            </span>
-          </div>`).join("")}
-      </div>` : node.read ? `
-      <div class="nd-divider">──────────────────</div>
-      <div class="nd-dim nd-indent">No valuables detected.</div>` : ""}
-      <div class="nd-divider">──────────────────</div>
-      <div class="ice-timers-slot"></div>
-    </div>`;
-
-  syncIceTimers(sidebarNode);
-
-  sidebarNode.querySelector(".untarget-btn")?.addEventListener("click", () => {
-    emitEvent("starnet:action", { actionId: A.UNTARGET });
-  });
-}
 
 // ── Hand pane ─────────────────────────────────────────────
 
 function updateExploitProgress(progress = null) {
-  let pct;
-  if (progress !== null) {
-    pct = Math.min(100, Math.round(progress * 100));
-  } else if (execStartTime !== null && execTotalMs !== null) {
-    const elapsed = Math.min(Date.now() - execStartTime, execTotalMs);
-    pct = Math.min(100, Math.round((elapsed / execTotalMs) * 100));
-  } else {
-    return;
-  }
-  const label = document.querySelector(".exploit-card.executing .ec-executing-label");
-  if (label) label.textContent = `▶ EXECUTING — ${pct}%`;
+  if (progress === null) return;
+  const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
+  if (handEl) handEl.execProgress = progress;
 }
 
-let _lastHandKey = "";
-
 function syncHandPane(state) {
-  const el = document.getElementById("hand-strip");
-  if (!el) return;
+  const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
+  if (!handEl) return;
 
-  // Check for active exploit via node graph attributes (not old state.executingExploit)
   const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
   const exploitingId = selectedNode?.exploiting ? selectedNode.activeExploitId : null;
   const executing = !!exploitingId;
@@ -533,181 +363,43 @@ function syncHandPane(state) {
     ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
     : state.player.hand;
 
-  // Skip re-render if hand state hasn't changed (prevents flicker from
-  // frequent STATE_CHANGED events destroying and recreating card DOM)
-  const handKey = sortedHand.map(c => `${c.id}:${c.uses}:${c.decayState}`).join("|")
-    + `|sel:${state.selectedNodeId ?? ""}|exec:${exploitingId ?? ""}`;
-  if (handKey === _lastHandKey) return;
-  _lastHandKey = handKey;
-
-  const handClass = ["nd-hand", isSelecting ? "selectable" : "", executing ? "exploit-hand-executing" : ""]
-    .filter(Boolean).join(" ");
-
-  el.innerHTML = `
-    <div class="${handClass}">
-      ${sortedHand.length === 0
-        ? '<span class="nd-dim">No exploits in hand.</span>'
-        : sortedHand.map((c, i) => {
-            const isExec = exploitingId === c.id;
-            const elapsedMs = (isExec && execStartTime !== null && execTotalMs !== null)
-              ? Math.min(Date.now() - execStartTime, execTotalMs)
-              : 0;
-            return renderExploitCard(c, selectedNode, i + 1, isSelecting, isExec, elapsedMs, execTotalMs ?? 0);
-          }).join("")}
-    </div>`;
-
-  if (isSelecting) {
-    el.querySelectorAll(".exploit-card.selectable-card").forEach((cardEl) => {
-      cardEl.addEventListener("click", () => {
-        const exploitId = /** @type {HTMLElement} */ (cardEl).dataset.exploitId;
-        const cardIndex = /** @type {HTMLElement} */ (cardEl).dataset.cardIndex;
-        emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: state.selectedNodeId, exploitId, cardIndex });
-      });
-    });
-  }
-
-  if (executing) {
-    el.querySelector(".ec-cancel-overlay")?.addEventListener("click", () => {
-      emitEvent("starnet:action", { actionId: A.ABORT });
-    });
-  }
-}
-
-function renderExploitCard(card, selectedNode = null, index = null, isSelecting = false, isExecuting = false, execElapsedMs = 0, execTotalMs = 0) {
-  const rarityClass = `rarity-${card.rarity}`;
-  const disclosed = card.decayState === "disclosed";
-  const worn = card.decayState === "worn";
-  const qualityPips = Math.round(card.quality * 5);
-  const pips = "█".repeat(qualityPips) + "░".repeat(5 - qualityPips);
-
-  let matchClass = "";
-  if (selectedNode?.probed && !isExecuting) {
-    const knownVulnIds = selectedNode.vulnerabilities
-      .filter((v) => !v.patched && !v.hidden)
-      .map((v) => v.id);
-    const hasMatch = card.targetVulnTypes.some((t) => knownVulnIds.includes(t));
-    matchClass = hasMatch ? "match" : "no-match";
-  }
-
-  const isSelectable = isSelecting && !disclosed;
-  const classes = [
-    "exploit-card", rarityClass,
-    disclosed ? "disclosed" : "",
-    matchClass,
-    isSelectable ? "selectable-card" : "",
-    isExecuting ? "executing" : "",
-  ].filter(Boolean).join(" ");
-
-  const execPct = (isExecuting && execTotalMs > 0)
-    ? Math.min(100, Math.round((execElapsedMs / execTotalMs) * 100))
-    : 0;
-  const execStyle = (isExecuting && execTotalMs > 0)
-    ? ` style="--exec-total: ${execTotalMs}ms; --exec-elapsed: -${Math.round(execElapsedMs)}ms"`
-    : "";
-
-  return `<div class="${classes}"${execStyle} data-exploit-id="${card.id}" data-card-index="${index}">
-    <div class="ec-header">
-      ${index !== null ? `<span class="ec-index">${index}.</span>` : ""}
-      <span class="ec-name">${card.name}</span>
-    </div>
-    <div class="ec-row">
-      <span class="ec-key">QUAL</span>
-      <span class="ec-pips">${pips}</span>
-    </div>
-    <div class="ec-row">
-      <span class="ec-key">USES</span>
-      <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
-    </div>
-    <div class="ec-vulns">${card.targetVulnTypes.map((t) => `<div class="ec-vuln">${t}</div>`).join("")}</div>
-    <div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>
-    ${isExecuting ? `<div class="ec-cancel-overlay"><span class="ec-cancel-x">✕</span></div>` : ""}
-  </div>`;
+  handEl.cards = sortedHand.map(c => ({ ...c }));
+  handEl.selectedNode = selectedNode ? { ...selectedNode } : null;
+  handEl.executingCardId = exploitingId;
+  handEl.isSelecting = isSelecting;
+  handEl.selectedNodeId = state.selectedNodeId || "";
 }
 
 // ── ICE timers ────────────────────────────────────────────
 
-// Updates the .ice-timers-slot in the sidebar in-place (no full re-render).
-// Called both after sidebar innerHTML is set and on TIMERS_UPDATED ticks.
-function syncIceTimers(container = null) {
-  const slot = (container ?? document.getElementById("sidebar-node"))
-    ?.querySelector(".ice-timers-slot");
-  if (!slot) return;
-  slot.innerHTML = renderIceTimers();
-}
-
-function renderIceTimers() {
-  const timers = getVisibleTimers();
-  const rows = timers.map((t) => {
-    const cls = t.label === "ICE DETECTION" ? "ice-timer-detect"
-              : t.label === "EXECUTING"      ? "ice-timer-executing"
-              : t.label === "SCANNING"       ? "ice-timer-scanning"
-              : t.label === "READING"        ? "ice-timer-scanning"
-              : t.label === "EXTRACTING"     ? "ice-timer-scanning"
-              : "ice-timer-reboot";
-    return `<div class="ice-timer ${cls}">⚠ ${t.label}: ${t.remaining}s</div>`;
-  }).join("");
-  return rows ? `<div class="ice-timers">${rows}</div>` : "";
+// Updates the <starnet-node-panel> timers property.
+// Called on TIMERS_UPDATED ticks.
+function syncIceTimers() {
+  const panel = /** @type {any} */ (document.getElementById("sidebar-node"));
+  if (!panel) return;
+  panel.timers = getVisibleTimers();
 }
 
 // ── End screen ────────────────────────────────────────────
 
 function renderEndScreen(state) {
-  const caught = state.runOutcome === "caught";
-  const nodesCompromised = Object.values(state.nodes).filter(
+  const endEl = /** @type {any} */ (document.getElementById("end-screen"));
+  if (!endEl) return;
+
+  endEl.outcome = state.runOutcome;
+  endEl.cash = state.player.cash;
+  endEl.hasMission = !!state.mission;
+  endEl.missionComplete = state.mission?.complete ?? false;
+  endEl.nodesCompromised = Object.values(state.nodes).filter(
     (n) => n.accessLevel !== "locked"
   ).length;
-  const nodesOwned = Object.values(state.nodes).filter(
+  endEl.nodesOwned = Object.values(state.nodes).filter(
     (n) => n.accessLevel === "owned"
   ).length;
-  const macguffinsLooted = Object.values(state.nodes).reduce(
+  endEl.macguffinsLooted = Object.values(state.nodes).reduce(
     (sum, n) => sum + (n.looted ? n.macguffins.length : 0), 0
   );
-
-  const overlay = document.getElementById("end-screen") || (() => {
-    const el = document.createElement("div");
-    el.id = "end-screen";
-    document.getElementById("app").appendChild(el);
-    return el;
-  })();
-
-  const missionRow = state.mission ? (() => {
-    const complete = state.mission.complete;
-    const cls = complete ? "end-val end-mission-complete" : "end-val end-zero";
-    return `<div class="end-row">
-      <span class="end-key">MISSION</span>
-      <span class="${cls}">${complete ? "COMPLETE" : "FAILED"}</span>
-    </div>`;
-  })() : "";
-
-  overlay.innerHTML = `
-    <div class="end-box">
-      <div class="end-title">${caught ? "▶ TRACED ◀" : "▶ RUN COMPLETE ◀"}</div>
-      <div class="end-divider">════════════════════════</div>
-      <div class="end-row">
-        <span class="end-key">CASH EXTRACTED</span>
-        <span class="end-val ${caught ? "end-zero" : ""}">¥${state.player.cash.toLocaleString()}</span>
-      </div>
-      ${missionRow}
-      <div class="end-row">
-        <span class="end-key">NODES COMPROMISED</span>
-        <span class="end-val">${nodesCompromised}</span>
-      </div>
-      <div class="end-row">
-        <span class="end-key">NODES OWNED</span>
-        <span class="end-val">${nodesOwned}</span>
-      </div>
-      <div class="end-row">
-        <span class="end-key">MACGUFFINS LOOTED</span>
-        <span class="end-val">${macguffinsLooted}</span>
-      </div>
-      <div class="end-divider">════════════════════════</div>
-      <button class="end-btn" id="run-again-btn">[ RUN AGAIN ]</button>
-    </div>`;
-
-  // Dispatch action event — main.js handles the actual re-init
-  document.getElementById("run-again-btn").addEventListener("click", () => {
-    overlay.remove();
-    emitEvent("starnet:action:run-again", {});
-  });
+  endEl.isCheating = state.isCheating;
+  endEl.open = true;
 }
 

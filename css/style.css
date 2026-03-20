@@ -950,7 +950,7 @@ html, body {
 
 /* ── Darknet store modal ──────────────────────────────────── */
 
-#darknet-store-modal {
+#darknet-store {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.82);
@@ -1081,7 +1081,7 @@ html, body {
 
 /* ── Level select modal ───────────────────────────────────── */
 
-#level-select-modal {
+#level-select {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);

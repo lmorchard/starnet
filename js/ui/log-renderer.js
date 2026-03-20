@@ -166,9 +166,5 @@ export { _addLogEntry as addLogEntry, getRecentLog };
 function renderLogPane() {
   const el = document.getElementById("log-entries");
   if (!el) return;
-  const visible = getRecentLog();
-  el.innerHTML = visible.map((entry) =>
-    `<div class="log-entry log-${entry.type}">${entry.text}</div>`
-  ).join("");
-  el.scrollTop = el.scrollHeight;
+  /** @type {any} */ (el).entries = getRecentLog();
 }

@@ -295,7 +295,7 @@ export function serializeState() {
   };
 }
 
-export function deserializeState(snapshot) {
+export function deserializeState(snapshot, opts = {}) {
   const { _timers, _rng, _exploitIdCounter: exploitId, _nodeGraph, ...gameState } = snapshot;
   state = gameState;
   deserializeTimers(_timers);
@@ -305,7 +305,7 @@ export function deserializeState(snapshot) {
 
   // Restore NodeGraph from snapshot
   if (_nodeGraph) {
-    const ctx = buildGameCtx();
+    const ctx = buildGameCtx(opts);
     const onEvent = (type, payload) => {
       if (type === "node-state-changed") {
         if (!isSyncingToGraph() && state?.nodes[payload.nodeId]) {

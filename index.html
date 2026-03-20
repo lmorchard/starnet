@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>STARNET</title>
   <link rel="stylesheet" href="css/style.css" />
+  <!-- Import map: bare "lit" specifiers → bundled dist/lit.js -->
+  <script type="importmap">
+    { "imports": {
+      "lit": "./dist/lit.js",
+      "lit/directives/repeat.js": "./dist/lit.js"
+    } }
+  </script>
   <!-- Cytoscape.js + layout extensions (vendor bundle built by: make bundle-vendor) -->
   <script src="dist/vendor.js"></script>
 </head>
@@ -12,31 +19,7 @@
   <div id="app">
 
     <!-- HUD -->
-    <header id="hud">
-      <span class="hud-title">★ STARNET</span>
-
-      <div id="hud-connection">
-        <span class="hud-conn-dot" id="conn-dot"></span>
-        <span class="hud-value" id="conn-status">PASSIVE SCAN</span>
-      </div>
-
-      <div class="hud-alert">
-        <div class="alert-dot" id="alert-dot"></div>
-        <span class="hud-label">ALERT:</span>
-        <span class="hud-value" id="alert-level">GREEN</span>
-      </div>
-
-      <span class="hud-label">WALLET:</span>
-      <span class="hud-value" id="wallet">¥0</span>
-
-      <button id="new-run-btn" title="Start a new run with custom parameters">[ NEW RUN ]</button>
-      <button id="pause-btn">[ PAUSE ]</button>
-      <button id="save-btn" title="Save game state to file">[ SAVE ]</button>
-      <label id="load-btn" title="Load game state from file">[ LOAD ]
-        <input id="load-file-input" type="file" accept=".json" style="display:none" />
-      </label>
-      <button id="jack-out-btn" disabled>[ JACK OUT ]</button>
-    </header>
+    <starnet-hud id="hud"></starnet-hud>
 
     <!-- Main area: graph column + sidebar -->
     <main id="main">
@@ -99,12 +82,14 @@
               <line id="reticle-tick-w" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
             </g>
           </svg>
-          <div id="node-context-menu"
+          <starnet-context-menu id="node-context-menu"
                style="position:absolute; opacity:0; pointer-events:none; z-index:10;">
-          </div>
+          </starnet-context-menu>
+          <starnet-store id="darknet-store"></starnet-store>
+          <starnet-level-select id="level-select"></starnet-level-select>
         </div>
         <div id="log-pane">
-          <div id="log-entries"></div>
+          <starnet-log id="log-entries"></starnet-log>
           <div id="console-row">
             <span class="console-prompt">&gt;</span>
             <input id="console-input" type="text" autocomplete="off" spellcheck="false" placeholder="enter command..." />
@@ -113,23 +98,26 @@
       </div>
 
       <aside id="sidebar">
-        <div id="sidebar-mission">
-          <!-- mission briefing, rendered by syncMissionPane -->
-        </div>
-        <div id="sidebar-node">
-          <div class="sidebar-placeholder">
-            &gt; SELECT A NODE<br />
-            &gt; TO BEGIN INTRUSION
-          </div>
-        </div>
-        <div id="hand-strip">
-          <!-- always-visible exploit hand, rendered by syncHandPane -->
-        </div>
+        <starnet-mission-pane id="sidebar-mission"></starnet-mission-pane>
+        <starnet-node-panel id="sidebar-node"></starnet-node-panel>
+        <starnet-hand id="hand-strip"></starnet-hand>
       </aside>
     </main>
 
+    <starnet-end-screen id="end-screen"></starnet-end-screen>
+
   </div>
 
+  <script type="module" src="js/ui/components/starnet-log.js"></script>
+  <script type="module" src="js/ui/components/starnet-mission-pane.js"></script>
+  <script type="module" src="js/ui/components/starnet-ice-timers.js"></script>
+  <script type="module" src="js/ui/components/starnet-hud.js"></script>
+  <script type="module" src="js/ui/components/starnet-context-menu.js"></script>
+  <script type="module" src="js/ui/components/starnet-node-panel.js"></script>
+  <script type="module" src="js/ui/components/starnet-hand.js"></script>
+  <script type="module" src="js/ui/components/starnet-end-screen.js"></script>
+  <script type="module" src="js/ui/components/starnet-store.js"></script>
+  <script type="module" src="js/ui/components/starnet-level-select.js"></script>
   <script type="module" src="js/ui/main.js"></script>
 </body>
 </html>
