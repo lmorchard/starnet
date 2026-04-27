@@ -1,7 +1,9 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
+import { getPrimaryIce } from "../js/core/state/ice.js";
 import { clearHandlers } from "../js/core/events.js";
+import { clearAll } from "../js/core/timers.js";
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 
@@ -71,10 +73,10 @@ describe("initGame", () => {
 
   it("spawns ICE from meta when defined", () => {
     initGame(() => buildCorporateExchange(), "test-seed-7");
-    const s = getState();
-    assert.ok(s.ice);
-    assert.equal(s.ice.active, true);
-    assert.equal(s.ice.grade, "B");
+    const ice = getPrimaryIce();
+    assert.ok(ice);
+    assert.equal(ice.active, true);
+    assert.equal(ice.grade, "B");
   });
 
   it("graph tick advances without error", () => {
@@ -91,6 +93,16 @@ describe("initGame", () => {
     s.nodeGraph.setNodeAttr("gateway", "probed", true);
     // Should be synced to state.nodes
     assert.equal(s.nodes["gateway"].probed, true);
+  });
+
+  it("player state includes health and deckIntegrity pools", () => {
+    clearAll();
+    initGame(() => buildCorporateExchange());
+    const s = getState();
+    assert.equal(s.player.health.current, 100);
+    assert.equal(s.player.health.max, 100);
+    assert.equal(s.player.deckIntegrity.current, 100);
+    assert.equal(s.player.deckIntegrity.max, 100);
   });
 });
 

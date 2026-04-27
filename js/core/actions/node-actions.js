@@ -14,6 +14,7 @@
 
 import { getGlobalActions } from "./global-actions.js";
 import { A } from "../action-ids.js";
+import { getPrimaryIceFromState } from "../state/ice.js";
 
 /**
  * Returns all available actions for the given node and game state.
@@ -33,7 +34,8 @@ export function getAvailableActions(node, state) {
   const filtered = graphActions.filter(action => {
     // Eject requires ICE attention at this specific node
     if (action.id === A.EJECT) {
-      return !!(state.ice?.active && state.ice.attentionNodeId === node.id);
+      const ice = getPrimaryIceFromState(state);
+      return !!(ice?.active && ice.attentionNodeId === node.id);
     }
     return true;
   });

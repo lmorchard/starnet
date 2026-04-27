@@ -8,6 +8,7 @@
 import { initGraph, getCy, fitGraph, syncInitialNodes, addIceNode, flashNode } from "../ui/graph.js";
 import { initGame, getState } from "../core/state.js";
 import { startIce, handleIceTick, handleIceDetect } from "../core/ice.js";
+import { getPrimaryIce } from "../core/state/ice.js";
 import { initConsole, runCommand } from "../ui/console.js";
 import { on, emitEvent, E } from "../core/events.js";
 import { tick, TICK_MS, TIMER, getVisibleTimers } from "../core/timers.js";
@@ -320,8 +321,7 @@ async function init() {
   fitGraph(cy);
 
   // ICE (may not exist in mini-networks)
-  const s = getState();
-  if (s.ice) {
+  if (getPrimaryIce()) {
     addIceNode();
     startIce();
   }

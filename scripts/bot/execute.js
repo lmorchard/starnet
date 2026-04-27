@@ -7,6 +7,7 @@
 import { emitEvent, on, off, E, tick, getState } from "../lib/headless-engine.js";
 import { buyFromStore } from "../../js/core/store-logic.js";
 import { A } from "../../js/core/action-ids.js";
+import { getPrimaryIce } from "../../js/core/state/ice.js";
 
 /** Actions that start a timed process and need tick-forward */
 const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT, A.MINE]);
@@ -121,7 +122,8 @@ function tickUntilResolved(choice, budget) {
     const s = getState();
     if (toId !== s.selectedNodeId || toId !== targetNodeId) return;
     const node = s.nodes[targetNodeId];
-    if (node && node.accessLevel === "owned" && s.ice?.active && s.ice.attentionNodeId === targetNodeId) {
+    const primaryIce = getPrimaryIce();
+    if (node && node.accessLevel === "owned" && primaryIce?.active && primaryIce.attentionNodeId === targetNodeId) {
       emitEvent("starnet:action", { actionId: A.EJECT, nodeId: targetNodeId });
     }
   };
@@ -153,6 +155,8 @@ function tickUntilResolved(choice, budget) {
 
   // Caught mid-action: abort and untarget to hide. Alert has already escalated;
   // the between-action heuristics (evasion/security) handle trace from here.
+  // (Eject-on-arrival for owned nodes is handled live by onIceMoved above; by the
+  // time we land here, ICE has completed a dwell and actually detected us.)
   if (detected && !resolved && !runEnded) {
     emitEvent("starnet:action", { actionId: A.ABORT, nodeId: targetNodeId });
     emitEvent("starnet:action", { actionId: A.UNTARGET });

@@ -18,6 +18,7 @@ import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
 import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
 import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
+import { getPrimaryIce } from "../state/ice.js";
 import { on } from "../events.js";
 import { setSelectedNode } from "../state/game.js";
 import { setNodeRebooting } from "../state/node.js";
@@ -152,11 +153,13 @@ export function buildGameCtx(opts = {}) {
       if (!node || node.rebooting) return;
 
       // Send ICE home if on this node
-      if (s.ice?.active && s.ice.attentionNodeId === nodeId) {
+      const ice = getPrimaryIce();
+      if (ice?.active && ice.attentionNodeId === nodeId) {
         rebootIce();
         emitEvent(E.ICE_REBOOTED, {
-          residentNodeId: s.ice.residentNodeId,
-          residentLabel: s.nodes[s.ice.residentNodeId]?.label ?? s.ice.residentNodeId,
+          iceId: ice.id,
+          residentNodeId: ice.hostNodeId ?? null,
+          residentLabel: ice ? (s.nodes[ice.hostNodeId]?.label ?? ice.hostNodeId) : null,
         });
       }
 

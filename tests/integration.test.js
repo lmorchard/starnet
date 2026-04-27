@@ -18,7 +18,7 @@
 // RNG.COMBAT rolls (success, flavor pick, skip-to-owned), and forcing only the
 // first two leaves the skip roll seeded. See the roll-consumption block in combat.js.
 
-import { describe, it, before, beforeEach } from "node:test";
+import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import {
@@ -44,6 +44,7 @@ import { setGlobalAlert } from "../js/core/state/alert.js";
 // NODE_RECONFIGURED listeners. No separate init call needed.
 // Old executor imports removed — timed actions now graph-native
 import { RNG, _forceNext } from "../js/core/rng.js";
+import { getPrimaryIce } from "../js/core/state/ice.js";
 
 // Register the node lifecycle dispatcher once for this test file.
 
@@ -214,13 +215,14 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
   });
 
   it("ICE starts active after initState + startIce", () => {
-    assert.ok(getState().ice?.active);
+    assert.ok(getPrimaryIce()?.active);
   });
 
   it("owning security-monitor sets ice.active to false", () => {
     const s = getState();
     s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
-    assert.equal(getState().ice?.active, false);
+    // ICE_DISABLED setIceActive(false) makes getPrimaryIce() return null
+    assert.equal(getPrimaryIce(), null);
   });
 
   it("owning security-monitor emits ICE_DISABLED", () => {
@@ -235,7 +237,7 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
     const s = getState();
     s.nodes["gateway"].accessLevel = "owned";
     emitEvent(E.NODE_ACCESSED, { nodeId: "gateway", label: "gateway", prev: "locked", next: "owned" });
-    assert.ok(getState().ice?.active, "ICE should remain active");
+    assert.ok(getPrimaryIce()?.active, "ICE should remain active");
   });
 });
 
@@ -409,22 +411,22 @@ describe("ICE detection: detectedAtNode resets when player moves", () => {
   it("moving to a different node resets detectedAtNode to null", () => {
     const s = getState();
     s.selectedNodeId = "gateway";
-    s.ice.detectedAtNode = "gateway"; // simulate: detection already happened here
+    getPrimaryIce().detectedAtNode = "gateway"; // simulate: detection already happened here
 
     navigateTo("router-a");
 
-    assert.equal(s.ice.detectedAtNode, null,
+    assert.equal(getPrimaryIce().detectedAtNode, null,
       "detectedAtNode should clear so ICE can detect at gateway again after player returns");
   });
 
   it("re-selecting the SAME node does NOT reset detectedAtNode", () => {
     const s = getState();
     s.selectedNodeId = "gateway";
-    s.ice.detectedAtNode = "gateway";
+    getPrimaryIce().detectedAtNode = "gateway";
 
     navigateTo("gateway");
 
-    assert.equal(s.ice.detectedAtNode, "gateway",
+    assert.equal(getPrimaryIce().detectedAtNode, "gateway",
       "detectedAtNode must not reset when player re-selects the already-selected node");
   });
 });
@@ -441,7 +443,7 @@ describe("ICE detection: player navigates to node where ICE is already present",
   it("starts detection dwell when player enters ICE's current node", () => {
     const s = getState();
     // Place ICE at gateway (accessible from start) without triggering handleIceTick
-    s.ice.attentionNodeId = "gateway";
+    getPrimaryIce().attentionNodeId = "gateway";
 
     const events = withEvents(E.ICE_DETECT_PENDING, () => {
       navigateTo("gateway");
@@ -467,7 +469,7 @@ describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {
 
     const s = getState();
     s.selectedNodeId = "gateway";
-    s.ice.attentionNodeId = "gateway";
+    getPrimaryIce().attentionNodeId = "gateway";
     s.nodes["gateway"].accessLevel = "owned";
 
     // Simulate a detection dwell that is already running
@@ -497,13 +499,13 @@ describe("ICE detection: detectedAtNode resets when ICE leaves player's node", (
     const s = getState();
     // Position ICE at the player's node
     s.selectedNodeId = "gateway";
-    s.ice.attentionNodeId = "gateway";
-    s.ice.detectedAtNode = "gateway";
+    getPrimaryIce().attentionNodeId = "gateway";
+    getPrimaryIce().detectedAtNode = "gateway";
 
     // handleIceTick moves ICE to a neighbor of gateway (not gateway itself)
     handleIceTick();
 
-    assert.equal(s.ice.detectedAtNode, null,
+    assert.equal(getPrimaryIce().detectedAtNode, null,
       "detectedAtNode should clear when ICE leaves, so it can re-detect on next visit");
   });
 });
@@ -582,8 +584,7 @@ describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
   });
 
   it("does not emit ICE_MOVED when teleporting to the current node", () => {
-    const s = getState();
-    const currentNode = s.ice.attentionNodeId;
+    const currentNode = getPrimaryIce().attentionNodeId;
 
     const fired = withEvents(E.ICE_MOVED, () => {
       teleportIce(currentNode);
@@ -594,10 +595,10 @@ describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
 
   it("still triggers detection check when teleporting to the current node", () => {
     const s = getState();
-    const currentNode = s.ice.attentionNodeId;
+    const currentNode = getPrimaryIce().attentionNodeId;
     s.selectedNodeId = currentNode;
     s.nodes[currentNode].accessLevel = "owned";
-    s.ice.detectedAtNode = null;
+    getPrimaryIce().detectedAtNode = null;
 
     const fired = withEvents(E.ICE_DETECT_PENDING, () => {
       teleportIce(currentNode);
@@ -661,7 +662,7 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     // gateway starts locked, no selection
     assert.equal(s.nodes["gateway"].accessLevel, "locked");
     assert.equal(s.selectedNodeId, null);
-    assert.equal(isIceVisible(s.ice, s.nodes, s.selectedNodeId), false);
+    assert.equal(isIceVisible(getPrimaryIce(), s.nodes, s.selectedNodeId), false);
   });
 
   it("ICE IS visible on a locked node when player is actively selected there", () => {
@@ -669,7 +670,7 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     teleportIce("gateway");
     s.selectedNodeId = "gateway";
     assert.equal(s.nodes["gateway"].accessLevel, "locked");
-    assert.equal(isIceVisible(s.ice, s.nodes, s.selectedNodeId), true);
+    assert.equal(isIceVisible(getPrimaryIce(), s.nodes, s.selectedNodeId), true);
   });
 
   it("ICE IS visible on a compromised node regardless of selection", () => {
@@ -677,7 +678,7 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     teleportIce("gateway");
     s.nodes["gateway"].accessLevel = "compromised";
     s.selectedNodeId = null;
-    assert.equal(isIceVisible(s.ice, s.nodes, s.selectedNodeId), true);
+    assert.equal(isIceVisible(getPrimaryIce(), s.nodes, s.selectedNodeId), true);
   });
 });
 
@@ -726,14 +727,14 @@ describe("WAN node", () => {
     const wanNeighbor = Object.keys(s.adjacency).find(nid =>
       s.adjacency[nid]?.includes("wan")
     );
-    if (!wanNeighbor || !s.ice) { assert.ok(true, "no ICE or WAN not wired"); return; }
+    if (!wanNeighbor || !getPrimaryIce()) { assert.ok(true, "no ICE or WAN not wired"); return; }
     startIce();
     teleportIce(wanNeighbor);
     // Run 50 ICE ticks — WAN should never be visited
     for (let i = 0; i < 50; i++) {
       handleIceTick();
     }
-    assert.notEqual(s.ice?.attentionNodeId, "wan", "ICE should never move to WAN");
+    assert.notEqual(getPrimaryIce()?.attentionNodeId, "wan", "ICE should never move to WAN");
   });
 });
 
@@ -786,10 +787,13 @@ describe("Exploit success: neighbor visibility", () => {
         `Precondition: ${nid} should be hidden before exploit`);
     }
 
-    // Force combat roll to succeed + flavor pick + skip-roll high (no locked→owned skip)
-    _forceNext(RNG.COMBAT, 0);
-    _forceNext(RNG.COMBAT, 0);
-    _forceNext(RNG.COMBAT, 0.99);
+    // RNG.COMBAT is consumed three times on a from-locked success:
+    //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
+    // Force the third > skipChance so the access level lands on
+    // 'compromised', not 'owned'.
+    _forceNext(RNG.COMBAT, 0);    // success
+    _forceNext(RNG.COMBAT, 0);    // flavor pick
+    _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
     launchExploit("gateway", s.player.hand[0].id);
 
     assert.equal(gateway.accessLevel, "compromised",
@@ -875,10 +879,13 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
 
     it("compromising the firewall does NOT reveal nodes behind it", () => {
       const s = getState();
-      // Force exploit to succeed (roll=0 always succeeds) + skip-roll high (no locked→owned skip)
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0.99);
+      // RNG.COMBAT is consumed three times on a from-locked success:
+      //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
+      // Force the third > skipChance so the access level lands on
+      // 'compromised', not 'owned'.
+      _forceNext(RNG.COMBAT, 0);    // success
+      _forceNext(RNG.COMBAT, 0);    // flavor pick
+      _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
       launchExploit("firewall-1", s.player.hand[0].id);
 
       assert.equal(s.nodes["firewall-1"].accessLevel, "compromised",
@@ -890,18 +897,18 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
     it("owning the firewall DOES reveal nodes behind it", () => {
       const s = getState();
 
-      // First exploit: locked → compromised (skip-roll high so it doesn't jump to owned)
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0.99);
+      // First exploit: locked → compromised (block skip-to-owned with third roll)
+      _forceNext(RNG.COMBAT, 0);    // success
+      _forceNext(RNG.COMBAT, 0);    // flavor pick
+      _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
       launchExploit("firewall-1", s.player.hand[0].id);
       assert.equal(s.nodes["firewall-1"].accessLevel, "compromised");
       assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
         "precondition: still hidden after compromised");
 
-      // Second exploit: compromised → owned
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0);
+      // Second exploit: compromised → owned (no skip roll on this transition)
+      _forceNext(RNG.COMBAT, 0);    // success
+      _forceNext(RNG.COMBAT, 0);    // flavor pick
       launchExploit("firewall-1", s.player.hand[1].id);
       assert.equal(s.nodes["firewall-1"].accessLevel, "owned",
         "firewall should be owned after second exploit");
@@ -925,10 +932,13 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
     it("compromising the router reveals nodes behind it", () => {
       const s = getState();
 
-      // Force exploit success + skip-roll high (no locked→owned skip)
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0.99);
+      // RNG.COMBAT is consumed three times on a from-locked success:
+      //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
+      // Force the third > skipChance so the access level lands on
+      // 'compromised', not 'owned'.
+      _forceNext(RNG.COMBAT, 0);    // success
+      _forceNext(RNG.COMBAT, 0);    // flavor pick
+      _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
       launchExploit("router-gate", s.player.hand[0].id);
 
       assert.equal(s.nodes["router-gate"].accessLevel, "compromised",
@@ -1122,5 +1132,91 @@ describe("mine action", () => {
 
   it("MINE_TAPOUT threshold is the documented ~5%", () => {
     assert.equal(MINE_TAPOUT, 0.05);
+  });
+});
+
+describe("ice runtime: iterates all active instances", () => {
+  // Wire the ICE_MOVE timer → handleIceTick. This mirrors what main.js does.
+  // The handler is registered once for the suite and persists across tests;
+  // we do NOT call clearHandlers() here to avoid breaking the module-level
+  // alert.js / ice.js listeners that other tests in this file depend on.
+  const iceMoveHandler = () => handleIceTick();
+  before(() => {
+    on(TIMER.ICE_MOVE, iceMoveHandler);
+  });
+  after(() => {
+    off(TIMER.ICE_MOVE, iceMoveHandler);
+  });
+
+  beforeEach(() => {
+    clearAll();
+    initGame(() => buildIceLAN({ grade: "D" }));
+  });
+
+  it("two active instances both move on a tick", () => {
+    const s = getState();
+    // Inject a second active instance directly into the collection.
+    s.ice.instances["ice-2"] = {
+      id: "ice-2",
+      typeId: "patrol-classic-D",
+      hostNodeId: "gateway",
+      attentionNodeId: "gateway",
+      active: true,
+      enabled: true,
+      grade: "D",
+      focus: "roaming",
+      behaviorPattern: "patrol-random",
+      dwellTimerId: null,
+      detectedAtNode: null,
+      detectionCount: 0,
+    };
+
+    startIce();
+
+    const before1 = s.ice.instances["ice-1"].attentionNodeId;
+    const before2 = s.ice.instances["ice-2"].attentionNodeId;
+
+    // Advance one ICE_MOVE interval. D grade = 12000ms / 100ms-per-tick = 120 ticks.
+    // (tick() takes a tick count, not milliseconds.)
+    tick(120);
+
+    const after1 = s.ice.instances["ice-1"].attentionNodeId;
+    const after2 = s.ice.instances["ice-2"].attentionNodeId;
+
+    // In the 2-node LAN (gateway ↔ router-a), both must have moved.
+    assert.notEqual(after1, before1);
+    assert.notEqual(after2, before2);
+  });
+});
+
+describe("ice events: iceId in payload", () => {
+  const iceMoveHandler = () => handleIceTick();
+  before(() => {
+    on(TIMER.ICE_MOVE, iceMoveHandler);
+  });
+  after(() => {
+    off(TIMER.ICE_MOVE, iceMoveHandler);
+  });
+
+  beforeEach(() => {
+    clearAll();
+    initGame(() => buildIceLAN({ grade: "D" }));
+  });
+
+  it("ICE_MOVED payload carries iceId", () => {
+    startIce();
+    const payloads = withEvents(E.ICE_MOVED, () => {
+      tick(120); // one D-grade movement interval (12000ms / 100ms per tick)
+    });
+    assert.ok(payloads.length > 0, "expected at least one ICE_MOVED");
+    assert.equal(payloads[0].iceId, "ice-1");
+  });
+
+  it("ICE_EJECTED payload carries iceId", () => {
+    const payloads = withEvents(E.ICE_EJECTED, () => {
+      ejectIce();
+    });
+    assert.ok(payloads.length > 0, "expected at least one ICE_EJECTED");
+    assert.equal(payloads[0].iceId, "ice-1");
   });
 });

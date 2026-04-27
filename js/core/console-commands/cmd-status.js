@@ -2,6 +2,7 @@
 // Implementations for all `status` sub-commands.
 
 import { getState, isIceVisible } from "../state.js";
+import { getPrimaryIce } from "../state/ice.js";
 import { addLogEntry } from "../log.js";
 import { getVisibleTimers } from "../timers.js";
 import { exploitSortKey } from "../exploits.js";
@@ -18,10 +19,11 @@ export function cmdStatusSummary() {
   lines.push(`  Seed: "${s.seed}"  |  Alert: ${s.globalAlert.toUpperCase()}  |  Cash: ¥${s.player.cash.toLocaleString()}  |  Trace: ${traceStr}`);
 
   let iceStr;
-  if (!s.ice) iceStr = "NONE";
-  else if (!s.ice.active) iceStr = "INACTIVE";
-  else if (isIceVisible(s.ice, s.nodes, s.selectedNodeId))
-    iceStr = `ACTIVE @ ${s.nodes[s.ice.residentNodeId]?.label ?? s.ice.residentNodeId} → ${s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId}`;
+  const ice = getPrimaryIce();
+  if (!ice) iceStr = "NONE";
+  else if (!ice.active) iceStr = "INACTIVE";
+  else if (isIceVisible(ice, s.nodes, s.selectedNodeId))
+    iceStr = `ACTIVE @ ${s.nodes[ice.hostNodeId]?.label ?? ice.hostNodeId} → ${s.nodes[ice.attentionNodeId]?.label ?? ice.attentionNodeId}`;
   else iceStr = "ACTIVE (location unknown)";
   const detectTimer = timers.find((t) => t.label === "ICE DETECTION");
   const detectStr = detectTimer ? `${detectTimer.remaining}s remaining` : "—";
@@ -100,17 +102,18 @@ export function cmdStatusFull() {
   }
 
   lines.push(`### ICE`);
-  if (s.ice?.active) {
-    lines.push(`- status: ACTIVE  grade: ${s.ice.grade}`);
-    if (isIceVisible(s.ice, s.nodes, s.selectedNodeId)) {
-      const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
-      const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
+  const iceF = getPrimaryIce();
+  if (iceF?.active) {
+    lines.push(`- status: ACTIVE  grade: ${iceF.grade}`);
+    if (isIceVisible(iceF, s.nodes, s.selectedNodeId)) {
+      const pos      = s.nodes[iceF.attentionNodeId]?.label ?? iceF.attentionNodeId;
+      const resident = s.nodes[iceF.hostNodeId]?.label  ?? iceF.hostNodeId;
       lines.push(`- attention: ${pos}  resident: ${resident}`);
     } else {
       lines.push(`- attention: unknown`);
     }
   } else {
-    lines.push(`- status: ${s.ice ? "INACTIVE" : "NONE"}`);
+    lines.push(`- status: ${iceF ? "INACTIVE" : "NONE"}`);
   }
 
   lines.push(`### SELECTED`);
@@ -172,11 +175,12 @@ export function cmdStatusIce() {
   const s = getState();
   const timers = getVisibleTimers();
   const lines = ["## STATUS: ICE"];
-  if (s.ice?.active) {
-    lines.push(`- status: ACTIVE  grade: ${s.ice.grade}`);
-    if (isIceVisible(s.ice, s.nodes, s.selectedNodeId)) {
-      const pos      = s.nodes[s.ice.attentionNodeId]?.label ?? s.ice.attentionNodeId;
-      const resident = s.nodes[s.ice.residentNodeId]?.label  ?? s.ice.residentNodeId;
+  const iceI = getPrimaryIce();
+  if (iceI?.active) {
+    lines.push(`- status: ACTIVE  grade: ${iceI.grade}`);
+    if (isIceVisible(iceI, s.nodes, s.selectedNodeId)) {
+      const pos      = s.nodes[iceI.attentionNodeId]?.label ?? iceI.attentionNodeId;
+      const resident = s.nodes[iceI.hostNodeId]?.label  ?? iceI.hostNodeId;
       lines.push(`- attention: ${pos}  resident: ${resident}`);
     } else {
       lines.push(`- attention: unknown`);
@@ -184,7 +188,7 @@ export function cmdStatusIce() {
     const detectTimer = timers.find((t) => t.label === "ICE DETECTION");
     if (detectTimer) lines.push(`- ⚠ detection in: ${detectTimer.remaining}s`);
   } else {
-    lines.push(`- status: ${s.ice ? "INACTIVE" : "NONE"}`);
+    lines.push(`- status: ${iceI ? "INACTIVE" : "NONE"}`);
   }
   lines.forEach((l) => addLogEntry(l, "meta"));
 }
@@ -253,8 +257,9 @@ export function cmdStatusNode(args) {
       lines.push(`- item: ${m.name}  ¥${m.cashValue.toLocaleString()}${isMission}  collected:${m.collected}`);
     });
   }
-  if (s.ice?.active && s.ice.attentionNodeId === node.id && isIceVisible(s.ice, s.nodes, s.selectedNodeId)) {
-    lines.push(`- ⚠ ICE present (grade: ${s.ice.grade})`);
+  const iceN = getPrimaryIce();
+  if (iceN?.active && iceN.attentionNodeId === node.id && isIceVisible(iceN, s.nodes, s.selectedNodeId)) {
+    lines.push(`- ⚠ ICE present (grade: ${iceN.grade})`);
   }
   lines.forEach((l) => addLogEntry(l, "meta"));
 }
