@@ -3,6 +3,7 @@
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
+import { exploitCardBody } from "./exploit-card-view.js";
 
 class StarnetHand extends StarnetElement {
   static properties = {
@@ -56,9 +57,6 @@ class StarnetHand extends StarnetElement {
   _renderCard(card, index) {
     const isExec = this.executingCardId === card.id;
     const disclosed = card.decayState === "disclosed";
-    const worn = card.decayState === "worn";
-    const qualityPips = Math.round(card.quality * 5);
-    const pips = "█".repeat(qualityPips) + "░".repeat(5 - qualityPips);
 
     let matchClass = "";
     if (this.selectedNode?.probed && !isExec) {
@@ -83,19 +81,7 @@ class StarnetHand extends StarnetElement {
     return html`
       <div class="${classes}"
            @click=${isSelectable ? () => this._onCardClick(card, index) : null}>
-        <div class="ec-header">
-          <span class="ec-index">${index}.</span>
-          <span class="ec-name">${card.name}</span>
-        </div>
-        <div class="ec-row">
-          <span class="ec-key">QUAL</span>
-          <span class="ec-pips">${pips}</span>
-        </div>
-        <div class="ec-row">
-          <span class="ec-key">USES</span>
-          <span class="ec-val">${disclosed ? "DISCLOSED" : worn ? `${card.usesRemaining} (worn)` : card.usesRemaining}</span>
-        </div>
-        <div class="ec-vulns">${card.targetVulnTypes.map((t) => html`<div class="ec-vuln">${t}</div>`)}</div>
+        ${exploitCardBody(card, `${index}.`)}
         <div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>
         ${isExec ? html`
           <div class="ec-cancel-overlay" @click=${(e) => { e.stopPropagation(); this._onCancel(); }}>

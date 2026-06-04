@@ -83,12 +83,23 @@
  */
 
 /**
+ * A single follow-up choice step for a multi-step node action. When present, the UI
+ * opens a node-anchored choice panel instead of dispatching immediately; picking a
+ * choice re-dispatches the action with `{ [payloadKey]: choice.id }`.
+ * @typedef {Object} FollowupStep
+ * @property {(node: any, state: any) => string} title  - panel heading
+ * @property {(node: any, state: any) => Array<{id: string, payloadKey: string, render: string, data: any}>} choices
+ * @property {(node: any, state: any) => string} empty  - reason shown when choices is empty (disabled-menu tooltip)
+ */
+
+/**
  * A player-invocable action definition.
  * @typedef {Object} ActionDef
  * @property {string} id
  * @property {string} label
  * @property {string} [desc]         - human-readable description for UI tooltips
  * @property {boolean} [noSidebar]   - true if triggered via card click, not sidebar button
+ * @property {FollowupStep} [followup]  - if set, choosing this action opens a node-anchored choice panel instead of executing immediately
  * @property {Condition[]} requires   - implicit all-of; all must pass
  * @property {Effect[]} effects
  */

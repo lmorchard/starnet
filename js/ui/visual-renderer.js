@@ -23,6 +23,9 @@ let revealFitTimer = null;
 // Context menu — tracks which node the menu is anchored to for pan/zoom repositioning.
 let contextMenuNodeId = null;
 
+// Action choice picker — tracks which node the picker is anchored to.
+let choicesNodeId = null;
+
 export function initVisualRenderer() {
   // ── Event-driven node style updates from NodeGraph ──────
   // When a node attribute changes via the graph, update just that node's visual.
@@ -51,7 +54,7 @@ export function initVisualRenderer() {
     }
   });
 
-  on(E.RUN_STARTED, () => clearContextMenu());
+  on(E.RUN_STARTED, () => { clearContextMenu(); closeActionChoices(); });
 
   // ── ACTION_FEEDBACK — unified timed action animation dispatch ──
   // The timed-action operator emits action-feedback events with
@@ -186,12 +189,19 @@ export function initVisualRenderer() {
     }, 200);
   });
 
-  // Keep context menu attached to node on pan/zoom/drag
+  // Keep context menu and action choice picker attached to node on pan/zoom/drag
   const cy = getCy();
   if (cy) {
-    cy.on("pan zoom", () => _positionContextMenu(contextMenuNodeId));
-    cy.on("position", "node", () => _positionContextMenu(contextMenuNodeId));
+    cy.on("pan zoom", () => { _positionContextMenu(contextMenuNodeId); _positionActionChoices(choicesNodeId); });
+    cy.on("position", "node", () => { _positionContextMenu(contextMenuNodeId); _positionActionChoices(choicesNodeId); });
   }
+
+  // ── Action choice picker listeners (registered once) ──
+  document.addEventListener("starnet:open-choices", (e) => {
+    const { actionId, nodeId } = /** @type {any} */ (e).detail || {};
+    if (actionId && nodeId) openActionChoices(nodeId, actionId);
+  });
+  document.addEventListener("starnet:choices-close", () => closeActionChoices());
 }
 
 // ── Context menu ──────────────────────────────────────────
@@ -243,8 +253,19 @@ function syncContextMenu(node, state) {
     return;
   }
 
-  // Pre-compute desc strings for the component (desc is a function on ActionDef)
-  menu.actions = actions.map((a) => ({ id: a.id, label: a.label, desc: a.desc(node, state) }));
+  // Pre-compute desc strings for the component (desc is a function on ActionDef).
+  // For actions with a followup picker: if there are no choices, render as disabled;
+  // if there are choices, render with hasFollowup: true so the menu shows a ▶ indicator.
+  menu.actions = actions.map((a) => {
+    if (!a.followup) {
+      return { id: a.id, label: a.label, desc: a.desc(node, state) };
+    }
+    const choices = a.followup.choices(node, state);
+    if (choices.length === 0) {
+      return { id: a.id, label: a.label, disabled: true, disabledReason: a.followup.empty(node, state) };
+    }
+    return { id: a.id, label: a.label, desc: a.desc(node, state), hasFollowup: true };
+  });
   menu.nodeId = node.id;
   menu.visible = true;
 
@@ -262,12 +283,74 @@ function clearContextMenu() {
   menu.style.pointerEvents = "none";
 }
 
+// ── Action choice picker ──────────────────────────────────
+
+function _positionActionChoices(nodeId) {
+  const panel = document.getElementById("action-choices");
+  if (!panel || !nodeId) return;
+  const cy = getCy();
+  if (!cy) return;
+  const cyNode = cy.getElementById(nodeId);
+  if (!cyNode || cyNode.length === 0) return;
+
+  const pos = cyNode.renderedPosition();
+  const r = cyNode.renderedWidth() / 2;
+  const gap = 20;
+  const pw = panel.offsetWidth;
+  const ph = panel.offsetHeight;
+  const container = cy.container();
+  const cw = container.offsetWidth;
+  const ch = container.offsetHeight;
+
+  const onRight = pos.x + r + gap + pw <= cw;
+  const x = onRight ? pos.x + r + gap : pos.x - r - gap - pw;
+  const y = Math.max(4, Math.min(pos.y - ph / 2, ch - ph - 4));
+
+  panel.style.left = `${x}px`;
+  panel.style.top = `${y}px`;
+}
+
+function openActionChoices(nodeId, actionId) {
+  const state = _getState();
+  const node = state?.nodes?.[nodeId];
+  if (!node) return;
+  const action = getAvailableActions(node, state).find((a) => a.id === actionId);
+  if (!action?.followup) return;
+  const choices = action.followup.choices(node, state);
+  if (choices.length === 0) return;
+
+  clearContextMenu();
+
+  const panel = /** @type {any} */ (document.getElementById("action-choices"));
+  if (!panel) return;
+  choicesNodeId = nodeId;
+  panel.title = action.followup.title(node, state);
+  panel.actionId = actionId;
+  panel.nodeId = nodeId;
+  panel.choices = choices;
+  panel.visible = true;
+  // The panel uses display:none while hidden, so offsetWidth/offsetHeight are
+  // zero until after the component's updated() hook fires (async after visible=true).
+  // Use requestAnimationFrame to measure after the first paint.
+  requestAnimationFrame(() => _positionActionChoices(nodeId));
+}
+
+function closeActionChoices() {
+  choicesNodeId = null;
+  const panel = /** @type {any} */ (document.getElementById("action-choices"));
+  if (!panel) return;
+  panel.visible = false;
+}
+
 // ── Graph sync ────────────────────────────────────────────
 
 /** Sync selection highlight and ICE position — not per-node styles. */
 function syncOverlays(state) {
   const cy = getCy();
   if (!cy) return;
+
+  // Close the choice picker if the player navigated away from its anchor node.
+  if (choicesNodeId && state.selectedNodeId !== choicesNodeId) closeActionChoices();
 
   syncSelection(state.selectedNodeId);
 
@@ -310,6 +393,7 @@ function syncHud(state) {
 
   // End screen
   if (state.phase === "ended") {
+    closeActionChoices();
     /** @type {any} */ (document.getElementById("sidebar-node")).node = null;
     /** @type {any} */ (document.getElementById("sidebar-node")).selectedNodeId = "";
     const handEl = /** @type {any} */ (document.getElementById("hand-strip"));

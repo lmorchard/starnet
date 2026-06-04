@@ -48,7 +48,11 @@ you control.
 state, vulnerabilities (after probing), and available actions.
 
 **Exploit Hand** — Your five exploit cards. When a node is targeted, matching cards
-highlight in cyan. Click a card or type its number to use it.
+highlight in cyan. There are two ways to play one: choose **XPLOIT** from the node's
+action menu to open a card picker anchored on the node (the guided path — see the
+*Exploit* step in *The Core Loop* below), or click a card directly in the hand strip (the override path — plays
+any usable card, even a long shot). Both do the same thing; the hand is also your
+at-a-glance inventory.
 
 **Log** — The full event record of your run. Every system event, every exploit roll,
 every ICE movement that crosses into your territory appears here.
@@ -139,20 +143,38 @@ an IDS, that alert will propagate.
 
 ### 3. Exploit
 
-Click an exploit card from your hand, or type:
+Choose **XPLOIT** from the node's action menu, click a card in the hand strip, or type:
 
 ```
 > xploit <card-number>
 ```
 
-There is no sidebar button for exploiting — the hand strip is the interface. Each card targets one or more vulnerability types.
-If a card matches a known vulnerability on the selected node, your odds improve significantly.
+**XPLOIT is a node action like PROBE or DUMP.** Choosing it opens a card picker anchored
+on the node:
+
+- **Before you probe**, you're attacking blind — the picker offers *every usable card*.
+- **After you probe**, the picker engages a match filter — it offers *only cards that
+  target the node's revealed vulnerabilities*. Probing is what earns you this clarity.
+- If a probed node has **no matching card** (or your whole hand is burned out), XPLOIT is
+  shown disabled in the menu with a short reason ("No matching exploit available." / "No
+  exploits available."). When that happens, play a long shot from the hand or shop the
+  darknet broker.
+- On an **already-owned node**, XPLOIT is disabled ("Already owned.") — there's no further
+  access to gain. You can still play a card from the hand to re-exploit it if you really want.
+
+The picker is the *guided* path. The **hand strip** and the `xploit <n>` console command
+are *full-agency* channels: they can play any usable card against the selected node,
+including a deliberate off-target long shot or a blind attempt on an unprobed node. Each
+card targets one or more vulnerability types; a card matching a known vulnerability
+improves your odds significantly.
 
 **Exploit resolution:**
 
 - Base success chance scales with **card quality** (the pip meter) vs **node grade**
 - A **matching vulnerability** boosts your odds considerably
 - Success: node access level rises (locked → compromised, compromised → owned)
+- Success also **counts as a probe** — the node's vulnerabilities are revealed, so a
+  blind gamble that lands shows you what you're working with (no need to probe after)
 - Failure: local alert rises; IDS nodes forward the alert event upstream
 
 ### 4. Dump
@@ -406,7 +428,7 @@ Actions depend on the selected node's type and access level:
 | `access-darknet`  | WAN node is targeted                           | Opens the darknet broker store; pauses the LAN while shopping |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
 | `abort`           | Timed action in progress on targeted node      | Aborts the current action (probe, xploit, dump, or fetch) |
-| `xploit <n>`  | Node is locked/compromised + probed — use hand card by clicking it or typing `xploit <n>` | Attempt to raise access level |
+| `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies or the node is already owned. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `corrupt`      | IDS node is compromised or owned               | Severs event forwarding to security monitor |

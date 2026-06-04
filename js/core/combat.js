@@ -9,7 +9,7 @@
 import { getState, ALERT_ORDER, revealNeighbors } from "./state.js";
 import { RNG, random, randomPick } from "./rng.js";
 import {
-  setNodeAccessLevel, setNodeAlertState, setNodeVisible, setNodeVulnHidden,
+  setNodeAccessLevel, setNodeAlertState, setNodeVisible, setNodeVulnHidden, setNodeProbed,
 } from "./state/node.js";
 import { setLastDisturbedNode } from "./state/ice.js";
 import { applyCardDecay as applyCardDecayState } from "./state/player.js";
@@ -234,6 +234,11 @@ export function launchExploit(nodeId, exploitId) {
       revealNeighbors(nodeId);
       result.levelChanged = true;
     }
+
+    // A successful exploit means you're inside — treat the node as probed (reveals vulns
+    // and engages the picker's match filter), so a blind gamble that lands also counts
+    // as a probe. Idempotent if the node was already probed.
+    setNodeProbed(nodeId);
 
     // A clean exploit: clear the disturbance so ICE doesn't chase a ghost signal.
     setLastDisturbedNode(null);

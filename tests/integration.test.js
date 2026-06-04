@@ -730,9 +730,10 @@ describe("Exploit success: neighbor visibility", () => {
         `Precondition: ${nid} should be hidden before exploit`);
     }
 
-    // Force combat roll to succeed + flavor pick
+    // Force combat roll to succeed + flavor pick + skip-roll high (no locked→owned skip)
     _forceNext(RNG.COMBAT, 0);
     _forceNext(RNG.COMBAT, 0);
+    _forceNext(RNG.COMBAT, 0.99);
     launchExploit("gateway", s.player.hand[0].id);
 
     assert.equal(gateway.accessLevel, "compromised",
@@ -743,6 +744,22 @@ describe("Exploit success: neighbor visibility", () => {
       assert.equal(s.nodes[nid].visibility, "revealed",
         `${nid} should be revealed (???) after exploit, not immediately accessible`);
     }
+  });
+
+  it("a successful blind exploit also marks the node probed", () => {
+    const s = getState();
+    const gateway = s.nodes["gateway"];
+    assert.equal(gateway.probed, false, "precondition: gateway should start unprobed");
+
+    // Blind exploit (never probed) — force success, flavor, no skip-to-owned
+    _forceNext(RNG.COMBAT, 0);
+    _forceNext(RNG.COMBAT, 0);
+    _forceNext(RNG.COMBAT, 0.99);
+    launchExploit("gateway", s.player.hand[0].id);
+
+    assert.equal(gateway.accessLevel, "compromised");
+    assert.equal(gateway.probed, true,
+      "a successful exploit should count as a probe (compromised ⇒ probed)");
   });
 });
 
@@ -802,9 +819,10 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
 
     it("compromising the firewall does NOT reveal nodes behind it", () => {
       const s = getState();
-      // Force exploit to succeed (roll=0 always succeeds)
+      // Force exploit to succeed (roll=0 always succeeds) + skip-roll high (no locked→owned skip)
       _forceNext(RNG.COMBAT, 0);
       _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0.99);
       launchExploit("firewall-1", s.player.hand[0].id);
 
       assert.equal(s.nodes["firewall-1"].accessLevel, "compromised",
@@ -816,9 +834,10 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
     it("owning the firewall DOES reveal nodes behind it", () => {
       const s = getState();
 
-      // First exploit: locked → compromised
+      // First exploit: locked → compromised (skip-roll high so it doesn't jump to owned)
       _forceNext(RNG.COMBAT, 0);
       _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0.99);
       launchExploit("firewall-1", s.player.hand[0].id);
       assert.equal(s.nodes["firewall-1"].accessLevel, "compromised");
       assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
@@ -850,9 +869,10 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
     it("compromising the router reveals nodes behind it", () => {
       const s = getState();
 
-      // Force exploit success
+      // Force exploit success + skip-roll high (no locked→owned skip)
       _forceNext(RNG.COMBAT, 0);
       _forceNext(RNG.COMBAT, 0);
+      _forceNext(RNG.COMBAT, 0.99);
       launchExploit("router-gate", s.player.hand[0].id);
 
       assert.equal(s.nodes["router-gate"].accessLevel, "compromised",

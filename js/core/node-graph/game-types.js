@@ -12,6 +12,7 @@
 /** @typedef {import('./types.js').NodeDef} NodeDef */
 
 import { A } from "../action-ids.js";
+import { getExploitChoices, getExploitEmptyReason } from "../exploits.js";
 
 // ── Shared action templates ──────────────────────────────────
 
@@ -61,23 +62,28 @@ const ABORT_ACTION = {
  * event payload, not through the action system. The dispatcher handles exploit
  * specially — it extracts exploitId and calls ctx.startExploit(nodeId, exploitId)
  * directly. The graph.executeAction path is bypassed for exploit.
+ *
+ * Multi-step action: choosing XPLOIT opens a node-anchored card picker (the UI reads
+ * this followup). Picking a card re-dispatches starnet:action with { exploitId }, which
+ * the dispatcher routes to ctx.startExploit. The hand + console supply exploitId directly
+ * and skip the picker entirely.
  * @type {ActionDef}
  */
 const EXPLOIT_ACTION = {
   id: A.XPLOIT,
   label: "XPLOIT",
   desc: "Attack with an exploit card.",
-  noSidebar: true,
   requires: [
     { type: "node-attr", attr: "visibility", eq: "accessible" },
     { type: "node-attr", attr: "rebooting", eq: false },
     { type: "node-attr", attr: "exploiting", eq: false },
   ],
+  followup: {
+    title: (node) => `XPLOIT ${node.id}`,
+    choices: getExploitChoices,
+    empty: getExploitEmptyReason,
+  },
   effects: [
-    // Exploit is special: exploitId comes from event payload and is set by the dispatcher.
-    // The dispatcher calls ctx.startExploit(nodeId, exploitId) which sets up the node
-    // attributes (exploiting, activeExploitId, duration) before the timed-action operator
-    // takes over. This is the one action that still uses a ctx-call to start.
     { effect: "ctx-call", method: "startExploit", args: ["$nodeId"] },
   ],
 };
