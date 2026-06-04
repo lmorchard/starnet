@@ -523,9 +523,19 @@ html, body {
 
 .ctx-item:last-child { border-bottom: none; }
 
-.ctx-item:hover {
+.ctx-item:not(.ctx-disabled):hover {
   background: rgba(204, 0, 204, 0.1);
   color: var(--magenta);
+}
+
+.ctx-item.ctx-disabled {
+  color: var(--text-dim);   /* dim the [ LABEL ] itself — the action is inactive */
+  cursor: not-allowed;
+}
+
+/* ...but keep the reason a legible caution cue, not the dim default desc. */
+.ctx-item.ctx-disabled .ctx-item-desc {
+  color: var(--yellow);
 }
 
 .ctx-item-desc {
@@ -536,6 +546,49 @@ html, body {
   letter-spacing: 0.05em;
 }
 
+
+/* ── Action Choices Panel ───────────────────────────────── */
+
+#action-choices {
+  position: absolute;
+  z-index: 11;
+  display: none; /* pre-render default; updated() in the component governs display at runtime */
+  max-width: 320px;
+  padding: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+}
+
+#action-choices .ac-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--cyan);
+  letter-spacing: 1px;
+  margin-bottom: 0.4rem;
+}
+
+#action-choices .ac-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+#action-choices .ac-close {
+  background: none;
+  border: none;
+  color: var(--cyan);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#action-choices .ac-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
 
 /* ── Action Buttons ─────────────────────────────────────── */
 

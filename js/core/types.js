@@ -204,6 +204,7 @@
  *   desc:       (node: NodeState, state: GameState) => string,
  *   execute?:   (node: NodeState, state: GameState, ctx: ActionContext, payload?: Object) => void,
  *   noSidebar?: boolean,
+ *   followup?:  import('./node-graph/types.js').FollowupStep,
  * }} ActionDef
  */
 

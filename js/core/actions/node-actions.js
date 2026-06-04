@@ -55,6 +55,7 @@ function wrapGraphAction(ga) {
     available: () => true,
     desc: () => ga.desc || ga.label,
     noSidebar: ga.noSidebar,
+    followup: ga.followup,
     execute: (node, state, ctx, payload) => {
       // Exploit special case: needs exploitId from payload to compute duration.
       // Call the game-ctx's startExploit directly (sets graph attributes for the
