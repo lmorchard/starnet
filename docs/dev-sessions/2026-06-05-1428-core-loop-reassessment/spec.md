@@ -302,6 +302,9 @@ All forks are now resolved; nothing in §8 remains open.
 - ICE reinvention (`docs/dev-sessions/2026-04-24-1243-ice-reinvention/`)
 - Procgen population / tuning
 - LLM playtester
+- **Residential biome as the gentle content tier** — unmerged `residential-biome`
+  branch is procgen-entangled; revisit once the loop is tuned and the procgen
+  freeze is intentionally lifted. (See plan.md Phase 1 note.)
 
 The `research`/`pentest` action is **not** parked here — it's phase 2 of the
 tuning session (§7.1), with its own brainstorm + `spec.md` artifact authored when
