@@ -255,3 +255,14 @@ These omissions are intentional — they make the bot a pessimistic baseline:
 
 Same seed + same network = identical stats. The bot uses the game's seeded PRNG
 and drives the clock deterministically via `tick()`.
+
+**Cross-run isolation.** The census runs many games in one process. The event bus
+and timer queue are process-global, so `resetGame()` (in `scripts/lib/headless-engine.js`)
+does a full `clearHandlers()` + `clearAllTimers()` + re-wire on every run. Without
+this, listeners registered by `initGraphBridge()` / `initDynamicActions()` (and the
+module-load handlers in `ice.js` / `alert.js` / `game-ctx.js`) stack up and the Nth
+run is driven by N copies of every handler — silently corrupting every seed after
+the first. Guarded by `tests/headless-run-isolation.test.js`. **If you add a new
+module-load `on(...)` listener in `js/core/`, expose it via an `init*Handlers()`
+function and add it to `wireRunHandlers()`**, or it will be wiped (browser) /
+leak (headless).
