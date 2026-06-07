@@ -4,56 +4,85 @@
 //
 // Extracts the timer wiring, action context, and game init sequence that
 // was previously duplicated across entry points.
+//
+// IMPORTANT — cross-run isolation. The event bus and timer queue are
+// process-global module state. Running multiple games in one process (the bot
+// census, batch playtests) MUST start each run from a clean bus, or listeners
+// registered by initGraphBridge()/initDynamicActions()/etc. stack up and the
+// Nth run is driven by N copies of every handler. resetGame() therefore does a
+// full bus reset + re-wire on every run. See tests/headless-run-isolation.test.js.
 
 import { initGame, getState, serializeState, deserializeState } from "../../js/core/state.js";
 import { buildActionContext, initActionDispatcher } from "../../js/core/actions/action-context.js";
-import { startIce, handleIceTick, handleIceDetect } from "../../js/core/ice.js";
-import { on, off, emitEvent, E } from "../../js/core/events.js";
-import { tick, TIMER } from "../../js/core/timers.js";
-import { handleTraceTick } from "../../js/core/alert.js";
-import { initLog } from "../../js/core/log.js";
+import { startIce, handleIceTick, handleIceDetect, initIceHandlers } from "../../js/core/ice.js";
+import { handleTraceTick, initAlertHandlers } from "../../js/core/alert.js";
+import { initNavigationCancelHandler } from "../../js/core/node-graph/game-ctx.js";
 import { initGraphBridge } from "../../js/core/graph-bridge.js";
 import { initDynamicActions } from "../../js/core/console-commands/dynamic-actions.js";
+import { initLog } from "../../js/core/log.js";
+import { on, off, emitEvent, E, clearHandlers } from "../../js/core/events.js";
+import { tick, TIMER, clearAll as clearAllTimers } from "../../js/core/timers.js";
 
-// Importing alert.js registers NODE_ALERT_RAISED listeners at module load.
-// Importing ice.js registers PLAYER_NAVIGATED / ACTION_FEEDBACK listeners.
-// These side effects are needed for correct game behavior.
+/** @type {import('../../js/core/types.js').ActionContext | null} */
+let _ctx = null;
 
 /**
- * Wire timer handlers and action dispatcher. Call once per process.
- * Returns the action context for callers that need to extend it.
+ * Build the action context once per process. The per-run bus wiring that used
+ * to live here now happens in resetGame() (see module header).
  *
  * @param {{ openDarknetsStore?: (state: any) => void }} [opts]
  * @returns {{ ctx: import('../../js/core/types.js').ActionContext }}
  */
 export function initHeadlessEngine(opts = {}) {
+  _ctx = buildActionContext(opts.openDarknetsStore);
+  return { ctx: _ctx };
+}
+
+/**
+ * Register every event-bus listener and timer handler a game run depends on.
+ * Called after clearHandlers() so each run starts with exactly one copy of each.
+ */
+function wireRunHandlers() {
   // Timer → handler wiring
   on(TIMER.ICE_MOVE,   () => handleIceTick());
   on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK, () => handleTraceTick());
 
-  // Action dispatcher
-  const ctx = buildActionContext(opts.openDarknetsStore);
-  initActionDispatcher(ctx);
+  // Unified action dispatcher
+  if (_ctx) initActionDispatcher(_ctx);
 
-  // Log buffer (needed for getRecentLog / log command)
+  // Log buffer (registers a LOG_ENTRY listener)
   initLog();
 
-  return { ctx };
+  // Game-logic listeners that are normally auto-registered at module import.
+  // clearHandlers() wiped those, so re-register them explicitly per run.
+  initIceHandlers();
+  initAlertHandlers();
+  initNavigationCancelHandler();
+  initGraphBridge();
+  initDynamicActions();
 }
 
 /**
  * Initialize a fresh game from a network builder function.
- * Sets up graph bridge, dynamic actions, and ICE.
+ *
+ * Starts every run from a clean event bus + timer queue, then re-wires all
+ * handlers — guaranteeing run N behaves identically whether it's the first or
+ * the fiftieth game in this process.
  *
  * @param {() => { graphDef: any, meta: any }} buildNetworkFn
  * @param {string} [seed]
  * @returns {import('../../js/core/types.js').GameState}
  */
 export function resetGame(buildNetworkFn, seed) {
+  // Full reset: wipe all listeners and pending timers from any prior run.
+  clearHandlers();
+  clearAllTimers();
+
+  // Re-wire everything before building the game so init-time events are seen.
+  wireRunHandlers();
+
   const state = initGame(buildNetworkFn, seed);
-  initGraphBridge();
-  initDynamicActions();
   startIce();
   return state;
 }

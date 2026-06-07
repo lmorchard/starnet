@@ -305,11 +305,14 @@ export function buildGameCtx(opts = {}) {
   return ctx;
 }
 
-// ── Cancel timed actions on navigation (module-level, runs once) ──
+// ── Cancel timed actions on navigation ──
 // When the player selects a different node or deselects, cancel any in-progress
 // timed action. Critical for evasion gameplay — the player must be able to
-// disengage quickly.
-on(E.PLAYER_NAVIGATED, () => {
+// disengage quickly. Wrapped in an init function so the headless harness can
+// re-register it after clearHandlers() between runs; the browser registers it
+// once at module load (see call below).
+export function initNavigationCancelHandler() {
+  on(E.PLAYER_NAVIGATED, () => {
   const s = getState();
   const graph = s.nodeGraph;
   if (!graph) return;
@@ -339,5 +342,9 @@ on(E.PLAYER_NAVIGATED, () => {
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.FETCH, phase: "cancel", progress: 0 });
     }
   }
-});
+  });
+}
+
+// Register once at module load for the browser entry point (one run per page load).
+initNavigationCancelHandler();
 
