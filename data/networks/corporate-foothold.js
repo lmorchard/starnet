@@ -75,7 +75,7 @@ export function buildNetwork() {
     meta: {
       name: "Corporate Foothold",
       startNode: "gateway",
-      startCash: 0,
+      startCash: 1000,
       moneyCost: "C",
       startHand: ["common", "common", "uncommon", "uncommon"],
       ice: null,

@@ -4,20 +4,34 @@ Execution plan for the direction set in `spec.md`. One session, three phases,
 census-validated at each boundary, across **two networks**: `corporate-foothold`
 (gentle, no ICE) + `corporate-exchange` (hard, grade-B ICE, A-grade firewall+vault).
 
-## Baseline (before any change, 20 seeds each)
+## Baseline (honest, post-census-fix, 30 seeds each)
+
+> **Note:** the first baseline taken this session was corrupted by the cross-run
+> listener leak (fixed in PR #112 — `tests/headless-run-isolation.test.js`). It
+> reported foothold 0.05 / 0.55-owned and exchange 0.05 / 1.95-owned. Those
+> numbers were garbage (every census seed after the first ran under stacked
+> handlers). The table below is the real baseline, measured with the fix in place.
 
 | Network | success | dominant fail | nodesOwned/total | ICE detect | peak alert |
 |---|---|---|---|---|---|
-| corporate-foothold | 0.05 | stuck 19 | 0.55 / 12 | 0 | all green |
-| corporate-exchange | 0.05 | tick-cap 19 | 1.95 / 14 | 0 | all green |
+| corporate-foothold | 0.267 | stuck 22 | 5.17 / 12 | 0 | 10 green / 20 yellow |
+| corporate-exchange | 0.567 | tick-cap 11, stuck 2 | 8.10 / 14 | 0.5 | 25 green / 5 red |
 
-Both starve on supply before the puzzle or pressure can matter. `startCash: 0` on
-foothold is a hard deadlock (can't loot cash without owning nodes, can't own nodes
-without matching cards, can't buy cards without cash).
+Reading: **corporate-exchange is already fairly healthy** (57%, two-rare hand +
+`startCash: 200`); its non-successes are mostly `tick-cap` (bot times out, not
+hard-stuck) — a phase-3 efficiency/pressure question, not supply.
+**corporate-foothold is the supply-starved one** (27%, `startCash: 0`, no ICE):
+it owns ~43% of nodes then stalls because it can't loot cash without owning nodes,
+can't own nodes without matching cards, and can't buy cards without cash. Phase 1
+targets foothold first.
 
 ---
 
-## Phase 1 — Provision supply
+## Phase 1 — Provision supply ✅ DONE
+
+**Outcome:** `corporate-foothold` `startCash: 0 → 1000` (27% → 100% bot success,
+0 stuck). Exchange left at 200 — its bottleneck is pressure/efficiency, not supply
+(bumping its cash made it worse). See `notes.md` for the sweep + reasoning.
 
 **Goal:** no run ends `stuck`/`tick-cap` on *supply*. Make supply abundant enough
 that failures become puzzle/pressure failures.
