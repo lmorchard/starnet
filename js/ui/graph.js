@@ -38,7 +38,9 @@ let currentProbeSweepNodeId = null;  // tracks node being probed for sweep overl
 let currentProbeSweepProgress = 0;   // 0..1
 let currentMineScanNodeId = null;    // tracks node being mined for scan overlay
 let currentMineScanProgress = 0;     // 0..1
-// Per-run Lissajous params (re-randomized each run so the scan path varies).
+// Lissajous scan-path params, reseeded in syncMineScan when the mine target
+// (nodeId) changes — i.e. at the start of each mine run, since clear() nulls
+// nodeId between runs. Stored so pan/zoom + scrubbing stay stable within a run.
 let mineScanFx = 2.5, mineScanFy = 3.5, mineScanPhase = Math.PI / 2;
 let currentReadSectorsNodeId = null;
 let currentReadSectorsProgress = 0;
