@@ -9,7 +9,7 @@ import { buyFromStore } from "../../js/core/store-logic.js";
 import { A } from "../../js/core/action-ids.js";
 
 /** Actions that start a timed process and need tick-forward */
-const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT]);
+const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT, A.MINE]);
 
 /** Actions that are instant (no ticking needed) */
 const INSTANT_ACTIONS = new Set([

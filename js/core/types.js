@@ -77,8 +77,8 @@
 
 /**
  * Per-node game state. Core fields are listed here; trait-provided attributes
- * (probing, exploiting, reading, looting, activeExploitId, etc.) are dynamic
- * and accessed via index signature.
+ * (probing, exploiting, reading, looting, activeExploitId, mining, mineAttempts,
+ * mineExhausted, etc.) are dynamic and accessed via index signature.
  * @typedef {{
  *   id: string,
  *   type: string,

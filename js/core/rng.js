@@ -41,6 +41,7 @@ export const RNG = Object.freeze({
   ICE:     "ice",
   LOOT:    "loot",
   WORLD:   "world",
+  MINE:    "mine",
 });
 
 const STREAM_NAMES = Object.values(RNG);

@@ -7,6 +7,7 @@
 /** @typedef {import('./types.js').WorldCard} WorldCard */
 
 import { getAvailableActions } from "../../js/core/actions/node-actions.js";
+import { A } from "../../js/core/action-ids.js";
 
 /**
  * Build a WorldModel snapshot from current game state.
@@ -23,6 +24,8 @@ export function perceive(state, context = {}) {
   const lootable = [];
   const security = [];
   const hasDisarmActions = [];
+  /** @type {{ nodeId: string, vulnTypes: Set<string> }[]} */
+  const minable = [];
 
   /** @type {Map<string, import('../../js/core/types.js').ActionDef[]>} */
   const availableActions = new Map();
@@ -54,6 +57,17 @@ export function perceive(state, context = {}) {
       if (!availableActions.has(id)) availableActions.set(id, actions);
       const disarms = actions.filter(a => a.id.startsWith("disarm"));
       if (disarms.length > 0) hasDisarmActions.push(id);
+
+      // Minable: owned nodes whose mine action is still available (requires gate
+      // hides it once the node taps out, so this self-bounds against exhaustion).
+      // vulnTypes mirrors generateMinedCard's filter (non-patched, non-hidden) so the
+      // mineStrategy vuln-overlap preference reflects what mining can actually yield.
+      if (actions.some(a => a.id === A.MINE)) {
+        const vulnTypes = new Set(
+          (n.vulnerabilities ?? []).filter(v => !v.patched && !v.hidden).map(v => v.id)
+        );
+        minable.push({ nodeId: id, vulnTypes });
+      }
 
       // Lootable: nodes with read/looted attributes (from "lootable" trait)
       // that haven't been fully looted yet. read/looted are undefined on
@@ -131,6 +145,7 @@ export function perceive(state, context = {}) {
     lootable,
     security,
     hasDisarmActions,
+    minable,
     ice,
     player,
     hand,

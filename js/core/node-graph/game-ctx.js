@@ -15,7 +15,8 @@
 
 import { A } from "../action-ids.js";
 import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
-import { addCash, setMissionComplete } from "../state/player.js";
+import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
+import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
 import { on } from "../events.js";
 import { setSelectedNode } from "../state/game.js";
@@ -31,7 +32,7 @@ function exploitDuration(quality) {
 import { endRun, ALERT_ORDER, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
-import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted } from "../state/node.js";
+import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
 import { launchExploit } from "../combat.js";
 
@@ -248,6 +249,36 @@ export function buildGameCtx(opts = {}) {
       }
     },
 
+    resolveMine: (nodeId) => {
+      const s = getState();
+      const node = s.nodes[nodeId];
+      if (!node) return;
+      const grade = node.grade ?? "D";
+      const attempts = node.mineAttempts ?? 0;       // prior attempts
+      const chance = mineYieldChance(grade, attempts);
+      const hit = random(RNG.MINE) < chance;
+
+      let card = null;
+      if (hit) { card = generateMinedCard(node); if (card) addCardToHand(card); }
+
+      incrementMineAttempts(nodeId);                  // attempts → attempts+1
+      const exhausted = isMineExhausted(grade, attempts + 1);
+      if (exhausted) setMineExhausted(nodeId, true);
+
+      setLastDisturbedNode(nodeId);                   // keep ICE interested at resolution
+      emitEvent(E.ACTION_RESOLVED, {
+        action: A.MINE, nodeId, label: node.label,
+        detail: {
+          outcome: hit ? "card" : "miss",
+          rarity: card?.rarity ?? null,
+          cardName: card?.name ?? null,
+          quality: card?.quality ?? null,
+          attempts: attempts + 1,
+          exhausted,
+        },
+      });
+    },
+
     resolveReboot: (nodeId) => {
       // Legacy alias
     },
@@ -340,6 +371,11 @@ export function initNavigationCancelHandler() {
       graph.setNodeAttr(nodeId, "looting", false);
       graph.setNodeAttr(nodeId, "_ta_loot_progress", 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.FETCH, phase: "cancel", progress: 0 });
+    }
+    if (attrs.mining) {
+      graph.setNodeAttr(nodeId, "mining", false);
+      graph.setNodeAttr(nodeId, "_ta_mine_progress", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.MINE, phase: "cancel", progress: 0 });
     }
   }
   });

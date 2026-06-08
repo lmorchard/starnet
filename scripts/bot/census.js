@@ -105,6 +105,16 @@ const summary = {
   avgIceDetections: avg(runs, "iceDetections"),
   avgIceEvasions: avg(runs, "iceEvasions"),
   avgDisarmActions: avg(runs, "disarmActionsUsed"),
+  // Mine usage (Phase 2 tuning signal)
+  runsUsingMine: runs.filter(r => (r.mineAttempts ?? 0) > 0).length,
+  avgMineAttempts: avg(runs, "mineAttempts"),
+  avgMineResolved: avg(runs, "mineResolved"),
+  avgMineCards: avg(runs, "mineCards"),
+  mineHitRate: (() => {
+    const resolved = runs.reduce((a, r) => a + (r.mineResolved ?? 0), 0);
+    const cards = runs.reduce((a, r) => a + (r.mineCards ?? 0), 0);
+    return resolved > 0 ? Math.round((cards / resolved) * 1000) / 1000 : 0;
+  })(),
 };
 
 // ── Output ──────────────────────────────────────────────────

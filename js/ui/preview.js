@@ -7,6 +7,7 @@
 import {
   initGraph, getCy,
   syncProbeSweep, clearProbeSweep,
+  syncMineScan, clearMineScan,
   syncReadSectors, clearReadSectors,
   syncLootRings, clearLootRings,
   syncExploitBrackets, clearExploitBrackets,
@@ -26,6 +27,7 @@ const EFFECT_NODES = [
   { id: "demo-exploit", label: "XPLOIT",  type: "firewall",  grade: "B", x: 150, y: 280 },
   { id: "demo-ice",     label: "ICE DET", type: "ids",        grade: "A", x: 350, y: 280 },
   { id: "demo-select",  label: "SELECT",  type: "gateway",    grade: "C", x: 550, y: 280 },
+  { id: "demo-mine",    label: "MINE",    type: "cryptovault", grade: "A", x: 750, y: 280 },
 ];
 
 // Flash demo node
@@ -133,6 +135,12 @@ const EFFECTS = [
     nodeId: "demo-probe",
     sync: syncProbeSweep,
     clear: clearProbeSweep,
+  },
+  {
+    name: "mine",
+    nodeId: "demo-mine",
+    sync: syncMineScan,
+    clear: clearMineScan,
   },
   {
     name: "read",

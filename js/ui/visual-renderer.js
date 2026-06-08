@@ -11,7 +11,7 @@ import { on, E } from "../core/events.js";
 import { A } from "../core/action-ids.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep, relayout } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncMineScan, clearMineScan, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep, relayout } from "./graph.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
 
@@ -67,6 +67,7 @@ export function initVisualRenderer() {
   let activeExploitNodeId = null;
   let activeReadNodeId = null;
   let activeLootNodeId = null;
+  let activeMineNodeId = null;
 
   on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, progress }) => {
     if (action === A.PROBE) {
@@ -110,6 +111,15 @@ export function initVisualRenderer() {
         clearLootRings();
         activeLootNodeId = null;
       }
+    } else if (action === A.MINE) {
+      if (phase === "start") {
+        activeMineNodeId = nodeId;
+      } else if (phase === "progress" && activeMineNodeId) {
+        syncMineScan(activeMineNodeId, progress);
+      } else if (phase === "complete" || phase === "cancel") {
+        clearMineScan();
+        activeMineNodeId = null;
+      }
     }
   });
 
@@ -119,10 +129,10 @@ export function initVisualRenderer() {
   });
 
   on(E.RUN_STARTED, () => {
-    clearExploitBrackets(); clearProbeSweep(); clearReadSectors(); clearLootRings();
+    clearExploitBrackets(); clearProbeSweep(); clearMineScan(); clearReadSectors(); clearLootRings();
     clearIceDetectSweep();
     activeProbeNodeId = null; activeExploitNodeId = null;
-    activeReadNodeId = null; activeLootNodeId = null;
+    activeReadNodeId = null; activeLootNodeId = null; activeMineNodeId = null;
   });
 
   // ICE detection sweep — clear immediately on any event that ends a detection dwell.

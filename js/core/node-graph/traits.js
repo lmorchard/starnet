@@ -159,6 +159,9 @@ registerTrait("hackable", {
     rebooting: false,
     alertState: "green",
     activeExploitId: null,
+    mining: false,
+    mineAttempts: 0,
+    mineExhausted: false,
   },
   operators: [
     {
@@ -179,11 +182,19 @@ registerTrait("hackable", {
         { effect: "emit-message", type: "exploit-noise", payload: {} },
       ],
     },
+    {
+      name: "timed-action",
+      action: "mine",
+      activeAttr: "mining",
+      durationTable: { S: 70, A: 60, B: 50, C: 40, D: 35, F: 30 },
+      onComplete: [{ effect: "ctx-call", method: "resolveMine", args: ["$nodeId"] }],
+    },
   ],
   actions: [
     ACTION_TEMPLATES.PROBE,
     ACTION_TEMPLATES.ABORT,
     ACTION_TEMPLATES.EXPLOIT,
+    ACTION_TEMPLATES.MINE,
   ],
 });
 

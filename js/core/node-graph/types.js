@@ -268,6 +268,7 @@
  * @property {(nodeId: string) => void} [resolveExploit]
  * @property {(nodeId: string) => void} [resolveRead]
  * @property {(nodeId: string) => void} [resolveLoot]
+ * @property {(nodeId: string) => void} [resolveMine]
  * @property {(nodeId: string) => void} [resolveReboot]
  * @property {(nodeId: string) => void} [startReboot]
  * @property {(nodeId: string) => void} [completeReboot]

@@ -129,6 +129,25 @@ export function setNodeRebooting(nodeId, rebooting) {
   syncToGraph(nodeId, "rebooting", rebooting);
 }
 
+/** Increments node.mineAttempts (monotonic) and returns nothing. */
+export function incrementMineAttempts(nodeId) {
+  mutate((s) => {
+    const n = s.nodes[nodeId];
+    if (n) n.mineAttempts = (n.mineAttempts ?? 0) + 1;
+  });
+  const s = getState();
+  if (s.nodes[nodeId]) syncToGraph(nodeId, "mineAttempts", s.nodes[nodeId].mineAttempts);
+}
+
+/** Sets node.mineExhausted. */
+export function setMineExhausted(nodeId, exhausted) {
+  mutate((s) => {
+    const n = s.nodes[nodeId];
+    if (n) n.mineExhausted = exhausted;
+  });
+  syncToGraph(nodeId, "mineExhausted", exhausted);
+}
+
 /** Sets node.sigAlias (temporary console alias while the node is revealed). */
 export function setNodeSigAlias(nodeId, alias) {
   mutate((s) => {

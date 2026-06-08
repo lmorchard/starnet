@@ -75,13 +75,13 @@ export function initLogRenderer() {
     const label = s?.nodes[nodeId]?.label ?? nodeId;
     if (phase === "start") {
       const secs = Math.round((durationTicks ?? 0) / 10);
-      const prefixes = { probe: "PROBE", xploit: "EXPLOIT", dump: "DUMP", fetch: "FETCH" };
-      const verbs = { probe: "scanning", xploit: "executing", dump: "extracting data", fetch: "extracting" };
+      const prefixes = { probe: "PROBE", xploit: "EXPLOIT", dump: "DUMP", fetch: "FETCH", mine: "MINE" };
+      const verbs = { probe: "scanning", xploit: "executing", dump: "extracting data", fetch: "extracting", mine: "data-mining for exploits" };
       const prefix = prefixes[action] ?? action.toUpperCase();
       const verb = verbs[action] ?? "running";
       add(`[${prefix}] ${label}: ${verb} (${secs}s)...`, "info");
     } else if (phase === "cancel") {
-      const msgs = { probe: "scan cancelled", xploit: "interrupted", dump: "extraction cancelled", fetch: "extraction cancelled" };
+      const msgs = { probe: "scan cancelled", xploit: "interrupted", dump: "extraction cancelled", fetch: "extraction cancelled", mine: "mining cancelled" };
       const prefix = action === A.XPLOIT ? "EXPLOIT" : action.toUpperCase();
       add(`[${prefix}] ${label}: ${msgs[action] ?? "cancelled"}.`, "info");
     }
@@ -107,6 +107,14 @@ export function initLogRenderer() {
       add(`[NODE] ${label}: looted ${detail?.items} item(s). +¥${(detail?.total ?? 0).toLocaleString()}`, "success");
     } else if (action === A.CORRUPT) {
       add(`[NODE] ${label}: event forwarding disabled.`, "success");
+    } else if (action === A.MINE) {
+      const d = detail ?? {};
+      if (d.outcome === "card") {
+        add(`[MINE] ${label}: extracted ${d.rarity} exploit "${d.cardName}" (q${d.quality}). attempt ${d.attempts}.`, "success");
+      } else {
+        add(`[MINE] ${label}: vein running thin — no exploit recovered. attempt ${d.attempts}.`, "info");
+      }
+      if (d.exhausted) add(`[MINE] ${label}: tapped out — no further yield.`, "meta");
     } else if (action === "reboot-start") {
       add(`[NODE] ${label}: REBOOTING — offline temporarily.`, "info");
     } else if (action === "reboot-complete") {

@@ -36,6 +36,12 @@ let prevIceNodeId = null;        // tracks ICE's last position for movement flas
 let currentSelectedNodeId = null; // tracks selected node for reticle positioning
 let currentProbeSweepNodeId = null;  // tracks node being probed for sweep overlay
 let currentProbeSweepProgress = 0;   // 0..1
+let currentMineScanNodeId = null;    // tracks node being mined for scan overlay
+let currentMineScanProgress = 0;     // 0..1
+// Lissajous scan-path params, reseeded in syncMineScan when the mine target
+// (nodeId) changes — i.e. at the start of each mine run, since clear() nulls
+// nodeId between runs. Stored so pan/zoom + scrubbing stay stable within a run.
+let mineScanFx = 2.5, mineScanFy = 3.5, mineScanPhase = Math.PI / 2;
 let currentReadSectorsNodeId = null;
 let currentReadSectorsProgress = 0;
 let readSectorCount = 0;
@@ -183,6 +189,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   const onPanZoom = () => {
     syncReticle();
     _renderProbeSweep();
+    _renderMineScan();
     _renderReadSectors();
     _renderLootRings();
     _renderExploitBrackets();
@@ -905,6 +912,73 @@ function _renderProbeSweep() {
     fill.setAttribute("d",
       `M ${r},${r} L ${r},${0} A ${r},${r} 0 ${p > 0.5 ? 1 : 0},1 ${endX},${endY} Z`);
   }
+}
+
+// ── MINE scan: H+V crosshair whose intersection roams a Lissajous path,
+// damping toward node center as it completes (locks on). Square reticle rides
+// the intersection and spins clockwise (player-action convention). ───────────
+export function syncMineScan(nodeId, progress) {
+  if (nodeId !== currentMineScanNodeId) {
+    // New mine run — randomize the Lissajous path (visual-only randomness, so
+    // Math.random() per convention). Stored so pan/zoom + scrubbing stay stable
+    // within a run; only a fresh run reseeds.
+    mineScanFx = 2 + Math.random() * 1.5;        // 2.0–3.5
+    mineScanFy = 3 + Math.random() * 1.5;        // 3.0–4.5
+    mineScanPhase = Math.random() * Math.PI * 2; // 0–2π
+  }
+  currentMineScanNodeId = nodeId;
+  currentMineScanProgress = Math.max(0, Math.min(1, progress));
+  _renderMineScan();
+}
+
+export function clearMineScan() {
+  currentMineScanNodeId = null;
+  currentMineScanProgress = 0;
+  const svg = document.getElementById("mine-scan");
+  if (svg) svg.style.opacity = "0";
+}
+
+function _renderMineScan() {
+  const svg = document.getElementById("mine-scan");
+  if (!svg || !cy || !currentMineScanNodeId) return;
+
+  const node = cy.getElementById(currentMineScanNodeId);
+  if (!node || node.length === 0) { clearMineScan(); return; }
+
+  const pos = node.renderedPosition();
+  const r = node.renderedWidth() / 2;
+  const size = r * 2;
+
+  svg.style.width  = `${size}px`;
+  svg.style.height = `${size}px`;
+  svg.style.left   = `${pos.x - r}px`;
+  svg.style.top    = `${pos.y - r}px`;
+  svg.style.opacity = "1";
+
+  const p = currentMineScanProgress;
+  // Lissajous roam in overlay coords [0..size], center at r. Amplitude eases to
+  // 0 as p→1 so the crosshair settles onto center (lock-on). (ix/iy avoid
+  // shadowing the module-level Cytoscape `cy`.)
+  const amp = r * 0.62 * (1 - p * p);
+  const ix = r + amp * Math.sin(2 * Math.PI * mineScanFx * p);
+  const iy = r + amp * Math.sin(2 * Math.PI * mineScanFy * p + mineScanPhase);
+
+  const h = document.getElementById("mine-scan-h");
+  const v = document.getElementById("mine-scan-v");
+  const box = document.getElementById("mine-scan-box");
+
+  h.setAttribute("x1", "0");  h.setAttribute("y1", String(iy));
+  h.setAttribute("x2", String(size)); h.setAttribute("y2", String(iy));
+  v.setAttribute("x1", String(ix)); v.setAttribute("y1", "0");
+  v.setAttribute("x2", String(ix)); v.setAttribute("y2", String(size));
+
+  const side = r * 0.42;
+  box.setAttribute("x", String(ix - side / 2));
+  box.setAttribute("y", String(iy - side / 2));
+  box.setAttribute("width", String(side));
+  box.setAttribute("height", String(side));
+  // Clockwise spin about the reticle center (player action).
+  box.setAttribute("transform", `rotate(${p * 360} ${ix} ${iy})`);
 }
 
 export function syncReadSectors(nodeId, progress) {
