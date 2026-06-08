@@ -63,6 +63,7 @@
  * @property {string[]} lootable — owned + (not read or has uncollected macguffins)
  * @property {string[]} security — IDS / security-monitor nodes
  * @property {string[]} hasDisarmActions — owned nodes with disarm-* actions
+ * @property {{ nodeId: string, vulnTypes: Set<string> }[]} minable — owned nodes whose mine action is still available
  * @property {WorldIce} ice
  * @property {WorldPlayer} player
  * @property {WorldCard[]} hand
@@ -109,5 +110,8 @@
  * @property {number} iceDetections
  * @property {number} iceEvasions
  * @property {number} disarmActionsUsed
+ * @property {number} mineAttempts
+ * @property {number} mineResolved
+ * @property {number} mineCards
  * @property {Record<string, number>} strategyCounts
  */

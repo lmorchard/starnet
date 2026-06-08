@@ -7,6 +7,7 @@ import { getVisibleTimers } from "../timers.js";
 import { exploitSortKey } from "../exploits.js";
 import { getRevealedAliases } from "./completions.js";
 import { resolveNode, resolveImplicitNode } from "./resolvers.js";
+import { mineYieldChance } from "../mining.js";
 
 export function cmdStatusSummary() {
   const s = getState();
@@ -209,6 +210,12 @@ export function cmdStatusNode(args) {
   lines.push(`- label: ${node.label}  type: ${node.type}  grade: ${node.grade ?? "N/A"}`);
   lines.push(`- access: ${node.accessLevel}  alert: ${node.alertState}`);
   lines.push(`- visibility: ${node.visibility}  probed: ${node.probed}  read: ${node.read}  looted: ${node.looted}`);
+  if (node.accessLevel === "owned") {
+    const grade = node.grade ?? "D";
+    const attempts = node.mineAttempts ?? 0;
+    const yieldPct = Math.round(mineYieldChance(grade, attempts) * 100);
+    lines.push(`- mine: attempts:${attempts}  exhausted:${node.mineExhausted ?? false}  next-yield:${yieldPct}%`);
+  }
   if (node.rebooting) lines.push(`- REBOOTING`);
   if (node.eventForwardingDisabled !== undefined) {
     lines.push(`- event forwarding: ${node.eventForwardingDisabled ? "disabled" : "enabled"}`);

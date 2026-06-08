@@ -16,6 +16,7 @@ export const A = Object.freeze({
   XPLOIT: "xploit",
   DUMP: "dump",
   FETCH: "fetch",
+  MINE: "mine",
   ABORT: "abort",
   TARGET: "target",
   UNTARGET: "untarget",

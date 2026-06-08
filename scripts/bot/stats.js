@@ -29,6 +29,9 @@ export function createStats() {
     iceDetections: 0,
     iceEvasions: 0,
     disarmActionsUsed: 0,
+    mineAttempts: 0,
+    mineResolved: 0,
+    mineCards: 0,
     strategyCounts: {},
   };
 }
@@ -45,7 +48,18 @@ export function recordAction(stats, action) {
 
   if (action.action === A.XPLOIT) stats.cardsUsed++;
   if (action.action === "buy-card") stats.storeVisits++;
+  if (action.action === A.MINE) stats.mineAttempts++;
   if (action.action?.startsWith("disarm")) stats.disarmActionsUsed++;
+}
+
+/**
+ * Record a resolved mine attempt (called from an ACTION_RESOLVED listener).
+ * @param {BotRunStats} stats
+ * @param {{ outcome?: string }} detail
+ */
+export function recordMineResolved(stats, detail) {
+  stats.mineResolved++;
+  if (detail?.outcome === "card") stats.mineCards++;
 }
 
 /**

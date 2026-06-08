@@ -246,6 +246,20 @@ The numbers shown next to cards in `status hand` are the numbers to use with
 
 ---
 
+## GETTING MORE EXPLOIT CARDS
+
+Two channels replenish your hand mid-run. They trade off different resources:
+
+| Channel | Cost | Speed | Risk |
+|---------|------|-------|------|
+| **Darknet broker** (WAN node) | Cash | Instant (LAN pauses) | None while shopping |
+| **Mine** (owned node) | Time + ICE exposure | Grade-scaled delay | Trace clock keeps running |
+
+Use the broker when you have cash and want certainty. Mine when you're broke but own
+a node whose vulnerability profile matches what you need.
+
+---
+
 ## THE DARKNET BROKER
 
 The **WAN node** — the boundary between your tether and the LAN — is more than an exit
@@ -278,6 +292,57 @@ more the higher their rarity and quality. Rare cards with broad vulnerability co
 are expensive but powerful against the hardest nodes.
 
 You'll need cash to buy. Loot macguffins first, then shop.
+
+---
+
+## MINING
+
+On any node you fully own, you can **mine** it for exploit code buried in its
+filesystem — data-mining the node's own software stack for usable vulnerabilities.
+
+```
+> mine
+```
+
+Mining is a timed action. Higher-grade nodes take longer to mine. The trace clock
+keeps running and ICE keeps moving — there is no pause.
+
+### Yield
+
+When mining completes, the system rolls a yield chance:
+
+- **Hit** — you receive one exploit card. Its target vulnerability class is drawn
+  from the *mined node's own vulnerabilities* (so mining a node with AuthBrute
+  exposure tends to produce AuthBrute-type cards). Rarity is rolled by the node's
+  grade: higher-grade nodes produce better cards more often.
+- **Miss** — nothing. The log reports "vein running thin."
+
+### Diminishing Returns
+
+Every mining attempt — hit or miss — counts against the node. The yield chance
+decays geometrically with each attempt. Higher-grade nodes sustain more attempts
+before the curve bottoms out. When the next attempt's expected yield drops below
+roughly 5%, the node is **exhausted**: the `mine` action disappears from its menu
+and the node won't yield further.
+
+Attempt counts are **permanent for the run** — they never reset, not even if you
+reboot the node.
+
+`status node <id>` on an owned node shows:
+```
+mine: attempts:N  exhausted:false  next-yield:42%
+```
+
+### Strategy
+
+Mining is generic card supply, not a guaranteed answer. To crack a node showing
+vulnerability class X, find an already-owned node that also exhibits X — mine it
+for a matching exploit. But the clock is running, so weigh the time cost against
+buying from the broker.
+
+The spatial insight: **you're farming the network's own vulnerabilities back against
+itself.** A node you've already owned is a potential exploit factory for the nodes
+around it.
 
 ---
 
@@ -431,6 +496,7 @@ Actions depend on the selected node's type and access level:
 | `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies or the node is already owned. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
+| `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
 | `corrupt`      | IDS node is compromised or owned               | Severs event forwarding to security monitor |
 | `spoof`        | Security-monitor node, compromised or owned    | Recalibrates security monitor |
 | `eject`        | Owned node + ICE is present here               | Boots ICE to adjacent node |
@@ -452,6 +518,7 @@ abort                  Abort any in-progress timed action on targeted node.
 xploit <#|name>        Use exploit card by number or name on targeted node.
 dump [node]            Dump contents of targeted/specified node.
 fetch [node]           Extract macguffins from owned node.
+mine [node]            Data-mine owned node for an exploit card (timed; diminishing returns).
 corrupt [node]         Disable IDS event forwarding.
 spoof [node]           Recalibrate security monitor.
 eject                  Push ICE off current node to adjacent node.
@@ -503,9 +570,11 @@ the high-grade nodes. A disclosed card is deadweight.
 you can cancel the trace and work at your own pace. It's usually the hardest node
 on the board — but worth it if you're going for a deep run.
 
-**If your hand doesn't match, shop.** The WAN node is always accessible. If you're
-locked out of a key node because your cards don't match its vulnerabilities, detour
-through the WAN and check the darknet catalog. The LAN freezes while you browse.
+**If your hand doesn't match, resupply.** Two options: detour to the WAN node and
+check the darknet catalog (the LAN freezes while you browse, costs cash), or mine
+an owned node whose vulnerabilities overlap your target (costs time and ICE exposure,
+no cash). Mining is the broke decker's fallback — and a reason to own nodes
+strategically, not just opportunistically.
 
 **Jack out when the job is done.** There's no shame in a clean exit.
 

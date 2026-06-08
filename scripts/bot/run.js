@@ -14,6 +14,7 @@ import { securityStrategy } from "./heuristics/security.js";
 import { trapsStrategy } from "./heuristics/traps.js";
 import { evasionStrategy } from "./heuristics/evasion.js";
 import { cardsStrategy } from "./heuristics/cards.js";
+import { mineStrategy } from "./heuristics/mine.js";
 import { puzzleStrategy, resetPuzzleTracking } from "./heuristics/puzzles.js";
 
 /** @type {Strategy[]} */
@@ -24,6 +25,7 @@ const DEFAULT_STRATEGIES = [
   trapsStrategy,
   evasionStrategy,
   cardsStrategy,
+  mineStrategy,
   puzzleStrategy,
 ];
 

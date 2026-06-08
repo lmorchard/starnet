@@ -49,6 +49,7 @@ const ABORT_ACTION = {
         { type: "node-attr", attr: "exploiting", eq: true },
         { type: "node-attr", attr: "reading", eq: true },
         { type: "node-attr", attr: "looting", eq: true },
+        { type: "node-attr", attr: "mining", eq: true },
       ],
     },
   ],
@@ -133,6 +134,23 @@ const FETCH_ACTION = {
 };
 
 // cancel-fetch removed — absorbed into unified ABORT_ACTION
+
+/** @type {ActionDef} */
+const MINE_ACTION = {
+  id: A.MINE,
+  label: "MINE",
+  desc: "Data-mine for exploits.",
+  requires: [
+    { type: "node-attr", attr: "accessLevel", eq: "owned" },
+    { type: "node-attr", attr: "rebooting", eq: false },
+    { type: "node-attr", attr: "mining", eq: false },
+    { type: "node-attr", attr: "mineExhausted", eq: false },
+  ],
+  effects: [
+    { effect: "set-attr", attr: "mining", value: true },
+    { effect: "set-attr", attr: "_ta_mine_progress", value: 0 },
+  ],
+};
 
 /** @type {ActionDef} */
 const EJECT_ACTION = {
@@ -387,6 +405,7 @@ export const ACTION_TEMPLATES = {
   EXPLOIT: EXPLOIT_ACTION,
   DUMP: DUMP_ACTION,
   FETCH: FETCH_ACTION,
+  MINE: MINE_ACTION,
   EJECT: EJECT_ACTION,
   REBOOT: REBOOT_ACTION,
   RECONFIGURE: RECONFIGURE_ACTION,

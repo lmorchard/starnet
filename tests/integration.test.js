@@ -25,6 +25,10 @@ import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from 
 import { emitEvent, on, off, E } from "../js/core/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/core/timers.js";
 import { getAvailableActions } from "../js/core/actions/node-actions.js";
+import { setNodeAccessLevel, serializeState, deserializeState } from "../js/core/state.js";
+import { incrementMineAttempts, setMineExhausted } from "../js/core/state/node.js";
+import { A } from "../js/core/action-ids.js";
+import { MINE_TAPOUT } from "../js/core/mining.js";
 import { generateExploit } from "../js/core/exploits.js";
 import { launchExploit } from "../js/core/combat.js";
 import { startTraceCountdown, recordIceDetection } from "../js/core/alert.js";
@@ -930,5 +934,141 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
       assert.notEqual(vault.visibility, "hidden",
         "vault should be visible (revealed or accessible) after trigger fires");
     });
+  });
+});
+
+// ── Mine action ──────────────────────────────────────────────────────────────
+// End-to-end: owning a node enables MINE, a timed action that on completion rolls
+// a grade×attempts yield chance. Hit → node-intrinsic exploit card to hand; miss →
+// nothing. Either way mineAttempts increments; once the next yield drops below the
+// tap-out threshold, mineExhausted is set and the action disappears.
+
+describe("mine action", () => {
+  /** Number of ticks needed to complete a mine on a given grade. */
+  const MINE_DURATION = { S: 70, A: 60, B: 50, C: 40, D: 35, F: 30 };
+
+  /** Own the gateway and return its grade-appropriate mine duration. */
+  function ownGateway() {
+    const s = getState();
+    setNodeAccessLevel("gateway", "owned");
+    const grade = s.nodes["gateway"].grade ?? "D";
+    return MINE_DURATION[grade] ?? MINE_DURATION.D;
+  }
+
+  beforeEach(() => {
+    clearAll();
+    initGame(() => buildBasicLAN());
+  });
+
+  it("a HIT adds an exploit card to hand and increments mineAttempts", () => {
+    const s = getState();
+    const duration = ownGateway();
+    assert.ok((s.nodes["gateway"].vulnerabilities ?? []).length > 0,
+      "precondition: gateway should have at least one vulnerability");
+
+    const handBefore = s.player.hand.length;
+
+    // Force a HIT: yield roll well below any chance, then rarity/vuln picks.
+    _forceNext(RNG.MINE, 0.0);   // yield roll → hit
+    _forceNext(RNG.MINE, 0.0);   // rarity roll → first bucket
+    _forceNext(RNG.MINE, 0.0);   // vuln index pick
+
+    const graph = s.nodeGraph;
+    graph.executeAction("gateway", "mine");
+    assert.equal(graph.getNodeState("gateway").mining, true, "mining must be true after action");
+
+    tick(duration + 2);
+
+    assert.equal(s.player.hand.length, handBefore + 1, "a hit should add exactly one card to hand");
+    assert.equal(s.nodes["gateway"].mineAttempts, 1, "mineAttempts should be 1 after one completion");
+    assert.equal(s.nodes["gateway"].mining, false, "mining should clear after completion");
+  });
+
+  it("emits action-feedback progress events during the mine (per-tick progress feedback, drives ICE noise via ice.js)", () => {
+    const s = getState();
+    const duration = ownGateway();
+
+    _forceNext(RNG.MINE, 0.0);
+    _forceNext(RNG.MINE, 0.0);
+    _forceNext(RNG.MINE, 0.0);
+
+    const captured = [];
+    const handler = (p) => captured.push(p);
+    on(E.ACTION_FEEDBACK, handler);
+    s.nodeGraph.executeAction("gateway", "mine");
+    tick(duration + 2);
+    off(E.ACTION_FEEDBACK, handler);
+
+    const progress = captured.filter((p) => p.action === A.MINE && p.phase === "progress");
+    assert.ok(progress.length > 0, "at least one mine progress feedback event must fire");
+  });
+
+  it("drives to tap-out and removes the MINE action when exhausted", () => {
+    const s = getState();
+    const grade = s.nodes["gateway"].grade ?? "D";
+    const duration = ownGateway();
+
+    let guard = 0;
+    while (!s.nodes["gateway"].mineExhausted) {
+      assert.ok(guard++ < 100, "tap-out should be reached within a sane number of attempts");
+      _forceNext(RNG.MINE, 0.999); // yield roll → miss
+      s.nodeGraph.executeAction("gateway", "mine");
+      tick(duration + 2);
+    }
+
+    assert.equal(s.nodes["gateway"].mineExhausted, true, "node should be exhausted");
+    const actionIds = getAvailableActions(s.nodes["gateway"], s).map((a) => a.id);
+    assert.ok(!actionIds.includes(A.MINE),
+      "MINE action must not be available once the vein is tapped out");
+  });
+
+  it("a MISS emits ACTION_RESOLVED with detail.outcome 'miss' and adds no card", () => {
+    const s = getState();
+    const duration = ownGateway();
+    const handBefore = s.player.hand.length;
+
+    _forceNext(RNG.MINE, 0.999); // yield roll → miss
+
+    const resolved = withEvents(E.ACTION_RESOLVED, () => {
+      s.nodeGraph.executeAction("gateway", "mine");
+      tick(duration + 2);
+    }).filter((p) => p.action === A.MINE);
+
+    assert.equal(resolved.length, 1, "exactly one mine ACTION_RESOLVED should fire");
+    assert.equal(resolved[0].detail.outcome, "miss", "outcome should be 'miss'");
+    assert.equal(s.player.hand.length, handBefore, "a miss must not add a card");
+  });
+
+  it("ABORT cancels an in-progress mine", () => {
+    const s = getState();
+    ownGateway();
+
+    s.nodeGraph.executeAction("gateway", "mine");
+    tick(2);
+    assert.equal(s.nodes["gateway"].mining, true, "precondition: mining in progress");
+
+    s.nodeGraph.executeAction("gateway", "abort");
+    assert.equal(s.nodes["gateway"].mining, false, "mining should be false after abort");
+  });
+
+  it("mineAttempts and mineExhausted survive a serialize/deserialize round-trip", () => {
+    setNodeAccessLevel("gateway", "owned");
+
+    incrementMineAttempts("gateway");
+    incrementMineAttempts("gateway");
+    incrementMineAttempts("gateway");
+    incrementMineAttempts("gateway");
+    setMineExhausted("gateway", true);
+
+    const snapshot = JSON.parse(JSON.stringify(serializeState()));
+    deserializeState(snapshot);
+
+    const after = getState();
+    assert.equal(after.nodes["gateway"].mineAttempts, 4, "mineAttempts should survive round-trip");
+    assert.equal(after.nodes["gateway"].mineExhausted, true, "mineExhausted should survive round-trip");
+  });
+
+  it("MINE_TAPOUT threshold is the documented ~5%", () => {
+    assert.equal(MINE_TAPOUT, 0.05);
   });
 });

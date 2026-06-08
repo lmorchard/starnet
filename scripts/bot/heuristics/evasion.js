@@ -61,7 +61,7 @@ export function evasionStrategy(world) {
   if (world.player.selectedNodeId) {
     const nodeId = world.player.selectedNodeId;
     const node = world.nodes.get(nodeId);
-    if (node && !node.probing && !node.exploiting && !node.reading && !node.looting) {
+    if (node && !node.probing && !node.exploiting && !node.reading && !node.looting && !node.mining) {
       proposals.push({
         action: A.UNTARGET,
         nodeId: null,

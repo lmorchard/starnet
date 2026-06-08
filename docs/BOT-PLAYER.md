@@ -104,6 +104,7 @@ ranges establish natural priority:
 | 100 | Trace jackout |
 | 55–70 | Security subversion, buy cards, disarm traps |
 | 42–58 | Normal exploration (target, probe, xploit) |
+| 30 | Mine for cards (card-blocked, no cash) |
 | 15 | Untarget (reduce exposure) |
 | 10 | Stuck jackout |
 
@@ -142,6 +143,16 @@ Idle targeting → untarget (15).
 Buy matching card from darknet (55) when no cards match exploitable
 nodes. Uses `buyFromStore()` directly (headless — no browser darknet UI).
 Jack out (10) when no usable cards remain and can't afford darknet.
+
+### mine
+
+Proposes mining an owned, non-exhausted node (30) when the bot is
+**blocked on cards** — no usable matching card exists for any exploitable
+node — and cannot afford the darknet broker. Prefers nodes whose vulnerability
+classes overlap a blocked target's vulnerabilities. Will not propose mining
+an exhausted node. Score is below buying from the darknet (50+) so the bot
+buys when it has cash and mines when broke; score is above stuck-jackout (10)
+so mining is tried before giving up.
 
 ---
 
@@ -248,6 +259,10 @@ These omissions are intentional — they make the bot a pessimistic baseline:
 - **Plan ahead** — no lookahead; greedy scoring of current moment only
 - **Anticipate ICE movement** — only reacts when ICE arrives, doesn't track
   patrol patterns
+- **Mine proactively** — only mines when blocked on cards (no usable matching
+  card and can't afford darknet); never pre-mines nodes to stockpile cards
+- **Mine exhausted nodes** — skips nodes where `mine` is no longer available;
+  no retry loops
 
 ---
 
