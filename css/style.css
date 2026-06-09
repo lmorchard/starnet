@@ -984,12 +984,12 @@ html, body {
   50%       { opacity: 0.3; }
 }
 
-/* Selection reticle — animated SVG ring overlay */
-#selection-reticle {
+/* Selection reticle — animated SVG ring overlay (rendered by <selection-reticle>) */
+.selection-reticle {
   transition: opacity 0.2s ease;
 }
 
-#reticle-group {
+.reticle-group {
   animation: reticle-spin 12s linear infinite;
   transform-box: fill-box;
   transform-origin: 50% 50%;

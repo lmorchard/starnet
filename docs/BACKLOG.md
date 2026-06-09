@@ -388,6 +388,32 @@ compromised/owned nodes.
 - Node flash on exploit success (currently implemented for some cases)
 - Audio (explicitly out of scope until much later)
 
+### Color as a Second Agency Channel (player vs. adversarial)
+
+Agency is currently signalled only by **rotation direction** (CLAUDE.md convention:
+CW = player, CCW = adversarial). **Color is *not* a clean agency axis** — magenta is
+overloaded: it marks selection (the reticle), two *player* offensive actions (mine
+scan, exploit brackets/zaps), *and* the *enemy* (ICE-detect sweep, hot-pink `#ff00aa`).
+
+Among the five player overlays, three are already cool (probe = cyan `#00ffff`,
+dump = green `#00ff41`, fetch = green-teal), and only **mine** and **exploit** are
+hot magenta (`#cc00cc` / `#ff44ff`) — sharing the hot family with the enemy ICE.
+
+**Proposed rule:** recolor mine + exploit to the cool palette so **cool = your action**
+and **magenta/pink/red = selection + adversarial**, reinforcing the existing direction
+cue. Caveats:
+- The magenta on exploit was *deliberate* (`2026-03-01-1248-exploit-zap-fx` spec:
+  "matches exploit bracket visual language") — so recolor brackets + zaps **as a pair**
+  to keep that internal cohesion.
+- Pick a hue distinct from probe-cyan and dump-green — exploit probably wants a
+  blue/violet; mine a teal/blue.
+- Direction stays the primary agency signal; this just stops color from contradicting it.
+
+**Where:** each effect's colors now live in one place — the `render()` skeleton of its
+`js/ui/overlays/*.js` component — so this is a small, localized change. **Tune the exact
+hues by eye in the preview harness** (`preview.html`) rather than guessing. Deferred out
+of the overlay-refactor PR (#120) to keep that a behavior-parity change.
+
 ### Console / UX
 
 - **Command prefix uniqueness sweep** — several command families share prefixes that

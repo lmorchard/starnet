@@ -11,7 +11,10 @@ import { on, E } from "../core/events.js";
 import { A } from "../core/action-ids.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, syncProbeSweep, clearProbeSweep, syncMineScan, clearMineScan, syncReadSectors, clearReadSectors, syncLootRings, clearLootRings, syncExploitBrackets, clearExploitBrackets, syncIceDetectSweep, clearIceDetectSweep, completeAndClearIceDetectSweep, relayout } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, relayout, onViewport, setReticleOverlay } from "./graph.js";
+import { mountOverlays } from "./overlays/index.js";
+import { mountReticle } from "./overlays/selection-reticle.js";
+import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
 
@@ -63,65 +66,23 @@ export function initVisualRenderer() {
   //
   // activeNodeId tracks which node has an active animation so we can
   // clear overlays correctly on completion/cancel.
-  let activeProbeNodeId = null;
-  let activeExploitNodeId = null;
-  let activeReadNodeId = null;
-  let activeLootNodeId = null;
-  let activeMineNodeId = null;
+  // Mount overlay animations into the graph's overlay layer and drive them from
+  // the registry. visual-renderer no longer knows individual effects — it maps
+  // action id → overlay element and calls the sync/clear/reposition contract.
+  const layer = /** @type {HTMLElement} */ (document.getElementById("overlay-layer"));
+  const overlays = mountOverlays(layer);
+  onViewport(() => overlays.byKey.forEach((o) => o.reposition()));
 
-  on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, progress }) => {
-    if (action === A.PROBE) {
-      if (phase === "start") {
-        activeProbeNodeId = nodeId;
-      } else if (phase === "progress" && activeProbeNodeId) {
-        syncProbeSweep(activeProbeNodeId, progress);
-      } else if (phase === "complete" || phase === "cancel") {
-        clearProbeSweep();
-        activeProbeNodeId = null;
-      }
-    } else if (action === A.XPLOIT) {
-      if (phase === "start") {
-        activeExploitNodeId = nodeId;
-      } else if (phase === "progress" && activeExploitNodeId) {
-        syncExploitBrackets(activeExploitNodeId, progress);
-        updateExploitProgress(progress);
-      } else if (phase === "complete" || phase === "cancel") {
-        clearExploitBrackets();
-        if (phase === "complete") {
-          // Flash success/failure based on exploit result
-          // (EXPLOIT_SUCCESS/FAILURE events are still emitted by resolveExploit → launchExploit)
-        }
-        activeExploitNodeId = null;
-      }
-    } else if (action === A.DUMP) {
-      if (phase === "start") {
-        activeReadNodeId = nodeId;
-      } else if (phase === "progress" && activeReadNodeId) {
-        syncReadSectors(activeReadNodeId, progress);
-      } else if (phase === "complete" || phase === "cancel") {
-        clearReadSectors();
-        activeReadNodeId = null;
-      }
-    } else if (action === A.FETCH) {
-      if (phase === "start") {
-        activeLootNodeId = nodeId;
-      } else if (phase === "progress" && activeLootNodeId) {
-        syncLootRings(activeLootNodeId, progress);
-      } else if (phase === "complete" || phase === "cancel") {
-        clearLootRings();
-        activeLootNodeId = null;
-      }
-    } else if (action === A.MINE) {
-      if (phase === "start") {
-        activeMineNodeId = nodeId;
-      } else if (phase === "progress" && activeMineNodeId) {
-        syncMineScan(activeMineNodeId, progress);
-      } else if (phase === "complete" || phase === "cancel") {
-        clearMineScan();
-        activeMineNodeId = null;
-      }
-    }
-  });
+  // Selection reticle — a NodeOverlay too, but selection-driven (graph.js calls
+  // it from syncSelection) rather than action-driven.
+  const reticle = mountReticle(layer);
+  setReticleOverlay(reticle);
+  onViewport(() => reticle.reposition());
+
+  // action id → node id of the in-flight animation (tracked across feedback events)
+  const activeNodeIds = new Map();
+  on(E.ACTION_FEEDBACK, (payload) =>
+    dispatchActionFeedback(overlays.byAction, activeNodeIds, payload, { onXploitProgress: updateExploitProgress }));
 
   // Exploit result flash — driven by ACTION_RESOLVED
   on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
@@ -129,18 +90,18 @@ export function initVisualRenderer() {
   });
 
   on(E.RUN_STARTED, () => {
-    clearExploitBrackets(); clearProbeSweep(); clearMineScan(); clearReadSectors(); clearLootRings();
-    clearIceDetectSweep();
-    activeProbeNodeId = null; activeExploitNodeId = null;
-    activeReadNodeId = null; activeLootNodeId = null; activeMineNodeId = null;
+    overlays.byKey.forEach((o) => o.clear());
+    activeNodeIds.clear();
   });
 
-  // ICE detection sweep — clear immediately on any event that ends a detection dwell.
-  on(E.ICE_DETECTED,     () => completeAndClearIceDetectSweep());
-  on(E.ICE_MOVED,        () => clearIceDetectSweep());
-  on(E.ICE_EJECTED,      () => clearIceDetectSweep());
-  on(E.ICE_REBOOTED,     () => clearIceDetectSweep());
-  on(E.PLAYER_NAVIGATED, () => clearIceDetectSweep());
+  // ICE detection sweep — timer-driven sibling; clear immediately on any event
+  // that ends a detection dwell.
+  const iceOverlay = overlays.byKey.get("ice");
+  on(E.ICE_DETECTED,     () => iceOverlay.completeAndClear());
+  on(E.ICE_MOVED,        () => iceOverlay.clear());
+  on(E.ICE_EJECTED,      () => iceOverlay.clear());
+  on(E.ICE_REBOOTED,     () => iceOverlay.clear());
+  on(E.PLAYER_NAVIGATED, () => iceOverlay.clear());
 
   // Timer-only tick: update countdowns and ICE detection sweep.
   // Action progress no longer driven here — ACTION_FEEDBACK handles it.
@@ -151,9 +112,9 @@ export function initVisualRenderer() {
     // ICE detection sweep — driven by timer presence; self-clears when timer is gone
     const iceDetect = getVisibleTimers().find((t) => t.label === "ICE DETECTION");
     if (iceDetect) {
-      syncIceDetectSweep("ice-0", iceDetect.progress);
+      iceOverlay.sync("ice-0", iceDetect.progress);
     } else {
-      clearIceDetectSweep();
+      iceOverlay.clear();
     }
   });
 
