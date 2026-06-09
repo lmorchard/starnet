@@ -264,6 +264,18 @@ These omissions are intentional — they make the bot a pessimistic baseline:
 - **Mine exhausted nodes** — skips nodes where `mine` is no longer available;
   no retry loops
 
+### What the census therefore cannot validate
+
+Because the bot is a supply-flush greedy baseline, it almost never falls back to
+**tight-spot** mechanics — the ones that only matter when a thinking player is
+out of matching cards, cash-poor, and under ICE pressure. `mine` is the first
+shipped example: across 100 seeds it fires ~never (corporate-foothold 0/100,
+corporate-exchange ~3/100), so the census tells us mine is bounded, deterministic,
+and curve-correct — but **nothing about whether it's balanced or a meaningful
+choice**. That judgment needs a human or LLM player (issues #122 and #86). When adding a mechanic that's a
+deliberate escape hatch rather than a primary path, don't expect the census to
+gate it.
+
 ---
 
 ## Determinism
