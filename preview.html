@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <title>STARNET — Visual Preview Harness</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Import map: bare "lit" specifiers → bundled dist/lit.js (overlay components + Lit UI components) -->
+  <script type="importmap">
+    { "imports": {
+      "lit": "./dist/lit.js",
+      "lit/directives/repeat.js": "./dist/lit.js"
+    } }
+  </script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -144,69 +151,9 @@
     <div id="graph-panel">
       <div id="graph-container">
         <div id="cy"></div>
-        <!-- SVG overlay elements (same as index.html) -->
-        <svg id="probe-sweep"
-             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
-          <path id="probe-sweep-fill" fill="rgba(0,255,255,0.18)" />
-          <circle id="probe-sweep-ring" fill="none" stroke="#00ffff" stroke-width="1" stroke-opacity="0.45" />
-        </svg>
-        <svg id="ice-detect-sweep"
-             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
-          <path id="ice-detect-arc" fill="none" stroke="#ff00aa" stroke-width="4" stroke-linecap="round"/>
-        </svg>
-        <svg id="mine-scan"
-             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
-          <line id="mine-scan-h" stroke="#cc00cc" stroke-width="2" stroke-opacity="0.5"/>
-          <line id="mine-scan-v" stroke="#cc00cc" stroke-width="2" stroke-opacity="0.5"/>
-          <rect id="mine-scan-box" fill="none" stroke="#ff44ff" stroke-width="1" stroke-opacity="0.9"/>
-        </svg>
-        <svg id="loot-rings"
-             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
-        </svg>
-        <svg id="read-sectors"
-             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
-          <path id="read-sectors-fill" fill="rgba(0,255,65,0.15)" />
-          <circle id="read-sectors-ring" fill="none" stroke="#00ff41" stroke-width="1" stroke-opacity="0.45" />
-        </svg>
-        <svg id="exploit-brackets"
-             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
-          <defs>
-            <filter id="zap-bloom" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-              <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          <line id="bracket-tl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="bracket-tl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="bracket-tr-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="bracket-tr-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="bracket-br-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="bracket-br-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="bracket-bl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="bracket-bl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          <line id="zap-tl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-          <line id="zap-tr" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-          <line id="zap-br" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-          <line id="zap-bl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-        </svg>
-        <svg id="selection-reticle"
-             style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;">
-          <g id="reticle-group">
-            <circle id="reticle-ring" cx="30" cy="30" r="28"
-                    fill="none"
-                    stroke="#cc00cc"
-                    stroke-width="1.5"
-                    stroke-dasharray="6 3"
-                    stroke-opacity="0.75"/>
-            <line id="reticle-tick-n" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="reticle-tick-s" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="reticle-tick-e" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="reticle-tick-w" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-          </g>
-        </svg>
+        <!-- Node-anchored overlay animations mount here as NodeOverlay custom
+             elements (see js/ui/overlays/), same as index.html. -->
+        <div id="overlay-layer"></div>
       </div>
     </div>
 
@@ -228,75 +175,11 @@
         </div>
       </div>
 
-      <!-- SVG Overlay Effects -->
+      <!-- SVG Overlay Effects — control rows generated from the overlay
+           registry by js/ui/preview.js (one PLAY/RESET + scrub per effect). -->
       <div class="section">
         <h2>Overlay Effects</h2>
-
-        <h3>Probe Sweep</h3>
-        <div class="effect-row">
-          <label>progress</label>
-          <input type="range" id="slider-probe" min="0" max="1" step="0.01" value="0">
-          <span class="val" id="val-probe">0.00</span>
-        </div>
-        <div class="btn-row">
-          <button id="btn-probe-play">PLAY</button>
-          <button id="btn-probe-reset">RESET</button>
-        </div>
-
-        <h3>Mine Scan</h3>
-        <div class="effect-row">
-          <label>progress</label>
-          <input type="range" id="slider-mine" min="0" max="1" step="0.01" value="0">
-          <span class="val" id="val-mine">0.00</span>
-        </div>
-        <div class="btn-row">
-          <button id="btn-mine-play">PLAY</button>
-          <button id="btn-mine-reset">RESET</button>
-        </div>
-
-        <h3>Read Sectors</h3>
-        <div class="effect-row">
-          <label>progress</label>
-          <input type="range" id="slider-read" min="0" max="1" step="0.01" value="0">
-          <span class="val" id="val-read">0.00</span>
-        </div>
-        <div class="btn-row">
-          <button id="btn-read-play">PLAY</button>
-          <button id="btn-read-reset">RESET</button>
-        </div>
-
-        <h3>Loot Rings</h3>
-        <div class="effect-row">
-          <label>progress</label>
-          <input type="range" id="slider-loot" min="0" max="1" step="0.01" value="0">
-          <span class="val" id="val-loot">0.00</span>
-        </div>
-        <div class="btn-row">
-          <button id="btn-loot-play">PLAY</button>
-          <button id="btn-loot-reset">RESET</button>
-        </div>
-
-        <h3>Exploit Brackets</h3>
-        <div class="effect-row">
-          <label>progress</label>
-          <input type="range" id="slider-exploit" min="0" max="1" step="0.01" value="0">
-          <span class="val" id="val-exploit">0.00</span>
-        </div>
-        <div class="btn-row">
-          <button id="btn-exploit-play">PLAY</button>
-          <button id="btn-exploit-reset">RESET</button>
-        </div>
-
-        <h3>ICE Detection</h3>
-        <div class="effect-row">
-          <label>progress</label>
-          <input type="range" id="slider-ice" min="0" max="1" step="0.01" value="0">
-          <span class="val" id="val-ice">0.00</span>
-        </div>
-        <div class="btn-row">
-          <button id="btn-ice-play">PLAY</button>
-          <button id="btn-ice-reset">RESET</button>
-        </div>
+        <div id="overlay-controls"></div>
 
         <h3>Selection Reticle</h3>
         <div class="btn-row">
@@ -314,6 +197,13 @@
         </div>
       </div>
 
+      <!-- Card Gallery — real <starnet-hand> mounts fed a deterministic mock
+           matrix (rarity × quality × wear × match), built by js/ui/preview-cards.js. -->
+      <div class="section">
+        <h2>Card Gallery</h2>
+        <div id="card-gallery"></div>
+      </div>
+
       <!-- Node Shapes (display only) -->
       <div class="section">
         <h2>Node Shape Gallery</h2>
@@ -329,6 +219,7 @@
   </div>
 
   <script src="dist/vendor.js"></script>
+  <script type="module" src="js/ui/components/starnet-hand.js"></script>
   <script type="module" src="js/ui/preview.js"></script>
 </body>
 </html>

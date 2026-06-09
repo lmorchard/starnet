@@ -6,29 +6,32 @@
 
 import {
   initGraph, getCy,
-  syncProbeSweep, clearProbeSweep,
-  syncMineScan, clearMineScan,
-  syncReadSectors, clearReadSectors,
-  syncLootRings, clearLootRings,
-  syncExploitBrackets, clearExploitBrackets,
-  syncIceDetectSweep, clearIceDetectSweep,
   syncSelection,
   flashNode,
   updateNodeStyle,
+  onViewport,
+  setReticleOverlay,
 } from "./graph.js";
+import { mountOverlays } from "./overlays/index.js";
+import { mountReticle } from "./overlays/selection-reticle.js";
+import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
+import { mountCardGallery } from "./preview-cards.js";
 
 // ── Demo node definitions ────────────────────────────────────
 
-// Effect demo nodes — positioned in a 2×3 grid
-const EFFECT_NODES = [
-  { id: "demo-probe",   label: "PROBE",   type: "router",     grade: "C", x: 150, y: 120 },
-  { id: "demo-read",    label: "DUMP",    type: "fileserver", grade: "C", x: 350, y: 120 },
-  { id: "demo-loot",    label: "FETCH",   type: "fileserver", grade: "B", x: 550, y: 120 },
-  { id: "demo-exploit", label: "XPLOIT",  type: "firewall",  grade: "B", x: 150, y: 280 },
-  { id: "demo-ice",     label: "ICE DET", type: "ids",        grade: "A", x: 350, y: 280 },
-  { id: "demo-select",  label: "SELECT",  type: "gateway",    grade: "C", x: 550, y: 280 },
-  { id: "demo-mine",    label: "MINE",    type: "cryptovault", grade: "A", x: 750, y: 280 },
-];
+// Effect demo nodes — generated from the overlay registry (one per effect),
+// laid out in a row. Adding a new overlay effect requires no preview edits.
+const EFFECT_NODES = OVERLAY_DESCRIPTORS.map((d, i) => ({
+  id: `demo-${d.key}`,
+  label: d.label,
+  type: d.demo.type,
+  grade: d.demo.grade,
+  x: 150 + i * 130,
+  y: 120,
+}));
+
+// Selection reticle demo node (not an overlay-registry effect)
+const SELECT_NODE = { id: "demo-select", label: "SELECT", type: "gateway", grade: "C", x: 150 + OVERLAY_DESCRIPTORS.length * 130, y: 120 };
 
 // Flash demo node
 const FLASH_NODE = { id: "demo-flash", label: "FLASH", type: "router", grade: "C", x: 750, y: 200 };
@@ -55,7 +58,7 @@ const ALERT_NODES = [
 
 // ── Initialize Cytoscape ─────────────────────────────────────
 
-const allNodes = [...EFFECT_NODES, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES];
+const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES];
 const networkData = {
   nodes: allNodes.map(n => ({ id: n.id, label: n.label, type: n.type, grade: n.grade })),
   edges: [],
@@ -93,6 +96,16 @@ cy.fit(undefined, 40);
 cy.userZoomingEnabled(true);
 cy.userPanningEnabled(true);
 
+// Mount overlay animations from the registry and re-anchor them on pan/zoom.
+const overlayLayer = document.getElementById("overlay-layer");
+const overlays = mountOverlays(overlayLayer);
+onViewport(() => overlays.byKey.forEach((o) => o.reposition()));
+
+// Selection reticle (selection-driven; toggled below via syncSelection).
+const reticle = mountReticle(overlayLayer);
+setReticleOverlay(reticle);
+onViewport(() => reticle.reposition());
+
 // ── Animation helpers ────────────────────────────────────────
 
 function getSpeed() {
@@ -129,44 +142,29 @@ const runningAnimations = {};
 
 // ── Wire up effect controls ──────────────────────────────────
 
-const EFFECTS = [
-  {
-    name: "probe",
-    nodeId: "demo-probe",
-    sync: syncProbeSweep,
-    clear: clearProbeSweep,
-  },
-  {
-    name: "mine",
-    nodeId: "demo-mine",
-    sync: syncMineScan,
-    clear: clearMineScan,
-  },
-  {
-    name: "read",
-    nodeId: "demo-read",
-    sync: syncReadSectors,
-    clear: clearReadSectors,
-  },
-  {
-    name: "loot",
-    nodeId: "demo-loot",
-    sync: syncLootRings,
-    clear: clearLootRings,
-  },
-  {
-    name: "exploit",
-    nodeId: "demo-exploit",
-    sync: syncExploitBrackets,
-    clear: clearExploitBrackets,
-  },
-  {
-    name: "ice",
-    nodeId: "demo-ice",
-    sync: syncIceDetectSweep,
-    clear: clearIceDetectSweep,
-  },
-];
+// Generate a control row per overlay effect from the registry.
+const overlayControls = document.getElementById("overlay-controls");
+for (const d of OVERLAY_DESCRIPTORS) {
+  overlayControls.insertAdjacentHTML("beforeend", `
+    <h3>${d.label}</h3>
+    <div class="effect-row">
+      <label>progress</label>
+      <input type="range" id="slider-${d.key}" min="0" max="1" step="0.01" value="0">
+      <span class="val" id="val-${d.key}">0.00</span>
+    </div>
+    <div class="btn-row">
+      <button id="btn-${d.key}-play">PLAY</button>
+      <button id="btn-${d.key}-reset">RESET</button>
+    </div>`);
+}
+
+// Each effect drives its mounted overlay element via the sync/clear contract.
+const EFFECTS = OVERLAY_DESCRIPTORS.map((d) => ({
+  name: d.key,
+  nodeId: `demo-${d.key}`,
+  sync: (id, t) => overlays.byKey.get(d.key).sync(id, t),
+  clear: () => overlays.byKey.get(d.key).clear(),
+}));
 
 for (const effect of EFFECTS) {
   const slider = document.getElementById(`slider-${effect.name}`);
@@ -241,3 +239,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
     document.getElementById("btn-reticle-toggle").classList.remove("active");
   }
 });
+
+// ── Card gallery ─────────────────────────────────────────────
+
+mountCardGallery(document.getElementById("card-gallery"));

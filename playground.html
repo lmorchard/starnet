@@ -6,6 +6,14 @@
   <title>STARNET — Playground</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/playground.css" />
+  <!-- Import map: bare "lit" specifiers → bundled dist/lit.js (overlay components,
+       pulled in transitively by visual-renderer). -->
+  <script type="importmap">
+    { "imports": {
+      "lit": "./dist/lit.js",
+      "lit/directives/repeat.js": "./dist/lit.js"
+    } }
+  </script>
   <script src="dist/vendor.js"></script>
 </head>
 <body>
@@ -60,49 +68,9 @@
       <div id="graph-column">
         <div id="graph-container">
           <div id="cy"></div>
-          <!-- Minimal SVG overlays for game rendering compat -->
-          <svg id="probe-sweep" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
-            <path id="probe-sweep-fill" fill="rgba(0,255,255,0.18)" />
-            <circle id="probe-sweep-ring" fill="none" stroke="#00ffff" stroke-width="1" stroke-opacity="0.45" />
-          </svg>
-          <svg id="ice-detect-sweep" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
-            <path id="ice-detect-arc" fill="none" stroke="#ff00aa" stroke-width="4" stroke-linecap="round"/>
-          </svg>
-          <svg id="loot-rings" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;"></svg>
-          <svg id="read-sectors" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
-            <path id="read-sectors-fill" fill="rgba(0,255,65,0.15)" />
-            <circle id="read-sectors-ring" fill="none" stroke="#00ff41" stroke-width="1" stroke-opacity="0.45" />
-          </svg>
-          <svg id="exploit-brackets" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5;">
-            <defs>
-              <filter id="zap-bloom" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            </defs>
-            <line id="bracket-tl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="bracket-tl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="bracket-tr-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="bracket-tr-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="bracket-br-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="bracket-br-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="bracket-bl-h" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="bracket-bl-v" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            <line id="zap-tl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-            <line id="zap-tr" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-            <line id="zap-br" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-            <line id="zap-bl" class="exploit-zap" stroke="#ff44ff" stroke-width="0.75" stroke-opacity="0" filter="url(#zap-bloom)"/>
-          </svg>
-          <svg id="selection-reticle" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;">
-            <g id="reticle-group">
-              <circle id="reticle-ring" cx="30" cy="30" r="28" fill="none" stroke="#cc00cc"
-                      stroke-width="1.5" stroke-dasharray="6 3" stroke-opacity="0.75"/>
-              <line id="reticle-tick-n" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-              <line id="reticle-tick-s" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-              <line id="reticle-tick-e" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-              <line id="reticle-tick-w" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"/>
-            </g>
-          </svg>
+          <!-- Node-anchored overlay animations mount here as NodeOverlay custom
+               elements (see js/ui/overlays/), same as index.html / preview.html. -->
+          <div id="overlay-layer"></div>
           <div id="node-context-menu" style="position:absolute; opacity:0; pointer-events:none; z-index:10;"></div>
         </div>
 
