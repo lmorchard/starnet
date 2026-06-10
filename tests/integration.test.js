@@ -10,6 +10,13 @@
 //
 // Each test group constructs a minimal LAN fixture using game-types.js factories.
 // This avoids coupling tests to the full network topology.
+//
+// SEED CONVENTION: every initGame() call passes an explicit seed string ("itest-N").
+// Without a seed, initGame falls back to a Math.random()-derived seed, so any RNG
+// roll a test does not explicitly force (via _forceNext) varies per run — silently
+// flaky. See issue #109: a successful exploit FROM a locked node consumes THREE
+// RNG.COMBAT rolls (success, flavor pick, skip-to-owned), and forcing only the
+// first two leaves the skip roll seeded. See the roll-consumption block in combat.js.
 
 import { describe, it, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
@@ -167,7 +174,7 @@ function buildWanLAN({ startCash = 200, ice = null } = {}) {
 describe("Node initialization", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildLootLAN());
+    initGame(() => buildLootLAN(), "itest-1");
   });
 
   it("fileserver has at least 1 macguffin after init", () => {
@@ -182,14 +189,14 @@ describe("Node initialization", () => {
 
   it("ids node has forwardingEnabled: true after init", () => {
     clearAll();
-    initGame(() => buildAlertLAN());
+    initGame(() => buildAlertLAN(), "itest-2");
     assert.equal(getState().nodes["ids-1"].forwardingEnabled, true);
   });
 
   it("detectable nodes have forwardingEnabled, non-detectable do not", () => {
     // forwardingEnabled comes from the detectable trait, not all nodes
     clearAll();
-    initGame(() => buildAlertLAN());
+    initGame(() => buildAlertLAN(), "itest-3");
     assert.equal(getState().nodes["ids-1"].forwardingEnabled, true);
     // Gateway doesn't have detectable trait
     assert.equal(getState().nodes["gateway"].forwardingEnabled, undefined);
@@ -201,7 +208,7 @@ describe("Node initialization", () => {
 describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceWithMonitorLAN());
+    initGame(() => buildIceWithMonitorLAN(), "itest-4");
     startIce();
   });
 
@@ -236,7 +243,7 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
 describe("Lifecycle: monitor — owning security-monitor cancels active trace", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceWithMonitorLAN());
+    initGame(() => buildIceWithMonitorLAN(), "itest-5");
     startTraceCountdown();
   });
 
@@ -265,7 +272,7 @@ describe("Lifecycle: monitor — owning security-monitor cancels active trace", 
 describe("Alert flow: ids alert escalates global alert", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildAlertLAN());
+    initGame(() => buildAlertLAN(), "itest-6");
   });
 
   it("NODE_ALERT_RAISED on ids (with raised alertState) escalates global alert", () => {
@@ -297,7 +304,7 @@ describe("Alert flow: ids alert escalates global alert", () => {
 describe("Action availability: corrupt on ids", () => {
   before(() => {
     clearAll();
-    initGame(() => buildAlertLAN());
+    initGame(() => buildAlertLAN(), "itest-7");
   });
 
   it("available when compromised and forwarding enabled", () => {
@@ -340,7 +347,7 @@ describe("Action availability: corrupt on ids", () => {
 describe("Action availability: cancel-trace on security-monitor", () => {
   it("available when owned", () => {
     clearAll();
-    initGame(() => buildAlertLAN());
+    initGame(() => buildAlertLAN(), "itest-8");
     const s = getState();
     const graph = s.nodeGraph;
     graph.setNodeAttr("mon-1", "accessLevel", "owned");
@@ -350,7 +357,7 @@ describe("Action availability: cancel-trace on security-monitor", () => {
 
   it("not available when not owned", () => {
     clearAll();
-    initGame(() => buildAlertLAN());
+    initGame(() => buildAlertLAN(), "itest-9");
     const s = getState();
     const graph = s.nodeGraph;
     graph.setNodeAttr("mon-1", "accessLevel", "locked");
@@ -364,7 +371,7 @@ describe("Action availability: cancel-trace on security-monitor", () => {
 describe("ICE detection: detectedAtNode resets when player moves", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceLAN());
+    initGame(() => buildIceLAN(), "itest-10");
     startIce();
   });
 
@@ -396,7 +403,7 @@ describe("ICE detection: detectedAtNode resets when player moves", () => {
 describe("ICE detection: player navigates to node where ICE is already present", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceLAN());
+    initGame(() => buildIceLAN(), "itest-11");
     startIce();
   });
 
@@ -419,7 +426,7 @@ describe("ICE detection: player navigates to node where ICE is already present",
 describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceLAN());
+    initGame(() => buildIceLAN(), "itest-12");
     startIce();
   });
 
@@ -451,7 +458,7 @@ describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {
 describe("ICE detection: detectedAtNode resets when ICE leaves player's node", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceLAN());
+    initGame(() => buildIceLAN(), "itest-13");
     startIce();
   });
 
@@ -494,7 +501,7 @@ describe("ICE detection: alert escalation", () => {
 
   beforeEach(() => {
     clearAll();
-    initGame(() => buildDualIdsLAN());
+    initGame(() => buildDualIdsLAN(), "itest-14");
   });
 
   it("first detection escalates global alert from green to yellow", () => {
@@ -525,7 +532,7 @@ describe("ICE detection: alert escalation", () => {
 describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceLAN());
+    initGame(() => buildIceLAN(), "itest-15");
     startIce();
   });
 
@@ -566,7 +573,7 @@ describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
 describe("Timed action: probe via graph ticks", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildBasicLAN());
+    initGame(() => buildBasicLAN(), "itest-16");
   });
 
   it("probe action sets probing attribute and completes after ticking", () => {
@@ -586,7 +593,7 @@ describe("Timed action: probe via graph ticks", () => {
 describe("Navigation: navigateTo / navigateAway", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildBasicLAN());
+    initGame(() => buildBasicLAN(), "itest-17");
   });
 
   it("navigateTo with no in-progress action just selects the node", () => {
@@ -599,7 +606,7 @@ describe("Navigation: navigateTo / navigateAway", () => {
 describe("isIceVisible: ICE visible on selected locked node", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildIceLAN());
+    initGame(() => buildIceLAN(), "itest-18");
     startIce();
   });
 
@@ -634,7 +641,7 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
 describe("WAN node", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildWanLAN({ ice: { grade: "C", startNode: "router-a" } }));
+    initGame(() => buildWanLAN({ ice: { grade: "C", startNode: "router-a" } }), "itest-24");
   });
 
   it("WAN node starts visible and accessible", () => {
@@ -688,7 +695,7 @@ describe("WAN node", () => {
 describe("buyExploit", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildBasicLAN({ startCash: 1000 }));
+    initGame(() => buildBasicLAN({ startCash: 1000 }), "itest-19");
   });
 
   it("adds card to hand and deducts cash", () => {
@@ -718,7 +725,7 @@ describe("buyExploit", () => {
 describe("Exploit success: neighbor visibility", () => {
   beforeEach(() => {
     clearAll();
-    initGame(() => buildBasicLAN());
+    initGame(() => buildBasicLAN(), "itest-20");
   });
 
   it("successfully exploiting a locked node leaves neighbors as revealed (???), not accessible", () => {
@@ -812,7 +819,7 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
   describe("firewall gate (gateAccess: 'owned')", () => {
     beforeEach(() => {
       clearAll();
-      initGame(() => buildFirewallGateLAN());
+      initGame(() => buildFirewallGateLAN(), "itest-21");
     });
 
     it("node behind firewall is hidden before any exploit", () => {
@@ -861,7 +868,7 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
   describe("router gate (gateAccess: 'compromised')", () => {
     beforeEach(() => {
       clearAll();
-      initGame(() => buildRouterGateLAN());
+      initGame(() => buildRouterGateLAN(), "itest-22");
     });
 
     it("node behind router is hidden before exploit", () => {
@@ -889,7 +896,7 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
   describe("concealed node (quality-based gate via combination lock)", () => {
     beforeEach(() => {
       clearAll();
-      initGame(() => buildSetPieceMiniNetwork("combinationLock"));
+      initGame(() => buildSetPieceMiniNetwork("combinationLock"), "itest-25");
     });
 
     it("vault starts concealed and hidden", () => {
@@ -957,7 +964,7 @@ describe("mine action", () => {
 
   beforeEach(() => {
     clearAll();
-    initGame(() => buildBasicLAN());
+    initGame(() => buildBasicLAN(), "itest-23");
   });
 
   it("a HIT adds an exploit card to hand and increments mineAttempts", () => {

@@ -73,6 +73,30 @@ export const PATCH_LAG = {
 };
 
 /**
+ * RNG.COMBAT roll consumption per launchExploit() code path.
+ *
+ * The roll ORDER and COUNT matter for any test that uses `_forceNext(RNG.COMBAT, …)`
+ * to drive a deterministic outcome — queued forced values are consumed in this order,
+ * and any path-specific roll that isn't forced falls through to the seeded sequence.
+ * Forcing too few rolls is silently flaky: the unforced roll varies per seed.
+ *
+ *   resolveExploit():
+ *     1. success roll                                  (always)
+ *     2a. success → success-flavor pick                (on success)
+ *     2b. failure → disclosure roll                    (on failure)
+ *         + fail-flavor pick                           (on failure)
+ *   launchExploit() / applyCardDecay():
+ *     3. skip-to-owned roll                            (success FROM "locked" only)
+ *     4. partial-burn roll                             (detected failure, uses > 1)
+ *
+ * So "force a successful exploit from a locked node" needs THREE forced rolls:
+ *   success (low), flavor pick (any), skip-to-owned (high → stay at "compromised").
+ * Forcing only the first two leaves the skip roll seeded — see issue #109.
+ * Tests MUST pass an explicit seed to initGame() so any unforced roll is at least
+ * deterministic rather than Math.random()-derived.
+ */
+
+/**
  * Resolve an exploit attempt against a node.
  *
  * Returns a result object describing what happened.
