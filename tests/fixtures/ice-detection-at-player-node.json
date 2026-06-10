@@ -286,7 +286,7 @@
           "id": "binary-archive-1772387958102-64zj",
           "typeId": "binary-archive",
           "name": "Proprietary Binary Archive",
-          "description": "Compiled firmware images with embedded signing keys — no source included.",
+          "description": "Compiled firmware images with embedded signing keys \u2014 no source included.",
           "cashValue": 1064,
           "collected": false
         }
@@ -495,7 +495,7 @@
           "id": "binary-archive-1772387958102-b0rp",
           "typeId": "binary-archive",
           "name": "Proprietary Binary Archive",
-          "description": "Compiled firmware images with embedded signing keys — no source included.",
+          "description": "Compiled firmware images with embedded signing keys \u2014 no source included.",
           "cashValue": 3978,
           "collected": false,
           "isMission": true
@@ -619,7 +619,7 @@
       },
       {
         "id": "exploit-4",
-        "name": "TimingOracle Ω",
+        "name": "TimingOracle \u03a9",
         "rarity": "uncommon",
         "quality": 0.61,
         "targetVulnTypes": [
@@ -664,13 +664,23 @@
   "runOutcome": null,
   "isCheating": false,
   "ice": {
-    "grade": "C",
-    "residentNodeId": "security-monitor",
-    "attentionNodeId": "router-b",
-    "active": true,
-    "dwellTimerId": 10,
-    "detectedAtNode": null,
-    "detectionCount": 0
+    "instances": {
+      "ice-1": {
+        "id": "ice-1",
+        "typeId": "standard-ice",
+        "hostNodeId": "security-monitor",
+        "residentNodeId": "security-monitor",
+        "attentionNodeId": "router-b",
+        "active": true,
+        "enabled": true,
+        "grade": "C",
+        "focus": "roaming",
+        "behaviorPattern": "standard",
+        "dwellTimerId": 10,
+        "detectedAtNode": null,
+        "detectionCount": 0
+      }
+    }
   },
   "lastDisturbedNodeId": null,
   "executingExploit": null,

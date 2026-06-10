@@ -53,6 +53,12 @@ export const E = Object.freeze({
   ICE_EJECTED:          "ice:ejected",
   ICE_REBOOTED:         "ice:rebooted",
   ICE_DISABLED:         "ice:disabled",
+  ICE_INSTALLED:        "ice:installed",
+  ICE_REVEALED:         "ice:revealed",
+  ICE_ACTIVATED:        "ice:activated",
+  ICE_EFFECT_APPLIED:   "ice:effect-applied",
+  ICE_HACKED:           "ice:hacked",
+  ICE_STASH_DEPOSITED:  "ice:stash-deposited",
 
   MISSION_STARTED:      "mission:started",
   MISSION_COMPLETE:     "mission:complete",

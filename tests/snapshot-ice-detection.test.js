@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "fs";
 
 import { deserializeState, getState } from "../js/core/state.js";
+import { getPrimaryIce } from "../js/core/state/ice.js";
 import { tick, clearAll, TIMER } from "../js/core/timers.js";
 import { on, off, E } from "../js/core/events.js";
 // Import alert.js to register its event listeners
@@ -36,12 +37,11 @@ describe("Snapshot: ICE detection at player node", () => {
   it("ICE is at the same node as the player", () => {
     const s = getState();
     assert.equal(s.selectedNodeId, "router-b");
-    assert.equal(s.ice.attentionNodeId, "router-b");
+    assert.equal(getPrimaryIce().attentionNodeId, "router-b");
   });
 
   it("detection timer is active for router-b", () => {
-    const s = getState();
-    assert.equal(s.ice.dwellTimerId, 10);
+    assert.equal(getPrimaryIce().dwellTimerId, 10);
   });
 
   it("advancing ticks fires detection at router-b", () => {
@@ -74,6 +74,6 @@ describe("Snapshot: ICE detection at player node", () => {
     tick(70); // ICE move interval
     const s = getState();
     // ICE should have moved — either to gateway or ids (router-b's neighbors)
-    assert.notEqual(s.ice.attentionNodeId, "router-b");
+    assert.notEqual(getPrimaryIce().attentionNodeId, "router-b");
   });
 });

@@ -46,3 +46,31 @@ export function applyCardDecay(cardId, usesRemaining, decayState) {
     }
   });
 }
+
+/** Damages player health by amount. Clamps at 0. */
+export function damagePlayerHealth(amount) {
+  mutate((s) => {
+    s.player.health.current = Math.max(0, s.player.health.current - amount);
+  });
+}
+
+/** Damages player deck integrity by amount. Clamps at 0. */
+export function damagePlayerDeck(amount) {
+  mutate((s) => {
+    s.player.deckIntegrity.current = Math.max(0, s.player.deckIntegrity.current - amount);
+  });
+}
+
+/** Sets player health to an absolute value. Clamps at [0, max]. */
+export function setPlayerHealth(value) {
+  mutate((s) => {
+    s.player.health.current = Math.min(s.player.health.max, Math.max(0, value));
+  });
+}
+
+/** Sets player deck integrity to an absolute value. Clamps at [0, max]. */
+export function setPlayerDeckIntegrity(value) {
+  mutate((s) => {
+    s.player.deckIntegrity.current = Math.min(s.player.deckIntegrity.max, Math.max(0, value));
+  });
+}

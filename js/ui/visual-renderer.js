@@ -329,13 +329,12 @@ function syncOverlays(state) {
 
   syncSelection(state.selectedNodeId);
 
-  if (state.ice) {
-    syncIceGraph(state.ice, state.nodes, state.selectedNodeId);
-    const iceNode = cy.getElementById("ice-0");
-    if (iceNode && iceNode.length > 0) {
-      const docked = state.ice.active && state.ice.attentionNodeId === state.selectedNodeId;
-      docked ? iceNode.addClass("docked") : iceNode.removeClass("docked");
-    }
+  // Session 1: render only the single primary active instance.
+  // Multi-instance rendering (iterating all) would overwrite the shared
+  // ICE overlay state — that's a later-session concern.
+  const primaryIce = Object.values(state.ice?.instances ?? {}).find(i => i?.active);
+  if (primaryIce) {
+    syncIceGraph(primaryIce, state.nodes, state.selectedNodeId);
   }
 }
 

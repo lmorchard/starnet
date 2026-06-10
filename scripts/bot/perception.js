@@ -8,6 +8,7 @@
 
 import { getAvailableActions } from "../../js/core/actions/node-actions.js";
 import { A } from "../../js/core/action-ids.js";
+import { getPrimaryIceFromState } from "../../js/core/state/ice.js";
 
 /**
  * Build a WorldModel snapshot from current game state.
@@ -112,10 +113,11 @@ export function perceive(state, context = {}) {
   }
 
   // ICE state
+  const primaryIce = getPrimaryIceFromState(state);
   const ice = {
-    nodeId: state.ice?.attentionNodeId ?? null,
-    isOnSelectedNode: !!(state.ice?.active && state.ice.attentionNodeId === state.selectedNodeId),
-    isActive: state.ice?.active ?? false,
+    nodeId: primaryIce?.attentionNodeId ?? null,
+    isOnSelectedNode: !!(primaryIce?.active && primaryIce.attentionNodeId === state.selectedNodeId),
+    isActive: primaryIce?.active ?? false,
   };
 
   // Player state

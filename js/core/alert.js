@@ -8,7 +8,7 @@
 import { getState, endRun, ALERT_ORDER } from "./state.js";
 import { setNodeAlertState } from "./state/node.js";
 import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
-import { setIceDetectedAt, incrementIceDetectionCount } from "./state/ice.js";
+import { setIceDetectedAt, incrementIceDetectionCount, getPrimaryIce } from "./state/ice.js";
 import { emitEvent, on, E } from "./events.js";
 import { A } from "./action-ids.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
@@ -199,7 +199,8 @@ export function forceGlobalAlert(level) {
  */
 export function recordIceDetection(nodeId) {
   const s = getState();
-  if (!s.ice?.active) return;
+  const ice = getPrimaryIce();
+  if (!ice) return;
   setIceDetectedAt(nodeId);
   incrementIceDetectionCount();
 
@@ -209,8 +210,8 @@ export function recordIceDetection(nodeId) {
   // layer — distinct from the exploit-failure → IDS → monitor *puzzle* layer
   // (recomputeGlobalAlert). Trace here is gated purely on detection COUNT, not on
   // counting red IDS nodes (which is unreachable on a 1-detector network).
-  const count = getState().ice.detectionCount;
-  const threshold = DETECTION_TRACE_THRESHOLD[s.ice.grade] ?? 2;
+  const count = ice.detectionCount;
+  const threshold = DETECTION_TRACE_THRESHOLD[ice.grade] ?? 2;
   if (count >= threshold) {
     if (getState().traceSecondsRemaining === null) startTraceCountdown();
     return;

@@ -153,7 +153,12 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     nodes,
     adjacency,
     nodeGraph: graph,
-    player: { cash: meta.startCash ?? 1000, hand: generateStartingHand(meta.startHand) },
+    player: {
+      cash: meta.startCash ?? 1000,
+      hand: generateStartingHand(meta.startHand),
+      health:        { current: meta.startHealth        ?? 100, max: meta.startHealth        ?? 100 },
+      deckIntegrity: { current: meta.startDeckIntegrity ?? 100, max: meta.startDeckIntegrity ?? 100 },
+    },
     globalAlert: "green",
     traceSecondsRemaining: null,
     traceTimerId: null,
@@ -181,16 +186,27 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
   // Spawn ICE if defined in meta
   if (meta.ice) {
     const nodeIds = Object.keys(nodes);
-    const residentNodeId = meta.ice.startNode ?? randomPick(RNG.WORLD, nodeIds);
-    state.ice = {
-      grade: meta.ice.grade,
-      residentNodeId,
-      attentionNodeId: residentNodeId,
+    const hostNodeId = meta.ice.startNode ?? randomPick(RNG.WORLD, nodeIds);
+    const id = 'ice-1';
+    /** @type {import('../types.js').IceInstance} */
+    const primary = {
+      id,
+      typeId: 'standard-ice',
+      hostNodeId,
+      residentNodeId: hostNodeId, // deprecated, kept for migration; remove when callers stop reading it
+      attentionNodeId: hostNodeId,
       active: true,
+      enabled: true,
+      grade: meta.ice.grade,
+      focus: 'roaming',
+      behaviorPattern: 'standard',
       dwellTimerId: null,
       detectedAtNode: null,
       detectionCount: 0,
     };
+    state.ice = { instances: { [id]: primary } };
+  } else {
+    state.ice = { instances: {} };
   }
 
   if (state.mission) {
@@ -249,7 +265,8 @@ export function endRun(outcome) {
   setPhase("ended");
   setRunOutcome(outcome);
   if (outcome === "caught") setCash(0);
-  if (state.ice?.active) setIceActive(false);
+  const primaryIce = state.ice ? Object.values(state.ice.instances).find(i => i?.active) : null;
+  if (primaryIce) setIceActive(false);
   emitEvent(E.RUN_ENDED, { outcome });
 }
 

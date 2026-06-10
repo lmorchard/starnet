@@ -11,7 +11,7 @@
 /** @typedef {"green"|"yellow"|"red"|"trace"} GlobalAlertLevel */
 /** @typedef {"fresh"|"worn"|"disclosed"} DecayState */
 /** @typedef {"playing"|"ended"} GamePhase */
-/** @typedef {"success"|"caught"} RunOutcome */
+/** @typedef {"success"|"caught"|"burned"|"bricked"} RunOutcome */
 /** @typedef {"S"|"A"|"B"|"C"|"D"|"F"} Grade */
 /** @typedef {"common"|"uncommon"|"rare"} Rarity */
 
@@ -89,22 +89,50 @@
  */
 
 /**
- * ICE entity state. Null when no ICE is defined for the network.
+ * A single ICE entity in the reinvented multi-instance model. For session 1
+ * the collection holds exactly one instance per network, ported from the
+ * pre-reinvention singleton. Additional fields (triggers, effects, etc.)
+ * are introduced in later sessions.
+ *
+ * Migration note: residentNodeId is deprecated in favor of hostNodeId;
+ * both are kept for now during the transition.
+ *
  * @typedef {{
- *   grade: Grade,
- *   residentNodeId: string,
+ *   id: string,
+ *   typeId: string,
+ *   hostNodeId: string,
+ *   residentNodeId?: string,
  *   attentionNodeId: string,
  *   active: boolean,
+ *   enabled: boolean,
+ *   grade: Grade,
+ *   focus: "stationary" | "roaming",
+ *   behaviorPattern: string,
  *   dwellTimerId: number|null,
  *   detectedAtNode: string|null,
  *   detectionCount: number,
- * }} IceState
+ * }} IceInstance
+ */
+
+/**
+ * @deprecated Use IceInstance. Retained as a type alias for callers
+ * mid-migration; will be removed in a future session.
+ * @typedef {IceInstance} IceState
+ */
+
+/**
+ * Collection of ICE instances keyed by instance id.
+ * @typedef {{
+ *   instances: Object.<string, IceInstance>,
+ * }} IceCollection
  */
 
 /**
  * @typedef {{
  *   cash: number,
  *   hand: ExploitCard[],
+ *   health: { current: number, max: number },
+ *   deckIntegrity: { current: number, max: number },
  * }} PlayerState
  */
 
@@ -265,7 +293,7 @@
  *   phase: GamePhase,
  *   runOutcome: RunOutcome|null,
  *   isCheating: boolean,
- *   ice: IceState|null,
+ *   ice: IceCollection|null,
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
  *   nodeGraph?: any,
