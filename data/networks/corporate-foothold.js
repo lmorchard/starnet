@@ -78,7 +78,12 @@ export function buildNetwork() {
       startCash: 1000,
       moneyCost: "C",
       startHand: ["common", "common", "uncommon", "uncommon"],
-      ice: null,
+      // Gentle intro ICE (#114). Grade C is the most forgiving disturbance-tracking
+      // tier (move 7s, dwell 5.5s, noise threshold 5) and takes 2 detections to
+      // trace — real pressure that teaches the mechanic without being punishing.
+      // Stationed at the router-1 hub so it patrols the whole LAN and crosses the
+      // player's path; losses are clean trace losses, not stuck/tick-cap.
+      ice: { grade: "C", startNode: "router-1" },
     },
   };
 }

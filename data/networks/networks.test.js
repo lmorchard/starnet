@@ -109,9 +109,18 @@ validateNetwork("Corporate Exchange", buildCorporateExchange);
 // ── Network-specific checks ──────────────────────────────────
 
 describe("Corporate Foothold specifics", () => {
-  it("has no ICE", () => {
+  // Gentle intro ICE added in #114 — forgiving, but present (no longer null).
+  it("has gentle ICE defined", () => {
     const { meta } = buildCorporateFoothold();
-    assert.equal(meta.ice, null);
+    assert.ok(meta.ice, "foothold should have ICE");
+    assert.ok(meta.ice.grade);
+    assert.ok(meta.ice.startNode);
+  });
+
+  it("ICE start node exists in the network", () => {
+    const { graphDef, meta } = buildCorporateFoothold();
+    const nodeIds = new Set(graphDef.nodes.map(n => n.id));
+    assert.ok(nodeIds.has(meta.ice.startNode), `ICE start node "${meta.ice.startNode}" not in graph`);
   });
 
   it("has 10-15 nodes", () => {

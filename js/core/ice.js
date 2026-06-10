@@ -8,7 +8,7 @@
 
 import { getState } from "./state.js";
 import { setIceAttention, setIceDetectedAt, setIceDwellTimer, setIceActive, setLastDisturbedNode } from "./state/ice.js";
-import { propagateAlertEvent, recordIceDetection } from "./alert.js";
+import { recordIceDetection } from "./alert.js";
 import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "./timers.js";
 import { emitEvent, on, E } from "./events.js";
 import { A } from "./action-ids.js";
@@ -217,8 +217,10 @@ export function handleIceDetect({ nodeId }) {
 function triggerDetection(nodeId) {
   const s = getState();
   emitEvent(E.ICE_DETECTED, { nodeId, label: s.nodes[nodeId]?.label ?? nodeId });
-  propagateAlertEvent(nodeId);
-  recordIceDetection(nodeId); // tracks count and may start trace
+  // ICE detection drives the global alert directly (count/grade-gated) inside
+  // recordIceDetection. It does NOT route through the exploit-failure IDS→monitor
+  // propagation path (that's the separate puzzle layer) — see MANUAL.md.
+  recordIceDetection(nodeId); // steps alert; starts trace at the grade threshold
 }
 
 export function cancelIceDwell() {

@@ -135,8 +135,9 @@ infinite retry (set-piece disarm actions lack post-conditions).
 
 ### evasion
 
-ICE on targeted node → untarget (800). Trace active → jackout (100).
-Idle targeting → untarget (15).
+ICE on targeted node → eject if owned (850, keeps position) else untarget (800).
+Trace active → jackout (100). Idle targeting → untarget (15). (Mid-action ICE
+handling lives in `execute.js` — see ICE Handling below.)
 
 ### cards
 
@@ -158,16 +159,23 @@ so mining is tried before giving up.
 
 ## ICE Handling
 
-### Interrupt During Timed Actions
+### Commit to the hack, bail on detection
 
-If ICE arrives at the player's node mid-action, `execute.js` cancels the
-action and untargets. The main loop adds the node to `iceCooldown` — a
-one-cycle score penalty (-20) that encourages the bot to try a different
-node before retrying.
+ICE *arriving* on the player's node does **not** abort the action. Detection
+requires ICE to dwell (grade-scaled, ~45–90 ticks), so the hack and the dwell
+race — `execute.js` keeps ticking the action and only aborts + untargets if
+detection actually fires (`ICE_DETECTED`). On an **owned** node it ejects ICE
+on arrival (free) and keeps working. The main loop adds the node to
+`iceCooldown` only on a real detection — a one-cycle score penalty (-20)
+encouraging a different node before retrying.
+
+This replaced an earlier "panic-abort on ICE arrival" behavior that never
+actually got detected (so ICE was toothless) yet thrashed by abandoning and
+restarting actions — the root of the corporate-exchange tick-cap (#114).
 
 ### Cooldown Lifecycle
 
-- ICE interrupts → node added to cooldown set
+- ICE detection interrupts the action → node added to cooldown set
 - Next non-interrupted cycle → cooldown cleared
 - Cooled-down nodes get penalty, not hard skip (avoids "no proposals" when
   there's only one path forward)
@@ -202,9 +210,12 @@ The bot drives the game clock via `tick()`. After dispatching a timed action,
 `tickUntilResolved()` advances in 1-tick increments until:
 
 - `ACTION_RESOLVED` fires for the target node/action
-- `ICE_MOVED` to the targeted node (interrupted)
+- `ICE_DETECTED` on the targeted node (caught mid-action → abort + untarget)
 - `RUN_ENDED` fires
 - Per-action tick budget (500) exhausted
+
+(`ICE_MOVED` onto an owned targeted node triggers an `eject` but does not stop
+the action — see ICE Handling above.)
 
 A per-run tick cap (default: 5000) prevents infinite loops.
 
@@ -252,9 +263,10 @@ Each `runBot()` call returns a `BotRunStats` object:
 
 These omissions are intentional — they make the bot a pessimistic baseline:
 
-- **Eject ICE** — never pushes ICE to an adjacent node
 - **Reboot nodes** — never forces ICE back to its resident node
-- **Strategic patience** — doesn't wait for ICE to move away before re-engaging
+- **Strategic patience** — doesn't wait for ICE to move away before re-engaging,
+  and doesn't bail early when an in-progress hack won't beat the detection dwell
+  (it commits and eats the detection if the gamble loses)
 - **Manage card decay** — doesn't preserve high-value cards for hard nodes
 - **Plan ahead** — no lookahead; greedy scoring of current moment only
 - **Anticipate ICE movement** — only reacts when ICE arrives, doesn't track

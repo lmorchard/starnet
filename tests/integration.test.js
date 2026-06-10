@@ -39,6 +39,7 @@ import { MINE_TAPOUT } from "../js/core/mining.js";
 import { generateExploit } from "../js/core/exploits.js";
 import { launchExploit } from "../js/core/combat.js";
 import { startTraceCountdown, recordIceDetection } from "../js/core/alert.js";
+import { setGlobalAlert } from "../js/core/state/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
 // NODE_RECONFIGURED listeners. No separate init call needed.
 // Old executor imports removed — timed actions now graph-native
@@ -267,6 +268,36 @@ describe("Lifecycle: monitor — owning security-monitor cancels active trace", 
   });
 });
 
+// ── Trace ↔ global alert consistency (#114 WS3) ───────────────────────────────
+
+describe("Trace: startTraceCountdown drives global alert to trace", () => {
+  beforeEach(() => {
+    clearAll();
+    initGame(() => buildBasicLAN(), "itest-trace-global");
+  });
+
+  // Regression: set-piece alarms call ctx.startTrace() -> startTraceCountdown()
+  // directly, bypassing alert escalation. Trace must still be the visible alert
+  // level so the HUD and the census peakAlert stat reflect it (matching the
+  // bot-stats traceFired flag). Previously globalAlert stayed green.
+  it("escalates globalAlert to trace even with no alert escalation", () => {
+    assert.equal(getState().globalAlert, "green");
+    const raised = withEvents(E.ALERT_GLOBAL_RAISED, () => startTraceCountdown());
+    assert.equal(getState().globalAlert, "trace", "trace countdown implies trace-level alert");
+    assert.ok(
+      raised.some((e) => e.next === "trace"),
+      "should emit ALERT_GLOBAL_RAISED { next: 'trace' }"
+    );
+  });
+
+  it("does not emit a redundant raise when already at trace", () => {
+    setGlobalAlert("trace");
+    const raised = withEvents(E.ALERT_GLOBAL_RAISED, () => startTraceCountdown());
+    assert.equal(raised.length, 0, "no duplicate raise when already trace");
+    assert.equal(getState().globalAlert, "trace");
+  });
+});
+
 // ── Alert flow ────────────────────────────────────────────────────────────────
 
 describe("Alert flow: ids alert escalates global alert", () => {
@@ -479,51 +510,65 @@ describe("ICE detection: detectedAtNode resets when ICE leaves player's node", (
 
 // ── ICE detection: alert escalation ──────────────────────────────────────────
 
-describe("ICE detection: alert escalation", () => {
-  // buildAlertLAN has an IDS node; recordIceDetection raises alert on all IDS nodes.
-  // recomputeGlobalAlert needs 2 red detectors for trace. Two IDS nodes ensure that
-  // after 2 detections, both reach red (green→yellow, yellow→red) triggering trace.
-  function buildDualIdsLAN() {
+describe("ICE detection: alert escalation (grade-scaled, per MANUAL.md)", () => {
+  // ICE detection steps the global alert up and starts the trace countdown after
+  // a grade-scaled number of detections: S/A=1, B/C=2, D/F=3 (DETECTION_TRACE_
+  // THRESHOLD). A single IDS suffices — trace is detection-count-gated, NOT
+  // gated on counting red IDS nodes. (#114: code now matches the manual.)
+  function buildIceTraceLAN(grade) {
     return {
       graphDef: {
         nodes: [
           createGateway("gateway", { attributes: { visibility: "accessible" } }),
           createIDS("ids-1"),
-          createIDS("ids-2"),
           createSecurityMonitor("mon-1"),
         ],
-        edges: [["gateway", "ids-1"], ["gateway", "ids-2"], ["ids-1", "mon-1"]],
+        edges: [["gateway", "ids-1"], ["ids-1", "mon-1"]],
         triggers: [],
       },
-      meta: { startNode: "gateway", startCash: 0, moneyCost: "C", ice: { grade: "C", startNode: "ids-1" } },
+      meta: { startNode: "gateway", startCash: 0, moneyCost: "C", ice: { grade, startNode: "ids-1" } },
     };
   }
 
-  beforeEach(() => {
+  it("grade A: a single detection starts the trace (instant)", () => {
     clearAll();
-    initGame(() => buildDualIdsLAN(), "itest-14");
+    initGame(() => buildIceTraceLAN("A"), "itest-ice-a");
+    recordIceDetection("gateway");
+    assert.equal(getState().globalAlert, "trace");
+    assert.notEqual(getState().traceSecondsRemaining, null);
   });
 
-  it("first detection escalates global alert from green to yellow", () => {
-    const s = getState();
-    assert.equal(s.globalAlert, "green");
+  it("grade C: first detection raises alert (not trace), second starts trace", () => {
+    clearAll();
+    initGame(() => buildIceTraceLAN("C"), "itest-ice-c");
     recordIceDetection("gateway");
-    assert.equal(s.globalAlert, "yellow");
+    assert.equal(getState().globalAlert, "yellow");
+    assert.equal(getState().traceSecondsRemaining, null, "one detection must not trace at grade C");
+    recordIceDetection("gateway");
+    assert.equal(getState().globalAlert, "trace");
+    assert.notEqual(getState().traceSecondsRemaining, null);
   });
 
-  it("second detection (threshold met) escalates to trace", () => {
-    const s = getState();
+  it("grade F: takes three detections to start the trace (forgiving)", () => {
+    clearAll();
+    initGame(() => buildIceTraceLAN("F"), "itest-ice-f");
     recordIceDetection("gateway");
     recordIceDetection("gateway");
-    assert.equal(s.globalAlert, "trace");
+    assert.notEqual(getState().globalAlert, "trace", "two detections must not trace at grade F");
+    assert.equal(getState().traceSecondsRemaining, null);
+    recordIceDetection("gateway");
+    assert.equal(getState().globalAlert, "trace");
+    assert.notEqual(getState().traceSecondsRemaining, null);
   });
 
-  it("second detection (threshold met) starts trace countdown", () => {
-    const s = getState();
+  it("a single IDS is sufficient (not dependent on counting red detectors)", () => {
+    clearAll();
+    initGame(() => buildIceTraceLAN("C"), "itest-ice-single");
+    const detectorCount = Object.values(getState().nodes).filter(n => n.type === "ids").length;
+    assert.equal(detectorCount, 1);
     recordIceDetection("gateway");
     recordIceDetection("gateway");
-    assert.notEqual(s.traceSecondsRemaining, null,
-      "trace countdown must start when detection threshold is met");
+    assert.equal(getState().globalAlert, "trace");
   });
 });
 
