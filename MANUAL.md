@@ -86,9 +86,10 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 | **Security Mon.** | Scope + crosshair | Owned        | Aggregates IDS alerts. Must own to see connections. Can cancel trace. |
 
 Every node is drawn as a 12-sided container holding a small glyph of the device
-it represents. The glyph (and its color) tells you *what kind* of node it is; the
-container's border and fill tell you its *state* — locked, compromised, owned, or
-on alert.
+it represents, rendered as a glowing vector outline. The glyph (and its color)
+tells you *what kind* of node it is; the container's border plus a fence-hatch
+pattern inside it tell you its *state* — the hatching gets denser as a node goes
+from locked to compromised to owned, and the border color/pulse shows alert.
 
 The **Gate** column shows when a node reveals its connections to neighboring nodes.
 "Probe" means probing the node is enough to see what's connected. "Compromised" or
@@ -197,7 +198,7 @@ improves your odds significantly.
 
 On a compromised or owned node, `dump` extracts data from the node's filesystem —
 data packages, files, anything of value. This takes time, scaled by node grade.
-A random pie-sector animation fills the node as data is extracted. You can cancel
+The node's 12 facets light up in random order as data is extracted. You can cancel
 with `abort`, and navigating away cancels automatically.
 
 Once complete, you'll see what macguffins are present and whether your mission

@@ -22,6 +22,11 @@
   --text-dim:   #336633;
   --border:     #0a3a3a;
   --font-mono:  "Courier New", "Lucida Console", monospace;
+
+  /* Glow scale — keep chrome bloom consistent with the graph's vector bloom. */
+  --glow-sm: 0 0 4px;
+  --glow-md: 0 0 8px;
+  --glow-lg: 0 0 14px;
 }
 
 html, body {
@@ -73,7 +78,6 @@ html, body {
   position: relative;
   overflow: hidden;
   min-height: 0;
-  /* Scanline overlay */
   background-color: var(--bg);
   background-image:
     linear-gradient(rgba(0, 255, 255, 0.04) 1px, transparent 1px),
@@ -115,7 +119,7 @@ html, body {
   color: var(--cyan);
   font-size: 0.8rem;
   white-space: nowrap;
-  text-shadow: 0 0 6px var(--cyan);
+  text-shadow: var(--glow-md) var(--cyan);
 }
 
 #console-input {
@@ -133,24 +137,27 @@ html, body {
   color: var(--cyan-dim);
 }
 
-#graph-container::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 3px,
-    rgba(0, 0, 0, 0.18) 3px,
-    rgba(0, 0, 0, 0.18) 4px
-  );
-  pointer-events: none;
-  z-index: 5;
+/* Vector CRT bloom — colored phosphor halo on the graph + overlay layers.
+   Single SVG <filter> def injected by graph.js (#starnet-bloom). */
+#cy, #overlay-layer {
+  filter: url(#starnet-bloom);
 }
 
 #cy {
   width: 100%;
   height: 100%;
+}
+
+/* The overlay layer must be an explicit absolute overlay sharing #cy's origin.
+   Without an explicit position it is static and sits below the full-height #cy;
+   the bloom `filter` above then makes it the containing block for the
+   absolutely-positioned overlay <svg>s at that wrong (bottom-of-graph) origin,
+   shifting every animation off-screen. Anchoring it here keeps overlays on
+   their nodes. pointer-events:none so it never intercepts graph clicks. */
+#overlay-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 #cy canvas {
@@ -188,7 +195,7 @@ html, body {
 }
 
 .mission-status-active   { font-size: 0.7rem; color: var(--yellow); }
-.mission-status-complete { font-size: 0.7rem; color: var(--green); text-shadow: 0 0 4px var(--green); }
+.mission-status-complete { font-size: 0.7rem; color: var(--green); text-shadow: var(--glow-sm) var(--green); }
 .mission-status-failed   { font-size: 0.7rem; color: var(--red); }
 
 #sidebar-node {
@@ -212,7 +219,7 @@ html, body {
   font-weight: bold;
   color: var(--cyan);
   letter-spacing: 0.15em;
-  text-shadow: 0 0 8px var(--cyan);
+  text-shadow: var(--glow-md) var(--cyan);
   margin-right: auto;
 }
 
@@ -225,7 +232,7 @@ html, body {
 #hud .hud-value {
   color: var(--green);
   font-size: 0.9rem;
-  text-shadow: 0 0 6px var(--green);
+  text-shadow: var(--glow-md) var(--green);
 }
 
 #hud .hud-alert {
@@ -239,12 +246,12 @@ html, body {
   height: 10px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 6px var(--green);
+  box-shadow: var(--glow-md) var(--green);
 }
 
 #hud .alert-dot.yellow {
   background: var(--yellow);
-  box-shadow: 0 0 6px var(--yellow);
+  box-shadow: var(--glow-md) var(--yellow);
   animation: pulse 1s ease-in-out infinite;
   will-change: opacity;
 }
@@ -258,7 +265,7 @@ html, body {
 
 #hud .alert-dot.trace {
   background: var(--red);
-  box-shadow: 0 0 14px var(--red);
+  box-shadow: var(--glow-lg) var(--red);
   animation: pulse 0.3s ease-in-out infinite;
   will-change: opacity;
 }
@@ -279,12 +286,12 @@ html, body {
 
 #hud .hud-conn-dot.active {
   background: var(--magenta);
-  box-shadow: 0 0 6px var(--magenta);
+  box-shadow: var(--glow-md) var(--magenta);
 }
 
 #hud .hud-conn-dot.detecting {
   background: var(--yellow);
-  box-shadow: 0 0 8px var(--yellow);
+  box-shadow: var(--glow-md) var(--yellow);
   animation: pulse 0.6s ease-in-out infinite;
   will-change: opacity;
 }
@@ -319,19 +326,19 @@ html, body {
   letter-spacing: 0.1em;
   padding: 0.3rem 0.8rem;
   cursor: pointer;
-  text-shadow: 0 0 6px var(--cyan);
-  box-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
+  text-shadow: var(--glow-md) var(--cyan);
+  box-shadow: var(--glow-md) rgba(0, 255, 255, 0.3);
   transition: background 0.15s, box-shadow 0.15s;
 }
 
 #new-run-btn:hover, #pause-btn:hover, #save-btn:hover, #load-btn:hover {
   background: rgba(0, 255, 255, 0.1);
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
+  box-shadow: var(--glow-lg) rgba(0, 255, 255, 0.5);
 }
 
 #pause-btn.active {
   background: rgba(0, 255, 255, 0.15);
-  box-shadow: 0 0 14px rgba(0, 255, 255, 0.7);
+  box-shadow: var(--glow-lg) rgba(0, 255, 255, 0.7);
 }
 
 #jack-out-btn {
@@ -344,14 +351,14 @@ html, body {
   letter-spacing: 0.1em;
   padding: 0.3rem 0.8rem;
   cursor: pointer;
-  text-shadow: 0 0 6px var(--red);
-  box-shadow: 0 0 6px rgba(255, 32, 32, 0.3);
+  text-shadow: var(--glow-md) var(--red);
+  box-shadow: var(--glow-md) rgba(255, 32, 32, 0.3);
   transition: background 0.15s, box-shadow 0.15s;
 }
 
 #jack-out-btn:hover {
   background: rgba(255, 32, 32, 0.15);
-  box-shadow: 0 0 12px rgba(255, 32, 32, 0.6);
+  box-shadow: var(--glow-lg) rgba(255, 32, 32, 0.6);
 }
 
 #jack-out-btn:disabled {
@@ -420,7 +427,7 @@ html, body {
 .nd-label {
   font-size: 1rem;
   color: var(--green);
-  text-shadow: 0 0 6px var(--green);
+  text-shadow: var(--glow-md) var(--green);
   letter-spacing: 0.1em;
 }
 
@@ -460,7 +467,7 @@ html, body {
 
 .ice-timer-detect {
   color: #ff2020;
-  text-shadow: 0 0 6px #ff2020;
+  text-shadow: var(--glow-md) #ff2020;
 }
 
 .ice-timer-reboot {
@@ -469,12 +476,12 @@ html, body {
 
 .ice-timer-executing {
   color: var(--cyan);
-  text-shadow: 0 0 6px var(--cyan-dim);
+  text-shadow: var(--glow-md) var(--cyan-dim);
 }
 
 .ice-timer-scanning {
   color: var(--cyan);
-  text-shadow: 0 0 6px var(--cyan-dim);
+  text-shadow: var(--glow-md) var(--cyan-dim);
 }
 
 .nd-actions {
@@ -490,7 +497,7 @@ html, body {
 }
 
 /* Grade color coding */
-.grade-S, .grade-A { color: var(--red); text-shadow: 0 0 6px var(--red); }
+.grade-S, .grade-A { color: var(--red); text-shadow: var(--glow-md) var(--red); }
 .grade-B           { color: var(--yellow); }
 .grade-C           { color: var(--cyan); }
 .grade-D, .grade-F { color: var(--text-dim); }
@@ -557,7 +564,7 @@ html, body {
   padding: 0.5rem;
   background: var(--bg-panel);
   border: 1px solid var(--cyan);
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+  box-shadow: var(--glow-lg) rgba(0, 255, 255, 0.35);
 }
 
 #action-choices .ac-header {
@@ -764,7 +771,7 @@ html, body {
 .nd-hand.exploit-hand-executing .exploit-card.executing {
   opacity: 1;
   border-color: var(--cyan);
-  box-shadow: 0 0 6px rgba(0, 200, 255, 0.4);
+  box-shadow: var(--glow-md) rgba(0, 200, 255, 0.4);
   position: relative;
   overflow: hidden;
 }
@@ -792,7 +799,7 @@ html, body {
   font-size: 0.6rem;
   letter-spacing: 0.05em;
   margin-top: auto; /* push to card bottom */
-  text-shadow: 0 0 6px var(--cyan-dim);
+  text-shadow: var(--glow-md) var(--cyan-dim);
   position: relative; /* keep above the ::before fill */
   visibility: hidden;
   white-space: nowrap; /* prevents text wrapping which would shift card content */
@@ -833,7 +840,7 @@ html, body {
 
 .ec-cancel-overlay:hover .ec-cancel-x {
   opacity: 1;
-  box-shadow: 0 0 8px rgba(204, 0, 204, 0.5);
+  box-shadow: var(--glow-md) rgba(204, 0, 204, 0.5);
 }
 
 /* ── Action Log ─────────────────────────────────────────── */
@@ -848,8 +855,8 @@ html, body {
 #console-input, .log-entry { font-size: 15px; }
 
 .log-entry           { color: #4daa55; }
-.log-entry.log-success { color: #7fff7f; font-weight: bold; text-shadow: 0 0 4px rgba(0, 255, 65, 0.5); }
-.log-entry.log-failure { color: var(--red); font-weight: bold; text-shadow: 0 0 4px rgba(255, 32, 32, 0.5); }
+.log-entry.log-success { color: #7fff7f; font-weight: bold; text-shadow: var(--glow-sm) rgba(0, 255, 65, 0.5); }
+.log-entry.log-failure { color: var(--red); font-weight: bold; text-shadow: var(--glow-sm) rgba(255, 32, 32, 0.5); }
 .log-entry.log-meta    { color: #517a57; }
 .log-entry.log-command { color: var(--cyan); }
 .log-entry.log-error   { color: var(--red); }
@@ -880,7 +887,7 @@ html, body {
 
 .macguffin.mission-target .mg-name {
   color: var(--yellow);
-  text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
+  text-shadow: var(--glow-sm) rgba(255, 255, 0, 0.4);
 }
 
 .mg-mission-tag {
@@ -894,7 +901,7 @@ html, body {
 
 .trace-countdown {
   color: var(--red) !important;
-  text-shadow: 0 0 8px var(--red);
+  text-shadow: var(--glow-md) var(--red);
   animation: pulse 0.5s ease-in-out infinite;
   will-change: opacity;
   letter-spacing: 0.1em;
@@ -945,9 +952,9 @@ html, body {
 }
 
 .end-key { color: var(--text-dim); letter-spacing: 0.08em; }
-.end-val { color: var(--green); text-shadow: 0 0 4px var(--green); }
-.end-val.end-zero { color: var(--red); text-shadow: 0 0 4px var(--red); }
-.end-val.end-mission-complete { color: var(--yellow); text-shadow: 0 0 6px rgba(255, 255, 0, 0.5); }
+.end-val { color: var(--green); text-shadow: var(--glow-sm) var(--green); }
+.end-val.end-zero { color: var(--red); text-shadow: var(--glow-sm) var(--red); }
+.end-val.end-mission-complete { color: var(--yellow); text-shadow: var(--glow-md) rgba(255, 255, 0, 0.5); }
 
 .end-btn {
   background: transparent;
@@ -972,7 +979,7 @@ html, body {
   color: var(--magenta);
   font-size: 0.75rem;
   letter-spacing: 0.15em;
-  text-shadow: 0 0 8px var(--magenta);
+  text-shadow: var(--glow-md) var(--magenta);
   animation: pulse 1.5s ease-in-out infinite;
   will-change: opacity;
 }
@@ -1198,7 +1205,7 @@ html, body {
 .level-select-select:focus {
   outline: none;
   border-color: var(--cyan);
-  box-shadow: 0 0 6px rgba(0, 200, 255, 0.2);
+  box-shadow: var(--glow-md) rgba(0, 200, 255, 0.2);
 }
 
 .level-select-select option {

@@ -85,3 +85,86 @@ export function glyphSvg(type) {
 export function glyphDataUri(type) {
   return "data:image/svg+xml," + encodeURIComponent(glyphSvg(type));
 }
+
+// ── Node face: dodecagon-clipped fence hatch + glyph (vector CRT pass) ──
+// State is NOT baked into the glyph; the fence-hatch density + dimmed hue encode
+// access level. The dodecagon OUTLINE is intentionally absent here — it stays as
+// the native Cytoscape border so border-driven state pulses keep working.
+
+const FACE_C = 32; // glyph viewBox center
+const FACE_R = 30; // dodecagon radius on the 0..64 box
+
+/** Dodecagon points on the 0..64 glyph viewBox, derived from CONTAINER_POLYGON_POINTS. */
+const FACE_POLYGON_POINTS = (() => {
+  const n = CONTAINER_POLYGON_POINTS.trim().split(/\s+/).map(Number);
+  const pts = [];
+  for (let i = 0; i < n.length; i += 2) {
+    pts.push(`${(FACE_C + n[i] * FACE_R).toFixed(2)},${(FACE_C + n[i + 1] * FACE_R).toFixed(2)}`);
+  }
+  return pts.join(" ");
+})();
+
+/**
+ * Fence-hatch tuning per access level: line gap (px on the 0..64 box) + a dimmed,
+ * desaturated shade of the state color (so the border stays the brightest element).
+ * @type {Record<string, { gap: number, color: string }>}
+ */
+const FENCE = {
+  locked:      { gap: 11,  color: "#246060" },
+  compromised: { gap: 7,   color: "#1c6a85" },
+  owned:       { gap: 4.5, color: "#1c8a4a" },
+};
+const FENCE_OPACITY = 0.42;
+const FENCE_WIDTH = 0.8;
+
+/**
+ * Y positions (on the 0..64 box) of the fence-hatch lines for an access level.
+ * Empty array for any unmapped level (e.g. obscured / unknown).
+ * @param {string} accessLevel
+ * @returns {number[]}
+ */
+export function fenceYs(accessLevel) {
+  const cfg = FENCE[accessLevel];
+  if (!cfg) return [];
+  const ys = [];
+  for (let y = FACE_C - FACE_R + 1; y < FACE_C + FACE_R; y += cfg.gap) {
+    ys.push(Number(y.toFixed(1)));
+  }
+  return ys;
+}
+
+/**
+ * Full standalone node-face SVG: dodecagon-clipped fence hatch (state) + glyph (type).
+ * @param {string} type
+ * @param {string} accessLevel
+ * @returns {string}
+ */
+export function nodeFaceSvg(type, accessLevel) {
+  const { color, body } = glyphFor(type);
+  const cfg = FENCE[accessLevel];
+  let fence = "";
+  if (cfg) {
+    const lines = fenceYs(accessLevel)
+      .map((y) => `<line x1="0" y1="${y}" x2="64" y2="${y}"/>`)
+      .join("");
+    fence =
+      `<defs><clipPath id="sf"><polygon points="${FACE_POLYGON_POINTS}"/></clipPath></defs>` +
+      `<g clip-path="url(#sf)" stroke="${cfg.color}" stroke-width="${FENCE_WIDTH}" opacity="${FENCE_OPACITY}">${lines}</g>`;
+  }
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-linejoin="round" stroke-linecap="round">` +
+    fence +
+    `<g stroke="${color}" stroke-width="2">${body}</g>` +
+    `</svg>`
+  );
+}
+
+/**
+ * Node face as a Cytoscape-ready `background-image` data URI (# percent-encoded).
+ * @param {string} type
+ * @param {string} accessLevel
+ * @returns {string}
+ */
+export function nodeFaceDataUri(type, accessLevel) {
+  return "data:image/svg+xml," + encodeURIComponent(nodeFaceSvg(type, accessLevel));
+}

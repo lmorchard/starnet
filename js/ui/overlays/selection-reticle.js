@@ -1,12 +1,11 @@
 // @ts-check
-// Selection reticle: a dashed, slowly-spinning ring with cardinal tick marks
-// that anchors to the selected node. Unlike the action effects it's
-// selection-driven (not in the action registry) and progress is unused —
-// sync(nodeId) shows it, clear() hides it. The slow spin is CSS (.reticle-group
-// + reticle-spin keyframes in style.css). Ported from graph.js syncReticle.
+// Selection reticle: a dashed, slowly-spinning faceted (12-gon) ring with
+// cardinal tick marks, anchored to the selected node. Faceted to match the node
+// container. Selection-driven; progress unused. Spin is CSS (.reticle-group).
 
 import { html } from "lit";
 import { NodeOverlay } from "./node-overlay.js";
+import { ringPoints } from "./facet.js";
 
 const GAP = 12; // node radius → ring gap
 
@@ -15,8 +14,7 @@ class SelectionReticle extends NodeOverlay {
     return html`
       <svg class="selection-reticle" style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;">
         <g class="reticle-group">
-          <circle class="ring" cx="30" cy="30" r="28" fill="none" stroke="#cc00cc"
-                  stroke-width="1.5" stroke-dasharray="6 3" stroke-opacity="0.75"></circle>
+          <polygon class="ring" fill="none" stroke="#cc00cc" stroke-width="1.5" stroke-dasharray="6 3" stroke-opacity="0.75"></polygon>
           <line class="tick-n" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"></line>
           <line class="tick-s" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"></line>
           <line class="tick-e" stroke="#cc00cc" stroke-width="1.5" stroke-opacity="0.9"></line>
@@ -37,12 +35,9 @@ class SelectionReticle extends NodeOverlay {
     const ringR = r - 2;
     const tickLen = Math.max(6, ringR * 0.22); // ~22% of ring radius, min 6px
 
-    const ring = svg.querySelector(".ring");
-    ring.setAttribute("cx", String(r));
-    ring.setAttribute("cy", String(r));
-    ring.setAttribute("r", String(ringR));
+    svg.querySelector(".ring").setAttribute("points", ringPoints(r, r, ringR));
 
-    // Four inward-pointing tick marks at cardinal positions
+    // Four inward-pointing tick marks at cardinal positions (which are 12-gon vertices)
     const ticks = {
       n: [r, r - ringR, r, r - ringR + tickLen],
       s: [r, r + ringR, r, r + ringR - tickLen],
