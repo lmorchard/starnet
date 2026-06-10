@@ -160,6 +160,13 @@ From session-5 design discussion — reframe log verbosity as something the play
 > defense scenarios share persistent installations. Forward-looking, not scheduled.
 > Read its final section for the cheap affordances worth keeping in mind now.
 
+> **Vision doc:** [`VISION-physical-layer-drone-crawl.md`](VISION-physical-layer-drone-crawl.md)
+> — a distant-future *physical* layer: a grid-based, turn-based drone crawl
+> (Etrian Odyssey / SMT form, Invisible Inc. stealth at minigame scope) nested
+> inside a heist to bridge airgaps. Physical actions write back into the network
+> graph; rendered as degraded vector from drone sensors. The most ambitious idea
+> on the table — explicitly far-future.
+
 ### Overworld / Meta-loop
 - **Overworld linking LANs** — the dungeon run takes place in a larger world context; structure connecting LAN to LAN (planet internets, star systems, ansible networks)
 - **Procedural or semi-procedural network generation** — ~~random LAN topologies with seeded RNG for reproducibility (roguelike runs); currently static hand-crafted network~~ _in progress: 2026-03-01-1458-procedural-lan-gen_
