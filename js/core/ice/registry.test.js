@@ -23,6 +23,11 @@ describe("damaging presets", () => {
     assert.ok(!atoms.includes("raise-alert"));
     assert.equal(t.effects.find((e) => e.atom === "damage-deck").params.amount, 20);
   });
+
+  it("damaging presets are grade-agnostic (no grade field — set at spawn)", () => {
+    assert.equal(getType("sentinel").grade, undefined);
+    assert.equal(getType("spike").grade, undefined);
+  });
 });
 
 describe("pickIceTypeId", () => {
@@ -36,5 +41,10 @@ describe("pickIceTypeId", () => {
     assert.equal(pickIceTypeId("B", 0.10), "patrol-classic-B"); // < 0.5 -> classic
     assert.equal(pickIceTypeId("A", 0.60), "sentinel");          // [0.5, 0.75) -> sentinel
     assert.equal(pickIceTypeId("S", 0.90), "spike");             // >= 0.75 -> spike
+  });
+
+  it("B+: exact boundary values fall into the upper bucket", () => {
+    assert.equal(pickIceTypeId("B", 0.5), "sentinel");  // 0.5 is first sentinel
+    assert.equal(pickIceTypeId("B", 0.75), "spike");    // 0.75 is first spike
   });
 });

@@ -3,6 +3,8 @@
 // pattern, a trigger list, and an effect list into a named type that
 // procgen and network meta can reference.
 
+import { GRADE_INDEX } from "../grades.js";
+
 /** @type {Object<string, any>} */
 export const ICE_TYPES = {};
 
@@ -57,19 +59,19 @@ registerType({
   effects: [{ atom: "damage-deck", params: { amount: 20 } }],
 });
 
-const GRADE_NUM = { F: 1, D: 2, C: 3, B: 4, A: 5, S: 6 };
-
 /**
  * Pick the ICE type id for a spawned instance. Damaging presets only appear at
  * threat B+; below that the network's single ICE stays classic (alert-only).
  * Pure: `roll` is a float in [0, 1) supplied by the caller's seeded stream.
  * (Biome-biasing is a deferred tuning seam — grade gating only for the MVP.)
+ * Grade ordering reuses the canonical GRADE_INDEX (F=0 … S=5) so there's a
+ * single source of truth.
  * @param {string} grade
  * @param {number} roll
  * @returns {string}
  */
 export function pickIceTypeId(grade, roll) {
-  if ((GRADE_NUM[grade] ?? 1) < 4) return `patrol-classic-${grade}`;
+  if ((GRADE_INDEX[grade] ?? 0) < GRADE_INDEX.B) return `patrol-classic-${grade}`;
   if (roll < 0.5) return `patrol-classic-${grade}`;
   if (roll < 0.75) return "sentinel";
   return "spike";
