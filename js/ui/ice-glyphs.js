@@ -18,7 +18,7 @@ export const ICE_MAGENTA = "#ff00aa";
 export function iceStrikeCage() {
   const seg = `fill="none" stroke="${ICE_RED}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"`;
   return `<svg viewBox="0 0 100 100" overflow="visible" style="overflow:visible">
-    <g class="ice-cage" style="filter:drop-shadow(0 0 3px ${ICE_RED}) drop-shadow(0 0 9px ${ICE_RED}aa)">
+    <g class="ice-cage">
       <polyline ${seg} points="14,-34 50,-52 86,-34"/>
       <polyline ${seg} points="14,-34 6,-6 14,20 34,32"/>
       <polyline ${seg} points="86,-34 94,-6 86,20 66,32"/>

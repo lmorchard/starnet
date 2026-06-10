@@ -8,6 +8,9 @@ import {
   glyphFor,
   glyphSvg,
   glyphDataUri,
+  fenceYs,
+  nodeFaceSvg,
+  nodeFaceDataUri,
 } from "../js/ui/node-glyphs.js";
 
 const CORE = ["wan", "gateway", "router", "firewall", "workstation", "ids", "security-monitor", "fileserver", "cryptovault", "mine"];
@@ -58,4 +61,34 @@ test("gallery type list (ALL_GLYPH_TYPES) includes every mapped type for the pre
   assert.ok(ALL_GLYPH_TYPES.includes("mine"), "mine must be demoable (it used to fall through to a circle)");
   assert.ok(ALL_GLYPH_TYPES.includes("alarm-latch"), "set-piece types must be demoable");
   assert.equal(ALL_GLYPH_TYPES.length, CORE.length + SETPIECE.length);
+});
+
+test("fenceYs density increases with access level", () => {
+  assert.ok(fenceYs("locked").length < fenceYs("compromised").length);
+  assert.ok(fenceYs("compromised").length < fenceYs("owned").length);
+});
+
+test("fenceYs is empty for an unknown access level", () => {
+  assert.deepEqual(fenceYs("weird"), []);
+});
+
+test("nodeFaceSvg embeds the type glyph, a clip path, and fence lines", () => {
+  const svg = nodeFaceSvg("fileserver", "owned");
+  assert.ok(svg.startsWith("<svg"));
+  assert.match(svg, /viewBox="0 0 64 64"/);
+  assert.ok(svg.includes(NODE_GLYPHS.fileserver.body), "glyph body present");
+  assert.ok(svg.includes("clipPath"), "fence clip path present");
+  assert.ok(svg.includes("<line"), "fence lines present");
+});
+
+test("nodeFaceSvg for an unknown access level draws the glyph but no fence group", () => {
+  const svg = nodeFaceSvg("router", "weird");
+  assert.ok(svg.includes(NODE_GLYPHS.router.body));
+  assert.ok(!svg.includes('clip-path="url(#sf)"'), "no fence group when level unknown");
+});
+
+test("nodeFaceDataUri returns an encoded svg data uri (no raw #)", () => {
+  const uri = nodeFaceDataUri("mine", "compromised");
+  assert.ok(uri.startsWith("data:image/svg+xml,"));
+  assert.ok(!uri.slice("data:image/svg+xml,".length).includes("#"), "hex # must be percent-encoded");
 });

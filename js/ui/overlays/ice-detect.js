@@ -30,9 +30,10 @@ class IceDetectOverlay extends NodeOverlay {
     // and interpolating `html` <line> templates would create HTML-namespace
     // elements that never paint — so we build real SVG nodes directly, the same
     // way loot-rings.js does.)
+    // No own glow — the global graph bloom (#overlay-layer SVG filter) handles it.
     return html`
       <svg style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;
-                  transition:opacity 0.15s ease; filter:drop-shadow(0 0 4px ${ICE_MAGENTA}) drop-shadow(0 0 10px ${ICE_MAGENTA});">
+                  transition:opacity 0.15s ease;">
       </svg>`;
   }
 

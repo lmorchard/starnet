@@ -67,9 +67,17 @@ const ALERT_NODES = [
   { id: "alert-reboot",  label: "REBOOT",   type: "router", grade: "C", x: 750, y: 720 },
 ];
 
+// Access-state demo nodes — show fence density across locked/compromised/owned
+// so the vector-CRT fence treatment can be tuned in isolation.
+const ACCESS_NODES = [
+  { id: "acc-locked",      label: "LOCKED",      type: "fileserver", grade: "C", x: 150, y: 850 },
+  { id: "acc-compromised", label: "COMPROMISED", type: "fileserver", grade: "C", x: 380, y: 850 },
+  { id: "acc-owned",       label: "OWNED",       type: "fileserver", grade: "C", x: 610, y: 850 },
+];
+
 // ── Initialize Cytoscape ─────────────────────────────────────
 
-const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES];
+const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES, ...ACCESS_NODES];
 const networkData = {
   nodes: allNodes.map(n => ({ id: n.id, label: n.label, type: n.type, grade: n.grade })),
   edges: [],
@@ -101,6 +109,11 @@ for (const n of allNodes) {
 updateNodeStyle("alert-yellow", { visibility: "accessible", accessLevel: "owned", alertState: "yellow", rebooting: false });
 updateNodeStyle("alert-red", { visibility: "accessible", accessLevel: "owned", alertState: "red", rebooting: false });
 updateNodeStyle("alert-reboot", { visibility: "accessible", accessLevel: "owned", alertState: "green", rebooting: true });
+
+// Access-state demo overrides (the generic loop above set every node to "owned")
+updateNodeStyle("acc-locked",      { visibility: "accessible", accessLevel: "locked",      alertState: "green", rebooting: false });
+updateNodeStyle("acc-compromised", { visibility: "accessible", accessLevel: "compromised", alertState: "green", rebooting: false });
+updateNodeStyle("acc-owned",       { visibility: "accessible", accessLevel: "owned",       alertState: "green", rebooting: false });
 
 // Fit the view to show all nodes
 cy.fit(undefined, 40);

@@ -2,8 +2,9 @@
 // Graph rendering and Cytoscape.js management
 
 import { isIceVisible, isObscured } from "../core/state.js";
-import { CONTAINER_POLYGON_POINTS, glyphDataUri } from "./node-glyphs.js";
+import { CONTAINER_POLYGON_POINTS, nodeFaceDataUri } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
+import { ringPoints } from "./overlays/facet.js";
 
 // Still playing with what might be the best default here
 // const DEFAULT_LAYOUT_ALGO = "breadthfirst";
@@ -56,16 +57,19 @@ function stopRedPulse(node) {
   node.removeStyle("border-color border-width");
 }
 
+// Thin strobe blink (not a fattening breathe): a thin constant-width border that
+// flickers bright→dim, so under the global bloom it reads as a vector alarm
+// strobe rather than a throbbing halo. Red strobes fast (urgent).
 function runRedPulse(node) {
   const id = node.id();
   if (!pulsingNodes.has(id)) return;
   node.animate(
-    { style: { "border-color": "#ff4040", "border-width": 3 } },
-    { duration: 400, complete: () => {
+    { style: { "border-color": "#ff3030", "border-width": 1.5 } },
+    { duration: 220, complete: () => {
       if (!pulsingNodes.has(id)) return;
       node.animate(
-        { style: { "border-color": "#cc1100", "border-width": 2 } },
-        { duration: 700, complete: () => runRedPulse(node) }
+        { style: { "border-color": "#5a1010", "border-width": 1.5 } },
+        { duration: 420, complete: () => runRedPulse(node) }
       );
     }}
   );
@@ -84,16 +88,17 @@ function stopYellowPulse(node) {
   node.removeStyle("border-color border-width");
 }
 
+// Yellow strobes slower/softer than red (lower urgency), same thin-blink idea.
 function runYellowPulse(node) {
   const id = node.id();
   if (!yellowPulsingNodes.has(id)) return;
   node.animate(
-    { style: { "border-color": "#cc8800", "border-width": 2 } },
-    { duration: 900, complete: () => {
+    { style: { "border-color": "#ffcc00", "border-width": 1.5 } },
+    { duration: 480, complete: () => {
       if (!yellowPulsingNodes.has(id)) return;
       node.animate(
-        { style: { "border-color": "#553300", "border-width": 2 } },
-        { duration: 1200, complete: () => runYellowPulse(node) }
+        { style: { "border-color": "#4a3800", "border-width": 1.5 } },
+        { duration: 720, complete: () => runYellowPulse(node) }
       );
     }}
   );
@@ -132,7 +137,63 @@ function runRebootPulse(node) {
 let _networkNodes = new Map();  // id → { id, label, type, grade }
 let _networkEdges = [];         // [{ source, target }]
 
+// Bloom is a central, runtime-adjustable rendering property. These are the base
+// blur radii (px); the wide halo (b1) is merged twice for the phosphor blowout,
+// a tight inner glow (b2) sits under the crisp source. setBloomIntensity() scales
+// them live — the seam for future deck-damage degradation (crank bloom toward
+// illegible as the deck takes injury). When that lands, the multiplier's source
+// of truth belongs in game state; this module just applies it.
+const BLOOM_WIDE = 5;
+const BLOOM_TIGHT = 2;
+let bloomIntensity = 1;
+
+/**
+ * Inject the shared SVG bloom <filter> into the DOM once. All entrypoints call
+ * initGraph(), so this covers index / preview / playground without per-file edits.
+ * The filter is a two-radius Gaussian blur merged under the crisp source — a
+ * blurred copy beneath the original, i.e. colored phosphor halo.
+ */
+function ensureBloomFilter() {
+  if (document.getElementById("starnet-bloom-defs")) return;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("id", "starnet-bloom-defs");
+  svg.setAttribute("width", "0");
+  svg.setAttribute("height", "0");
+  svg.setAttribute("aria-hidden", "true");
+  svg.style.position = "absolute";
+  svg.innerHTML =
+    '<filter id="starnet-bloom" x="-80%" y="-80%" width="260%" height="260%">' +
+    `<feGaussianBlur in="SourceGraphic" stdDeviation="${BLOOM_WIDE * bloomIntensity}" result="b1"/>` +
+    `<feGaussianBlur in="SourceGraphic" stdDeviation="${BLOOM_TIGHT * bloomIntensity}" result="b2"/>` +
+    '<feMerge><feMergeNode in="b1"/><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge>' +
+    '</filter>';
+  document.body.appendChild(svg);
+  // Expose for live experimentation / future deck-damage hookup.
+  if (typeof window !== "undefined") window.setBloomIntensity = setBloomIntensity;
+}
+
+/**
+ * Set the bloom intensity multiplier (1 = default vector-CRT bloom). Higher
+ * widens the halo toward illegibility — the hook for deck-damage degradation.
+ * Updates the live filter immediately; no graph re-init needed.
+ * @param {number} mult
+ */
+export function setBloomIntensity(mult) {
+  bloomIntensity = Math.max(0, mult);
+  const filter = document.getElementById("starnet-bloom");
+  if (!filter) return;
+  const blurs = filter.querySelectorAll("feGaussianBlur");
+  if (blurs[0]) blurs[0].setAttribute("stdDeviation", String(BLOOM_WIDE * bloomIntensity));
+  if (blurs[1]) blurs[1].setAttribute("stdDeviation", String(BLOOM_TIGHT * bloomIntensity));
+}
+
+/** @returns {number} current bloom intensity multiplier (1 = default). */
+export function getBloomIntensity() {
+  return bloomIntensity;
+}
+
 export function initGraph(networkData, onNodeClick, onBackgroundTap) {
+  ensureBloomFilter();
   // Store full topology for deferred node addition
   _networkNodes = new Map();
   for (const n of networkData.nodes) {
@@ -289,7 +350,7 @@ function buildStylesheet() {
         "shape-polygon-points": CONTAINER_POLYGON_POINTS,
         width: 36,
         height: 36,
-        "background-color": "#0d0d14",
+        "background-color": "transparent",
         "border-width": 1,
         "border-color": "#223333",
         "border-style": "dashed",
@@ -317,7 +378,7 @@ function buildStylesheet() {
         "background-clip": "none",
         width: 46,
         height: 46,
-        "background-color": "#14141f",
+        "background-color": "transparent",
         "border-width": 1,
         "border-color": "#1a3333",
         label: "data(id)",
@@ -331,35 +392,20 @@ function buildStylesheet() {
         "text-outline-width": 2,
       },
     },
-    // Access level — compromised (cyan fill = foothold)
-    {
-      selector: "node.accessible.compromised",
-      style: {
-        "background-color": "#1a4d70",
-      },
-    },
-    // Access level — owned (green fill = territory)
-    {
-      selector: "node.accessible.owned",
-      style: {
-        "background-color": "#1a5530",
-        "border-width": 1,
-      },
-    },
-    // Alert state: yellow — amber border (pulse driven by JS animation)
+    // Alert state: yellow — thin amber border (strobe-blinked by JS animation)
     {
       selector: "node.accessible.alert-yellow",
       style: {
         "border-color": "#996600",
-        "border-width": 2,
+        "border-width": 1.5,
       },
     },
-    // Alert state: red — red border (pulse driven by JS animation)
+    // Alert state: red — thin red border (strobe-blinked by JS animation)
     {
       selector: "node.accessible.alert-red",
       style: {
         "border-color": "#cc1100",
-        "border-width": 2,
+        "border-width": 1.5,
       },
     },
     // Obscured — identity hidden behind sig-N alias until probed. Keeps the
@@ -383,7 +429,7 @@ function buildStylesheet() {
         "shape-polygon-points": CONTAINER_POLYGON_POINTS,
         width: 20,
         height: 20,
-        "background-color": "#1a0010",
+        "background-color": "transparent",
         "border-color": "#aa0066",
         "border-width": 1,
         "border-style": "dashed",
@@ -417,7 +463,7 @@ function buildStylesheet() {
       style: {
         "line-color": "#112222",
         "target-arrow-shape": "none",
-        "curve-style": "bezier",
+        "curve-style": "straight",
         width: 1,
         opacity: 0.2,
       },
@@ -429,7 +475,7 @@ function buildStylesheet() {
         display: "element",
         "line-color": "#0a4433",
         "target-arrow-shape": "none",
-        "curve-style": "bezier",
+        "curve-style": "straight",
         width: 1.5,
         opacity: 0.7,
       },
@@ -524,7 +570,7 @@ export function updateNodeStyle(nodeId, nodeState) {
     // shape itself is the dodecagon for all nodes (set in the stylesheet);
     // type identity rides on this glyph image, state stays on border/fill.
     const type = node.data("type");
-    node.style("background-image", obscured ? "none" : glyphDataUri(type));
+    node.style("background-image", obscured ? "none" : nodeFaceDataUri(type, nodeState.accessLevel));
   }
 
   // Show/hide connected edges when a node becomes accessible
@@ -976,42 +1022,74 @@ export function fitGraph(theCy) {
   }
 }
 
-// Flash a node with a brief animated pulse.
-// type: 'success' (cyan→white→cyan), 'failure' (red flash), 'reveal' (dim cyan pulse)
+// Flash a node with an expanding faceted "ripple" — a sonar ping in the overlay
+// layer (which blooms), rather than a border glow. Fire-and-forget: two staggered
+// rings expand from inside the node out past its rim, fading, then self-remove.
+// type: 'success' (cyan-green), 'failure' (red), 'reveal' (dim cyan).
+const FLASH_RGB = {
+  success: "0,255,200",
+  failure: "255,64,64",
+  reveal: "127,208,255",
+};
+
 export function flashNode(nodeId, type) {
   if (!cy) return;
   const node = cy.getElementById(nodeId);
   if (!node || node.length === 0) return;
+  const rgb = FLASH_RGB[type];
+  if (!rgb) return;
+  const layer = document.getElementById("overlay-layer");
+  if (!layer) return;
+  spawnFlashRipple(layer, node.renderedPosition(), node.renderedWidth() / 2, rgb);
+}
 
-  if (type === "success") {
-    node.animate(
-      { style: { "background-color": "#0d3a3a" } },
-      { duration: 150, complete: () => {
-        node.animate(
-          { style: { "background-color": "#041820" } },
-          { duration: 350, complete: () => node.removeStyle("background-color") }
-        );
-      }}
-    );
-  } else if (type === "failure") {
-    node.animate(
-      { style: { "background-color": "#2a0505" } },
-      { duration: 150, complete: () => {
-        node.animate(
-          { style: { "background-color": "#150202" } },
-          { duration: 350, complete: () => node.removeStyle("background-color") }
-        );
-      }}
-    );
-  } else if (type === "reveal") {
-    node.animate(
-      { style: { "background-color": "#061525" } },
-      { duration: 250, complete: () => {
-        node.animate(
-          { style: { "background-color": "#080810" } },
-          { duration: 500, complete: () => node.removeStyle("background-color") }
-        );
-      }}
-    );
+/**
+ * Append a transient ripple SVG (two staggered faceted rings) to the overlay
+ * layer, anchored at a node's rendered position. Self-removes when done.
+ */
+function spawnFlashRipple(layer, pos, r, rgb) {
+  const PAD = 18;
+  const half = r + PAD;
+  const cx = half, cy = half;
+  const startR = r * 0.6;
+  const maxR = half - 1;
+  const DUR = 420;
+  const STAGGER = 120;
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.style.position = "absolute";
+  svg.style.left = `${pos.x - half}px`;
+  svg.style.top = `${pos.y - half}px`;
+  svg.style.width = `${half * 2}px`;
+  svg.style.height = `${half * 2}px`;
+  svg.style.overflow = "visible";
+  svg.style.pointerEvents = "none";
+
+  const rings = [0, 1].map((i) => {
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke-width", "2");
+    p.setAttribute("stroke-linejoin", "round");
+    p.setAttribute("points", ringPoints(cx, cy, startR));
+    svg.appendChild(p);
+    return { el: p, delay: i * STAGGER };
+  });
+  layer.appendChild(svg);
+
+  const start = performance.now();
+  function animate(now) {
+    let alive = false;
+    for (const { el, delay } of rings) {
+      const t = (now - start - delay) / DUR;
+      if (t < 0) { alive = true; continue; }
+      if (t >= 1) { el.setAttribute("points", ""); continue; }
+      alive = true;
+      const cur = startR + t * (maxR - startR);
+      el.setAttribute("points", ringPoints(cx, cy, cur));
+      el.setAttribute("stroke", `rgba(${rgb},${(0.85 * (1 - t)).toFixed(3)})`);
+    }
+    if (alive) requestAnimationFrame(animate);
+    else svg.remove();
   }
+  requestAnimationFrame(animate);
 }
