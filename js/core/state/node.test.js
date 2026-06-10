@@ -8,7 +8,7 @@ import { clearAll } from "../timers.js";
 import {
   setNodeVisible, setNodeAccessLevel, setNodeProbed, setNodeAlertState,
   setNodeRead, collectMacguffins, setNodeLooted, setNodeRebooting,
-  setNodeEventForwarding, setNodeVulnHidden,
+  setNodeEventForwarding, setNodeVulnHidden, isObscured,
 } from "./node.js";
 
 describe("state/node — node mutations", () => {
@@ -111,5 +111,31 @@ describe("state/node — node mutations", () => {
     setNodeVisible("nonexistent", "accessible");
     // Version still bumps (mutate always increments) but no crash
     assert.equal(getVersion(), v + 1);
+  });
+});
+
+describe("state/node — isObscured", () => {
+  it("aliased and unprobed node is obscured", () => {
+    assert.equal(isObscured({ sigAlias: "sig-1", probed: false }), true);
+  });
+
+  it("aliased but probed node is NOT obscured (probe revealed it)", () => {
+    assert.equal(isObscured({ sigAlias: "sig-1", probed: true }), false);
+  });
+
+  it("node without an alias is never obscured (e.g. foothold/gateway)", () => {
+    assert.equal(isObscured({ probed: false }), false);
+  });
+
+  it("accessible-but-unprobed aliased node is obscured (the navigation case)", () => {
+    assert.equal(
+      isObscured({ sigAlias: "sig-2", visibility: "accessible", probed: false }),
+      true
+    );
+  });
+
+  it("nullish / empty node is not obscured", () => {
+    assert.equal(isObscured(undefined), false);
+    assert.equal(isObscured({}), false);
   });
 });

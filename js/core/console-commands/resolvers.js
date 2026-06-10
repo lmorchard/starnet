@@ -5,24 +5,26 @@ import { getState } from "../state.js";
 import { addLogEntry } from "../log.js";
 import { emitEvent } from "../events.js";
 import { exploitSortKey } from "../exploits.js";
-import { getRevealedAliases } from "./completions.js";
+import { getObscuredAliases } from "./completions.js";
+import { isObscured } from "../state/node.js";
 
 /**
  * Resolve a node token (id, label prefix, or sig-N alias) to a NodeState.
- * Accessible nodes match by real id or label prefix.
- * Revealed nodes match by alias only — real id/label are hidden.
+ * Known (accessible, non-obscured) nodes match by real id or label prefix.
+ * Obscured nodes (revealed, or accessible-but-unprobed) match by alias only —
+ * their real id/label stay hidden until probed.
  */
 export function resolveNode(token) {
   const s = getState();
   if (!token) return null;
   const lower = token.toLowerCase();
 
-  // Accessible nodes: match by real id or label prefix.
+  // Known nodes (accessible and not obscured): match by real id or label prefix.
   const byId = s.nodes[token];
-  if (byId && byId.visibility === "accessible") return byId;
+  if (byId && byId.visibility === "accessible" && !isObscured(byId)) return byId;
 
   const labelMatches = Object.values(s.nodes).filter(
-    (n) => n.visibility === "accessible" && n.label?.toLowerCase().startsWith(lower)
+    (n) => n.visibility === "accessible" && !isObscured(n) && n.label?.toLowerCase().startsWith(lower)
   );
   if (labelMatches.length === 1) return labelMatches[0];
   if (labelMatches.length > 1) {
@@ -30,9 +32,9 @@ export function resolveNode(token) {
     return null;
   }
 
-  // Revealed nodes: match by alias only (real id/label are hidden).
-  const revAliases = getRevealedAliases(s.nodes);
-  for (const [nodeId, alias] of revAliases) {
+  // Obscured nodes: match by alias only (real id/label are hidden).
+  const obscuredAliases = getObscuredAliases(s.nodes);
+  for (const [nodeId, alias] of obscuredAliases) {
     if (alias.toLowerCase() === lower) return s.nodes[nodeId];
   }
 

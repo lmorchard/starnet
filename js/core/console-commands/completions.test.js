@@ -300,6 +300,40 @@ describe("tabComplete: revealed node alias completion", () => {
   });
 });
 
+// ── Accessible-but-unprobed (obscured) node completion (#121) ─────────────────
+
+describe("tabComplete: navigated-but-unprobed node stays obscured", () => {
+  // An accessible node that has a sig-N alias and is not yet probed — the state
+  // produced by traversing into a revealed neighbor. Identity must stay hidden.
+  function makeObscuredAccessible(id, label, sigAlias) {
+    return { ...makeNode(id, label, "accessible"), sigAlias, probed: false };
+  }
+
+  const state = makeState({
+    nodes: {
+      gateway:    makeNode("gateway", "INET-GW-01", "accessible"),
+      "ids-9":    makeObscuredAccessible("ids-9", "IDS-EDGE", "sig-7"),
+    },
+  });
+
+  it("completes by its sig-N alias", () => {
+    const r = tabComplete("target sig-7", state);
+    assert.equal(r.completed, "target sig-7 ");
+  });
+
+  it("is NOT reachable by real id prefix", () => {
+    const r = tabComplete("target ids", state);
+    assert.equal(r.completed, null);
+    assert.deepEqual(r.suggestions, []);
+  });
+
+  it("is NOT reachable by real label prefix", () => {
+    const r = tabComplete("target IDS-E", state);
+    assert.equal(r.completed, null);
+    assert.deepEqual(r.suggestions, []);
+  });
+});
+
 // ── buy vuln-id completion ────────────────────────────────
 
 describe("tabComplete: buy vuln-id completion", () => {

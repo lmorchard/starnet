@@ -4,6 +4,8 @@
 
 import { getState, mutate } from "./index.js";
 
+/** @typedef {import('../types.js').NodeState} NodeState */
+
 /** @type {import('../node-graph/runtime.js').NodeGraph | null} */
 let _graph = null;
 let _syncingToGraph = false;
@@ -63,6 +65,19 @@ export function setNodeProbed(nodeId) {
     if (node) node.probed = true;
   });
   syncToGraph(nodeId, "probed", true);
+}
+
+/**
+ * True when a node's identity (id, label, type, grade) should stay hidden behind
+ * its sig-N alias. A node is obscured while it has a signal alias and has not yet
+ * been probed — and a successful blind exploit also sets `probed`, so it reveals too.
+ * `sigAlias` is assigned only on hidden→revealed, so foothold nodes (no alias) are
+ * never obscured. Read-only predicate; consulted by the graph, console, and sidebar.
+ * @param {NodeState} [node]
+ * @returns {boolean}
+ */
+export function isObscured(node) {
+  return Boolean(node?.sigAlias) && !node.probed;
 }
 
 /** Sets node.alertState ('green' | 'yellow' | 'red'). */

@@ -22,7 +22,7 @@ export {
 export {
   setNodeVisible, setNodeAccessLevel, setNodeProbed, setNodeAlertState,
   setNodeRead, collectMacguffins, setNodeLooted, setNodeRebooting,
-  setNodeEventForwarding, setNodeVulnHidden, setNodeGraph,
+  setNodeEventForwarding, setNodeVulnHidden, setNodeGraph, isObscured,
 } from "./state/node.js";
 
 export {

@@ -5,8 +5,8 @@ import { getState, isIceVisible } from "../state.js";
 import { addLogEntry } from "../log.js";
 import { getVisibleTimers } from "../timers.js";
 import { exploitSortKey } from "../exploits.js";
-import { getRevealedAliases } from "./completions.js";
 import { resolveNode, resolveImplicitNode } from "./resolvers.js";
+import { isObscured } from "../state/node.js";
 import { mineYieldChance } from "../mining.js";
 
 export function cmdStatusSummary() {
@@ -116,7 +116,11 @@ export function cmdStatusFull() {
   lines.push(`### SELECTED`);
   if (s.selectedNodeId) {
     const sel = s.nodes[s.selectedNodeId];
-    lines.push(`- ${s.selectedNodeId}  [${sel.type}]  access: ${sel.accessLevel}  alert: ${sel.alertState}`);
+    if (isObscured(sel)) {
+      lines.push(`- ${sel.sigAlias}  [???]  access: ${sel.accessLevel}  alert: ${sel.alertState}`);
+    } else {
+      lines.push(`- ${s.selectedNodeId}  [${sel.type}]  access: ${sel.accessLevel}  alert: ${sel.alertState}`);
+    }
   } else {
     lines.push(`- none`);
   }
@@ -127,10 +131,12 @@ export function cmdStatusFull() {
   const recipeStr = s.spec?.recipeId ?? "flat";
   const lanGradeStr = s.spec?.lanGrade ?? "—";
   lines.push(`- spec: ${specStr}  recipe: ${recipeStr}  LAN: ${lanGradeStr}  nodes: ${totalNodes}`);
-  const accessible = Object.values(s.nodes).filter((n) => n.visibility === "accessible");
-  const revealed = Object.values(s.nodes).filter((n) => n.visibility === "revealed");
+  // Known = visible nodes whose identity is no longer hidden (probed or never aliased).
+  // Obscured = visible nodes still behind a sig-N alias (revealed, or accessible-but-unprobed).
+  const known    = Object.values(s.nodes).filter((n) => n.visibility !== "hidden" && !isObscured(n));
+  const obscured = Object.values(s.nodes).filter((n) => isObscured(n));
 
-  accessible.forEach((node) => {
+  known.forEach((node) => {
     const selected = node.id === s.selectedNodeId ? "  [SELECTED]" : "";
     const probed   = node.probed ? "  probed" : "";
     lines.push(`- ${node.id}  [${node.type}]  ${node.accessLevel}  alert:${node.alertState}${probed}${selected}`);
@@ -143,9 +149,9 @@ export function cmdStatusFull() {
     }
   });
 
-  const revAliases = getRevealedAliases(s.nodes);
-  revealed.forEach((node) => {
-    lines.push(`- ${revAliases.get(node.id) ?? node.id}  [???]  revealed`);
+  obscured.forEach((node) => {
+    const selected = node.id === s.selectedNodeId ? "  [SELECTED]" : "";
+    lines.push(`- ${node.sigAlias}  [???]  ${node.visibility}${selected}`);
   });
 
   lines.push(`### HAND`);
@@ -206,6 +212,20 @@ export function cmdStatusNode(args) {
   const s = getState();
   const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
   if (!node) return;
+
+  // Obscured nodes hide their identity (id/label/type/grade) until probed.
+  if (isObscured(node)) {
+    const lines = [
+      `## STATUS: NODE ${node.sigAlias}`,
+      `- label: [???]  type: [???]  grade: [???]`,
+      `- access: ${node.accessLevel}  alert: ${node.alertState}`,
+      `- visibility: ${node.visibility}  probed: ${node.probed}`,
+      `- Run PROBE to reveal this node's identity.`,
+    ];
+    lines.forEach((l) => addLogEntry(l, "meta"));
+    return;
+  }
+
   const lines = [`## STATUS: NODE ${node.id}`];
   lines.push(`- label: ${node.label}  type: ${node.type}  grade: ${node.grade ?? "N/A"}`);
   lines.push(`- access: ${node.accessLevel}  alert: ${node.alertState}`);

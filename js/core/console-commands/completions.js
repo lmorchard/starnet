@@ -7,6 +7,7 @@
 
 import { registry } from "./registry.js";
 import { VULNERABILITY_TYPES } from "../exploits.js";
+import { isObscured } from "../state/node.js";
 
 // ── Completion infrastructure ─────────────────────────────────────────────────
 
@@ -55,35 +56,36 @@ export function fromList(candidates, partial) {
 }
 
 /**
- * Returns the stable alias map for revealed (???) nodes.
- * Aliases are assigned when a node is first revealed and stored in node.sigAlias.
+ * Returns the stable alias map for obscured nodes — those still hiding their
+ * identity behind a sig-N alias (revealed, or accessible-but-unprobed). See
+ * isObscured(). Aliases are assigned on hidden→revealed and stored in node.sigAlias.
  * @param {Object.<string, NodeState>} nodes
  * @returns {Map<string, string>}  nodeId → alias
  */
-export function getRevealedAliases(nodes) {
+export function getObscuredAliases(nodes) {
   const map = new Map();
   for (const n of Object.values(nodes)) {
-    if (n.visibility === "revealed" && n.sigAlias) map.set(n.id, n.sigAlias);
+    if (isObscured(n)) map.set(n.id, n.sigAlias);
   }
   return map;
 }
 
 /**
- * Node completion: matches accessible nodes by id/label prefix, revealed nodes by alias.
- * Hidden nodes and revealed nodes' real identities are excluded.
+ * Node completion: matches known nodes by id/label prefix, obscured nodes by alias.
+ * Hidden nodes and obscured nodes' real identities are excluded.
  * @param {Object.<string, NodeState>} nodes
  * @param {string} partial
  * @returns {{ insertTexts: string[], displayTexts: string[] }}
  */
 export function fromNodes(nodes, partial, { includeAll = false } = {}) {
   const lc = partial.toLowerCase();
-  const revAliases = getRevealedAliases(nodes);
+  const obscuredAliases = getObscuredAliases(nodes);
   const insertTexts = [];
   const displayTexts = [];
   for (const n of Object.values(nodes)) {
     if (!includeAll && n.visibility === "hidden") continue;
-    if (!includeAll && n.visibility === "revealed") {
-      const alias = revAliases.get(n.id) ?? n.id;
+    if (!includeAll && isObscured(n)) {
+      const alias = obscuredAliases.get(n.id) ?? n.id;
       if (alias.toLowerCase().startsWith(lc)) {
         insertTexts.push(alias);
         displayTexts.push(alias);

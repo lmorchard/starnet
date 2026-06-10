@@ -7,11 +7,12 @@ import { exploitSortKey, getStoreCatalog } from "../exploits.js";
 import { getAvailableActions } from "../actions/node-actions.js";
 import { buyFromStore } from "../store-logic.js";
 import {
-  fromList, fromNodes, fromCards, fromVulnIds, completeNodeArg, getRevealedAliases,
+  fromList, fromNodes, fromCards, fromVulnIds, completeNodeArg, getObscuredAliases,
 } from "./completions.js";
 import {
   resolveNode, resolveImplicitNode, resolveCard, dispatch, resolveWanAccess,
 } from "./resolvers.js";
+import { isObscured } from "../state/node.js";
 import { A } from "../action-ids.js";
 import {
   cmdStatusSummary, cmdStatusFull, cmdStatusIce, cmdStatusHand,
@@ -104,15 +105,17 @@ export const COMMANDS = [
       }
 
       if (has.has(A.TARGET)) {
-        const accessible = Object.values(s.nodes)
-          .filter((n) => n.visibility === "accessible" && !n.rebooting && n.id !== s.selectedNodeId);
-        const revealed = Object.values(s.nodes)
-          .filter((n) => n.visibility === "revealed" && n.id !== s.selectedNodeId);
-        const revAliases = getRevealedAliases(s.nodes);
+        // Known (identified) accessible nodes list by id; obscured nodes (revealed or
+        // accessible-but-unprobed) list by their sig-N alias — real ids stay hidden.
+        const known = Object.values(s.nodes)
+          .filter((n) => n.visibility === "accessible" && !isObscured(n) && !n.rebooting && n.id !== s.selectedNodeId);
+        const obscured = Object.values(s.nodes)
+          .filter((n) => isObscured(n) && n.id !== s.selectedNodeId);
+        const aliases = getObscuredAliases(s.nodes);
         const parts = [];
-        if (accessible.length > 0) parts.push(`accessible: ${accessible.map((n) => n.id).join(", ")}`);
-        if (revealed.length > 0) parts.push(`traverse: ${revealed.map((n) => revAliases.get(n.id) ?? n.id).join(", ")}`);
-        lines.push(`  target <nodeId>          — ${parts.join("  |  ")}`);
+        if (known.length > 0) parts.push(`accessible: ${known.map((n) => n.id).join(", ")}`);
+        if (obscured.length > 0) parts.push(`traverse: ${obscured.map((n) => aliases.get(n.id) ?? n.id).join(", ")}`);
+        lines.push(`  target <node|sig-N>      — ${parts.join("  |  ")}`);
       }
 
       if (sel) {

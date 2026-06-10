@@ -6,13 +6,13 @@
 //
 // Sub-module layout:
 //   registry.js    — CommandDef typedef, registry Map, registerCommand, getCommand
-//   completions.js — completion providers, getRevealedAliases, tabComplete
+//   completions.js — completion providers, getObscuredAliases, tabComplete
 //   resolvers.js   — resolveNode/Card/ImplicitNode, dispatch, resolveWanAccess
 //   cmd-status.js  — status sub-command implementations
 //   commands.js    — all CommandDef objects
 
 export { registerCommand, getCommand } from "./registry.js";
-export { tabComplete, getRevealedAliases } from "./completions.js";
+export { tabComplete, getObscuredAliases } from "./completions.js";
 
 import { registry, registerCommand } from "./registry.js";
 import { COMMANDS } from "./commands.js";

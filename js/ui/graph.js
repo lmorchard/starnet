@@ -1,7 +1,7 @@
 // @ts-nocheck — Cytoscape.js has no bundled types; skipping type checking for this file.
 // Graph rendering and Cytoscape.js management
 
-import { isIceVisible } from "../core/state.js";
+import { isIceVisible, isObscured } from "../core/state.js";
 
 // Still playing with what might be the best default here
 // const DEFAULT_LAYOUT_ALGO = "breadthfirst";
@@ -344,6 +344,16 @@ function buildStylesheet() {
         "border-width": 2,
       },
     },
+    // Obscured — identity hidden behind sig-N alias until probed. Keeps the
+    // accessible styling (so reachability reads) but shows the alias, not the id.
+    // Placed after node.accessible so this label rule wins. Shape is forced to a
+    // generic ellipse in updateNodeStyle() so the node type isn't telegraphed.
+    {
+      selector: "node.obscured",
+      style: {
+        label: "data(sigAlias)",
+      },
+    },
     // (ICE is now an HTML overlay, not a Cytoscape node)
     // Trace-back waypoint nodes (hidden nodes revealed as part of ICE trace)
     {
@@ -453,8 +463,15 @@ export function updateNodeStyle(nodeId, nodeState) {
   node.removeClass("hidden revealed accessible");
   node.addClass(nodeState.visibility);
 
-  // Assign alias label for revealed (???) nodes so the graph matches the console.
-  if (nodeState.visibility === "revealed") {
+  // Obscured: identity (id/label/type) hidden behind the sig-N alias until probed.
+  // The node.obscured stylesheet rule swaps the label to data(sigAlias); the shape
+  // override below keeps the type from being telegraphed.
+  const obscured = isObscured(nodeState);
+  node.toggleClass("obscured", obscured);
+  // Populate the alias label for any node whose label is driven by data(sigAlias):
+  // obscured nodes (sig-N), and `revealed` nodes that lack an alias (e.g. set-piece
+  // reveals via revealNode) which fall back to "???".
+  if (obscured || nodeState.visibility === "revealed") {
     node.data("sigAlias", nodeState.sigAlias ?? "???");
   }
 
@@ -482,10 +499,11 @@ export function updateNodeStyle(nodeId, nodeState) {
       if (yellowPulsingNodes.has(nodeId)) stopYellowPulse(node);
     }
 
-    // Shape by node type
+    // Shape by node type — but an obscured node shows a generic ellipse so its
+    // type isn't telegraphed before it's probed.
     const networkNode = cy.getElementById(nodeId);
     const type = networkNode.data("type");
-    const shape = NODE_SHAPES[type] || "ellipse";
+    const shape = obscured ? "ellipse" : (NODE_SHAPES[type] || "ellipse");
     node.style("shape", shape);
   }
 
