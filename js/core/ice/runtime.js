@@ -13,6 +13,8 @@ import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "../tim
 import { emitEvent, on, E } from "../events.js";
 import { A } from "../action-ids.js";
 import { RNG, randomPick } from "../rng.js";
+import { getType, getEffect } from "./index.js";
+import { damagePlayerHealth, damagePlayerDeck } from "../player-orchestration.js";
 
 // Called whenever ICE vacates a node for any reason: normal movement, eject, or reboot.
 // Cancels any pending detection dwell and releases the detection lock so ICE can
@@ -234,10 +236,63 @@ function triggerDetection(nodeId) {
   const s = getState();
   const ice = getPrimaryIce();
   emitEvent(E.ICE_DETECTED, { iceId: ice?.id ?? null, nodeId, label: s.nodes[nodeId]?.label ?? nodeId });
-  // ICE detection drives the global alert directly (count/grade-gated) inside
-  // recordIceDetection. It does NOT route through the exploit-failure IDS→monitor
-  // propagation path (that's the separate puzzle layer) — see MANUAL.md.
-  recordIceDetection(nodeId); // steps alert; starts trace at the grade threshold
+  if (!ice) return;
+  // Detection lock — applies to ALL ICE regardless of effects, so the same node
+  // doesn't re-detect until the player moves. (recordIceDetection also sets this
+  // for classic ICE; idempotent.)
+  setIceDetectedAt(nodeId);
+  applyIceEffects(ice, s, nodeId);
+}
+
+/**
+ * Apply the detecting instance type's effect atoms. raise-alert routes through
+ * the existing alert/trace path (recordIceDetection); damage atoms route through
+ * the player-orchestration wrappers (which end the run on depletion) and log a
+ * readout. Untyped/legacy instances fall back to raise-alert — preserving
+ * pre-dispatch behavior for fixtures like 'standard-ice'.
+ * @param {import('../types.js').IceInstance} ice
+ * @param {import('../types.js').GameState} state
+ * @param {string} nodeId
+ */
+function applyIceEffects(ice, state, nodeId) {
+  const type = getType(ice.typeId);
+  const effects = type?.effects ?? [{ atom: "raise-alert", params: {} }];
+  const ctx = {
+    propagateAlertEvent: (nid) => recordIceDetection(nid),
+    damagePlayerHealth,
+    damagePlayerDeck,
+  };
+  emitEvent(E.ICE_ACTIVATED, { iceId: ice.id, trigger: "on-dwell-grade", hostNodeId: ice.attentionNodeId });
+  for (const eff of effects) {
+    const atom = getEffect(eff.atom);
+    if (!atom) continue;
+    atom.apply(ice, state, ctx, eff.params ?? {});
+    logIceEffect(ice, eff, nodeId);
+    emitEvent(E.ICE_EFFECT_APPLIED, { iceId: ice.id, effect: eff.atom, result: { ...(eff.params ?? {}) } });
+    // Stop if a depletion ended the run mid-list (single-effect presets won't hit this).
+    if (getState().phase !== "playing") break;
+  }
+}
+
+/** Emit a log readout for damage effects (raise-alert is logged by the alert layer). */
+function logIceEffect(ice, eff, nodeId) {
+  const s = getState();
+  const label = (s.nodes[nodeId]?.label ?? nodeId);
+  if (eff.atom === "damage-health") {
+    const h = s.player.health;
+    const dead = h.current === 0;
+    emitEvent(E.LOG_ENTRY, {
+      text: `${dead ? "!! " : ""}[ICE] ${label} neural feedback: −${eff.params.amount} HEALTH (${h.current} left)`,
+      type: dead ? "error" : "warning",
+    });
+  } else if (eff.atom === "damage-deck") {
+    const d = s.player.deckIntegrity;
+    const dead = d.current === 0;
+    emitEvent(E.LOG_ENTRY, {
+      text: `${dead ? "!! " : ""}[ICE] ${label} deck corruption: −${eff.params.amount} DECK (${d.current} left)`,
+      type: dead ? "error" : "warning",
+    });
+  }
 }
 
 export function cancelIceDwell() {
