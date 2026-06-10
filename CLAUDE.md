@@ -329,6 +329,12 @@ either in gameplay or in the manual. Both are worth filing and fixing.
   Integration tests live in `tests/integration.test.js`. Keep new test suites focused: describe the
   scenario, set up state directly, emit the triggering event, assert the outcome.
 
+- **Always pass an explicit seed to `initGame()` in tests.** Without one, `initGame` seeds the
+  RNG from `Math.random()`, so any roll a test does not force (via `_forceNext`) varies per run —
+  silently flaky. A successful exploit *from a locked node* consumes three `RNG.COMBAT` rolls
+  (success, flavor pick, skip-to-owned); forcing only the first two leaves the skip roll seeded.
+  See the roll-consumption block in `js/core/combat.js` and issue #109.
+
 ### Node graph / set-piece test honesty
 
 These rules exist because it's easy to write set-piece tests that pass while the circuit is
