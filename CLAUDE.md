@@ -395,6 +395,17 @@ Sweeping arcs and radial animations use direction to signal agency:
 
 This is a soft convention, not enforced by code — but new animations should follow it.
 
+### Retro vector display — no easy curves
+
+The graph aesthetic is a retro vector CRT that can't comfortably draw curves.
+New graphics use straight segments and polygons — e.g. a many-sided polygon whose
+edges fade in, rather than an arc that sweeps closed; angular ideographs rather
+than circles. Hostile/enemy elements use red (`#ff2a2a`) and magenta (`#ff00aa`).
+Existing curved graphics may be re-vectored over time, but do it deliberately, one
+effect at a time — not as a sweeping refactor. Geometry lives in pure, testable
+modules (`js/ui/node-glyphs.js`, `js/ui/ice-glyphs.js`) consumed by both `graph.js`
+and `preview.js`.
+
 ## What's In Scope (Current Prototype)
 
 - Single static LAN dungeon, hand-crafted

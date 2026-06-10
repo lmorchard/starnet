@@ -1243,3 +1243,18 @@ html, body {
 .exploit-zap {
   transition: stroke-opacity 180ms ease-out;
 }
+
+/* ICE presence — angular "Strike Cage" predator form crouched over the node.
+   Slow counter-clockwise menace pulse (adversarial rotation convention). */
+@keyframes ice-menace {
+  0%   { transform: scale(1);    opacity: 0.82; }
+  50%  { transform: scale(1.07); opacity: 1;    }
+  100% { transform: scale(1);    opacity: 0.82; }
+}
+#ice-overlay .ice-cage {
+  transform-box: fill-box;
+  transform-origin: 50% 60%;
+  animation: ice-menace 2.4s ease-in-out infinite;
+}
+/* Preview-harness toggle: disable the menace pulse. */
+#ice-overlay.ice-pulse-off .ice-cage { animation: none; }

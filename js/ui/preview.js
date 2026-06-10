@@ -17,6 +17,7 @@ import { mountReticle } from "./overlays/selection-reticle.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
 import { mountCardGallery } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
+import { iceStrikeCage } from "./ice-glyphs.js";
 
 // ── Demo node definitions ────────────────────────────────────
 
@@ -36,6 +37,10 @@ const SELECT_NODE = { id: "demo-select", label: "SELECT", type: "gateway", grade
 
 // Flash demo node
 const FLASH_NODE = { id: "demo-flash", label: "FLASH", type: "router", grade: "C", x: 750, y: 200 };
+
+// ICE presence (Strike Cage) composites onto the SAME node as the detection
+// overlay ("demo-ice") so the two ICE effects can be seen together.
+const ICE_PRESENCE_NODE_ID = "demo-ice";
 
 // Glyph gallery — full vocabulary from node-glyphs, plus an unmapped node to
 // demonstrate the microchip fallback. Cycles grades so border colors vary.
@@ -203,6 +208,44 @@ for (const effect of EFFECTS) {
     valEl.textContent = "0.00";
   });
 }
+
+// ── ICE presence (Strike Cage) ───────────────────────────────
+// Standalone HTML overlay mirroring graph.js's #ice-overlay, anchored to the
+// ICE demo node. Show/hide + pulse toggle (the pulse is the .ice-cage animation).
+const icePresenceEl = document.createElement("div");
+icePresenceEl.id = "ice-overlay";
+icePresenceEl.style.cssText = `
+  position: absolute; pointer-events: none; z-index: 10;
+  width: 35px; height: 35px; margin-left: -17.5px; margin-top: -28px;
+  overflow: visible; opacity: 0;`;
+icePresenceEl.innerHTML = iceStrikeCage();
+overlayLayer.appendChild(icePresenceEl);
+
+function repositionIcePresence() {
+  const node = cy.getElementById(ICE_PRESENCE_NODE_ID);
+  if (node.length === 0) return;
+  const rp = node.renderedPosition();
+  icePresenceEl.style.left = `${rp.x}px`;
+  icePresenceEl.style.top = `${rp.y}px`;
+  icePresenceEl.style.transform = `scale(${cy.zoom()})`;
+}
+onViewport(repositionIcePresence);
+repositionIcePresence();
+
+let iceOn = false;
+document.getElementById("btn-ice-toggle").addEventListener("click", () => {
+  iceOn = !iceOn;
+  icePresenceEl.style.opacity = iceOn ? "1" : "0";
+  repositionIcePresence();
+  document.getElementById("btn-ice-toggle").textContent = iceOn ? "HIDE" : "SHOW";
+  document.getElementById("btn-ice-toggle").classList.toggle("active", iceOn);
+});
+// Pulse is on by default (the .ice-cage animation). Toggle adds .ice-pulse-off
+// which disables it (rule in css/style.css).
+document.getElementById("btn-ice-pulse").addEventListener("click", () => {
+  const off = icePresenceEl.classList.toggle("ice-pulse-off");
+  document.getElementById("btn-ice-pulse").classList.toggle("active", !off);
+});
 
 // Selection reticle toggle
 let reticleOn = false;

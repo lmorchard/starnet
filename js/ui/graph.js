@@ -3,6 +3,7 @@
 
 import { isIceVisible, isObscured } from "../core/state.js";
 import { CONTAINER_POLYGON_POINTS, glyphDataUri } from "./node-glyphs.js";
+import { iceStrikeCage } from "./ice-glyphs.js";
 
 // Still playing with what might be the best default here
 // const DEFAULT_LAYOUT_ALGO = "breadthfirst";
@@ -659,19 +660,17 @@ export function addIceNode() {
 
   const el = document.createElement("div");
   el.id = "ice-overlay";
+  el.classList.add("ice-presence");   // hook for the menace-pulse animation
   el.style.cssText = `
     position: absolute; pointer-events: none; z-index: 10;
-    width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
-    border: 2px solid #ff00aa; border-radius: 50%;
-    background: radial-gradient(circle, #ff00aa33 0%, transparent 70%);
-    box-shadow: 0 0 12px #ff00aa88, inset 0 0 8px #ff00aa44;
+    width: 35px; height: 35px; margin-left: -17.5px; margin-top: -28px;
+    overflow: visible;
     transition: opacity 0.3s ease;
     opacity: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-family: "Courier New", monospace; font-size: 7px; font-weight: bold;
-    color: #ff00aa; letter-spacing: 1px;
   `;
-  el.textContent = "ICE";
+  // Angular "Strike Cage" predator form (red), crouched over the node. Stroke-only
+  // vector glyph — see ice-glyphs.js and the no-curves design principle.
+  el.innerHTML = iceStrikeCage();
   container.style.position = "relative";
   container.appendChild(el);
   _iceOverlay = el;
