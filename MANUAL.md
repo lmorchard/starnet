@@ -41,8 +41,9 @@ And when they find you, the clock starts.
 ```
 
 **Network Graph** — The LAN rendered as a node graph. Your accessible nodes glow cyan.
-Unknown nodes appear as `???`. ICE appears as a red diamond when it moves onto a node
-you control.
+Nodes you've detected but not yet identified appear as unlabelled signal contacts tagged
+`sig-1`, `sig-2`, … — their real identity (id, type, grade) stays hidden until you probe
+them. ICE appears as a red diamond when it moves onto a node you control.
 
 **Node Info Panel** — Details for your targeted node: type, grade, access level, alert
 state, vulnerabilities (after probing), and available actions.
@@ -118,8 +119,11 @@ An IDS at this level can be corrupted to stop forwarding alerts.
 ### 1. Select a Node
 
 Click a node on the graph or type `target <node-id>`. Only nodes you have access to
-are targetable. Unknown `???` nodes appear on the graph when you exploit a neighboring
-node — click one to connect to it and begin working.
+are targetable. Detected-but-unidentified nodes appear as signal contacts (`sig-1`,
+`sig-2`, …) when you exploit a neighboring node — click one to connect to it and begin
+working. **Connecting does not reveal what the node is.** Its identity (id, type, grade)
+stays hidden behind the `sig-N` tag until you probe it (or land a blind exploit on it);
+until then you refer to it by that tag, both on the graph and in console commands.
 
 ### 2. Probe
 
@@ -127,10 +131,13 @@ node — click one to connect to it and begin working.
 > probe
 ```
 
-Scanning a node reveals its **vulnerabilities** — the specific weaknesses in its software
-you can exploit. Probing takes time — higher-grade nodes take longer to scan. A clockwise
-sweep animation shows progress. You can cancel a scan in progress with `abort`,
-and navigating away from the node cancels it automatically.
+Scanning a node reveals its **identity** — its id, type, and grade, which were hidden
+behind its `sig-N` tag until now — along with its **vulnerabilities**, the specific
+weaknesses in its software you can exploit. Probing takes time — higher-grade nodes take
+longer to scan. A clockwise sweep animation shows progress. You can cancel a scan in
+progress with `abort`, and navigating away from the node cancels it automatically.
+(A successful blind exploit also counts as a probe, so it reveals the node's identity
+and vulnerabilities the same way.)
 
 For most node types, probing also reveals **neighboring connections** — you'll see new
 `???` nodes appear on the graph. However, security infrastructure (firewalls, IDS,
@@ -508,7 +515,9 @@ Actions depend on the selected node's type and access level:
 
 ## CONSOLE COMMANDS
 
-The console accepts the following commands. Tab-complete works on node IDs.
+The console accepts the following commands. Tab-complete works on node IDs — and on the
+`sig-N` tags of detected-but-unidentified nodes, which you refer to by tag (not id) until
+you probe them. `status node sig-N` reports `[???]` for an unidentified node's type/grade.
 
 ```
 target <node>          Target a node. Alias: t

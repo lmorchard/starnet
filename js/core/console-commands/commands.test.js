@@ -17,8 +17,10 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { buildNetwork as buildCorporateFoothold } from "../../../data/networks/corporate-foothold.js";
-import { initGame, getState } from "../state.js";
+import { initGame, getState, revealNeighbors } from "../state.js";
 import { navigateTo } from "../navigation.js";
+import { resolveNode } from "./resolvers.js";
+import { cmdStatusNode } from "./cmd-status.js";
 import { addCardToHand } from "../state/player.js";
 import { setNodeAccessLevel } from "../state/node.js";
 import { generateExploit, exploitSortKey } from "../exploits.js";
@@ -283,5 +285,51 @@ describe("darknet / buy — WAN access guard", () => {
     navigateTo(wanId);
     const ls = logs(() => getCommand("darknet").execute([]));
     assert.ok(ls.some((l) => l.text.includes("DARKNET BROKER")));
+  });
+});
+
+// ── Obscured identity until probe (#121) ───────────────────────────────────────
+//
+// Navigating to a sig-N neighbor makes it accessible (traversal) but must NOT
+// reveal its real id/label/type/grade until it is probed (or a blind exploit lands).
+
+describe("obscured identity: navigated-but-unprobed node", () => {
+  /** Reveal gateway's neighbor as sig-N, then traverse into it (accessible, unprobed). */
+  function navigateToRevealedNeighbor() {
+    revealNeighbors("gateway");
+    const revealed = Object.values(getState().nodes).find((n) => n.visibility === "revealed");
+    assert.ok(revealed, "expected a revealed neighbor after revealNeighbors");
+    navigateTo(revealed.id);
+    return getState().nodes[revealed.id];
+  }
+
+  it("the node is now accessible but still unprobed and aliased", () => {
+    const node = navigateToRevealedNeighbor();
+    assert.equal(node.visibility, "accessible");
+    assert.equal(node.probed, false);
+    assert.ok(node.sigAlias, "expected a sig-N alias");
+  });
+
+  it("resolves by its sig-N alias", () => {
+    const node = navigateToRevealedNeighbor();
+    assert.equal(resolveNode(node.sigAlias), node);
+  });
+
+  it("does NOT resolve by its real id (identity hidden until probed)", () => {
+    const node = navigateToRevealedNeighbor();
+    assert.equal(resolveNode(node.id), null);
+  });
+
+  it("does NOT resolve by its real label", () => {
+    const node = navigateToRevealedNeighbor();
+    if (!node.label || node.label === node.sigAlias) return;
+    assert.equal(resolveNode(node.label), null);
+  });
+
+  it("status node shows [???], not the real type/label/grade", () => {
+    const node = navigateToRevealedNeighbor();
+    const text = logs(() => cmdStatusNode([node.sigAlias])).map((l) => l.text).join("\n");
+    assert.ok(text.includes("[???]"), "expected obscured placeholders");
+    assert.ok(!text.includes(node.type), "type must not leak");
   });
 });

@@ -3,6 +3,7 @@
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
+import { isObscured } from "../../core/state.js";
 
 class StarnetNodePanel extends StarnetElement {
   static properties = {
@@ -34,12 +35,16 @@ class StarnetNodePanel extends StarnetElement {
 
     const node = this.node;
 
-    // Unknown/unrevealed node
-    if (node.visibility === "revealed") {
+    // Obscured node — identity (type/label/grade) hidden behind the sig-N alias
+    // until probed. Once accessible, the player can probe directly; before that,
+    // they must reach it through a connected node.
+    if (isObscured(node)) {
+      const hint = node.visibility === "accessible"
+        ? html`Connection established.<br />Run PROBE to identify this node.`
+        : html`Signal detected on network.<br />Gain access to a connected node<br />to probe further.`;
       return html`<div class="sidebar-placeholder">
         [???] UNKNOWN NODE<br /><br />
-        Signal detected on network.<br />
-        Gain access to a connected node<br />to probe further.
+        ${hint}
       </div>`;
     }
 
