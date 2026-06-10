@@ -13,10 +13,11 @@ describe("ice/index registers atoms + types on import", () => {
   });
 
   it("on-dwell-grade trigger is live", () => {
-    assert.ok(getTrigger("on-dwell-grade"));
+    assert.ok(getTrigger("on-dwell-grade"), "on-dwell-grade must be registered");
   });
 
   it("classic presets are registered", () => {
-    assert.ok(getType("patrol-classic-B"));
+    // Spot-check: registry.js self-registers a classic preset per grade on import.
+    assert.ok(getType("patrol-classic-B"), "patrol-classic-B must be registered");
   });
 });
