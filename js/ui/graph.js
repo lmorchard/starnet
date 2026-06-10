@@ -2,24 +2,16 @@
 // Graph rendering and Cytoscape.js management
 
 import { isIceVisible, isObscured } from "../core/state.js";
+import { CONTAINER_POLYGON_POINTS, glyphDataUri } from "./node-glyphs.js";
 
 // Still playing with what might be the best default here
 // const DEFAULT_LAYOUT_ALGO = "breadthfirst";
 // const DEFAULT_LAYOUT_ALGO = "dagre";
 const DEFAULT_LAYOUT_ALGO = "cola";
 
-// Node type → shape mapping
-const NODE_SHAPES = {
-  "wan":              "barrel",
-  "gateway":          "diamond",
-  "router":           "ellipse",
-  "firewall":         "pentagon",
-  "workstation":      "ellipse",
-  "ids":              "hexagon",
-  "security-monitor": "octagon",
-  "fileserver":       "rectangle",
-  "cryptovault":      "diamond",
-};
+// Node type → glyph/shape now lives in node-glyphs.js. Every node renders as a
+// common dodecagon container (state on border/fill) + an ideographic glyph
+// background-image (type identity). See issue #126.
 
 // Grade → border color intensity
 const GRADE_COLORS = {
@@ -165,6 +157,21 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   });
   console.warn = _warn;
 
+  // Cytoscape 3.33 ships no `nodeShapes` registry entry for the generic
+  // `polygon` shape name (custom polygons are keyed internally by their
+  // points), yet the border/outline miter-bounds code looks the name up
+  // directly — so a bordered `shape: "polygon"` node crashes in boundingBox
+  // (`nodeShapes['polygon']` is undefined → `.hasMiterBounds`). Every node here
+  // uses the same dodecagon container, so register that fixed dodecagon under
+  // the `polygon` name now, before any nodes or layout exist. This touches
+  // Cytoscape internals and is pinned to the bundled cytoscape@3.33.x. See #126.
+  const nodeShapes = cy.renderer()?.nodeShapes;
+  if (nodeShapes?.makePolygon) {
+    nodeShapes.polygon = nodeShapes.makePolygon(
+      CONTAINER_POLYGON_POINTS.split(/\s+/).map(Number)
+    );
+  }
+
   cy.on("tap", "node", (evt) => {
     evt.target.unselect(); // prevent Cytoscape native selection from conflicting with game state
     const nodeId = evt.target.id();
@@ -277,7 +284,8 @@ function buildStylesheet() {
       selector: "node.revealed",
       style: {
         display: "element",
-        shape: "ellipse",
+        shape: "polygon",
+        "shape-polygon-points": CONTAINER_POLYGON_POINTS,
         width: 36,
         height: 36,
         "background-color": "#0d0d14",
@@ -297,6 +305,15 @@ function buildStylesheet() {
       selector: "node.accessible",
       style: {
         display: "element",
+        shape: "polygon",
+        "shape-polygon-points": CONTAINER_POLYGON_POINTS,
+        "background-image-opacity": 1,
+        "background-fit": "none",
+        "background-width": "100%",
+        "background-height": "100%",
+        "background-position-x": "50%",
+        "background-position-y": "50%",
+        "background-clip": "none",
         width: 46,
         height: 46,
         "background-color": "#14141f",
@@ -346,8 +363,9 @@ function buildStylesheet() {
     },
     // Obscured — identity hidden behind sig-N alias until probed. Keeps the
     // accessible styling (so reachability reads) but shows the alias, not the id.
-    // Placed after node.accessible so this label rule wins. Shape is forced to a
-    // generic ellipse in updateNodeStyle() so the node type isn't telegraphed.
+    // Placed after node.accessible so this label rule wins. The glyph
+    // background-image is cleared in updateNodeStyle() so the node type isn't
+    // telegraphed (the dodecagon container shows, but no identifying glyph).
     {
       selector: "node.obscured",
       style: {
@@ -360,7 +378,8 @@ function buildStylesheet() {
       selector: "node.ice-traced",
       style: {
         display: "element",
-        shape: "ellipse",
+        shape: "polygon",
+        "shape-polygon-points": CONTAINER_POLYGON_POINTS,
         width: 20,
         height: 20,
         "background-color": "#1a0010",
@@ -464,8 +483,8 @@ export function updateNodeStyle(nodeId, nodeState) {
   node.addClass(nodeState.visibility);
 
   // Obscured: identity (id/label/type) hidden behind the sig-N alias until probed.
-  // The node.obscured stylesheet rule swaps the label to data(sigAlias); the shape
-  // override below keeps the type from being telegraphed.
+  // The node.obscured stylesheet rule swaps the label to data(sigAlias); the
+  // glyph background-image is cleared below to keep the type from being telegraphed.
   const obscured = isObscured(nodeState);
   node.toggleClass("obscured", obscured);
   // Populate the alias label for any node whose label is driven by data(sigAlias):
@@ -499,12 +518,12 @@ export function updateNodeStyle(nodeId, nodeState) {
       if (yellowPulsingNodes.has(nodeId)) stopYellowPulse(node);
     }
 
-    // Shape by node type — but an obscured node shows a generic ellipse so its
-    // type isn't telegraphed before it's probed.
-    const networkNode = cy.getElementById(nodeId);
-    const type = networkNode.data("type");
-    const shape = obscured ? "ellipse" : (NODE_SHAPES[type] || "ellipse");
-    node.style("shape", shape);
+    // Glyph by node type — but an obscured node shows the bare dodecagon (no
+    // glyph) so its type isn't telegraphed before it's probed. The container
+    // shape itself is the dodecagon for all nodes (set in the stylesheet);
+    // type identity rides on this glyph image, state stays on border/fill.
+    const type = node.data("type");
+    node.style("background-image", obscured ? "none" : glyphDataUri(type));
   }
 
   // Show/hide connected edges when a node becomes accessible

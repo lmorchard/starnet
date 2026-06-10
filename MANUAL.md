@@ -73,17 +73,22 @@ and exploit hand. Use `status summary` to see your current seed.
 
 Each node in the LAN has a **type** that determines what it does and why you want it:
 
-| Type              | Shape    | Gate         | What it does                                      |
-|-------------------|----------|--------------|---------------------------------------------------|
-| **WAN**           | Barrel   | Probe        | The network boundary — your tether to the outside. Access the darknet broker here. |
-| **Gateway**       | Diamond  | Probe        | Entry point. Your foothold into the LAN.          |
-| **Router**        | Circle   | Compromised  | Routes traffic. Bridges to deeper nodes. Must compromise to see connections. |
-| **Firewall**      | Pentagon | Owned        | High-security chokepoint. Must fully own to reveal what's beyond. |
-| **Workstation**   | Circle   | Probe        | User machines. Often soft targets with loose data.|
-| **File Server**   | Square   | Probe        | Where documents live. Usually where your mission target is. |
-| **Cryptovault**   | Diamond  | Probe        | High-value encrypted storage. Hardest targets.    |
-| **IDS**           | Hexagon  | Owned        | Intrusion Detection System. Must own to see connections. Can be subverted. |
-| **Security Mon.** | Octagon  | Owned        | Aggregates IDS alerts. Must own to see connections. Can cancel trace. |
+| Type              | Glyph              | Gate         | What it does                                      |
+|-------------------|-------------------|--------------|---------------------------------------------------|
+| **WAN**           | Globe             | Probe        | The network boundary — your tether to the outside. Access the darknet broker here. |
+| **Gateway**       | Portal arch       | Probe        | Entry point. Your foothold into the LAN.          |
+| **Router**        | Four-way arrows   | Compromised  | Routes traffic. Bridges to deeper nodes. Must compromise to see connections. |
+| **Firewall**      | Brick wall        | Owned        | High-security chokepoint. Must fully own to reveal what's beyond. |
+| **Workstation**   | Monitor           | Probe        | User machines. Often soft targets with loose data.|
+| **File Server**   | Rack stack        | Probe        | Where documents live. Usually where your mission target is. |
+| **Cryptovault**   | Safe + dial       | Probe        | High-value encrypted storage. Hardest targets.    |
+| **IDS**           | Camera eye        | Owned        | Intrusion Detection System. Must own to see connections. Can be subverted. |
+| **Security Mon.** | Scope + crosshair | Owned        | Aggregates IDS alerts. Must own to see connections. Can cancel trace. |
+
+Every node is drawn as a 12-sided container holding a small glyph of the device
+it represents. The glyph (and its color) tells you *what kind* of node it is; the
+container's border and fill tell you its *state* — locked, compromised, owned, or
+on alert.
 
 The **Gate** column shows when a node reveals its connections to neighboring nodes.
 "Probe" means probing the node is enough to see what's connected. "Compromised" or

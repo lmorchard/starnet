@@ -16,6 +16,7 @@ import { mountOverlays } from "./overlays/index.js";
 import { mountReticle } from "./overlays/selection-reticle.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
 import { mountCardGallery } from "./preview-cards.js";
+import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 
 // ── Demo node definitions ────────────────────────────────────
 
@@ -36,24 +37,29 @@ const SELECT_NODE = { id: "demo-select", label: "SELECT", type: "gateway", grade
 // Flash demo node
 const FLASH_NODE = { id: "demo-flash", label: "FLASH", type: "router", grade: "C", x: 750, y: 200 };
 
-// Shape gallery — one per type, cycling grades
-const SHAPE_TYPES = ["wan", "gateway", "router", "firewall", "workstation", "ids", "security-monitor", "fileserver", "cryptovault"];
+// Glyph gallery — full vocabulary from node-glyphs, plus an unmapped node to
+// demonstrate the microchip fallback. Cycles grades so border colors vary.
+const SHAPE_TYPES = [...ALL_GLYPH_TYPES, "unknown-fallback-demo"];
 const GRADES = ["F", "D", "C", "B", "A", "S"];
+// 10 cols wraps the 19 demo nodes to 2 rows (y=440, y=550). Keep this and the
+// base y in sync with ALERT_NODES' y (720) so the rows don't overlap.
+const GALLERY_COLS = 10;
 const SHAPE_NODES = SHAPE_TYPES.map((type, i) => ({
   id: `shape-${type}`,
   label: type,
   type,
   grade: GRADES[i % GRADES.length],
-  x: 80 + i * 100,
-  y: 440,
+  x: 80 + (i % GALLERY_COLS) * 100,
+  y: 440 + Math.floor(i / GALLERY_COLS) * 110,
 }));
 
-// Alert state demo nodes
+// Alert state demo nodes — placed below the (now two-row) glyph gallery to
+// avoid overlapping its second row.
 const ALERT_NODES = [
-  { id: "alert-green",   label: "GREEN",    type: "router", grade: "C", x: 150, y: 580 },
-  { id: "alert-yellow",  label: "YELLOW",   type: "router", grade: "C", x: 350, y: 580 },
-  { id: "alert-red",     label: "RED",      type: "router", grade: "C", x: 550, y: 580 },
-  { id: "alert-reboot",  label: "REBOOT",   type: "router", grade: "C", x: 750, y: 580 },
+  { id: "alert-green",   label: "GREEN",    type: "router", grade: "C", x: 150, y: 720 },
+  { id: "alert-yellow",  label: "YELLOW",   type: "router", grade: "C", x: 350, y: 720 },
+  { id: "alert-red",     label: "RED",      type: "router", grade: "C", x: 550, y: 720 },
+  { id: "alert-reboot",  label: "REBOOT",   type: "router", grade: "C", x: 750, y: 720 },
 ];
 
 // ── Initialize Cytoscape ─────────────────────────────────────
