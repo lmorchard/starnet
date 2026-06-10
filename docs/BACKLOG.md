@@ -153,6 +153,13 @@ From session-5 design discussion — reframe log verbosity as something the play
 
 ## World / Structure
 
+> **Vision doc:** [`VISION-dual-mode-and-standings.md`](VISION-dual-mode-and-standings.md)
+> ties many of the items below into one direction — a network-defense mode (the
+> attacker bot becomes the player's adversary), a Fallen London-style standings
+> system as the progression engine, and an overworld sandbox where attack and
+> defense scenarios share persistent installations. Forward-looking, not scheduled.
+> Read its final section for the cheap affordances worth keeping in mind now.
+
 ### Overworld / Meta-loop
 - **Overworld linking LANs** — the dungeon run takes place in a larger world context; structure connecting LAN to LAN (planet internets, star systems, ansible networks)
 - **Procedural or semi-procedural network generation** — ~~random LAN topologies with seeded RNG for reproducibility (roguelike runs); currently static hand-crafted network~~ _in progress: 2026-03-01-1458-procedural-lan-gen_
