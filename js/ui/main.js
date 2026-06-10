@@ -90,9 +90,16 @@ function init() {
   fitGraph(cy);
   addIceNode();  // after layout — ICE polygon shape crashes cola bounding box calc
   startIce();
+  let prevVisibleCount = 0;
   setInterval(() => {
     tick(1);
-    if (getVisibleTimers().length > 0) emitEvent(E.TIMERS_UPDATED, getState());
+    const count = getVisibleTimers().length;
+    // Emit on the falling edge to zero too, so timer-driven UI (e.g. the sidebar
+    // ICE DETECTION countdown) clears when the last visible timer is cancelled.
+    // Otherwise the last-rendered countdown lingers forever after the player
+    // leaves the dwell node.
+    if (count > 0 || prevVisibleCount > 0) emitEvent(E.TIMERS_UPDATED, getState());
+    prevVisibleCount = count;
   }, TICK_MS);
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate

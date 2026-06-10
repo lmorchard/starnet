@@ -1,16 +1,21 @@
 // @ts-check
-// ICE DETECTION sweep: magenta arc sweeping counter-clockwise (adversarial /
-// system action convention) just outside the node, brightening as the dwell
-// timer fills. On detection, snap to a full circle then clear. Ported from
-// graph.js syncIceDetectSweep / _renderIceDetectSweep / completeAndClearIceDetectSweep.
+// ICE DETECTION: a 12-segment polygon around the node whose edges fade in
+// counter-clockwise (adversarial convention) as the dwell timer fills, then
+// flash to a full bright cage on detection. Angular / no-curves (see CLAUDE.md).
 
 import { html } from "lit";
 import { NodeOverlay } from "./node-overlay.js";
+import { detectionPolygonSegments, ICE_MAGENTA } from "../ice-glyphs.js";
 
-const RING_GAP = 10; // px screen-space gap outside the node
+const SVG_NS = "http://www.w3.org/2000/svg";
+const RING_GAP = 10;   // px screen-space gap outside the node
+const SIDES = 12;
+const DIM = 0.20;      // resting opacity of an unlit segment — faint full cage is
+                       // visible from the start, then segments brighten CCW so the
+                       // "polygon closing around the node" reads clearly.
 
 class IceDetectOverlay extends NodeOverlay {
-  // Called on ICE_DETECTED: snap ring to full circle, then fade out.
+  // Called on ICE_DETECTED: flash all segments to full, then fade out.
   completeAndClear() {
     if (this.nodeId) {
       this.progress = 1;
@@ -20,9 +25,14 @@ class IceDetectOverlay extends NodeOverlay {
   }
 
   render() {
+    // Empty SVG shell; the 12 <line> segments are created imperatively in
+    // _render() via createElementNS. (The bundled lit.js exports no `svg` tag,
+    // and interpolating `html` <line> templates would create HTML-namespace
+    // elements that never paint — so we build real SVG nodes directly, the same
+    // way loot-rings.js does.)
     return html`
-      <svg style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
-        <path class="arc" fill="none" stroke="#ff00aa" stroke-width="4" stroke-linecap="round"></path>
+      <svg style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:6;
+                  transition:opacity 0.15s ease; filter:drop-shadow(0 0 4px ${ICE_MAGENTA}) drop-shadow(0 0 10px ${ICE_MAGENTA});">
       </svg>`;
   }
 
@@ -35,25 +45,35 @@ class IceDetectOverlay extends NodeOverlay {
     const rRing = r + RING_GAP;
     this._place(svg, pos, r, RING_GAP);
 
-    const arc = svg.querySelector(".arc");
-    const p = this.progress;
-    const ox = rRing, oy = rRing;
-    arc.setAttribute("stroke-opacity", String(0.45 + 0.5 * p)); // dim → bright
-
-    if (p <= 0) {
-      arc.setAttribute("d", "");
-    } else if (p >= 1) {
-      // Full circle — two CCW semi-arcs to avoid degenerate arc case
-      arc.setAttribute("d",
-        `M ${ox},${oy - rRing} a ${rRing},${rRing} 0 1,0 0,${rRing * 2} a ${rRing},${rRing} 0 1,0 0,-${rRing * 2}`);
-    } else {
-      // Counter-clockwise: negate X component, sweep-flag=0
-      const angle = p * 2 * Math.PI;
-      const endX = ox - rRing * Math.sin(angle);
-      const endY = oy - rRing * Math.cos(angle);
-      arc.setAttribute("d",
-        `M ${ox},${oy - rRing} A ${rRing},${rRing} 0 ${p > 0.5 ? 1 : 0},0 ${endX},${endY}`);
+    // Lazily create the segment lines as real SVG elements (once).
+    let lines = svg.querySelectorAll("line.seg");
+    if (lines.length !== SIDES) {
+      svg.querySelectorAll("line.seg").forEach((l) => l.remove());
+      for (let i = 0; i < SIDES; i++) {
+        const ln = document.createElementNS(SVG_NS, "line");
+        ln.setAttribute("class", "seg");
+        ln.setAttribute("stroke", ICE_MAGENTA);
+        ln.setAttribute("stroke-width", "4.5");
+        ln.setAttribute("stroke-linecap", "round");
+        svg.appendChild(ln);
+      }
+      lines = svg.querySelectorAll("line.seg");
     }
+
+    // Local SVG origin places the node center at (rRing, rRing) after _place().
+    const ox = rRing, oy = rRing;
+    const segs = detectionPolygonSegments(SIDES, rRing);
+    const p = this.progress;
+    lines.forEach((ln, i) => {
+      const s = segs[i];
+      ln.setAttribute("x1", (ox + s.x1).toFixed(2));
+      ln.setAttribute("y1", (oy + s.y1).toFixed(2));
+      ln.setAttribute("x2", (ox + s.x2).toFixed(2));
+      ln.setAttribute("y2", (oy + s.y2).toFixed(2));
+      // Gradual per-segment fade-in as progress sweeps CCW; all full at p>=1.
+      const o = Math.max(DIM, Math.min(1, p * SIDES - i));
+      ln.setAttribute("stroke-opacity", o.toFixed(3));
+    });
   }
 }
 

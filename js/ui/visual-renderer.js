@@ -111,8 +111,12 @@ export function initVisualRenderer() {
     if (hudEl) hudEl.traceSeconds = state.traceSecondsRemaining;
     // ICE detection sweep — driven by timer presence; self-clears when timer is gone
     const iceDetect = getVisibleTimers().find((t) => t.label === "ICE DETECTION");
-    if (iceDetect) {
-      iceOverlay.sync("ice-0", iceDetect.progress);
+    if (iceDetect && state.selectedNodeId) {
+      // Dwell always happens on the player's selected node (checkIceDetection only
+      // arms when ice.attentionNodeId === selectedNodeId). Anchor the overlay there.
+      // (Was "ice-0" — a Cytoscape node that no longer exists since ICE became an
+      // HTML overlay, so the detection indicator never rendered.)
+      iceOverlay.sync(state.selectedNodeId, iceDetect.progress);
     } else {
       iceOverlay.clear();
     }
