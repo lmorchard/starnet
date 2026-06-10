@@ -135,6 +135,16 @@ const TRACE_SECONDS = { S: 30, A: 40, B: 45, C: 60, D: 75, F: 90 };
 
 export function startTraceCountdown() {
   const s = getState();
+  // Trace is the top alert level. Guarantee globalAlert reflects it regardless of
+  // how trace was triggered — alert escalation (recompute/raise paths set it
+  // before calling here) OR a set-piece alarm via ctx.startTrace(), which would
+  // otherwise leave globalAlert at green/yellow and desync the HUD + peakAlert
+  // stat from traceFired (#114 WS3).
+  if (s.globalAlert !== "trace") {
+    const prev = s.globalAlert;
+    setGlobalAlert("trace");
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: "trace" });
+  }
   const threat = s.spec?.threat ?? "C";
   const seconds = TRACE_SECONDS[threat] ?? 60;
   setTraceCountdown(seconds);
@@ -180,8 +190,12 @@ export function forceGlobalAlert(level) {
 // ── ICE detection ─────────────────────────────────────────
 
 /**
- * Record an ICE detection event. Raises alert on all IDS nodes, which
- * propagate to security monitors via the normal forwarding path.
+ * Record an ICE detection event. Drives the global alert directly: each
+ * detection steps the alert up one level (capped below trace), and once the
+ * grade-scaled detection count is reached (DETECTION_TRACE_THRESHOLD), the trace
+ * countdown begins. This is the ICE pursuit layer — it does NOT colour IDS nodes
+ * or propagate through the security monitor (that's the separate exploit-failure
+ * puzzle layer in recomputeGlobalAlert). See MANUAL.md "Detection".
  */
 export function recordIceDetection(nodeId) {
   const s = getState();
@@ -189,15 +203,25 @@ export function recordIceDetection(nodeId) {
   setIceDetectedAt(nodeId);
   incrementIceDetectionCount();
 
-  // Raise alert on all IDS (detection) nodes
-  const detectors = Object.entries(s.nodes).filter(([, n]) => DETECTOR_TYPES.has(n.type));
-  for (const [detId, det] of detectors) {
-    const prevAlert = det.alertState;
-    const idx = ALERT_ORDER.indexOf(prevAlert);
-    if (idx < ALERT_ORDER.length - 1) {
-      const nextAlert = ALERT_ORDER[idx + 1];
-      setNodeAlertState(detId, nextAlert);
-      emitEvent(E.NODE_ALERT_RAISED, { nodeId: detId, label: det.label, prev: prevAlert, next: nextAlert });
-    }
+  // ICE detection drives the global alert directly (MANUAL.md "Detection"):
+  // each detection steps the alert up; after a grade-scaled number of detections
+  // the trace countdown begins (S/A:1, B/C:2, D/F:3). This is the ICE *pursuit*
+  // layer — distinct from the exploit-failure → IDS → monitor *puzzle* layer
+  // (recomputeGlobalAlert). Trace here is gated purely on detection COUNT, not on
+  // counting red IDS nodes (which is unreachable on a 1-detector network).
+  const count = getState().ice.detectionCount;
+  const threshold = DETECTION_TRACE_THRESHOLD[s.ice.grade] ?? 2;
+  if (count >= threshold) {
+    if (getState().traceSecondsRemaining === null) startTraceCountdown();
+    return;
+  }
+  // Sub-threshold: step the alert up one level for feedback, capped below trace
+  // (trace is threshold-gated for ICE — a later detection starts the clock).
+  const idx = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
+  if (idx < GLOBAL_ALERT_ORDER.indexOf("red")) {
+    const prev = s.globalAlert;
+    const next = GLOBAL_ALERT_ORDER[idx + 1];
+    setGlobalAlert(next);
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next });
   }
 }

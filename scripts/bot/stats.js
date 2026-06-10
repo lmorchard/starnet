@@ -6,7 +6,10 @@
 
 import { A } from "../../js/core/action-ids.js";
 
-const ALERT_RANK = { green: 0, yellow: 1, red: 2 };
+// Mirrors GLOBAL_ALERT_ORDER in js/core/alert.js. "trace" MUST be included —
+// global alert can escalate straight to "trace", and omitting it here made
+// updatePeakAlert silently drop trace-level raises to rank 0 (issue #114, WS3).
+const ALERT_RANK = { green: 0, yellow: 1, red: 2, trace: 3 };
 
 /**
  * Create a fresh stats object with zeroed counters.
@@ -93,7 +96,11 @@ export function finalizeStats(stats, state) {
   stats.cashRemaining = state.player.cash;
   stats.ticksElapsed = stats.ticksElapsed; // set by loop
   stats.success = state.mission?.complete ?? false;
-  if (!stats.success && !stats.failReason) {
-    stats.failReason = "stuck";
+  if (!stats.success && stats.failReason !== "tick-cap") {
+    // Attribute the loss to trace pressure when a trace fired during the run —
+    // the bot bailed (or was caught) under the trace rather than just running
+    // out of moves. "stuck" is reserved for incomplete runs with no trace
+    // (genuinely no path forward); "tick-cap" (set in the loop) is left intact.
+    stats.failReason = stats.traceFired ? "trace" : (stats.failReason ?? "stuck");
   }
 }

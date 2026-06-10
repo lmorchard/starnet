@@ -82,14 +82,16 @@ export function execute(choice, world, opts = {}) {
 }
 
 /**
- * Tick forward until the timed action resolves, ICE interrupts, or budget expires.
+ * Tick forward until the timed action resolves, ICE actually DETECTS the player
+ * (E.ICE_DETECTED — not mere ICE arrival), the run ends, or the budget expires.
+ * `interrupted` in the return reflects a real mid-action detection.
  * @param {ScoredAction} choice
  * @param {number} budget
  * @returns {{ completed: boolean, interrupted: boolean, ticksUsed: number }}
  */
 function tickUntilResolved(choice, budget) {
   let resolved = false;
-  let interrupted = false;
+  let detected = false;   // ICE completed a dwell and detected us mid-action
   let runEnded = false;
   let ticksUsed = 0;
 
@@ -108,11 +110,24 @@ function tickUntilResolved(choice, budget) {
     }
   };
 
+  // ICE arriving on our node does NOT auto-abort the action. Detection requires
+  // ICE to dwell (grade-scaled), so the hack and the dwell race — a focused
+  // decker keeps working and only bails if the trace actually lands. On an OWNED
+  // node, eject is free, so push ICE off and keep going. (Previously the bot
+  // panic-aborted on mere arrival: ICE never actually detected — so it was
+  // toothless — yet the bot abandoned and restarted actions, the source of the
+  // evasion thrash and exchange tick-cap. #114 WS2.)
   const onIceMoved = ({ toId }) => {
     const s = getState();
-    if (s.selectedNodeId && toId === s.selectedNodeId) {
-      interrupted = true;
+    if (toId !== s.selectedNodeId || toId !== targetNodeId) return;
+    const node = s.nodes[targetNodeId];
+    if (node && node.accessLevel === "owned" && s.ice?.active && s.ice.attentionNodeId === targetNodeId) {
+      emitEvent("starnet:action", { actionId: A.EJECT, nodeId: targetNodeId });
     }
+  };
+
+  const onDetected = ({ nodeId }) => {
+    if (nodeId === targetNodeId) detected = true;
   };
 
   const onRunEnded = () => { runEnded = true; };
@@ -120,10 +135,11 @@ function tickUntilResolved(choice, budget) {
   on(E.ACTION_RESOLVED, onResolved);
   on(E.ACTION_FEEDBACK, onFeedback);
   on(E.ICE_MOVED, onIceMoved);
+  on(E.ICE_DETECTED, onDetected);
   on(E.RUN_ENDED, onRunEnded);
 
   try {
-    for (let i = 0; i < budget && !resolved && !interrupted && !runEnded; i++) {
+    for (let i = 0; i < budget && !resolved && !detected && !runEnded; i++) {
       tick(1);
       ticksUsed++;
     }
@@ -131,21 +147,16 @@ function tickUntilResolved(choice, budget) {
     off(E.ACTION_RESOLVED, onResolved);
     off(E.ACTION_FEEDBACK, onFeedback);
     off(E.ICE_MOVED, onIceMoved);
+    off(E.ICE_DETECTED, onDetected);
     off(E.RUN_ENDED, onRunEnded);
   }
 
-  // If interrupted by ICE: eject if we own the node (keeps action going),
-  // otherwise abort and untarget to hide.
-  if (interrupted && !resolved && !runEnded) {
-    const s = getState();
-    const node = targetNodeId ? s.nodes[targetNodeId] : null;
-    if (node && node.accessLevel === "owned" && s.ice?.active && s.ice.attentionNodeId === targetNodeId) {
-      emitEvent("starnet:action", { actionId: A.EJECT, nodeId: targetNodeId });
-    } else {
-      emitEvent("starnet:action", { actionId: A.ABORT, nodeId: targetNodeId });
-      emitEvent("starnet:action", { actionId: A.UNTARGET });
-    }
+  // Caught mid-action: abort and untarget to hide. Alert has already escalated;
+  // the between-action heuristics (evasion/security) handle trace from here.
+  if (detected && !resolved && !runEnded) {
+    emitEvent("starnet:action", { actionId: A.ABORT, nodeId: targetNodeId });
+    emitEvent("starnet:action", { actionId: A.UNTARGET });
   }
 
-  return { completed: resolved || runEnded, interrupted, ticksUsed };
+  return { completed: resolved || runEnded, interrupted: detected, ticksUsed };
 }
