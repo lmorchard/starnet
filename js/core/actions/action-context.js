@@ -71,10 +71,14 @@ export function initActionDispatcher(ctx) {
       return;
     }
     if (!fromConsole) {
-      // For exploit, log the card reference rather than the nodeId (matches console output)
-      const logStr = (actionId === A.XPLOIT && (payload.cardIndex ?? payload.exploitId))
-        ? `xploit ${payload.cardIndex ?? payload.exploitId}`
-        : actionId + (nodeId ? ` ${nodeId}` : "");
+      // For exploit, log the card reference; for exec, log the chosen script —
+      // both match the console output rather than the raw actionId.
+      const logStr =
+        (actionId === A.XPLOIT && (payload.cardIndex ?? payload.exploitId))
+          ? `xploit ${payload.cardIndex ?? payload.exploitId}`
+          : (actionId === A.EXEC && payload.scriptId)
+            ? `exec ${payload.scriptId}`
+            : actionId + (nodeId ? ` ${nodeId}` : "");
       emitEvent(E.COMMAND_ISSUED, { cmd: logStr });
     }
     const versionBefore = getVersion();

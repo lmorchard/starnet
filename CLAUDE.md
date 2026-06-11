@@ -264,13 +264,15 @@ node scripts/playtest.js "status ice"
 
 ## Bot Player and Census
 
-`scripts/bot-player.js` is an automated game-playing agent for balance testing.
-`scripts/bot-census.js` runs it across many seeds and produces LLM-readable reports.
-See `docs/BOT-PLAYER.md` for full documentation.
+`scripts/bot/cli.js` runs an automated game-playing agent for balance testing
+(the bot logic lives across `scripts/bot/*.js`). `scripts/bot/census.js` runs it
+across many seeds and produces LLM-readable reports. See `docs/BOT-PLAYER.md` for
+full documentation.
 
-**`scripts/bot-player.js`, `scripts/playtest.js`, and `js/main.js` are three parallel
-entry points** into the same game engine. All three share timer wiring, action dispatch,
-and event handling. When changing game mechanics, check all three.
+**The bot (`scripts/bot/`, entry `scripts/bot/cli.js`), `scripts/playtest.js`, and
+`js/main.js` are three parallel entry points** into the same game engine. All three
+share timer wiring, action dispatch, and event handling. When changing game mechanics,
+check all three.
 
 **Keep the bot working when changing game mechanics.** The bot reads game state directly
 (`accessLevel`, `visibility`, `vulnerabilities`, `macguffins`) and dispatches actions
@@ -288,9 +290,11 @@ via `emitEvent("starnet:action", ...)`. Changes that affect the bot:
 - **Timer handler changes** → the bot's init block must register the same handlers as
   `playtest.js`. If a new TIMER type is added, add it to both.
 
-**Run `make bot-census` after balance changes** to verify the difficulty curve hasn't
-regressed. A quick smoke test: `node scripts/bot-census.js --time F --money F --seeds 10`
-should show ~80% success.
+**Run `make census` after balance changes** to verify the difficulty curve hasn't
+regressed. A quick smoke test: `make census SEEDS=10` (override grades with
+`THREAT=` / `WEALTH=` / `COMPLEXITY=` / `DEPTH=`). There's no fixed pass threshold —
+compare `successRate` / `traceFiredRate` against a same-seed run on `main` rather than
+an absolute number.
 
 ---
 

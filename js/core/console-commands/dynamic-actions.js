@@ -18,12 +18,14 @@ import { A } from "../action-ids.js";
 import { on, E, emitEvent } from "../events.js";
 import { registry, registerCommand } from "./registry.js";
 import { completeNodeArg } from "./completions.js";
+import { isScriptAction } from "../actions/scripts.js";
 
 // Action IDs with custom argument handling that stay as static console commands.
 // Everything else is dynamically discovered from the graph's available actions.
 const STATIC_ACTION_IDS = new Set([
   A.XPLOIT,  // needs card argument from payload
   A.TARGET, A.UNTARGET, A.JACKOUT,  // global actions, not node-specific
+  A.EXEC,    // synthetic submenu verb — never a dynamic registration
 ]);
 
 /** Track which dynamic commands we've registered so we can remove them. */
@@ -54,6 +56,7 @@ function syncDynamicActions() {
 
   for (const action of graphActions) {
     if (STATIC_ACTION_IDS.has(action.id)) continue;
+    if (isScriptAction(action.id)) continue; // scripts live under `exec`
 
     const actionId = action.id;
     const label = action.label || actionId;

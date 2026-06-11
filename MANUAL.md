@@ -116,7 +116,7 @@ LOCKED  →  COMPROMISED  →  OWNED
 **Compromised** — Partial access. You can read contents and attempt to escalate.
 An IDS at this level can be corrupted to stop forwarding alerts.
 
-**Owned** — Full control. You can fetch macguffins, reboot the node, or eject ICE.
+**Owned** — Full control. You can fetch macguffins, reboot the node, or kick ICE.
 
 ---
 
@@ -338,8 +338,8 @@ point. A darknet broker operates through it, selling exploit cards mid-run.
 
 ### Accessing the Store
 
-Select the WAN node and use the `access-darknet` action (or click the button in the
-sidebar). **The LAN pauses while you shop** — ICE stops moving, timers freeze. You
+Select the WAN node and run `exec access-darknet` (or choose it from the EXEC submenu /
+sidebar button). **The LAN pauses while you shop** — ICE stops moving, timers freeze. You
 can browse without the clock running.
 
 ```
@@ -455,8 +455,8 @@ When global alert hits red and security monitors confirm active intrusion, a **T
 countdown** begins (30–90 seconds depending on network threat grade). The countdown shows in the HUD and sidebar. If it reaches zero,
 your tether is traced back to your home node — run over, score lost.
 
-To stop it: **jack out** before zero, or **own the security monitor** and use the
-`cancel-trace` action.
+To stop it: **jack out** before zero, or **own the security monitor** and run
+`exec cancel-trace`.
 
 ### HEALTH and DECK INTEGRITY
 
@@ -484,7 +484,7 @@ being a factor.
 If you can compromise and then **corrupt** an IDS node:
 
 ```
-> corrupt
+> exec corrupt
 ```
 
 Event forwarding from that IDS to its connected security monitor is severed. Subsequent
@@ -556,7 +556,7 @@ your node and returns, the dwell timer resets and another detection cycle begins
 **Counters:**
 
 - **Untarget** the node or target a different one — drops back to passive, cancels the dwell timer
-- **Eject** (owned nodes) — boots ICE to a random adjacent node: `> eject`
+- **Kick** (owned nodes) — boots ICE to a random adjacent node: `> kick`
 - **Reboot** (owned nodes) — forces ICE back to its resident node and takes your node
   offline briefly: `> reboot`
 
@@ -604,18 +604,19 @@ Actions depend on the selected node's type and access level:
 
 | Action            | Available when...                              | Effect |
 |-------------------|------------------------------------------------|--------|
-| `access-darknet`  | WAN node is targeted                           | Opens the darknet broker store; pauses the LAN while shopping |
+| `exec access-darknet` | WAN node is targeted                       | Opens the darknet broker store; pauses the LAN while shopping (run via `exec`) |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
 | `abort`           | Timed action in progress on targeted node      | Aborts the current action (probe, xploit, dump, or fetch) |
 | `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies or the node is already owned. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
-| `corrupt`      | IDS node is compromised or owned               | Severs event forwarding to security monitor |
-| `spoof`        | Security-monitor node, compromised or owned    | Recalibrates security monitor |
-| `eject`        | Owned node + ICE is present here               | Boots ICE to adjacent node |
+| `exec <script>` | A compromised/owned node exposes node scripts | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
+| `corrupt`      | IDS node is compromised or owned               | Severs event forwarding to security monitor (run via `exec`) |
+| `spoof`        | Security-monitor node, compromised or owned    | Recalibrates security monitor (run via `exec`) |
+| `kick`         | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
-| `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown |
+| `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown (run via `exec`) |
 | `jackout`      | Any time during run                            | End run, collect score |
 
 ---
@@ -635,11 +636,9 @@ xploit <#|name>        Use exploit card by number or name on targeted node.
 dump [node]            Dump contents of targeted/specified node.
 fetch [node]           Extract macguffins from owned node.
 mine [node]            Data-mine owned node for an exploit card (timed; diminishing returns).
-corrupt [node]         Disable IDS event forwarding.
-spoof [node]           Recalibrate security monitor.
-eject                  Push ICE off current node to adjacent node.
+exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, …). No arg lists scripts.
+kick                   Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
-cancel-trace           Abort trace (requires owned security-monitor).
 jackout                End run.
 
 darknet                List darknet broker catalog (requires WAN targeted).
@@ -687,7 +686,7 @@ compromise and corrupt the IDS first, you can work quietly behind it.
 
 **ICE is predictable once you understand its grade.** A grade-C ICE is drawn to
 disturbances — it will come to where the action is. If you're making noise in one
-part of the network, expect it to show up. Plan an escape route or have an eject
+part of the network, expect it to show up. Plan an escape route or have a kick
 ready.
 
 **Decay is real.** Don't burn your best card on a soft target. Save rare cards for

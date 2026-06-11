@@ -21,17 +21,17 @@ export function evasionStrategy(world) {
   const proposals = [];
 
   // If ICE is on the currently selected node:
-  // - If we own the node, eject ICE (keeps us in position)
+  // - If we own the node, kick ICE (keeps us in position)
   // - Otherwise, untarget to hide
   if (world.ice.isOnSelectedNode && world.player.selectedNodeId) {
     const nodeId = world.player.selectedNodeId;
     const node = world.nodes.get(nodeId);
     if (node && node.accessLevel === "owned") {
       proposals.push({
-        action: A.EJECT,
+        action: A.KICK,
         nodeId,
         score: ICE_ON_NODE_EJECT,
-        reason: "ICE on owned node — eject to stay in position",
+        reason: "ICE on owned node — kick to stay in position",
         strategy: STRATEGY,
       });
     }

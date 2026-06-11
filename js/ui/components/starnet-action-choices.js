@@ -76,6 +76,14 @@ class StarnetActionChoices extends StarnetElement {
           ${exploitCardBody(choice.data, undefined, matched)}
         </div>`;
     }
+    if (choice.render === "action") {
+      return html`
+        <button class="ctx-item" @click=${() => this._pick(choice)}>
+          [ ${choice.data.label} ]${choice.data.desc
+            ? html`<span class="ctx-item-desc">${choice.data.desc}</span>`
+            : nothing}
+        </button>`;
+    }
     return nothing;
   }
 
