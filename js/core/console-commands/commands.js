@@ -22,8 +22,9 @@ import {
 // ── Shared constants for completion ──────────────────────────────────────────
 
 const STATUS_NOUNS     = ["summary", "ice", "hand", "node", "alert", "mission"];
-const CHEAT_SUBS       = ["give", "set", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "help"];
+const CHEAT_SUBS       = ["give", "set", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "help"];
 const CHEAT_GIVE_SUBS  = ["matching", "card", "cash"];
+const CHEAT_POOLS      = ["health", "deck"];
 const CHEAT_RARITIES   = ["common", "uncommon", "rare"];
 const CHEAT_ALERTS     = ["green", "yellow", "red", "trace"];
 const CHEAT_TRACE_SUBS = ["start", "end"];
@@ -320,6 +321,8 @@ export const COMMANDS = [
         "  cheat give card [rarity]    Add random exploit card.",
         "  cheat give cash <amount>    Add credits to wallet.",
         "  cheat set alert <level>     Force alert level: green yellow red trace",
+        "  cheat hurt <pool> <amount>  Damage health|deck (ends run if depleted).",
+        "  cheat heal <pool> [amount]  Restore health|deck by amount, or to full.",
         "  cheat own <node>            Set node to owned + reveal neighbors.",
         "  cheat trace start           Start 60s trace countdown immediately.",
         "  cheat trace end             Cancel active trace countdown.",
@@ -352,6 +355,7 @@ export const COMMANDS = [
         return null;
       }
 
+      if ((sub === "hurt" || sub === "heal") && subArgs.length === 0) return fromList(CHEAT_POOLS, partial);
       if (sub === "own"         && subArgs.length === 0) return fromNodes(state.nodes, partial, { includeAll: true });
       if (sub === "trace"       && subArgs.length === 0) return fromList(CHEAT_TRACE_SUBS, partial);
       if ((sub === "summon-ice" || sub === "teleport-ice") && subArgs.length === 0) {

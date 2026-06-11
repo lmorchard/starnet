@@ -480,6 +480,17 @@ These are **parallel loss conditions** alongside the trace. A successful jack-ou
 INTEGRITY depletion ends in `bricked`. You can lose any of the three ways without the others
 being a factor.
 
+As your condition worsens, the **network graph itself begins to degrade.** Low HEALTH bleeds
+an organic, hallucinatory bloom across the graph and hazes it — faint as soon as you take a
+wound, spreading and intensifying as health falls (it plateaus before the end, so it never
+fully whites out). Low DECK INTEGRITY corrupts the graph itself: rare, easily-missed glitches
+while your deck is mostly intact ("did I see that?"), escalating on a steep curve into
+near-continuous chaos as it nears zero — nodes tremoring and blinking out, scrambled IDs and
+glyphs, dropped connections, and phantom nodes and links that were never there. The effect is
+confined to the graph — and at high damage the hallucinations bleed over the node action menus
+too, so when your eyes can't be trusted, read the raw stream and drive from the **console**,
+which stays perfectly legible.
+
 ### Subverting the IDS
 
 If you can compromise and then **corrupt** an IDS node:

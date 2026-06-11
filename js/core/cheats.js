@@ -11,6 +11,10 @@ import { getState, revealNeighbors, accessNeighbors } from "./state.js";
 import { emitEvent, E } from "./events.js";
 import { setNodeAccessLevel, setNodeAlertState, setNodeVisible } from "./state/node.js";
 import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
+import {
+  damagePlayerHealth, damagePlayerDeck,
+  setPlayerHealth, setPlayerDeckIntegrity,
+} from "./player-orchestration.js";
 import { setCheating } from "./state/game.js";
 import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
 import { teleportIce } from "./ice.js";
@@ -37,6 +41,10 @@ export function handleCheatCommand(args, { saveGame = null } = {}) {
     return cheatOwn(args.slice(1));
   } else if (sub === "own-all") {
     return cheatOwnAll();
+  } else if (sub === "hurt") {
+    return cheatHurt(args.slice(1));
+  } else if (sub === "heal") {
+    return cheatHeal(args.slice(1));
   } else if (sub === "trace") {
     return cheatTrace(args.slice(1));
   } else if (sub === "summon-ice" || sub === "teleport-ice") {
@@ -145,6 +153,65 @@ function cheatSet(args) {
 
   addLogEntry("Usage: cheat set alert <green|yellow|red|trace>", "error");
   return false;
+}
+
+// Resolve a pool token to its state key, label, and orchestration mutators.
+function resolvePool(token) {
+  switch (token?.toLowerCase()) {
+    case "health": case "hp": case "h":
+      return { key: "health", label: "HEALTH", damage: damagePlayerHealth, set: setPlayerHealth };
+    case "deck": case "integrity": case "d":
+      return { key: "deckIntegrity", label: "DECK", damage: damagePlayerDeck, set: setPlayerDeckIntegrity };
+    default:
+      return null;
+  }
+}
+
+// CHEAT: hurt <health|deck> <amount> — deal damage (ends the run if it depletes the pool).
+function cheatHurt(args) {
+  const pool = resolvePool(args[0]);
+  if (!pool) {
+    addLogEntry("Usage: cheat hurt <health|deck> <amount>", "error");
+    return false;
+  }
+  const amount = parseInt(args[1], 10);
+  if (isNaN(amount) || amount <= 0) {
+    addLogEntry(`Usage: cheat hurt ${args[0].toLowerCase()} <amount>`, "error");
+    return false;
+  }
+  activateCheat();
+  pool.damage(amount);
+  const cur = getState().player[pool.key].current;
+  addLogEntry(`[CHEAT] −${amount} ${pool.label} (${cur} left).`, "warning");
+  emitEvent(E.STATE_CHANGED, getState());
+  return true;
+}
+
+// CHEAT: heal <health|deck> [amount] — restore by amount, or to full if amount omitted.
+function cheatHeal(args) {
+  const pool = resolvePool(args[0]);
+  if (!pool) {
+    addLogEntry("Usage: cheat heal <health|deck> [amount]", "error");
+    return false;
+  }
+  const p = getState().player[pool.key];
+  let target;
+  if (args[1] === undefined) {
+    target = p.max; // full heal
+  } else {
+    const amount = parseInt(args[1], 10);
+    if (isNaN(amount) || amount <= 0) {
+      addLogEntry(`Usage: cheat heal ${args[0].toLowerCase()} [amount]`, "error");
+      return false;
+    }
+    target = Math.min(p.max, p.current + amount);
+  }
+  activateCheat();
+  pool.set(target);
+  const cur = getState().player[pool.key].current;
+  addLogEntry(`[CHEAT] ${pool.label} restored to ${cur}/${p.max}.`, "success");
+  emitEvent(E.STATE_CHANGED, getState());
+  return true;
 }
 
 // CHEAT: own <node>
@@ -278,6 +345,8 @@ function cheatHelp() {
     "  cheat give card [rarity]    Add random exploit card. Rarities: common uncommon rare",
     "  cheat give cash <amount>    Add credits to wallet.",
     "  cheat set alert <level>     Force alert level: green yellow red trace",
+    "  cheat hurt <pool> <amount>  Damage health|deck (ends run if depleted).",
+    "  cheat heal <pool> [amount]  Restore health|deck by amount, or to full.",
     "  cheat own <node>            Set node to owned + reveal neighbors.",
     "  cheat own-all               Own every node, reveal entire map.",
     "  cheat trace start           Start the 60s trace countdown immediately.",
