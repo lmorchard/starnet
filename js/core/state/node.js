@@ -69,15 +69,21 @@ export function setNodeProbed(nodeId) {
 
 /**
  * True when a node's identity (id, label, type, grade) should stay hidden behind
- * its sig-N alias. A node is obscured while it has a signal alias and has not yet
- * been probed — and a successful blind exploit also sets `probed`, so it reveals too.
- * `sigAlias` is assigned only on hidden→revealed, so foothold nodes (no alias) are
- * never obscured. Read-only predicate; consulted by the graph, console, and sidebar.
+ * its sig-N alias. A node is obscured while it has a signal alias, is still `locked`,
+ * and has not yet been probed. Once you're inside a node (compromised or owned) you
+ * know what it is — "own it = know it" — so any non-locked node reveals, even without
+ * a probe. This matters for owned-by-default bait like the honey-pot (accessLevel:
+ * "owned", probed: false), which PROBE can never touch (PROBE requires `locked`);
+ * without the access-level clause it would stay a permanent sig-N mystery.
+ * A successful blind exploit also sets `probed`, so the normal locked→compromised
+ * path reveals too. `sigAlias` is assigned only on hidden→revealed, so foothold nodes
+ * (no alias) are never obscured. Read-only predicate; consulted by the graph, console,
+ * and sidebar.
  * @param {NodeState} [node]
  * @returns {boolean}
  */
 export function isObscured(node) {
-  return Boolean(node?.sigAlias) && !node.probed;
+  return Boolean(node?.sigAlias) && !node.probed && node.accessLevel === "locked";
 }
 
 /** Sets node.alertState ('green' | 'yellow' | 'red'). */

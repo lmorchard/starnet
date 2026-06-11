@@ -234,6 +234,15 @@ export function buildGameCtx(opts = {}) {
       const node = s.nodes[nodeId];
       if (!node || node.looted) return;
 
+      // Trap node (honey-pot): reaching for the bait springs the counter-trace.
+      // Mark looted, poison the node (its trigger fires startTrace), pay nothing.
+      if (node.trap) {
+        setNodeLooted(nodeId);
+        ctx._graph.setNodeAttr(nodeId, "poisoned", true);
+        emitEvent(E.ACTION_RESOLVED, { action: A.FETCH, nodeId, label: node.label, detail: { items: 0, total: 0, trap: true } });
+        return;
+      }
+
       const { items, total } = collectMacguffins(nodeId);
       if (items.length === 0) {
         setNodeLooted(nodeId);
@@ -257,6 +266,15 @@ export function buildGameCtx(opts = {}) {
       const s = getState();
       const node = s.nodes[nodeId];
       if (!node) return;
+
+      // Trap node (honey-pot): data-mining trips the counter-trace, yields nothing.
+      if (node.trap) {
+        ctx._graph.setNodeAttr(nodeId, "poisoned", true);
+        setLastDisturbedNode(nodeId);
+        emitEvent(E.ACTION_RESOLVED, { action: A.MINE, nodeId, label: node.label, detail: { outcome: "trap" } });
+        return;
+      }
+
       const grade = node.grade ?? "D";
       const attempts = node.mineAttempts ?? 0;       // prior attempts
       const chance = mineYieldChance(grade, attempts);

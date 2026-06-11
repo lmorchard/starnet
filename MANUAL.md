@@ -101,6 +101,22 @@ Nodes also have a **grade** (F through S) that affects how hard they are to expl
 Lower grade = softer target = better odds. The gateway is usually grade D or F.
 The cryptovault is grade S — bring your best cards.
 
+### Honey-Pots
+
+Some networks deploy **honey-pots** — countermeasure nodes disguised as tempting loot
+targets. A honey-pot appears on the graph as an already-owned fileserver or workstation
+with data waiting inside. Its true nature is hidden behind a spoofed type and label.
+
+**DUMP is safe.** Dumping a honey-pot reveals its contents — bait data that looks real.
+Nothing bad happens yet.
+
+**FETCH, MINE, and XPLOIT spring the trap.** Any of these actions on a honey-pot
+immediately fires a **counter-intrusion trace**: the same trace countdown as a full
+detection, starting now. There is no payout — only the snap.
+
+The honey-pot's bait data is never the mission target. If your mission calls for a
+specific macguffin, it won't be sitting in a trap node.
+
 ---
 
 ## ACCESS LEVELS
@@ -725,6 +741,11 @@ check the darknet catalog (the LAN freezes while you browse, costs cash), or min
 an owned node whose vulnerabilities overlap your target (costs time and ICE exposure,
 no cash). Mining is the broke decker's fallback — and a reason to own nodes
 strategically, not just opportunistically.
+
+**Not every owned node is yours.** Some networks deploy honey-pots: loot nodes that
+appear already-owned and ready to harvest. DUMP is safe — it just shows what's inside.
+FETCH, MINE, or XPLOIT springs a counter-trace with no payout. If an owned fileserver
+or workstation appeared without you doing any work on it, proceed with caution.
 
 **Jack out when the job is done.** There's no shame in a clean exit.
 

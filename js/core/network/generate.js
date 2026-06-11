@@ -14,6 +14,7 @@ import { assembleNetwork } from "./assemble.js";
 import { validate } from "./validate.js";
 import { makeSeededRng } from "../rng.js";
 import { wingCount, hierarchicalBudget, gradeModifier } from "./budget.js";
+import { disguiseTrapNodes } from "./disguise.js";
 
 /**
  * Generate a procedural network from a spec and biome catalog.
@@ -154,6 +155,13 @@ export function generateNetwork(seed, spec, biome, opts = {}) {
     if (verbose) {
       console.log(`[GENERATE] Success! ${output.graphDef.nodes.length} nodes, ${output.graphDef.edges.length} edges`);
     }
+
+    // Disguise trap nodes (honey-pots) using this attempt's seeded RNG, so the
+    // disguise is baked into graphDef before the renderer reads type/label.
+    // MUST run after validate(): validation counts fileserver/workstation nodes
+    // toward lootable-reachability, so disguising before it would let a trap node
+    // masquerade as real loot in that check.
+    disguiseTrapNodes(output.graphDef.nodes, rng);
 
     return output;
   }

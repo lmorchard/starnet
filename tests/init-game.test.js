@@ -163,6 +163,36 @@ describe("initGame", () => {
   });
 });
 
+describe("honey-pot loot surface", () => {
+  it("honey-pot is a trap node with bait loot and dump/fetch state", () => {
+    initGame(() => buildCorporateExchange(), "honeypot-seed-1");
+    const pot = getState().nodes["pot/honey-pot"];
+    assert.ok(pot, "corporate-exchange should contain pot/honey-pot");
+    assert.equal(pot.trap, true, "honey-pot must carry the trap marker");
+    assert.equal(pot.read, false);
+    assert.equal(pot.looted, false);
+    assert.ok((pot.macguffins ?? []).length > 0, "honey-pot should have bait macguffins");
+  });
+
+  it("never targets honey-pot bait as the mission objective", () => {
+    initGame(() => buildCorporateExchange(), "honeypot-mission-seed");
+    const s = getState();
+    // Non-vacuous guards: there must be a mission, and the honey-pot must actually
+    // carry bait loot — otherwise this test would pass without exercising the exclusion.
+    assert.ok(s.mission, "expected a mission to be assigned");
+    const pot = s.nodes["pot/honey-pot"];
+    assert.ok((pot.macguffins ?? []).length > 0, "honey-pot must carry bait loot for this test to mean anything");
+
+    const baitIds = Object.values(s.nodes)
+      .filter((n) => n.trap)
+      .flatMap((n) => (n.macguffins ?? []).map((m) => m.id));
+    assert.ok(
+      !baitIds.includes(s.mission.targetMacguffinId),
+      "mission target must never be a honey-pot bait macguffin (would be unwinnable)"
+    );
+  });
+});
+
 describe("save/load round-trip with NodeGraph", () => {
   it("preserves node attributes through serialize/deserialize", () => {
     initGame(() => buildCorporateFoothold(), "save-test-1");
