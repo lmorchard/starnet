@@ -1266,8 +1266,9 @@ html, body {
 /* Preview-harness toggle: disable the menace pulse. */
 #ice-overlay.ice-pulse-off .ice-cage { animation: none; }
 
-/* HUD resource meters (health / deck integrity) */
-.hud-meter {
+/* HUD resource meters (health / deck integrity) — scoped to #hud to match the
+   other HUD rules. */
+#hud .hud-meter {
   position: relative;
   display: inline-block;
   width: 64px;
@@ -1276,13 +1277,13 @@ html, body {
   vertical-align: middle;
   overflow: hidden;
 }
-.hud-meter-fill {
+#hud .hud-meter-fill {
   position: absolute;
   inset: 0 auto 0 0;
   opacity: 0.35;
   transition: width 0.3s ease;
 }
-.hud-meter-text {
+#hud .hud-meter-text {
   position: absolute;
   inset: 0;
   display: flex;
