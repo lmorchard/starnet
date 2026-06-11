@@ -1576,7 +1576,7 @@ function makeScatteredLock(n, cost) {
         id: "vault",
         type: "cryptovault",
         traits: ["graded", "hackable", "rebootable"],
-        attributes: { accessLevel: "locked", concealed: true },
+        attributes: { accessLevel: "locked", concealed: true, cracked: false },
         operators: [],
         actions: [
           {
@@ -1585,9 +1585,14 @@ function makeScatteredLock(n, cost) {
             requires: [
               /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
               /** @type {const} */ ({ type: "quality-gte", name: "locks-opened", value: n }),
+              // One-shot guard: the vault pays out exactly once. The other requires
+              // (owned + locks-opened>=n) are monotonic and never revert, so without
+              // this the action stays available forever and farms cash on every click.
+              /** @type {const} */ ({ type: "node-attr", attr: "cracked", eq: false }),
             ],
             effects: [
               /** @type {const} */ ({ effect: "ctx-call", method: "giveReward", args: [1500] }),
+              /** @type {const} */ ({ effect: "set-attr", attr: "cracked", value: true }),
               /** @type {const} */ ({ effect: "ctx-call", method: "log", args: ["Vault cracked — ¥1,500 extracted"] }),
             ],
           },
