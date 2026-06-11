@@ -45,6 +45,7 @@ import { setGlobalAlert } from "../js/core/state/alert.js";
 // Old executor imports removed — timed actions now graph-native
 import { RNG, _forceNext } from "../js/core/rng.js";
 import { getPrimaryIce } from "../js/core/state/ice.js";
+import { initActionDispatcher, buildActionContext } from "../js/core/actions/action-context.js";
 
 // Register the node lifecycle dispatcher once for this test file.
 
@@ -1218,5 +1219,87 @@ describe("ice events: iceId in payload", () => {
     });
     assert.ok(payloads.length > 0, "expected at least one ICE_EJECTED");
     assert.equal(payloads[0].iceId, "ice-1");
+  });
+});
+
+// ── EXEC synthetic action injection ──────────────────────────────────────────
+
+describe("EXEC synthetic action injection", () => {
+  beforeEach(() => { clearAll(); initGame(() => buildAlertLAN(), "itest-exec"); });
+
+  it("a node with a script (owned IDS → corrupt) gains an EXEC action whose followup lists the script", () => {
+    const s = getState();
+    s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
+    s.nodeGraph.setNodeAttr("ids-1", "forwardingEnabled", true);
+    const actions = getAvailableActions(s.nodes["ids-1"], s);
+    const exec = actions.find((a) => a.id === A.EXEC);
+    assert.ok(exec, "EXEC should be present");
+    assert.ok(exec.followup, "EXEC should carry a followup");
+    const choiceIds = exec.followup.choices(s.nodes["ids-1"], s).map((c) => c.id);
+    assert.ok(choiceIds.includes("corrupt"), "corrupt should be an EXEC choice");
+    const corruptChoice = exec.followup.choices(s.nodes["ids-1"], s).find((c) => c.id === "corrupt");
+    assert.equal(corruptChoice.render, "action", "script choices use the 'action' render type");
+    assert.equal(corruptChoice.payloadKey, "scriptId");
+    assert.ok(corruptChoice.data.label, "choice carries a display label");
+  });
+
+  it("a node with no scripts gets no EXEC action", () => {
+    const s = getState();
+    const actions = getAvailableActions(s.nodes["gateway"], s);
+    assert.ok(!actions.some((a) => a.id === A.EXEC), "no EXEC when no scripts");
+  });
+
+  it("EXEC.execute runs the chosen script (forwarding disabled), same as dispatching it directly", () => {
+    const s = getState();
+    s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
+    s.nodeGraph.setNodeAttr("ids-1", "forwardingEnabled", true);
+    const exec = getAvailableActions(s.nodes["ids-1"], s).find((a) => a.id === A.EXEC);
+    exec.execute(s.nodes["ids-1"], s, {}, { scriptId: "corrupt", nodeId: "ids-1" });
+    assert.equal(s.nodes["ids-1"].forwardingEnabled, false);
+  });
+});
+
+// ── kick action (renamed from eject) ─────────────────────────────────────────
+
+describe("kick action (renamed from eject)", () => {
+  it("kick is the verb on an owned node with ICE present, and ejects ICE", () => {
+    clearAll();
+    initGame(() => buildAlertLAN({ ice: { grade: "C", startNode: "ids-1" } }), "itest-kick");
+    const s = getState();
+    s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
+    startIce();
+    getPrimaryIce().attentionNodeId = "ids-1";
+
+    const ids = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
+    assert.ok(ids.includes("kick"), "kick should be available on owned node with ICE present");
+    assert.ok(!ids.includes("eject"), "eject must be gone — rename is complete");
+
+    const fired = withEvents(E.ICE_EJECTED, () => {
+      s.nodeGraph.executeAction("ids-1", "kick");
+    });
+    assert.ok(fired.length > 0, "kick must fire ICE_EJECTED (internal mechanism unchanged)");
+  });
+});
+
+// ── EXEC dispatch echo ────────────────────────────────────────────────────────
+
+describe("EXEC dispatch echo", () => {
+  before(() => { initActionDispatcher(buildActionContext()); });
+
+  it("dispatching exec with a scriptId echoes 'exec <script>' once and runs the script", () => {
+    clearAll();
+    initGame(() => buildAlertLAN(), "itest-exec-echo");
+    const s = getState();
+    s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
+    s.nodeGraph.setNodeAttr("ids-1", "forwardingEnabled", true);
+
+    const echoes = [];
+    const h = ({ cmd }) => echoes.push(cmd);
+    on(E.COMMAND_ISSUED, h);
+    emitEvent("starnet:action", { actionId: "exec", nodeId: "ids-1", scriptId: "corrupt" });
+    off(E.COMMAND_ISSUED, h);
+
+    assert.deepEqual(echoes, ["exec corrupt"], "exactly one echo reading 'exec corrupt'");
+    assert.equal(getState().nodes["ids-1"].forwardingEnabled, false, "script ran");
   });
 });

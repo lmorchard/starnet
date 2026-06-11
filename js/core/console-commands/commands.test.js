@@ -260,7 +260,7 @@ describe("help", () => {
   it("produces a listing that includes key verbs", () => {
     const ls = logs(() => getCommand("help").execute([]));
     const text = ls.map((l) => l.text).join("\n");
-    for (const verb of ["target", "probe", "xploit", "jackout", "status", "cheat"]) {
+    for (const verb of ["target", "probe", "xploit", "jackout", "status", "cheat", "exec"]) {
       assert.ok(text.includes(verb), `expected help to mention "${verb}"`);
     }
   });
@@ -285,6 +285,84 @@ describe("darknet / buy — WAN access guard", () => {
     navigateTo(wanId);
     const ls = logs(() => getCommand("darknet").execute([]));
     assert.ok(ls.some((l) => l.text.includes("DARKNET BROKER")));
+  });
+});
+
+// ── exec ──────────────────────────────────────────────────────────────────────
+
+describe("exec", () => {
+  /** Own an IDS node, enable forwarding, select it — so `corrupt` is a script. */
+  function selectOwnedIds() {
+    const s = getState();
+    const ids = Object.values(s.nodes).find((n) => n.type === "ids");
+    assert.ok(ids, "fixture should have an IDS node");
+    s.nodeGraph.setNodeAttr(ids.id, "accessLevel", "owned");
+    s.nodeGraph.setNodeAttr(ids.id, "forwardingEnabled", true);
+    s.nodes[ids.id].visibility = "accessible";
+    navigateTo(ids.id);
+    return ids.id;
+  }
+
+  it("`exec` with no arg lists the node's scripts", () => {
+    selectOwnedIds();
+    const ls = logs(() => getCommand("exec").execute([]));
+    assert.ok(ls.map((l) => l.text).join("\n").includes("corrupt"));
+  });
+
+  it("`exec corrupt` dispatches the corrupt action on the selected node", () => {
+    const id = selectOwnedIds();
+    const evts = actions(() => getCommand("exec").execute(["corrupt"]));
+    assert.equal(evts.length, 1);
+    assert.equal(evts[0].actionId, "corrupt");
+    assert.equal(evts[0].nodeId, id);
+    assert.equal(evts[0].fromConsole, true);
+  });
+
+  it("`exec bogus` logs an error and dispatches nothing", () => {
+    selectOwnedIds();
+    let evts;
+    const ls = logs(() => { evts = actions(() => getCommand("exec").execute(["bogus"])); });
+    assert.ok(ls.some((l) => l.type === "error"));
+    assert.equal(evts.length, 0);
+  });
+
+  it("tab-completion returns script ids", () => {
+    selectOwnedIds();
+    const res = getCommand("exec").complete([], "", getState());
+    assert.ok(res.insertTexts.includes("corrupt"));
+  });
+
+  it("`exec` with no node selected logs an error", () => {
+    const ls = logs(() => getCommand("exec").execute([]));
+    assert.ok(ls.some((l) => l.type === "error"));
+  });
+});
+
+// ── actions listing groups scripts under exec ─────────────────────────────────
+
+describe("actions listing groups scripts under exec", () => {
+  it("lists `exec` and an indented `corrupt` for an owned IDS", () => {
+    const s = getState();
+    const ids = Object.values(s.nodes).find((n) => n.type === "ids");
+    s.nodeGraph.setNodeAttr(ids.id, "accessLevel", "owned");
+    s.nodeGraph.setNodeAttr(ids.id, "forwardingEnabled", true);
+    s.nodes[ids.id].visibility = "accessible";
+    navigateTo(ids.id);
+    const text = logs(() => getCommand("actions").execute([])).map((l) => l.text).join("\n");
+    assert.ok(/exec <script>/.test(text), "should advertise exec");
+    assert.ok(/^\s+corrupt/m.test(text), "corrupt should be indented under exec");
+  });
+
+  it("does NOT print a bare top-level `exec` synthetic-action line", () => {
+    const s = getState();
+    const ids = Object.values(s.nodes).find((n) => n.type === "ids");
+    s.nodeGraph.setNodeAttr(ids.id, "accessLevel", "owned");
+    s.nodeGraph.setNodeAttr(ids.id, "forwardingEnabled", true);
+    s.nodes[ids.id].visibility = "accessible";
+    navigateTo(ids.id);
+    const text = logs(() => getCommand("actions").execute([])).map((l) => l.text).join("\n");
+    // the synthetic EXEC action's desc is "run a script on this node" — it must NOT appear as its own bare line
+    assert.ok(!/run a script on this node/.test(text), "synthetic EXEC desc should not be printed as a bare action");
   });
 });
 

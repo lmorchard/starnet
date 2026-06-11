@@ -41,7 +41,7 @@ describe("tabComplete: verb completion", () => {
   });
 
   it("multi-match verb prefix returns LCP and all suggestions", () => {
-    // "ch" matches cheat; "e" matches exploit and eject (once both exist)
+    // "ch" matches cheat; "e" matches exec (scripts run via the exec verb)
     // For now "ex" uniquely matches exploit, so use empty prefix filtered
     // "he" matches help — single. Use a known multi: "s" matches status + store? No, store is darknet.
     // Actually: just test that empty prefix returns all verbs (already tested below).

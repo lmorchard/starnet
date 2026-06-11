@@ -156,7 +156,7 @@ export function initLogRenderer() {
     }
   });
   on(E.ICE_DETECT_PENDING, (/** @type {IceDetectPendingPayload} */ { label, dwellMs }) =>
-    add(`[ICE] ⚠ ${label} — disengage or eject (${Math.round(dwellMs / 1000)}s)`, "error"));
+    add(`[ICE] ⚠ ${label} — disengage or kick (${Math.round(dwellMs / 1000)}s)`, "error"));
   on(E.ICE_DETECTED,    (/** @type {IceDetectedPayload} */  { label }) => add(`[ICE] ⚠ Detected at ${label} — signal locked.`, "error"));
   on(E.ICE_EJECTED,     () => add(`[ICE] Ejected to adjacent node.`, "success"));
   on(E.ICE_REBOOTED,    (/** @type {IceRebootedPayload} */ { residentLabel }) => add(`[ICE] Sent home: ${residentLabel}.`, "info"));

@@ -241,7 +241,7 @@ registerTrait("rebootable", {
     },
   ],
   actions: [
-    ACTION_TEMPLATES.EJECT,
+    ACTION_TEMPLATES.KICK,
     ACTION_TEMPLATES.REBOOT,
   ],
 });

@@ -597,6 +597,19 @@ html, body {
   overflow-y: auto;
 }
 
+/* EXEC-style action choices are list rows, not cards: the 2-col grid above is
+   sized for exploit cards, which left script titles too narrow and wrapping.
+   Give them the full panel width and keep the title on one line (the longer
+   description below it still wraps). */
+#action-choices .ac-choices .ctx-item {
+  grid-column: 1 / -1;
+  white-space: nowrap;
+}
+
+#action-choices .ac-choices .ctx-item .ctx-item-desc {
+  white-space: normal;
+}
+
 /* ── Action Buttons ─────────────────────────────────────── */
 
 .action-btn {

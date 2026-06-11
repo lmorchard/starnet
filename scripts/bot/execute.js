@@ -15,7 +15,7 @@ const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT, A.M
 /** Actions that are instant (no ticking needed) */
 const INSTANT_ACTIONS = new Set([
   A.TARGET, A.UNTARGET, A.JACKOUT, A.CORRUPT, A.CANCEL_TRACE,
-  A.ABORT, A.EJECT, A.ACCESS_DARKNET,
+  A.ABORT, A.KICK, A.ACCESS_DARKNET,
   // Set-piece puzzle actions
   "activate", "scan-lock", "scan-vault", "crack-vault",
   "unlock-vault", "extract-token", "extract-key", "decrypt-loot",
@@ -114,7 +114,7 @@ function tickUntilResolved(choice, budget) {
   // ICE arriving on our node does NOT auto-abort the action. Detection requires
   // ICE to dwell (grade-scaled), so the hack and the dwell race — a focused
   // decker keeps working and only bails if the trace actually lands. On an OWNED
-  // node, eject is free, so push ICE off and keep going. (Previously the bot
+  // node, kick is free, so push ICE off and keep going. (Previously the bot
   // panic-aborted on mere arrival: ICE never actually detected — so it was
   // toothless — yet the bot abandoned and restarted actions, the source of the
   // evasion thrash and exchange tick-cap. #114 WS2.)
@@ -124,7 +124,7 @@ function tickUntilResolved(choice, budget) {
     const node = s.nodes[targetNodeId];
     const primaryIce = getPrimaryIce();
     if (node && node.accessLevel === "owned" && primaryIce?.active && primaryIce.attentionNodeId === targetNodeId) {
-      emitEvent("starnet:action", { actionId: A.EJECT, nodeId: targetNodeId });
+      emitEvent("starnet:action", { actionId: A.KICK, nodeId: targetNodeId });
     }
   };
 

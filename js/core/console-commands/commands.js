@@ -4,7 +4,7 @@
 import { getState } from "../state.js";
 import { addLogEntry, getRecentLog } from "../log.js";
 import { exploitSortKey, getStoreCatalog } from "../exploits.js";
-import { getAvailableActions } from "../actions/node-actions.js";
+import { getAvailableActions, getScriptActions } from "../actions/node-actions.js";
 import { buyFromStore } from "../store-logic.js";
 import {
   fromList, fromNodes, fromCards, fromVulnIds, completeNodeArg, getObscuredAliases,
@@ -49,9 +49,10 @@ export const COMMANDS = [
     execute() { dispatch(A.UNTARGET); },
   },
 
-  // probe, read, loot, reconfigure, reboot, cancel-*, eject, cancel-trace,
-  // access-darknet — all dynamically discovered from graph available actions.
-  // See dynamic-actions.js.
+  // Core node verbs (probe, dump, fetch, mine, kick, reboot, abort) are
+  // dynamically discovered from graph available actions. Non-core node actions
+  // (corrupt, cancel-trace, access-darknet, etc.) are scripts grouped under the
+  // static `exec` command, not registered as top-level verbs. See dynamic-actions.js.
 
   // ── exploit ────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,34 @@ export const COMMANDS = [
     },
   },
 
-  // eject — dynamically discovered from graph available actions
+  // kick — dynamically discovered from graph available actions
+
+  // ── exec — run a node script (grouped non-core node actions) ─────────────────
+  { verb: "exec",
+    complete(args, partial, state) {
+      if (args.length > 0) return null;
+      const sel = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
+      if (!sel) return null;
+      return fromList(getScriptActions(sel, state).map((a) => a.id), partial);
+    },
+    execute(args) {
+      const s = getState();
+      const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
+      if (!sel) { addLogEntry("exec: no node selected.", "error"); return; }
+      const scripts = getScriptActions(sel, s);
+      if (args.length === 0) {
+        if (scripts.length === 0) { addLogEntry(`no scripts on ${sel.id}.`, "meta"); return; }
+        addLogEntry(`scripts on ${sel.id}: ${scripts.map((a) => a.id).join("  ")}`, "meta");
+        return;
+      }
+      const id = args[0].toLowerCase();
+      if (!scripts.some((a) => a.id === id)) {
+        addLogEntry(`exec: no script "${id}" on ${sel.id}.`, "error");
+        return;
+      }
+      dispatch(id, { nodeId: sel.id });
+    },
+  },
 
   // ── jackout ────────────────────────────────────────────────────────────────
 
@@ -153,20 +181,18 @@ export const COMMANDS = [
         if (has.has(A.FETCH)) {
           lines.push(`  fetch                    — extract items from ${sel.id}`);
         }
-        if (has.has(A.EJECT))  lines.push(`  eject                    — push ICE to adjacent node`);
+        if (has.has(A.KICK))   lines.push(`  kick                     — push ICE to adjacent node`);
         if (has.has(A.REBOOT)) lines.push(`  reboot                   — send ICE home, take ${sel.id} offline briefly`);
 
-        // Type-specific actions (reconfigure, cancel-trace, access-darknet)
-        // are now included in getAvailableActions via graph path
-        const standardIds = /** @type {string[]} */ ([A.PROBE, A.ABORT, A.XPLOIT, A.DUMP,
-            A.FETCH, A.EJECT, A.REBOOT, A.JACKOUT, A.TARGET, A.UNTARGET]);
-        const typeSpecific = getAvailableActions(sel, s).filter(a =>
-          !standardIds.includes(a.id)
-        );
-        typeSpecific.forEach((a) => {
-          const desc = typeof a.desc === "function" ? a.desc(sel, s) : (a.desc || a.label);
-          lines.push(`  ${a.id.padEnd(24)} — ${desc}`);
-        });
+        // Non-core node actions are grouped under `exec` (see scripts.js).
+        const scripts = getScriptActions(sel, s);
+        if (scripts.length > 0) {
+          lines.push(`  exec <script>            — run a script on ${sel.id}:`);
+          scripts.forEach((a) => {
+            const desc = typeof a.desc === "function" ? a.desc(sel, s) : (a.desc || a.label);
+            lines.push(`    ${a.id.padEnd(22)} — ${desc}`);
+          });
+        }
 
         if (sel.type === "wan") {
           lines.push(`  darknet                  — list darknet broker catalog`);
@@ -278,10 +304,9 @@ export const COMMANDS = [
         "  xploit [node] <card>      Launch exploit. Card by index, id, or name prefix.",
         "  dump [node]               Scan node contents.",
         "  fetch [node]              Collect macguffins from owned node.",
-        "  corrupt [node]            Disable IDS event forwarding.",
+        "  exec [<script>]           Run a node script (corrupt, cancel-trace, unlock-vault, …). No arg lists scripts.",
         "  abort                     Cancel the current timed action (probe, xploit, dump, fetch).",
-        "  cancel-trace              Abort trace countdown (requires owned security-monitor selected).",
-        "  eject                     Push ICE attention to adjacent node.",
+        "  kick                      Push ICE attention to adjacent node.",
         "  reboot [node]             Send ICE home. Node offline briefly.",
         "  jackout                   Disconnect and end run.",
         "  actions                   List all currently valid actions with context.",

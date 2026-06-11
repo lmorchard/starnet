@@ -2,7 +2,7 @@
 /**
  * Unified action query — merges global actions with NodeGraph actions.
  *
- * All node-contextual actions (probe, exploit, read, loot, cancel-*, eject,
+ * All node-contextual actions (probe, exploit, read, loot, cancel-*, kick,
  * reboot, reconfigure, cancel-trace, access-darknet, etc.) are defined as
  * NodeDef actions on each node in the graph. This module wraps them into
  * game-compatible ActionDefs for the dispatcher and UI.
@@ -15,6 +15,7 @@
 import { getGlobalActions } from "./global-actions.js";
 import { A } from "../action-ids.js";
 import { getPrimaryIceFromState } from "../state/ice.js";
+import { isScriptAction } from "./scripts.js";
 
 /**
  * Returns all available actions for the given node and game state.
@@ -32,8 +33,8 @@ export function getAvailableActions(node, state) {
 
   // Apply global state filters the graph can't check
   const filtered = graphActions.filter(action => {
-    // Eject requires ICE attention at this specific node
-    if (action.id === A.EJECT) {
+    // Kick requires ICE attention at this specific node
+    if (action.id === A.KICK) {
       const ice = getPrimaryIceFromState(state);
       return !!(ice?.active && ice.attentionNodeId === node.id);
     }
@@ -42,7 +43,50 @@ export function getAvailableActions(node, state) {
 
   // Wrap each graph ActionDef into a game-compatible ActionDef
   const wrapped = filtered.map(ga => wrapGraphAction(ga));
-  return [...global, ...wrapped];
+
+  // Group non-core node actions (scripts) under a synthetic EXEC follow-up action.
+  const scripts = wrapped.filter(a => isScriptAction(a.id));
+  const result = [...global, ...wrapped];
+  if (scripts.length > 0) result.push(buildExecAction(scripts));
+  return result;
+}
+
+/**
+ * Node-contextual scripts available on this node (non-core actions only),
+ * without the synthetic EXEC wrapper. Used by the console (`exec`, `actions`).
+ * @param {NodeState | null} node @param {GameState} state @returns {ActionDef[]}
+ */
+export function getScriptActions(node, state) {
+  return getAvailableActions(node, state).filter(a => isScriptAction(a.id));
+}
+
+/**
+ * Build the synthetic EXEC action from already-wrapped script ActionDefs.
+ * Closes over `scripts` so execute() needs no re-query (avoids an import cycle).
+ * @param {ActionDef[]} scripts @returns {ActionDef}
+ */
+function buildExecAction(scripts) {
+  const byId = new Map(scripts.map(s => [s.id, s]));
+  return {
+    id: A.EXEC,
+    label: "EXEC",
+    available: () => true,
+    desc: () => "run a script on this node",
+    followup: {
+      title: () => "EXEC",
+      choices: (node, state) => scripts.map(s => ({
+        id: s.id,
+        payloadKey: "scriptId",
+        render: "action",
+        data: { label: s.label, desc: s.desc(node, state) },
+      })),
+      empty: () => "no scripts available",
+    },
+    execute: (node, state, ctx, payload) => {
+      const script = byId.get(payload?.scriptId);
+      script?.execute?.(node, state, ctx, { nodeId: node.id });
+    },
+  };
 }
 
 /**
