@@ -126,6 +126,7 @@ speed, stealth) would directly address the exploit-duration vs ICE-dwell race.
 
 ### Adversarial / ICE
 - **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
+- **ICE reaches into the deck — burns exploits mid-run** — an ICE variant that, on detection/dwell, doesn't just raise alert but attacks the player's *loadout*: it disables or "burns" an exploit card mid-run (the graduated, in-run cousin of capture-burns-loadout). Extends the existing failure-driven `disclose` mechanic in `combat.js`, but ICE-driven rather than player-failure-driven. Pairs with the persistent exploit inventory (see `docs/dev-sessions/2026-06-10-1516-overworld-meta-state/`): once cards are durable inventory instances with stable ids, burning a specific card has lasting cost. Fits the multi-instance / variant-ICE direction in `docs/ICE.md`. _Raised 2026-06-10; future iteration, depends on the meta-state inventory landing first._
 - **Bot player: eject and reboot** — the bot currently never uses eject (push
   ICE to adjacent node) or reboot (force ICE to resident, node goes offline).
   Eject is a simple reflex ("ICE is here, push it away") and worth adding —

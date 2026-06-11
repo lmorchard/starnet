@@ -289,6 +289,23 @@ export function syncInitialNodes(nodes) {
 }
 
 /**
+ * Reset the graph to empty and re-point it at a (possibly different) topology.
+ * Reuses the existing cy instance — clears all elements rather than destroying
+ * cy, so there's no teardown/leak. Call before syncInitialNodes when starting a
+ * fresh run (first boot, run-again, hub launch); a no-op if cy isn't built yet.
+ * @param {{ nodes: {id:string,label:string,type:string,grade:string}[], edges: {source:string,target:string}[] }} networkData
+ */
+export function resetGraph(networkData) {
+  if (!cy) return;
+  cy.elements().remove();
+  _networkNodes = new Map();
+  for (const n of networkData.nodes) {
+    _networkNodes.set(n.id, { id: n.id, label: n.label, type: n.type, grade: n.grade });
+  }
+  _networkEdges = networkData.edges;
+}
+
+/**
  * Add a node to the Cytoscape graph when it becomes visible.
  * Also adds edges to any already-present neighbors.
  * @param {string} nodeId

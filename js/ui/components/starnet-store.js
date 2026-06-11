@@ -10,6 +10,7 @@ class StarnetStore extends StarnetElement {
     open: { type: Boolean },
     catalog: { type: Array },
     cash: { type: Number },
+    subtitle: { type: String },
   };
 
   constructor() {
@@ -17,6 +18,7 @@ class StarnetStore extends StarnetElement {
     this.open = false;
     this.catalog = [];
     this.cash = 0;
+    this.subtitle = "";
   }
 
   updated(changed) {
@@ -55,6 +57,7 @@ class StarnetStore extends StarnetElement {
           <span class="store-title">// DARKNET BROKER</span>
           <span class="store-wallet">¥${this.cash.toLocaleString()}</span>
         </div>
+        ${this.subtitle ? html`<div class="store-subtitle">${this.subtitle}</div>` : nothing}
         <div class="store-card-list">
           ${(this.catalog || []).map((item, i) => {
             const canAfford = this.cash >= item.price;
