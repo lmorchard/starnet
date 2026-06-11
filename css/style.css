@@ -625,6 +625,13 @@ html, body {
   white-space: normal;
 }
 
+/* Picker cards don't run the executing progress-fill (the panel closes on pick),
+   so they don't need the hand's overflow:hidden. Keeping it clipped the Hershey
+   font's tall first-line glyph ink against the card's top edge, and its
+   side-effect of forcing a grid item's auto min-width to 0 over-narrowed the
+   cards (worsening the title wrap). Letting them overflow fixes both. */
+#action-choices .exploit-card { overflow: visible; }
+
 /* ── Action Buttons ─────────────────────────────────────── */
 
 .action-btn {
