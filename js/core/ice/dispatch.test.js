@@ -60,13 +60,19 @@ describe("detection effect dispatch", () => {
     assert.equal(getState().globalAlert, alertBefore);
   });
 
-  it("classic detection still raises the global alert (regression)", () => {
+  it("classic detection still runs the alert path (regression)", () => {
     const { node } = placeIce("patrol-classic-B");
-    const raised = withEvents(E.ALERT_GLOBAL_RAISED, () => handleIceDetect({ nodeId: node }));
-    const traceStarted = withEvents(E.ALERT_TRACE_STARTED, () => {});
-    // Accept either ALERT_GLOBAL_RAISED or ALERT_TRACE_STARTED as proof the alert path ran.
-    const alertRan = raised.length >= 1 || traceStarted.length >= 1;
-    assert.ok(alertRan, "classic ICE must still step alert");
+    // Capture both alert-path signals around the SAME detection: depending on
+    // grade threshold, a fresh detection either steps the alert or starts the trace.
+    const alertEvents = [];
+    const onRaised = (p) => alertEvents.push(["raised", p]);
+    const onTrace = (p) => alertEvents.push(["trace", p]);
+    on(E.ALERT_GLOBAL_RAISED, onRaised);
+    on(E.ALERT_TRACE_STARTED, onTrace);
+    handleIceDetect({ nodeId: node });
+    off(E.ALERT_GLOBAL_RAISED, onRaised);
+    off(E.ALERT_TRACE_STARTED, onTrace);
+    assert.ok(alertEvents.length >= 1, "classic ICE must still step alert or start trace");
     assert.equal(getState().player.health.current, 100, "classic ICE deals no damage");
   });
 
