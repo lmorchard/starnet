@@ -572,7 +572,9 @@ html, body {
 
 #action-choices {
   position: absolute;
-  z-index: 11;
+  /* z-index 4: below the health-degradation canvas (z5) so the plasma overlays the card picker
+     at high damage (intentional loss of GUI agency), above the context menu (z3) for co-show. */
+  z-index: 4;
   display: none; /* pre-render default; updated() in the component governs display at runtime */
   max-width: 320px;
   padding: 0.5rem;

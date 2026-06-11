@@ -29,8 +29,11 @@
           <!-- Node-anchored overlay animations mount here as NodeOverlay custom
                elements (see js/ui/overlays/). Each owns its own SVG skeleton. -->
           <div id="overlay-layer"></div>
+          <!-- z-index 3: below the health-degradation canvas (z5) so the plasma overlays the
+               node-action menu at high damage (lose GUI agency as your "eyes" fail — by design);
+               still above the graph (z0) and below the true modals (store/level-select, z10). -->
           <starnet-context-menu id="node-context-menu"
-               style="position:absolute; opacity:0; pointer-events:none; z-index:10;">
+               style="position:absolute; opacity:0; pointer-events:none; z-index:3;">
           </starnet-context-menu>
           <starnet-action-choices id="action-choices">
           </starnet-action-choices>

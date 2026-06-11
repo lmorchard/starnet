@@ -18,6 +18,7 @@ import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
 import { mountCardGallery, mountVulnSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
+import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation.js";
 
 // ── Demo node definitions ────────────────────────────────────
 
@@ -75,9 +76,24 @@ const ACCESS_NODES = [
   { id: "acc-owned",       label: "OWNED",       type: "fileserver", grade: "C", x: 610, y: 850 },
 ];
 
+// Connected mini-network — a real edge-linked cluster so the graph-degradation deck
+// chaos (nodes jitter, EDGES whip to follow) is actually legible. Placed in the open
+// area right of the FLASH node.
+const NET_NODES = [
+  { id: "net-gw",  label: "net-gw",  type: "gateway",     grade: "D", x: 1000, y: 150 },
+  { id: "net-rt",  label: "net-rt",  type: "router",      grade: "C", x: 1190, y: 170 },
+  { id: "net-ws",  label: "net-ws",  type: "workstation", grade: "C", x: 1300, y: 300 },
+  { id: "net-fs",  label: "net-fs",  type: "fileserver",  grade: "B", x: 1120, y: 360 },
+  { id: "net-ids", label: "net-ids", type: "ids",         grade: "B", x:  960, y: 300 },
+];
+const NET_EDGES = [
+  ["net-gw", "net-rt"], ["net-rt", "net-ws"], ["net-ws", "net-fs"],
+  ["net-fs", "net-ids"], ["net-ids", "net-gw"], ["net-rt", "net-fs"],
+];
+
 // ── Initialize Cytoscape ─────────────────────────────────────
 
-const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES, ...ACCESS_NODES];
+const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES, ...ACCESS_NODES, ...NET_NODES];
 const networkData = {
   nodes: allNodes.map(n => ({ id: n.id, label: n.label, type: n.type, grade: n.grade })),
   edges: [],
@@ -93,6 +109,11 @@ for (const n of allNodes) {
     position: { x: n.x, y: n.y },
     classes: ["accessible", "owned"],
   });
+}
+
+// Connect the mini-network with real edges so deck chaos has lines to whip.
+for (const [source, target] of NET_EDGES) {
+  cy.add({ data: { id: `edge-${source}-${target}`, source, target } });
 }
 
 // Apply shapes and styles via updateNodeStyle
@@ -309,3 +330,25 @@ mountCardGallery(document.getElementById("card-gallery"));
 // ── Vuln glyph swatches ──────────────────────────────────────
 
 mountVulnSwatches(document.getElementById("vuln-swatches"));
+
+// ── Graph degradation overlay — driven by dummy health/deck sliders ──────────
+
+initGraphDegradation();
+const degH = document.getElementById("degrade-health");
+const degD = document.getElementById("degrade-deck");
+const degHVal = document.getElementById("degrade-health-val");
+const degDVal = document.getElementById("degrade-deck-val");
+function syncDegrade() {
+  const h = +degH.value, d = +degD.value;
+  degHVal.textContent = String(h);
+  degDVal.textContent = String(d);
+  updateGraphDegradation({ player: {
+    health: { current: h, max: 100 },
+    deckIntegrity: { current: d, max: 100 },
+  }});
+}
+if (degH && degD) {
+  degH.addEventListener("input", syncDegrade);
+  degD.addEventListener("input", syncDegrade);
+  syncDegrade();
+}

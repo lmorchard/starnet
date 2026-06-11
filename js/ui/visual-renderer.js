@@ -18,6 +18,7 @@ import { mountReticle } from "./overlays/selection-reticle.js";
 import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
+import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation.js";
 
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
@@ -50,6 +51,7 @@ export function initVisualRenderer() {
     }
     syncOverlays(state);
     syncHud(state);
+    updateGraphDegradation(state);
     const node = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
     if (node && node.visibility !== "revealed") {
       syncContextMenu(node, state);
@@ -178,6 +180,8 @@ export function initVisualRenderer() {
     if (actionId && nodeId) openActionChoices(nodeId, actionId);
   });
   document.addEventListener("starnet:choices-close", () => closeActionChoices());
+
+  initGraphDegradation();
 }
 
 // ── Context menu ──────────────────────────────────────────
