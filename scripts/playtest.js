@@ -14,7 +14,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import {
-  initHeadlessEngine, resetGame,
+  initHeadlessEngine, resetGame, wireRunHandlers,
   getState, serializeState, deserializeState,
   tick, on, emitEvent, E,
 } from "./lib/headless-engine.js";
@@ -26,7 +26,6 @@ import { A } from "../js/core/action-ids.js";
 import { addLogEntry } from "../js/core/log.js";
 import { runCommand } from "../js/ui/console.js";
 import { handleCheatCommand } from "../js/core/cheats.js";
-import { initDynamicActions } from "../js/core/console-commands/dynamic-actions.js";
 import { buildSetPieceMiniNetwork, buildMiniNetwork, listSetPieces } from "../js/core/node-graph/mini-network.js";
 
 // ── Arg parsing ────────────────────────────────────────────
@@ -269,7 +268,12 @@ if (!isReset) {
   if (existsSync(stateFile)) {
     try {
       deserializeState(JSON.parse(readFileSync(stateFile, "utf8")));
-      initDynamicActions();
+      // Restoring a serialized game still needs the full run-handler set wired —
+      // action dispatcher, ICE/alert/timer handlers, dynamic actions — otherwise
+      // dispatched commands (target, probe, …) and ticked timers no-op. resetGame()
+      // does this via clearHandlers()+wireRunHandlers(); on the load path we wire
+      // without clearing so the harness's own output listeners survive.
+      wireRunHandlers();
       // Emit STATE_CHANGED so dynamic actions sync for the restored state
       emitEvent(E.STATE_CHANGED, getState());
     } catch (e) {

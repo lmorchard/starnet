@@ -41,8 +41,14 @@ export function initHeadlessEngine(opts = {}) {
 /**
  * Register every event-bus listener and timer handler a game run depends on.
  * Called after clearHandlers() so each run starts with exactly one copy of each.
+ *
+ * Exported so callers that restore a serialized game (the playtest CLI's
+ * one-command-per-process load path) can wire the same handlers without going
+ * through resetGame() — otherwise the action dispatcher and timer handlers are
+ * never registered and dispatched actions (target, probe, …) silently no-op.
+ * Requires initHeadlessEngine() to have set the action context first.
  */
-function wireRunHandlers() {
+export function wireRunHandlers() {
   // Timer → handler wiring
   on(TIMER.ICE_MOVE,   (payload) => handleIceTick(payload));
   on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
