@@ -4,6 +4,7 @@
 /scripts/playtest-state.json
 /node_modules/
 /.worktrees/
+/tmp/
 
 # Superpowers brainstorming companion artifacts
 .superpowers/

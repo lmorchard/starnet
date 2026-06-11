@@ -39,6 +39,8 @@
   --glow-sm: 0 0 4px;
   --glow-md: 0 0 8px;
   --glow-lg: 0 0 14px;
+
+  --violet: #b06cff;
 }
 
 html, body {
@@ -1552,29 +1554,69 @@ html, body {
 /* Preview-harness toggle: disable the menace pulse. */
 #ice-overlay.ice-pulse-off .ice-cage { animation: none; }
 
-/* HUD resource meters (health / deck integrity) — scoped to #hud to match the
-   other HUD rules. */
-#hud .hud-meter {
-  position: relative;
+/* ── Waveform component ─────────────────────────────────── */
+
+/* Inline canvas container — sits cleanly next to HUD labels. */
+.hud-waveform {
   display: inline-block;
-  flex: 0 0 auto; /* the HUD is a flex row — don't let the meter shrink below 64px */
-  width: 64px;
-  height: 12px;
-  border: 1px solid var(--cyan);
   vertical-align: middle;
-  overflow: hidden;
+  line-height: 0;
 }
-#hud .hud-meter-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  opacity: 0.35;
-  transition: width 0.3s ease;
+.hud-waveform canvas {
+  display: block;
 }
-#hud .hud-meter-text {
-  position: absolute;
-  inset: 0;
+
+/* Vital-sign traces — stacked pair at the top of the sidebar. */
+#vital-stack {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  background: #0a0a12;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vital-strip {
+  display: block;
+  width: 100%;
+  line-height: 0;
+  background: #06060a;
+  border: 1px solid var(--border);
+}
+.vital-strip .hud-waveform {
+  display: block;
+  width: 100%;
+}
+.vital-head {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  font-size: 0.7em;
+  line-height: 1;
+  padding: 2px 4px 3px;
+}
+.vital-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  color: #6b7a90;
+}
+.vital-pips {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+.vital-pips.ok   { color: var(--green); }
+.vital-pips.warn { color: #c9d11e; }
+.vital-pips.crit { color: #ff5a4d; }
+
+/* Preview harness — waveform demo layouts */
+#waveform-demo.layout-inline {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+}
+
+#waveform-demo.layout-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }

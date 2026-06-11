@@ -50,6 +50,16 @@
       </div>
 
       <aside id="sidebar">
+        <!-- Vital-sign traces: a stacked pair at the top of the sidebar. Canvas traces
+             driven by visual-renderer.syncVitals (health / deck integrity). -->
+        <div id="vital-stack">
+          <starnet-waveform id="vital-ecg" class="vital-strip" autosize
+            kind="ecg" color="var(--green)" label="HEALTH"
+            h="44" speed="100" trail="0.72" bloom="14" meter></starnet-waveform>
+          <starnet-waveform id="vital-deck" class="vital-strip" autosize
+            kind="pulse" color="var(--violet)" label="DECK"
+            h="44" speed="100" trail="0.72" bloom="14" meter></starnet-waveform>
+        </div>
         <starnet-mission-pane id="sidebar-mission"></starnet-mission-pane>
         <starnet-node-panel id="sidebar-node"></starnet-node-panel>
         <starnet-hand id="hand-strip"></starnet-hand>
@@ -64,6 +74,7 @@
   <script type="module" src="js/ui/components/starnet-log.js"></script>
   <script type="module" src="js/ui/components/starnet-mission-pane.js"></script>
   <script type="module" src="js/ui/components/starnet-ice-timers.js"></script>
+  <script type="module" src="js/ui/components/starnet-waveform.js"></script>
   <script type="module" src="js/ui/components/starnet-hud.js"></script>
   <script type="module" src="js/ui/components/starnet-context-menu.js"></script>
   <script type="module" src="js/ui/components/starnet-action-choices.js"></script>

@@ -352,3 +352,67 @@ if (degH && degD) {
   degD.addEventListener("input", syncDegrade);
   syncDegrade();
 }
+
+// Vital waveforms demo
+const wfDemo        = document.getElementById("waveform-demo");
+const waveHealth    = document.getElementById("wave-health");
+const waveDeck      = document.getElementById("wave-deck");
+const waveHealthVal = document.getElementById("wave-health-val");
+const waveDeckVal   = document.getElementById("wave-deck-val");
+const waveToggle    = document.getElementById("wave-layout-toggle");
+
+if (wfDemo && waveHealth && waveDeck && waveToggle) {
+  const ecg = document.createElement("starnet-waveform");
+  ecg.kind = "ecg";
+  ecg.color = "var(--green)";
+  ecg.label = "HEALTH";
+  ecg.frac = 1;
+  const pulse = document.createElement("starnet-waveform");
+  pulse.kind = "pulse";
+  pulse.color = "var(--violet)";
+  pulse.label = "DECK";
+  pulse.frac = 1;
+  wfDemo.append(ecg, pulse);
+
+  waveHealth.addEventListener("input", () => {
+    ecg.frac = +waveHealth.value / 100;
+    waveHealthVal.textContent = String(waveHealth.value);
+  });
+  waveDeck.addEventListener("input", () => {
+    pulse.frac = +waveDeck.value / 100;
+    waveDeckVal.textContent = String(waveDeck.value);
+  });
+
+  // Sweep/persistence/glow tuning — applies to both traces.
+  const waveSpeed = document.getElementById("wave-speed");
+  const waveTrail = document.getElementById("wave-trail");
+  const waveBloom = document.getElementById("wave-bloom");
+  const bindBoth = (el, valId, prop, scale, fmt) => {
+    if (!el) return;
+    const out = document.getElementById(valId);
+    el.addEventListener("input", () => {
+      const v = scale ? +el.value / scale : +el.value;
+      ecg[prop] = v; pulse[prop] = v;
+      if (out) out.textContent = fmt ? fmt(el.value) : String(el.value);
+    });
+  };
+  bindBoth(waveSpeed, "wave-speed-val", "speed", 0);
+  bindBoth(waveTrail, "wave-trail-val", "trail", 100, (v) => (v / 100).toFixed(2));
+  bindBoth(waveBloom, "wave-bloom-val", "bloom", 0);
+
+  let waveLayout = "layout-inline";
+  waveToggle.addEventListener("click", () => {
+    wfDemo.classList.remove(waveLayout);
+    waveLayout = waveLayout === "layout-inline" ? "layout-strip" : "layout-inline";
+    wfDemo.classList.add(waveLayout);
+    if (waveLayout === "layout-strip") {
+      ecg.w = 240;
+      pulse.w = 240;
+      waveToggle.textContent = "INLINE";
+    } else {
+      ecg.w = 120;
+      pulse.w = 120;
+      waveToggle.textContent = "STRIP";
+    }
+  });
+}

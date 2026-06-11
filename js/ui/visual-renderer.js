@@ -51,6 +51,7 @@ export function initVisualRenderer() {
     }
     syncOverlays(state);
     syncHud(state);
+    syncVitals(state);
     updateGraphDegradation(state);
     const node = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
     if (node && node.visibility !== "revealed") {
@@ -352,6 +353,18 @@ function syncOverlays(state) {
   }
 }
 
+// ── Vital waveform strips ─────────────────────────────────
+// Full-width ECG / deck-pulse traces framing the graph (index.html). Driven by the
+// player's health / deck-integrity fractions. Absent on preview/playground — guarded.
+
+function syncVitals(state) {
+  const ecgEl = /** @type {any} */ (document.getElementById("vital-ecg"));
+  const deckEl = /** @type {any} */ (document.getElementById("vital-deck"));
+  const h = state.player.health, d = state.player.deckIntegrity;
+  if (ecgEl) ecgEl.frac = h.max > 0 ? h.current / h.max : 0;
+  if (deckEl) deckEl.frac = d.max > 0 ? d.current / d.max : 0;
+}
+
 // ── HUD sync ──────────────────────────────────────────────
 
 function syncHud(state) {
@@ -362,10 +375,6 @@ function syncHud(state) {
     hudEl.traceSeconds = state.traceSecondsRemaining;
     hudEl.isCheating = state.isCheating;
     hudEl.phase = state.phase;
-    hudEl.health = state.player.health.current;
-    hudEl.healthMax = state.player.health.max;
-    hudEl.deckIntegrity = state.player.deckIntegrity.current;
-    hudEl.deckIntegrityMax = state.player.deckIntegrity.max;
 
     // Connection status
     const detecting = getVisibleTimers().some((t) => t.label === "ICE DETECTION");
