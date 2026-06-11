@@ -134,6 +134,10 @@ An IDS at this level can be corrupted to stop forwarding alerts.
 
 **Owned** — Full control. You can fetch macguffins, reboot the node, or kick ICE.
 
+A clean exploit on a **locked** node usually lands you at *compromised*, but a
+high-quality card can punch straight through to **owned** in a single shot,
+skipping the middle step. The better the card, the more often this happens.
+
 ---
 
 ## THE OVERWORLD HUB
@@ -245,7 +249,9 @@ improves your odds significantly.
 
 - Base success chance scales with **card quality** (the pip meter) vs **node grade**
 - A **matching vulnerability** boosts your odds considerably
-- Success: node access level rises (locked → compromised, compromised → owned)
+- Success: node access level rises (locked → compromised, compromised → owned).
+  A high-quality card can skip the middle step, jumping a locked node straight to
+  owned — more likely the better the card's quality pip
 - Success also **counts as a probe** — the node's vulnerabilities are revealed, so a
   blind gamble that lands shows you what you're working with (no need to probe after)
 - Failure: local alert rises; IDS nodes forward the alert event upstream
