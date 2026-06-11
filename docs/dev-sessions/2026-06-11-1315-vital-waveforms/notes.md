@@ -47,3 +47,50 @@ can't self-verify these.
 
 **Commits:** Phase 1 `b7b4630` (+review `7a8cbab`), Phase 2 `11f3e81` (+review `685f201`),
 Phase 3 `71ea45f` (+review `a084275`), Phase 4 `6707c64` (+`acd91d4`), Phase 5 `353a915`.
+
+## Retrospective
+
+> The "Final summary" above describes only **v1** — the autonomous subagent build. The
+> feature that actually merged (PR #159) is a near-total redesign that happened *after*,
+> in a long interactive-tuning loop with Les. Recording the real arc here.
+
+**Recap.** Shipped two animated vital-sign traces replacing the HUD HEALTH/DECK meters:
+a clinical PQRST(+U) ECG and a double square-pulse deck monitor, rendered as a vector-CRT
+sweep (dot + fading phosphor trail) on `<canvas>`, stacked at the top of the sidebar with
+label + depleting pip meters. Health/deck degradation drives shape (faster/erratic ECG;
+ringing/dropout/glitch breakdown on the deck pulse).
+
+**Scope drift (large, and instructive).** The spec/plan/autonomous-execute pipeline
+produced a *correct but shallow* v1: scrolling SVG waveforms in the HUD header — exactly
+what the spec literally said, including its explicit deferral of the stacked-strip layout.
+But essentially everything that makes the feature good emerged **after** merge-of-plan,
+none of it in the spec: the CRT sweep+phosphor animation model (replaced scroll), the
+clinical PQRST shape, the deck breakdown behavior, canvas (replaced SVG), and the sidebar
+placement (replaced header, via a full-width-strip detour). v1 was a scaffold; the feature
+was hand-tuned on top of it.
+
+**The hero: a throwaway interactive lab.** `tmp/waveform-lab.html` (Canvas + sliders for
+every knob) let Les drive ~15 fast visual-iteration rounds. Converging on "trailing bounce,"
+"phosphor burn-in," "ring that takes over near 0 health" was trivial visually and would
+have been miserable in prose or through the real component's test suite. Saved as a memory
+([[interactive-lab-for-visual-tuning]]).
+
+**Workflow friction.** Subagent-driven *autonomous* execution was the wrong fit for the
+visual half of this feature. Its two-stage reviews dutifully verified spec-compliance of a
+v1 whose every visual default (SVG, scroll, header) we then threw away. The discipline was
+sound; it was aimed at the wrong target. The feel could not be specified up front, so
+"execute the plan autonomously" optimized for the wrong thing.
+
+**Surprises.** (1) Detail tuned at 720×90 in the lab was illegible at 96×22 in the header —
+placement is a *function of* the visual density, not independent of it. (2) Canvas phosphor
+fade has a rounding-floor burn-in under any iterative alpha decay; the fix is redraw-from-
+history each frame (journaled). (3) Per-segment `shadowBlur` is a perf cliff; age-band it.
+
+**Misses.** I should have flagged at brainstorm that this was a *feel-driven* feature the
+spec couldn't capture, and built the lab THEN — before any autonomous build. We'd have
+skipped writing (and reviewing, and testing) a v1 that was almost entirely replaced.
+
+**Skill candidate.** The dev-session flow could gain a cue: when a feature is dominated by
+subjective visual/animation judgment, prefer an interactive-prototype phase (lab harness +
+human iteration) over `express`/autonomous `execute`; the latter locks in defaults that
+feel-work will discard. Worth folding into brainstorm/plan guidance.
