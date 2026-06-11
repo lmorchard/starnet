@@ -61,7 +61,7 @@ every ICE movement that crosses into your territory appears here.
 **Console** — Type commands directly. Tab-complete node names. Full command reference
 at the end of this manual.
 
-**HUD** — Top bar shows global alert level and your current cash balance.
+**HUD** — Top bar shows global alert level, your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**. Both ramp from green through yellow to red as they deplete.
 
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
@@ -458,6 +458,27 @@ your tether is traced back to your home node — run over, score lost.
 To stop it: **jack out** before zero, or **own the security monitor** and use the
 `cancel-trace` action.
 
+### HEALTH and DECK INTEGRITY
+
+In addition to the trace, you have two resource pools that start each run at 100:
+
+- **HEALTH** — Your neural integrity. Certain ICE deal direct damage here instead of raising the
+  alert. Depleting HEALTH to zero ends the run immediately — outcome: **burned** (end screen:
+  "FLATLINED"). Fiction: neural feedback, brain injury.
+
+- **DECK INTEGRITY** — Your hardware's operating condition. Other ICE target this pool directly.
+  Depleting DECK INTEGRITY to zero ends the run — outcome: **bricked** (end screen: "DECK FRIED").
+  Fiction: the deck's OS is corrupted past recovery.
+
+Both are shown in the HUD as color-ramping meters (green → yellow → red). They appear in
+`status` and `status full`. Damage events are logged with the offending node, e.g.
+`[ICE] gateway neural feedback: −20 HEALTH (80 left)` or `[ICE] router-2 deck corruption: −20 DECK (80 left)`.
+
+These are **parallel loss conditions** alongside the trace. A successful jack-out ends in
+`success`; a trace that hits zero ends in `caught`; HEALTH depletion ends in `burned`; DECK
+INTEGRITY depletion ends in `bricked`. You can lose any of the three ways without the others
+being a factor.
+
 ### Subverting the IDS
 
 If you can compromise and then **corrupt** an IDS node:
@@ -542,6 +563,28 @@ your node and returns, the dwell timer resets and another detection cycle begins
 ICE on a node you've untargeted continues its movement pattern but cannot detect you
 unless you target that node again.
 
+### ICE Types
+
+All ICE share the same grade-based movement and detection mechanics, but their **effect on
+detection** varies. Classic patrol ICE raises the global alert when it locks your signal —
+advancing the trace. Two additional ICE types appear at threat grade B or better, and they
+attack a different clock entirely:
+
+| Type        | Available at | Detection effect                                      |
+|-------------|--------------|-------------------------------------------------------|
+| **Patrol**  | All grades   | Detection raises global alert → advances the trace    |
+| **Sentinel**| B and above  | Detection deals **−20 HEALTH**; does NOT raise alert  |
+| **Spike**   | B and above  | Detection deals **−20 DECK INTEGRITY**; does NOT raise alert |
+
+The practical implication: **which ICE you face determines which clock you're racing.** A
+network with patrol ICE puts pressure on your trace timer. A network with a Sentinel puts
+pressure on your HEALTH. A Spike pursues your deck. A run can end without the trace ever
+reaching red — if Sentinel or Spike detects you enough times. (There is one ICE entity per
+run; its type is rolled at spawn. At B+ that roll is weighted — a patrol ICE can still turn
+up — so a high-threat run doesn't guarantee a damaging type.)
+
+Counters are the same regardless of ICE type: untarget, eject, or reboot.
+
 ---
 
 ## MISSION
@@ -613,8 +656,8 @@ launch <targetId>      Start a run against a target with your loadout + carried 
                        (At the hub, `darknet` lists the broker catalog and `buy <index>`
                         purchases into your inventory, spending bank.)
 
-status                 Summary status (alias: status summary)
-status full            Complete state dump
+status                 Summary status — alert, wallet, HEALTH, DECK INTEGRITY, ICE, hand (alias: status summary)
+status full            Complete state dump — includes HEALTH and DECK INTEGRITY
 status ice             ICE grade, position (if visible), detection timer
 status hand            Exploit hand with match indicators
 status alert           Global alert, trace countdown, security node states

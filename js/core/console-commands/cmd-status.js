@@ -18,6 +18,9 @@ export function cmdStatusSummary() {
   const traceStr = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "—";
   lines.push(`  Seed: "${s.seed}"  |  Alert: ${s.globalAlert.toUpperCase()}  |  Cash: ¥${s.player.cash.toLocaleString()}  |  Trace: ${traceStr}`);
 
+  const h = s.player.health, d = s.player.deckIntegrity;
+  lines.push(`  HEALTH: ${h.current}/${h.max}  |  DECK: ${d.current}/${d.max}`);
+
   let iceStr;
   const ice = getPrimaryIce();
   if (!ice) iceStr = "NONE";
@@ -92,6 +95,8 @@ export function cmdStatusFull() {
   lines.push(`### PLAYER`);
   lines.push(`- seed: "${s.seed}"`);
   lines.push(`- cash: ¥${s.player.cash.toLocaleString()}`);
+  lines.push(`- health: ${s.player.health.current}/${s.player.health.max}`);
+  lines.push(`- deck integrity: ${s.player.deckIntegrity.current}/${s.player.deckIntegrity.max}`);
   lines.push(`- ${handDesc}`);
 
   lines.push(`### ALERT`);

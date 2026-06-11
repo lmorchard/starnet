@@ -49,15 +49,22 @@ class StarnetEndScreen extends StarnetElement {
   render() {
     if (!this.open) return nothing;
 
-    const caught = this.outcome === "caught";
+    const failed = this.outcome === "caught"
+      || this.outcome === "burned"
+      || this.outcome === "bricked";
+    const title =
+      this.outcome === "caught"  ? "▶ TRACED ◀" :
+      this.outcome === "burned"  ? "▶ FLATLINED ◀" :
+      this.outcome === "bricked" ? "▶ DECK FRIED ◀" :
+                                   "▶ RUN COMPLETE ◀";
 
     return html`
       <div class="end-box">
-        <div class="end-title">${caught ? "▶ TRACED ◀" : "▶ RUN COMPLETE ◀"}</div>
+        <div class="end-title">${title}</div>
         <div class="end-divider">════════════════════════</div>
         <div class="end-row">
           <span class="end-key">CASH EXTRACTED</span>
-          <span class="end-val ${caught ? "end-zero" : ""}">¥${this.cash.toLocaleString()}</span>
+          <span class="end-val ${failed ? "end-zero" : ""}">¥${this.cash.toLocaleString()}</span>
         </div>
         ${this.hasMission ? html`
           <div class="end-row">

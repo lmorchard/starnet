@@ -166,7 +166,7 @@ if (jsonMode) {
     E.EXPLOIT_DISCLOSED, E.EXPLOIT_PARTIAL_BURN, E.EXPLOIT_SURFACE,
     E.ALERT_GLOBAL_RAISED, E.ALERT_TRACE_STARTED, E.ALERT_TRACE_CANCELLED, E.ALERT_PROPAGATED,
     E.PLAYER_NAVIGATED,
-    E.ICE_MOVED, E.ICE_DETECT_PENDING, E.ICE_DETECTED, E.ICE_EJECTED, E.ICE_REBOOTED, E.ICE_DISABLED,
+    E.ICE_MOVED, E.ICE_DETECT_PENDING, E.ICE_DETECTED, E.ICE_EJECTED, E.ICE_REBOOTED, E.ICE_DISABLED, E.ICE_EFFECT_APPLIED,
     E.MISSION_STARTED, E.MISSION_COMPLETE,
     E.ACTION_FEEDBACK, E.ACTION_RESOLVED,
     E.RUN_STARTED, E.RUN_ENDED,
@@ -222,6 +222,8 @@ if (jsonMode) {
   on(E.ICE_EJECTED,          ({ fromId, toId })          => out(`[ICE] Ejected: ${fromId} → ${toId}.`));
   on(E.ICE_REBOOTED,         ({ residentLabel })         => out(`[ICE] Rebooted to ${residentLabel}.`));
   on(E.ICE_DISABLED,         ()                          => out(`[ICE] Disabled.`));
+  on(E.ICE_EFFECT_APPLIED,   ({ iceId, effect, result }) =>
+    out(`[ICE] ${iceId} effect: ${effect}${result?.amount != null ? ` (${result.amount})` : ""}`));
   on(E.MISSION_STARTED,      ({ targetName })            => out(`[MISSION] Target: ${targetName}`));
   on(E.MISSION_COMPLETE,     ({ targetName })            => out(`[MISSION] ★ Complete: ${targetName}`));
   on(E.RUN_ENDED,            ({ outcome })               => out(`[RUN] ${outcome.toUpperCase()}`));

@@ -23,7 +23,8 @@
 /** @typedef {import('../types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('../types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt } from "../rng.js";
+import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt, random } from "../rng.js";
+import { pickIceTypeId, getType } from "../ice/index.js";
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
@@ -193,18 +194,28 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     const nodeIds = Object.keys(nodes);
     const hostNodeId = meta.ice.startNode ?? randomPick(RNG.WORLD, nodeIds);
     const id = 'ice-1';
+    const grade = meta.ice.grade;
+    // Registry-driven type: damaging presets (sentinel/spike) appear at B+.
+    // An explicit meta.ice.typeId (cheats/tests) overrides the seeded roll.
+    // NOTE: the hostNodeId draw above is conditional (skipped when startNode is
+    // pinned), so the WORLD-stream position entering this roll differs between
+    // networks that pin startNode and those that don't — same seed, different type.
+    const typeId = meta.ice.typeId ?? pickIceTypeId(grade, random(RNG.WORLD));
+    const typeDef = getType(typeId);
     /** @type {import('../types.js').IceInstance} */
     const primary = {
       id,
-      typeId: 'standard-ice',
+      typeId,
       hostNodeId,
       residentNodeId: hostNodeId, // deprecated, kept for migration; remove when callers stop reading it
       attentionNodeId: hostNodeId,
       active: true,
       enabled: true,
-      grade: meta.ice.grade,
-      focus: 'roaming',
-      behaviorPattern: 'standard',
+      grade,
+      focus: typeDef?.focus ?? 'roaming',
+      // Derive from the registry type so the serialized instance stays honest
+      // (sentinel/spike are 'disturbance-tracker', not the old 'standard' default).
+      behaviorPattern: typeDef?.behaviorPattern ?? 'standard',
       dwellTimerId: null,
       detectedAtNode: null,
       detectionCount: 0,

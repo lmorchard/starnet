@@ -348,6 +348,10 @@ function syncHud(state) {
     hudEl.traceSeconds = state.traceSecondsRemaining;
     hudEl.isCheating = state.isCheating;
     hudEl.phase = state.phase;
+    hudEl.health = state.player.health.current;
+    hudEl.healthMax = state.player.health.max;
+    hudEl.deckIntegrity = state.player.deckIntegrity.current;
+    hudEl.deckIntegrityMax = state.player.deckIntegrity.max;
 
     // Connection status
     const detecting = getVisibleTimers().some((t) => t.label === "ICE DETECTION");
