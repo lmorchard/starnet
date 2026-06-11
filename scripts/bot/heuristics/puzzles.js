@@ -16,7 +16,7 @@ const BASE_PUZZLE = 60;
 const KNOWN_ACTIONS = new Set([
   A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT,
   A.TARGET, A.UNTARGET, A.JACKOUT, A.CORRUPT, A.CANCEL_TRACE,
-  A.ABORT, A.EJECT, A.ACCESS_DARKNET,
+  A.ABORT, A.KICK, A.ACCESS_DARKNET,
   A.MINE, // handled by mineStrategy (card-blocked fallback) — not a proactive puzzle action
 ]);
 

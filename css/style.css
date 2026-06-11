@@ -591,10 +591,23 @@ html, body {
 
 #action-choices .ac-choices {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   max-height: 50vh;
   overflow-y: auto;
+}
+
+/* EXEC-style action choices are list rows, not cards: the 2-col grid above is
+   sized for exploit cards, which left script titles too narrow and wrapping.
+   Give them the full panel width and keep the title on one line (the longer
+   description below it still wraps). */
+#action-choices .ac-choices .ctx-item {
+  grid-column: 1 / -1;
+  white-space: nowrap;
+}
+
+#action-choices .ac-choices .ctx-item .ctx-item-desc {
+  white-space: normal;
 }
 
 /* ── Action Buttons ─────────────────────────────────────── */
@@ -679,16 +692,14 @@ html, body {
 
 .exploit-card {
   border: 1px solid var(--grey);
-  padding: 0.4rem 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
   font-size: 0.72rem;
   background: var(--bg-panel2);
   width: auto;
-  height: 160px;
   position: relative;
   overflow: hidden;
+  /* content-height — two zones (.ec-top grows, .ec-foot pinned) */
 }
 
 /* Rarity expressed via border + subtle glow; no text label */
@@ -735,11 +746,17 @@ html, body {
   background: linear-gradient(135deg, transparent 45%, rgba(120, 120, 120, 0.4) 50%, transparent 55%);
 }
 
+.ec-top {
+  padding: 0.4rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .ec-header {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
-  margin-bottom: 0.5rem;
 }
 
 .ec-index {
@@ -755,15 +772,21 @@ html, body {
   min-width: 0;
 }
 
-.ec-row {
+/* Stat footer — pips (left) · uses (right), pinned to the card bottom. */
+.ec-foot {
+  margin-top: auto;
+  border-top: 1px solid #223;
+  background: var(--bg-panel);
+  padding: 0.25rem 0.5rem;
   display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
 }
 
-.ec-key  { color: var(--text-dim); min-width: 3rem; }
-.ec-pips { color: var(--green); letter-spacing: 0.05em; }
-.ec-val  { color: var(--green); }
+.ec-pips { letter-spacing: 0.05em; }   /* color comes from the .qN ramp below */
+.ec-uses { color: var(--green); }
+.ec-uses.worn { color: #e08a1e; }       /* amber tint signals worn; cracks/desat carry the rest */
 
 /* Quality color ramp — dim-red (low) → amber → bright-green/white (high).
    Color is the dramatic signal; the pip count stays the color-blind-safe
@@ -777,9 +800,15 @@ html, body {
 .ec-vulns {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  margin-top: 0.6rem;
+  gap: 0.15rem;
   overflow: hidden;
+}
+
+/* Express view (graph XPLOIT submenu): glyphs in a row, no labels. */
+.ec-vulns.glyphs-only {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .ec-vuln {
@@ -875,16 +904,18 @@ html, body {
   color: var(--cyan);
   font-size: 0.6rem;
   letter-spacing: 0.05em;
-  margin-top: auto; /* push to card bottom */
   text-shadow: var(--glow-md) var(--cyan-dim);
   position: relative; /* keep above the ::before fill */
-  visibility: hidden;
+  /* display:none (not visibility:hidden) so the label reserves NO layout space
+     when idle — otherwise it competes with .ec-foot's margin-top:auto and leaves
+     a dead gap below the footer on content-height cards. */
+  display: none;
   white-space: nowrap; /* prevents text wrapping which would shift card content */
   overflow: hidden;
 }
 
 .exploit-card.executing .ec-executing-label {
-  visibility: visible;
+  display: block;
 }
 
 /* Cancel overlay — semi-transparent circle with ✕, centered on executing card */

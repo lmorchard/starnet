@@ -128,19 +128,19 @@ describe("ice multi-instance detection", () => {
     assert.equal(detected[0].iceId, "ice-2");
   });
 
-  it("EJECT at a node boots the instance on THAT node, not a co-active instance elsewhere", () => {
+  it("KICK at a node boots the instance on THAT node, not a co-active instance elsewhere", () => {
     const s = getState();
     // ice-1 dwells on router-a; ice-2 dwells on the player's owned target (gateway).
     s.ice.instances["ice-1"].attentionNodeId = "router-a";
     injectInstance("ice-2", "gateway", "B");
-    // Gateway is owned so EJECT is available; it has router-a as a neighbor to eject toward.
+    // Gateway is owned so KICK is available; it has router-a as a neighbor to eject toward.
     s.nodeGraph.setNodeAttr("gateway", "accessLevel", "owned");
 
-    // Dispatch EJECT at gateway via the real action path.
+    // Dispatch KICK at gateway via the real action path.
     const ejected = withEvents(E.ICE_EJECTED, () => {
       const node = s.nodes["gateway"];
-      const action = getAvailableActions(node, s).find((a) => a.id === A.EJECT);
-      assert.ok(action, "EJECT should be available on owned gateway with ICE present");
+      const action = getAvailableActions(node, s).find((a) => a.id === A.KICK);
+      assert.ok(action, "KICK should be available on owned gateway with ICE present");
       action.execute(node, s, {}, { nodeId: "gateway" });
     });
 

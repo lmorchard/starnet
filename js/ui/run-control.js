@@ -38,10 +38,16 @@ export function toCytoscapeFormat(result) {
  * would re-add the previous run's revealed nodes to the board. So: initGame first,
  * THEN resetGraph (wipes both the old board and any stale re-adds), THEN rebuild
  * the board from the authoritative new state via syncInitialNodes (Phase 3a root cause).
+ *
+ * The generated target's deterministic seed rides in `meta.seed`; thread it into
+ * initGame so the run-time RNG (vulns, loot, combat rolls) is reproducible for a
+ * given target — not reseeded from Math.random() each launch (#142). Variety
+ * across launches comes from the hub-visit counter rolling fresh target seeds.
+ * Falls back to a random seed when meta.seed is absent.
  * @param {{ graphDef: any, meta: any }} networkResult
  */
 export function startRun(networkResult) {
-  initGame(() => networkResult, undefined, { openDarknetsStore });
+  initGame(() => networkResult, networkResult.meta?.seed, { openDarknetsStore });
   resetGraph(toCytoscapeFormat(networkResult));
   syncInitialNodes(getState().nodes);
   const cy = getCy();

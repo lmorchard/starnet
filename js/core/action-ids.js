@@ -21,10 +21,11 @@ export const A = Object.freeze({
   TARGET: "target",
   UNTARGET: "untarget",
   JACKOUT: "jackout",
-  EJECT: "eject",
+  KICK: "kick",
   REBOOT: "reboot",
 
   // Node-specific actions
+  EXEC: "exec",
   CORRUPT: "corrupt",
   SPOOF: "spoof",
   CANCEL_TRACE: "cancel-trace",

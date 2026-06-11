@@ -153,9 +153,9 @@ const MINE_ACTION = {
 };
 
 /** @type {ActionDef} */
-const EJECT_ACTION = {
-  id: A.EJECT,
-  label: "EJECT",
+const KICK_ACTION = {
+  id: A.KICK,
+  label: "KICK",
   desc: "Boot ICE attention to a random adjacent node.",
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
@@ -406,7 +406,7 @@ export const ACTION_TEMPLATES = {
   DUMP: DUMP_ACTION,
   FETCH: FETCH_ACTION,
   MINE: MINE_ACTION,
-  EJECT: EJECT_ACTION,
+  KICK: KICK_ACTION,
   REBOOT: REBOOT_ACTION,
   RECONFIGURE: RECONFIGURE_ACTION,
   CANCEL_TRACE: CANCEL_TRACE_ACTION,

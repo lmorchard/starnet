@@ -73,8 +73,16 @@ class StarnetActionChoices extends StarnetElement {
         <div class="exploit-card rarity-${choice.data.rarity} selectable-card ${matched.length ? "match" : ""} ${worn ? "worn" : ""}"
              style=${`--wear:${wearFraction(choice.data)}`}
              @click=${() => this._pick(choice)}>
-          ${exploitCardBody(choice.data, undefined, matched)}
+          ${exploitCardBody(choice.data, undefined, matched, true)}
         </div>`;
+    }
+    if (choice.render === "action") {
+      return html`
+        <button class="ctx-item" @click=${() => this._pick(choice)}>
+          [ ${choice.data.label} ]${choice.data.desc
+            ? html`<span class="ctx-item-desc">${choice.data.desc}</span>`
+            : nothing}
+        </button>`;
     }
     return nothing;
   }

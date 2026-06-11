@@ -222,11 +222,11 @@ describe("Built-in traits", () => {
     assert.ok(actionIds.includes("fetch"));
   });
 
-  it("rebootable provides rebooting and eject/reboot actions", () => {
+  it("rebootable provides rebooting and kick/reboot actions", () => {
     const t = getTrait("rebootable");
     assert.equal(t.attributes.rebooting, false);
     const actionIds = t.actions.map(a => a.id);
-    assert.ok(actionIds.includes("eject"));
+    assert.ok(actionIds.includes("kick"));
     assert.ok(actionIds.includes("reboot"));
   });
 
@@ -302,7 +302,7 @@ describe("Built-in traits", () => {
     assert.ok(actionIds.includes("xploit"));
     assert.ok(actionIds.includes("dump"));
     assert.ok(actionIds.includes("fetch"));
-    assert.ok(actionIds.includes("eject"));
+    assert.ok(actionIds.includes("kick"));
     assert.ok(actionIds.includes("reboot"));
   });
 
