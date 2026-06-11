@@ -705,7 +705,11 @@ export const encryptedVault = {
       operators: [],
       actions: [
         {
-          id: "fetch",
+          // NOT "fetch": that core verb id is owned by the lootable trait's
+          // macguffin FETCH. Reusing it shadows real loot (uncollectable
+          // mission targets) and forces this action top-level instead of under
+          // EXEC ▸. A distinct id keeps both: standard FETCH + this key bonus.
+          id: "fetch-vault",
           label: "Fetch Vault",
           requires: [
             { type: "node-attr", attr: "accessLevel", eq: "owned" },
