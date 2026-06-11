@@ -8,7 +8,7 @@
 import { getState, endRun, ALERT_ORDER } from "./state.js";
 import { setNodeAlertState } from "./state/node.js";
 import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
-import { setIceDetectedAt, incrementIceDetectionCount, getPrimaryIce } from "./state/ice.js";
+import { setIceDetectedAt, incrementIceDetectionCount, activeIceInstances } from "./state/ice.js";
 import { emitEvent, on, E } from "./events.js";
 import { A } from "./action-ids.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
@@ -197,12 +197,12 @@ export function forceGlobalAlert(level) {
  * or propagate through the security monitor (that's the separate exploit-failure
  * puzzle layer in recomputeGlobalAlert). See MANUAL.md "Detection".
  */
-export function recordIceDetection(nodeId) {
+export function recordIceDetection(nodeId, iceId) {
   const s = getState();
-  const ice = getPrimaryIce();
+  const ice = iceId ? s.ice?.instances?.[iceId] : activeIceInstances(s)[0];
   if (!ice) return;
-  setIceDetectedAt(nodeId);
-  incrementIceDetectionCount();
+  setIceDetectedAt(nodeId, ice.id);
+  incrementIceDetectionCount(ice.id);
 
   // ICE detection drives the global alert directly (MANUAL.md "Detection"):
   // each detection steps the alert up; after a grade-scaled number of detections
@@ -210,7 +210,10 @@ export function recordIceDetection(nodeId) {
   // layer — distinct from the exploit-failure → IDS → monitor *puzzle* layer
   // (recomputeGlobalAlert). Trace here is gated purely on detection COUNT, not on
   // counting red IDS nodes (which is unreachable on a 1-detector network).
-  const count = ice.detectionCount;
+  //
+  // Trace gate: TOTAL detections across ALL instances vs the detecting instance's
+  // grade threshold (instances share the run grade in production).
+  const count = Object.values(s.ice?.instances ?? {}).reduce((n, i) => n + i.detectionCount, 0);
   const threshold = DETECTION_TRACE_THRESHOLD[ice.grade] ?? 2;
   if (count >= threshold) {
     if (getState().traceSecondsRemaining === null) startTraceCountdown();

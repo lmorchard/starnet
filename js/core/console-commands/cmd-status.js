@@ -1,14 +1,37 @@
 // @ts-check
 // Implementations for all `status` sub-commands.
 
+/** @typedef {import('../types.js').GameState} GameState */
+
 import { getState, isIceVisible } from "../state.js";
-import { getPrimaryIce } from "../state/ice.js";
+import { activeIceInstances } from "../state/ice.js";
 import { addLogEntry } from "../log.js";
 import { getVisibleTimers } from "../timers.js";
 import { exploitSortKey } from "../exploits.js";
 import { resolveNode, resolveImplicitNode } from "./resolvers.js";
 import { isObscured } from "../state/node.js";
 import { mineYieldChance } from "../mining.js";
+
+/**
+ * Renders per-instance ICE status lines for both cmdStatusFull and cmdStatusIce.
+ * @param {GameState} s
+ * @returns {string[]} array of log lines
+ */
+function iceInstanceLines(s) {
+  const active = activeIceInstances(s);
+  if (active.length === 0) {
+    return [`- status: ${Object.keys(s.ice?.instances ?? {}).length > 0 ? "INACTIVE" : "NONE"}`];
+  }
+  return active.flatMap((ice) => {
+    const head = `- status: ACTIVE  grade: ${ice.grade}`;
+    if (!isIceVisible(ice, s.nodes, s.selectedNodeId)) {
+      return [head, `- attention: unknown`];
+    }
+    const pos = s.nodes[ice.attentionNodeId]?.label ?? ice.attentionNodeId;
+    const resident = s.nodes[ice.hostNodeId]?.label ?? ice.hostNodeId;
+    return [head, `- attention: ${pos}  resident: ${resident}`];
+  });
+}
 
 export function cmdStatusSummary() {
   const s = getState();
@@ -22,12 +45,19 @@ export function cmdStatusSummary() {
   lines.push(`  HEALTH: ${h.current}/${h.max}  |  DECK: ${d.current}/${d.max}`);
 
   let iceStr;
-  const ice = getPrimaryIce();
-  if (!ice) iceStr = "NONE";
-  else if (!ice.active) iceStr = "INACTIVE";
-  else if (isIceVisible(ice, s.nodes, s.selectedNodeId))
-    iceStr = `ACTIVE @ ${s.nodes[ice.hostNodeId]?.label ?? ice.hostNodeId} → ${s.nodes[ice.attentionNodeId]?.label ?? ice.attentionNodeId}`;
-  else iceStr = "ACTIVE (location unknown)";
+  const active = activeIceInstances(s);
+  const iceDescriptor = (ice) =>
+    isIceVisible(ice, s.nodes, s.selectedNodeId)
+      ? `ACTIVE @ ${s.nodes[ice.hostNodeId]?.label ?? ice.hostNodeId} → ${s.nodes[ice.attentionNodeId]?.label ?? ice.attentionNodeId}`
+      : "ACTIVE (location unknown)";
+  if (active.length === 0) {
+    // No active instances: distinguish "no ICE on this LAN" from "present but inactive".
+    iceStr = Object.keys(s.ice?.instances ?? {}).length === 0 ? "NONE" : "INACTIVE";
+  } else if (active.length === 1) {
+    iceStr = iceDescriptor(active[0]);
+  } else {
+    iceStr = `${active.length} ACTIVE — ${active.map(iceDescriptor).join("; ")}`;
+  }
   const detectTimer = timers.find((t) => t.label === "ICE DETECTION");
   const detectStr = detectTimer ? `${detectTimer.remaining}s remaining` : "—";
   lines.push(`  ICE: ${iceStr}  |  Detection: ${detectStr}`);
@@ -107,19 +137,7 @@ export function cmdStatusFull() {
   }
 
   lines.push(`### ICE`);
-  const iceF = getPrimaryIce();
-  if (iceF?.active) {
-    lines.push(`- status: ACTIVE  grade: ${iceF.grade}`);
-    if (isIceVisible(iceF, s.nodes, s.selectedNodeId)) {
-      const pos      = s.nodes[iceF.attentionNodeId]?.label ?? iceF.attentionNodeId;
-      const resident = s.nodes[iceF.hostNodeId]?.label  ?? iceF.hostNodeId;
-      lines.push(`- attention: ${pos}  resident: ${resident}`);
-    } else {
-      lines.push(`- attention: unknown`);
-    }
-  } else {
-    lines.push(`- status: ${iceF ? "INACTIVE" : "NONE"}`);
-  }
+  lines.push(...iceInstanceLines(s));
 
   lines.push(`### SELECTED`);
   if (s.selectedNodeId) {
@@ -180,20 +198,11 @@ export function cmdStatusIce() {
   const s = getState();
   const timers = getVisibleTimers();
   const lines = ["## STATUS: ICE"];
-  const iceI = getPrimaryIce();
-  if (iceI?.active) {
-    lines.push(`- status: ACTIVE  grade: ${iceI.grade}`);
-    if (isIceVisible(iceI, s.nodes, s.selectedNodeId)) {
-      const pos      = s.nodes[iceI.attentionNodeId]?.label ?? iceI.attentionNodeId;
-      const resident = s.nodes[iceI.hostNodeId]?.label  ?? iceI.hostNodeId;
-      lines.push(`- attention: ${pos}  resident: ${resident}`);
-    } else {
-      lines.push(`- attention: unknown`);
-    }
+  lines.push(...iceInstanceLines(s));
+  const activeI = activeIceInstances(s);
+  if (activeI.length > 0) {
     const detectTimer = timers.find((t) => t.label === "ICE DETECTION");
     if (detectTimer) lines.push(`- ⚠ detection in: ${detectTimer.remaining}s`);
-  } else {
-    lines.push(`- status: ${iceI ? "INACTIVE" : "NONE"}`);
   }
   lines.forEach((l) => addLogEntry(l, "meta"));
 }
@@ -262,9 +271,10 @@ export function cmdStatusNode(args) {
       lines.push(`- item: ${m.name}  ¥${m.cashValue.toLocaleString()}${isMission}  collected:${m.collected}`);
     });
   }
-  const iceN = getPrimaryIce();
-  if (iceN?.active && iceN.attentionNodeId === node.id && isIceVisible(iceN, s.nodes, s.selectedNodeId)) {
-    lines.push(`- ⚠ ICE present (grade: ${iceN.grade})`);
+  for (const iceN of activeIceInstances(s)) {
+    if (iceN.attentionNodeId === node.id && isIceVisible(iceN, s.nodes, s.selectedNodeId)) {
+      lines.push(`- ⚠ ICE present (grade: ${iceN.grade})`);
+    }
   }
   lines.forEach((l) => addLogEntry(l, "meta"));
 }

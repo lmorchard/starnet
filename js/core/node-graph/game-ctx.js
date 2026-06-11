@@ -18,7 +18,7 @@ import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
 import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
 import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
-import { getPrimaryIce } from "../state/ice.js";
+import { activeIceInstances } from "../state/ice.js";
 import { on } from "../events.js";
 import { setSelectedNode } from "../state/game.js";
 import { setNodeRebooting } from "../state/node.js";
@@ -136,7 +136,7 @@ export function buildGameCtx(opts = {}) {
     cancelRead: () => { /* now handled by cancel-read action effects */ },
     startLoot: (_nodeId) => { /* now handled by timed-action operator */ },
     cancelLoot: () => { /* now handled by cancel-loot action effects */ },
-    ejectIce: () => ejectIce(),
+    ejectIce: (nodeId) => ejectIce(nodeId),
     rebootNode: (nodeId) => {
       // Legacy stub — reboot now handled by startReboot + timed-action operator
     },
@@ -152,14 +152,15 @@ export function buildGameCtx(opts = {}) {
       const node = s.nodes[nodeId];
       if (!node || node.rebooting) return;
 
-      // Send ICE home if on this node
-      const ice = getPrimaryIce();
-      if (ice?.active && ice.attentionNodeId === nodeId) {
-        rebootIce();
+      // Send the ICE present on this node home (the instance AT nodeId, not just
+      // the first active one — multi-instance correctness).
+      const ice = activeIceInstances(s).find((i) => i.attentionNodeId === nodeId);
+      if (ice) {
+        rebootIce(nodeId);
         emitEvent(E.ICE_REBOOTED, {
           iceId: ice.id,
           residentNodeId: ice.hostNodeId ?? null,
-          residentLabel: ice ? (s.nodes[ice.hostNodeId]?.label ?? ice.hostNodeId) : null,
+          residentLabel: s.nodes[ice.hostNodeId]?.label ?? ice.hostNodeId,
         });
       }
 

@@ -138,7 +138,7 @@ function init() {
   const ctx = buildActionContext(openDarknetsStore);
   initActionDispatcher(ctx);
 
-  on(TIMER.ICE_MOVE,     () => handleIceTick());
+  on(TIMER.ICE_MOVE,     (payload) => handleIceTick(payload));
   on(TIMER.ICE_DETECT,   (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK,   () => handleTraceTick());
   // Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these

@@ -161,7 +161,7 @@ const KICK_ACTION = {
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
   ],
   effects: [
-    { effect: "ctx-call", method: "ejectIce", args: [] },
+    { effect: "ctx-call", method: "ejectIce", args: ["$nodeId"] },
   ],
 };
 

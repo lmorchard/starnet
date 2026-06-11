@@ -7,7 +7,6 @@
 import { emitEvent, on, off, E, tick, getState } from "../lib/headless-engine.js";
 import { buyFromStore } from "../../js/core/store-logic.js";
 import { A } from "../../js/core/action-ids.js";
-import { getPrimaryIce } from "../../js/core/state/ice.js";
 
 /** Actions that start a timed process and need tick-forward */
 const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT, A.MINE]);
@@ -121,9 +120,11 @@ function tickUntilResolved(choice, budget) {
   const onIceMoved = ({ toId }) => {
     const s = getState();
     if (toId !== s.selectedNodeId || toId !== targetNodeId) return;
-    const node = s.nodes[targetNodeId];
-    const primaryIce = getPrimaryIce();
-    if (node && node.accessLevel === "owned" && primaryIce?.active && primaryIce.attentionNodeId === targetNodeId) {
+    // ICE_MOVED's toId already confirms an ICE arrived on this node; on an OWNED
+    // node, kick is free, so push it off and keep working. (Reacts to ANY ICE.)
+    if (s.nodes[targetNodeId]?.accessLevel === "owned") {
+      // With multiple ICE instances, each arrival fires this handler, but the KICK action
+      // is idempotent on the second+ calls (clears an already-clear node).
       emitEvent("starnet:action", { actionId: A.KICK, nodeId: targetNodeId });
     }
   };

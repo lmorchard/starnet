@@ -8,7 +8,7 @@
 
 import { getAvailableActions } from "../../js/core/actions/node-actions.js";
 import { A } from "../../js/core/action-ids.js";
-import { getPrimaryIceFromState } from "../../js/core/state/ice.js";
+import { activeIceInstances } from "../../js/core/state/ice.js";
 
 /**
  * Build a WorldModel snapshot from current game state.
@@ -112,12 +112,18 @@ export function perceive(state, context = {}) {
     if (matching.length > 0) cardMatchesByNode.set(nodeId, matching);
   }
 
-  // ICE state
-  const primaryIce = getPrimaryIceFromState(state);
+  // ICE state — aggregate over ALL active instances. isOnSelectedNode and
+  // nodeId are any-instance aggregates so evasion (which reads them) keeps
+  // working with multiple ICE in play.
+  const insts = activeIceInstances(state);
   const ice = {
-    nodeId: primaryIce?.attentionNodeId ?? null,
-    isOnSelectedNode: !!(primaryIce?.active && primaryIce.attentionNodeId === state.selectedNodeId),
-    isActive: primaryIce?.active ?? false,
+    instances: insts.map((i) => ({ nodeId: i.attentionNodeId, grade: i.grade })),
+    isOnSelectedNode: insts.some((i) => i.attentionNodeId === state.selectedNodeId),
+    isActive: insts.length > 0,
+    nodeId:
+      insts.find((i) => i.attentionNodeId === state.selectedNodeId)?.attentionNodeId ??
+      insts[0]?.attentionNodeId ??
+      null,
   };
 
   // Player state

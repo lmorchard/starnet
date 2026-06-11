@@ -44,8 +44,12 @@ import { setGlobalAlert } from "../js/core/state/alert.js";
 // NODE_RECONFIGURED listeners. No separate init call needed.
 // Old executor imports removed — timed actions now graph-native
 import { RNG, _forceNext } from "../js/core/rng.js";
-import { getPrimaryIce } from "../js/core/state/ice.js";
+import { activeIceInstances } from "../js/core/state/ice.js";
+import { cmdStatusIce } from "../js/core/console-commands/cmd-status.js";
 import { initActionDispatcher, buildActionContext } from "../js/core/actions/action-context.js";
+
+/** First active ICE instance, or null. */
+const firstIce = () => activeIceInstances(getState())[0] ?? null;
 
 // Register the node lifecycle dispatcher once for this test file.
 
@@ -216,14 +220,14 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
   });
 
   it("ICE starts active after initState + startIce", () => {
-    assert.ok(getPrimaryIce()?.active);
+    assert.ok(firstIce()?.active);
   });
 
   it("owning security-monitor sets ice.active to false", () => {
     const s = getState();
     s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
-    // ICE_DISABLED setIceActive(false) makes getPrimaryIce() return null
-    assert.equal(getPrimaryIce(), null);
+    // ICE_DISABLED setIceActive(false) makes firstIce() return null
+    assert.equal(firstIce(), null);
   });
 
   it("owning security-monitor emits ICE_DISABLED", () => {
@@ -238,7 +242,7 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
     const s = getState();
     s.nodes["gateway"].accessLevel = "owned";
     emitEvent(E.NODE_ACCESSED, { nodeId: "gateway", label: "gateway", prev: "locked", next: "owned" });
-    assert.ok(getPrimaryIce()?.active, "ICE should remain active");
+    assert.ok(firstIce()?.active, "ICE should remain active");
   });
 });
 
@@ -412,22 +416,22 @@ describe("ICE detection: detectedAtNode resets when player moves", () => {
   it("moving to a different node resets detectedAtNode to null", () => {
     const s = getState();
     s.selectedNodeId = "gateway";
-    getPrimaryIce().detectedAtNode = "gateway"; // simulate: detection already happened here
+    firstIce().detectedAtNode = "gateway"; // simulate: detection already happened here
 
     navigateTo("router-a");
 
-    assert.equal(getPrimaryIce().detectedAtNode, null,
+    assert.equal(firstIce().detectedAtNode, null,
       "detectedAtNode should clear so ICE can detect at gateway again after player returns");
   });
 
   it("re-selecting the SAME node does NOT reset detectedAtNode", () => {
     const s = getState();
     s.selectedNodeId = "gateway";
-    getPrimaryIce().detectedAtNode = "gateway";
+    firstIce().detectedAtNode = "gateway";
 
     navigateTo("gateway");
 
-    assert.equal(getPrimaryIce().detectedAtNode, "gateway",
+    assert.equal(firstIce().detectedAtNode, "gateway",
       "detectedAtNode must not reset when player re-selects the already-selected node");
   });
 });
@@ -444,7 +448,7 @@ describe("ICE detection: player navigates to node where ICE is already present",
   it("starts detection dwell when player enters ICE's current node", () => {
     const s = getState();
     // Place ICE at gateway (accessible from start) without triggering handleIceTick
-    getPrimaryIce().attentionNodeId = "gateway";
+    firstIce().attentionNodeId = "gateway";
 
     const events = withEvents(E.ICE_DETECT_PENDING, () => {
       navigateTo("gateway");
@@ -470,11 +474,15 @@ describe("ICE detection: ejecting ICE cancels the pending dwell timer", () => {
 
     const s = getState();
     s.selectedNodeId = "gateway";
-    getPrimaryIce().attentionNodeId = "gateway";
+    firstIce().attentionNodeId = "gateway";
     s.nodes["gateway"].accessLevel = "owned";
 
-    // Simulate a detection dwell that is already running
-    scheduleEvent(TIMER.ICE_DETECT, 500, { nodeId: "gateway" });
+    // Simulate a detection dwell that is already running. The runtime tracks the
+    // dwell as the instance's own dwellTimerId (keyed by iceId) — mirror that so
+    // ejection cancels the right timer.
+    const ice = firstIce();
+    const dwellId = scheduleEvent(TIMER.ICE_DETECT, 500, { iceId: ice.id, nodeId: "gateway" });
+    ice.dwellTimerId = dwellId;
 
     // Eject, then advance past the dwell window
     const fired = withEvents(E.ICE_DETECTED, () => {
@@ -500,13 +508,13 @@ describe("ICE detection: detectedAtNode resets when ICE leaves player's node", (
     const s = getState();
     // Position ICE at the player's node
     s.selectedNodeId = "gateway";
-    getPrimaryIce().attentionNodeId = "gateway";
-    getPrimaryIce().detectedAtNode = "gateway";
+    firstIce().attentionNodeId = "gateway";
+    firstIce().detectedAtNode = "gateway";
 
     // handleIceTick moves ICE to a neighbor of gateway (not gateway itself)
     handleIceTick();
 
-    assert.equal(getPrimaryIce().detectedAtNode, null,
+    assert.equal(firstIce().detectedAtNode, null,
       "detectedAtNode should clear when ICE leaves, so it can re-detect on next visit");
   });
 });
@@ -585,7 +593,7 @@ describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
   });
 
   it("does not emit ICE_MOVED when teleporting to the current node", () => {
-    const currentNode = getPrimaryIce().attentionNodeId;
+    const currentNode = firstIce().attentionNodeId;
 
     const fired = withEvents(E.ICE_MOVED, () => {
       teleportIce(currentNode);
@@ -596,10 +604,10 @@ describe("teleportIce: self-teleport does not emit ICE_MOVED", () => {
 
   it("still triggers detection check when teleporting to the current node", () => {
     const s = getState();
-    const currentNode = getPrimaryIce().attentionNodeId;
+    const currentNode = firstIce().attentionNodeId;
     s.selectedNodeId = currentNode;
     s.nodes[currentNode].accessLevel = "owned";
-    getPrimaryIce().detectedAtNode = null;
+    firstIce().detectedAtNode = null;
 
     const fired = withEvents(E.ICE_DETECT_PENDING, () => {
       teleportIce(currentNode);
@@ -663,7 +671,7 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     // gateway starts locked, no selection
     assert.equal(s.nodes["gateway"].accessLevel, "locked");
     assert.equal(s.selectedNodeId, null);
-    assert.equal(isIceVisible(getPrimaryIce(), s.nodes, s.selectedNodeId), false);
+    assert.equal(isIceVisible(firstIce(), s.nodes, s.selectedNodeId), false);
   });
 
   it("ICE IS visible on a locked node when player is actively selected there", () => {
@@ -671,7 +679,7 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     teleportIce("gateway");
     s.selectedNodeId = "gateway";
     assert.equal(s.nodes["gateway"].accessLevel, "locked");
-    assert.equal(isIceVisible(getPrimaryIce(), s.nodes, s.selectedNodeId), true);
+    assert.equal(isIceVisible(firstIce(), s.nodes, s.selectedNodeId), true);
   });
 
   it("ICE IS visible on a compromised node regardless of selection", () => {
@@ -679,7 +687,7 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     teleportIce("gateway");
     s.nodes["gateway"].accessLevel = "compromised";
     s.selectedNodeId = null;
-    assert.equal(isIceVisible(getPrimaryIce(), s.nodes, s.selectedNodeId), true);
+    assert.equal(isIceVisible(firstIce(), s.nodes, s.selectedNodeId), true);
   });
 });
 
@@ -728,14 +736,14 @@ describe("WAN node", () => {
     const wanNeighbor = Object.keys(s.adjacency).find(nid =>
       s.adjacency[nid]?.includes("wan")
     );
-    if (!wanNeighbor || !getPrimaryIce()) { assert.ok(true, "no ICE or WAN not wired"); return; }
+    if (!wanNeighbor || !firstIce()) { assert.ok(true, "no ICE or WAN not wired"); return; }
     startIce();
     teleportIce(wanNeighbor);
     // Run 50 ICE ticks — WAN should never be visited
     for (let i = 0; i < 50; i++) {
       handleIceTick();
     }
-    assert.notEqual(getPrimaryIce()?.attentionNodeId, "wan", "ICE should never move to WAN");
+    assert.notEqual(firstIce()?.attentionNodeId, "wan", "ICE should never move to WAN");
   });
 });
 
@@ -1137,11 +1145,12 @@ describe("mine action", () => {
 });
 
 describe("ice runtime: iterates all active instances", () => {
-  // Wire the ICE_MOVE timer → handleIceTick. This mirrors what main.js does.
+  // Wire the ICE_MOVE timer → handleIceTick. This mirrors what main.js does:
+  // each per-instance timer carries an iceId, so the handler forwards the payload.
   // The handler is registered once for the suite and persists across tests;
   // we do NOT call clearHandlers() here to avoid breaking the module-level
   // alert.js / ice.js listeners that other tests in this file depend on.
-  const iceMoveHandler = () => handleIceTick();
+  const iceMoveHandler = (payload) => handleIceTick(payload);
   before(() => {
     on(TIMER.ICE_MOVE, iceMoveHandler);
   });
@@ -1168,6 +1177,7 @@ describe("ice runtime: iterates all active instances", () => {
       focus: "roaming",
       behaviorPattern: "patrol-random",
       dwellTimerId: null,
+      moveTimerId: null,
       detectedAtNode: null,
       detectionCount: 0,
     };
@@ -1191,7 +1201,7 @@ describe("ice runtime: iterates all active instances", () => {
 });
 
 describe("ice events: iceId in payload", () => {
-  const iceMoveHandler = () => handleIceTick();
+  const iceMoveHandler = (payload) => handleIceTick(payload);
   before(() => {
     on(TIMER.ICE_MOVE, iceMoveHandler);
   });
@@ -1219,6 +1229,104 @@ describe("ice events: iceId in payload", () => {
     });
     assert.ok(payloads.length > 0, "expected at least one ICE_EJECTED");
     assert.equal(payloads[0].iceId, "ice-1");
+  });
+});
+
+// ── Phase 4: KICK + status enumerate all active ICE instances ─────────────────
+
+/** Inject a second active ICE instance at the given node, returning it. */
+function injectIceInstance(id, nodeId, grade) {
+  const s = getState();
+  s.ice.instances[id] = {
+    id,
+    typeId: `patrol-${grade}`,
+    hostNodeId: nodeId,
+    attentionNodeId: nodeId,
+    active: true,
+    enabled: true,
+    grade,
+    focus: "roaming",
+    behaviorPattern: "standard",
+    dwellTimerId: null,
+    moveTimerId: null,
+    detectedAtNode: null,
+    detectionCount: 0,
+  };
+  return s.ice.instances[id];
+}
+
+describe("KICK availability: enumerates all active ICE instances", () => {
+  beforeEach(() => {
+    clearAll();
+    // gateway → router-a → sec-mon; reveal all so each is a real, queryable node.
+    initGame(() => buildIceWithMonitorLAN({ grade: "B" }), "itest-kick-multi");
+    const s = getState();
+    for (const n of Object.values(s.nodes)) n.visibility = "accessible";
+  });
+
+  it("KICK is available at each instance's node and not at an ICE-free node", () => {
+    const s = getState();
+    // KICK is a graph action gated on accessLevel === "owned"; own all three so
+    // the action is offered and the only differentiator is ICE presence.
+    for (const id of Object.keys(s.nodes)) setNodeAccessLevel(id, "owned");
+    // Place the primary instance on gateway, a second instance on router-a.
+    s.ice.instances["ice-1"].active = true;
+    s.ice.instances["ice-1"].attentionNodeId = "gateway";
+    injectIceInstance("ice-2", "router-a", "B");
+
+    const gatewayActions = getAvailableActions(s.nodes["gateway"], s).map((a) => a.id);
+    const routerActions = getAvailableActions(s.nodes["router-a"], s).map((a) => a.id);
+    const secMonActions = getAvailableActions(s.nodes["sec-mon"], s).map((a) => a.id);
+
+    assert.ok(gatewayActions.includes(A.KICK), "KICK should be available where ice-1 is");
+    assert.ok(routerActions.includes(A.KICK), "KICK should be available where ice-2 is");
+    assert.ok(!secMonActions.includes(A.KICK), "KICK should NOT be available at an ICE-free node");
+  });
+});
+
+describe("status ice: enumerates all active ICE instances", () => {
+  beforeEach(() => {
+    clearAll();
+    initGame(() => buildIceWithMonitorLAN({ grade: "B" }), "itest-status-multi");
+    const s = getState();
+    for (const n of Object.values(s.nodes)) n.visibility = "accessible";
+  });
+
+  it("lists one line per active instance when there are multiple", () => {
+    const s = getState();
+    // Make both instances visible: ice-1's attention node is selected; ice-2's
+    // attention node is owned (isIceVisible passes for owned/compromised nodes).
+    s.selectedNodeId = "gateway";
+    s.nodes["gateway"].accessLevel = "owned";
+    s.nodes["router-a"].accessLevel = "owned";
+    s.ice.instances["ice-1"].active = true;
+    s.ice.instances["ice-1"].attentionNodeId = "gateway";
+    injectIceInstance("ice-2", "router-a", "B");
+
+    const lines = withEvents(E.LOG_ENTRY, () => cmdStatusIce()).map((e) => e.text);
+    const joined = lines.join("\n");
+
+    // Both instances' attention-node labels must appear.
+    const gwLabel = s.nodes["gateway"].label;
+    const raLabel = s.nodes["router-a"].label;
+    assert.ok(joined.includes(gwLabel), `expected gateway label "${gwLabel}" in:\n${joined}`);
+    assert.ok(joined.includes(raLabel), `expected router-a label "${raLabel}" in:\n${joined}`);
+  });
+
+  it("single active instance: output shape unchanged", () => {
+    const s = getState();
+    s.selectedNodeId = "gateway";
+    s.nodes["gateway"].accessLevel = "owned";
+    s.ice.instances["ice-1"].active = true;
+    s.ice.instances["ice-1"].attentionNodeId = "gateway";
+
+    const lines = withEvents(E.LOG_ENTRY, () => cmdStatusIce()).map((e) => e.text);
+
+    assert.deepEqual(lines.slice(0, 3), [
+      "## STATUS: ICE",
+      "- status: ACTIVE  grade: B",
+      `- attention: ${s.nodes["gateway"].label}  resident: ${s.nodes["sec-mon"].label}`,
+    ]);
   });
 });
 
@@ -1268,7 +1376,7 @@ describe("kick action (renamed from eject)", () => {
     const s = getState();
     s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
     startIce();
-    getPrimaryIce().attentionNodeId = "ids-1";
+    firstIce().attentionNodeId = "ids-1";
 
     const ids = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
     assert.ok(ids.includes("kick"), "kick should be available on owned node with ICE present");

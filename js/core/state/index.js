@@ -189,40 +189,50 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     ? { targetMacguffinId: missionTarget.id, targetName: missionTarget.name, complete: false }
     : null;
 
-  // Spawn ICE if defined in meta
+  // Spawn ICE if defined in meta.
+  // Two meta.ice shapes are supported:
+  //   - { instances: [{ startNode, grade }, ...] }  — generated networks (multi-ICE)
+  //   - { startNode, grade }                         — legacy hand-crafted networks (single ICE)
+  state.ice = { instances: {} };
   if (meta.ice) {
     const nodeIds = Object.keys(nodes);
-    const hostNodeId = meta.ice.startNode ?? randomPick(RNG.WORLD, nodeIds);
-    const id = 'ice-1';
-    const grade = meta.ice.grade;
-    // Registry-driven type: damaging presets (sentinel/spike) appear at B+.
-    // An explicit meta.ice.typeId (cheats/tests) overrides the seeded roll.
-    // NOTE: the hostNodeId draw above is conditional (skipped when startNode is
-    // pinned), so the WORLD-stream position entering this roll differs between
-    // networks that pin startNode and those that don't — same seed, different type.
-    const typeId = meta.ice.typeId ?? pickIceTypeId(grade, random(RNG.WORLD));
-    const typeDef = getType(typeId);
-    /** @type {import('../types.js').IceInstance} */
-    const primary = {
-      id,
-      typeId,
-      hostNodeId,
-      residentNodeId: hostNodeId, // deprecated, kept for migration; remove when callers stop reading it
-      attentionNodeId: hostNodeId,
-      active: true,
-      enabled: true,
-      grade,
-      focus: typeDef?.focus ?? 'roaming',
-      // Derive from the registry type so the serialized instance stays honest
-      // (sentinel/spike are 'disturbance-tracker', not the old 'standard' default).
-      behaviorPattern: typeDef?.behaviorPattern ?? 'standard',
-      dwellTimerId: null,
-      detectedAtNode: null,
-      detectionCount: 0,
-    };
-    state.ice = { instances: { [id]: primary } };
-  } else {
-    state.ice = { instances: {} };
+    // One config per monitor for generated networks; a single legacy config
+    // otherwise. Each instance rolls its OWN registry-driven type (#133):
+    // damaging presets (sentinel→health, spike→deck) appear at B+, so a
+    // multi-monitor network can field a mix. An explicit typeId (cheats/tests)
+    // overrides the seeded roll.
+    // NOTE: each config does a conditional hostNodeId draw (skipped when startNode
+    // is pinned, which it always is for generated per-monitor configs) followed by
+    // one WORLD-stream type roll — N instances consume N type rolls.
+    const configs = meta.ice.instances
+      ?? [{ startNode: meta.ice.startNode, grade: meta.ice.grade, typeId: meta.ice.typeId }];
+    configs.forEach((cfg, i) => {
+      const id = `ice-${i + 1}`;
+      const hostNodeId = cfg.startNode ?? randomPick(RNG.WORLD, nodeIds);
+      const grade = cfg.grade;
+      const typeId = cfg.typeId ?? pickIceTypeId(grade, random(RNG.WORLD));
+      const typeDef = getType(typeId);
+      /** @type {import('../types.js').IceInstance} */
+      const instance = {
+        id,
+        typeId,
+        hostNodeId,
+        residentNodeId: hostNodeId, // deprecated, kept for migration; remove when callers stop reading it
+        attentionNodeId: hostNodeId,
+        active: true,
+        enabled: true,
+        grade,
+        // Derive from the registry type so the serialized instance stays honest
+        // (sentinel/spike are 'disturbance-tracker', not the old 'standard' default).
+        focus: typeDef?.focus ?? 'roaming',
+        behaviorPattern: typeDef?.behaviorPattern ?? 'standard',
+        dwellTimerId: null,
+        moveTimerId: null,
+        detectedAtNode: null,
+        detectionCount: 0,
+      };
+      state.ice.instances[id] = instance;
+    });
   }
 
   if (state.mission) {
@@ -281,8 +291,9 @@ export function endRun(outcome) {
   setPhase("ended");
   setRunOutcome(outcome);
   if (outcome === "caught") setCash(0);
-  const primaryIce = state.ice ? Object.values(state.ice.instances).find(i => i?.active) : null;
-  if (primaryIce) setIceActive(false);
+  Object.values(state.ice?.instances ?? {}).forEach((i) => {
+    if (i?.active) setIceActive(false, i.id);
+  });
   emitEvent(E.RUN_ENDED, { outcome });
 }
 

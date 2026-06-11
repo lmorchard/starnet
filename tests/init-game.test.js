@@ -1,7 +1,8 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
-import { getPrimaryIce } from "../js/core/state/ice.js";
+import { activeIceInstances } from "../js/core/state/ice.js";
+import { getType } from "../js/core/ice/index.js";
 import { clearHandlers } from "../js/core/events.js";
 import { clearAll } from "../js/core/timers.js";
 import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
@@ -73,10 +74,66 @@ describe("initGame", () => {
 
   it("spawns ICE from meta when defined", () => {
     initGame(() => buildCorporateExchange(), "test-seed-7");
-    const ice = getPrimaryIce();
+    const ice = activeIceInstances(getState())[0];
     assert.ok(ice);
     assert.equal(ice.active, true);
     assert.equal(ice.grade, "B");
+  });
+
+  it("spawns one instance per meta.ice.instances entry (ice-1..ice-N)", () => {
+    // Reuse a real generated graphDef but override meta.ice with a 3-instance list.
+    const base = buildCorporateExchange();
+    const ids = base.graphDef.nodes.map(n => n.id);
+    const startNodes = [ids[0], ids[1], ids[2]];
+    const build = () => ({
+      graphDef: base.graphDef,
+      meta: {
+        ...base.meta,
+        ice: { instances: startNodes.map(sn => ({ startNode: sn, grade: "A" })) },
+      },
+    });
+    initGame(build, "multi-instance-seed");
+    const s = getState();
+    assert.equal(Object.keys(s.ice.instances).length, 3);
+    ["ice-1", "ice-2", "ice-3"].forEach((id, i) => {
+      const inst = s.ice.instances[id];
+      assert.ok(inst, `${id} should exist`);
+      assert.equal(inst.id, id);
+      assert.equal(inst.active, true);
+      assert.equal(inst.grade, "A");
+      assert.equal(inst.hostNodeId, startNodes[i]);
+      assert.equal(inst.attentionNodeId, startNodes[i]);
+    });
+  });
+
+  it("single-monitor (legacy) meta.ice → exactly one ice-1 (parity)", () => {
+    // corporate-exchange uses the legacy { startNode, grade } shape.
+    initGame(() => buildCorporateExchange(), "parity-seed");
+    const s = getState();
+    assert.equal(Object.keys(s.ice.instances).length, 1);
+    const inst = s.ice.instances["ice-1"];
+    assert.ok(inst);
+    assert.equal(inst.id, "ice-1");
+    assert.equal(inst.active, true);
+    assert.equal(inst.grade, "B");
+    // Post-#133 integration: every spawned instance (including legacy single-ICE
+    // networks) gets a registry-driven type, with focus/behaviorPattern derived
+    // from it — not the old hardcoded 'standard-ice'/'roaming'.
+    const typeDef = getType(inst.typeId);
+    assert.ok(typeDef, `typeId ${inst.typeId} should resolve to a registered ICE type`);
+    assert.equal(inst.focus, typeDef.focus ?? "roaming");
+    assert.equal(inst.behaviorPattern, typeDef.behaviorPattern ?? "standard");
+  });
+
+  it("empty instances list → no ICE instances", () => {
+    const base = buildCorporateExchange();
+    const build = () => ({
+      graphDef: base.graphDef,
+      meta: { ...base.meta, ice: { instances: [] } },
+    });
+    initGame(build, "empty-instances-seed");
+    const s = getState();
+    assert.equal(Object.keys(s.ice.instances).length, 0);
   });
 
   it("graph tick advances without error", () => {

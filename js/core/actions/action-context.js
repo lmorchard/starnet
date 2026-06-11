@@ -24,7 +24,7 @@ export function buildActionContext(openDarknetsStore = () => {}) {
     getState,
     selectNode:       (nodeId) => navigateTo(nodeId),
     deselectNode:     ()       => navigateAway(),
-    ejectIce:         ()       => ejectIce(),
+    ejectIce:         (nodeId) => ejectIce(nodeId),
     jackOut:          ()       => endRun("success"),
     cancelTrace:      ()       => cancelTraceCountdown(),
     openDarknetsStore: () => {

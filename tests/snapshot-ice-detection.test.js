@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "fs";
 
 import { deserializeState, getState } from "../js/core/state.js";
-import { getPrimaryIce } from "../js/core/state/ice.js";
+import { activeIceInstances } from "../js/core/state/ice.js";
 import { tick, clearAll, TIMER } from "../js/core/timers.js";
 import { on, off, E } from "../js/core/events.js";
 // Import alert.js to register its event listeners
@@ -23,6 +23,9 @@ import { handleTraceTick } from "../js/core/alert.js";
 on(TIMER.ICE_MOVE,   () => handleIceTick());
 on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
 on(TIMER.TRACE_TICK, () => handleTraceTick());
+
+/** First active ICE instance, or null. */
+const firstIce = () => activeIceInstances(getState())[0] ?? null;
 
 function loadSnapshot() {
   const json = readFileSync("tests/fixtures/ice-detection-at-player-node.json", "utf-8");
@@ -37,11 +40,11 @@ describe("Snapshot: ICE detection at player node", () => {
   it("ICE is at the same node as the player", () => {
     const s = getState();
     assert.equal(s.selectedNodeId, "router-b");
-    assert.equal(getPrimaryIce().attentionNodeId, "router-b");
+    assert.equal(firstIce().attentionNodeId, "router-b");
   });
 
   it("detection timer is active for router-b", () => {
-    assert.equal(getPrimaryIce().dwellTimerId, 10);
+    assert.equal(firstIce().dwellTimerId, 10);
   });
 
   it("advancing ticks fires detection at router-b", () => {
@@ -74,6 +77,6 @@ describe("Snapshot: ICE detection at player node", () => {
     tick(70); // ICE move interval
     const s = getState();
     // ICE should have moved — either to gateway or ids (router-b's neighbors)
-    assert.notEqual(getPrimaryIce().attentionNodeId, "router-b");
+    assert.notEqual(firstIce().attentionNodeId, "router-b");
   });
 });

@@ -8,8 +8,11 @@ import { clearAll } from "../timers.js";
 import {
   setIceAttention, setIceDetectedAt, setIceDwellTimer,
   incrementIceDetectionCount, setIceActive, setLastDisturbedNode,
-  getPrimaryIce,
+  activeIceInstances, hasActiveIce,
 } from "./ice.js";
+
+/** First active ICE instance, or null. */
+const firstIce = () => activeIceInstances(getState())[0] ?? null;
 
 describe("state/ice — ICE mutations", () => {
   beforeEach(() => {
@@ -20,37 +23,37 @@ describe("state/ice — ICE mutations", () => {
   it("setIceAttention changes attentionNodeId", () => {
     const v = getVersion();
     setIceAttention("gateway");
-    assert.equal(getPrimaryIce().attentionNodeId, "gateway");
+    assert.equal(firstIce().attentionNodeId, "gateway");
     assert.equal(getVersion(), v + 1);
   });
 
   it("setIceDetectedAt sets detectedAtNode", () => {
     setIceDetectedAt("gateway");
-    assert.equal(getPrimaryIce().detectedAtNode, "gateway");
+    assert.equal(firstIce().detectedAtNode, "gateway");
   });
 
   it("setIceDetectedAt(null) clears detectedAtNode", () => {
     setIceDetectedAt("gateway");
     setIceDetectedAt(null);
-    assert.equal(getPrimaryIce().detectedAtNode, null);
+    assert.equal(firstIce().detectedAtNode, null);
   });
 
   it("setIceDwellTimer sets dwellTimerId", () => {
     setIceDwellTimer(42);
-    assert.equal(getPrimaryIce().dwellTimerId, 42);
+    assert.equal(firstIce().dwellTimerId, 42);
   });
 
   it("incrementIceDetectionCount increments count", () => {
-    const before = getPrimaryIce().detectionCount;
+    const before = firstIce().detectionCount;
     incrementIceDetectionCount();
-    assert.equal(getPrimaryIce().detectionCount, before + 1);
+    assert.equal(firstIce().detectionCount, before + 1);
   });
 
   it("setIceActive sets active flag", () => {
     setIceActive(false);
-    assert.equal(getPrimaryIce(), null);
+    assert.equal(firstIce(), null);
     setIceActive(true, "ice-1");
-    assert.equal(getPrimaryIce().active, true);
+    assert.equal(firstIce().active, true);
   });
 
   it("setLastDisturbedNode sets lastDisturbedNodeId", () => {
@@ -79,15 +82,16 @@ describe("state/ice — multi-instance shape", () => {
     assert.equal(ids.length, 1);
   });
 
-  it("getPrimaryIce() returns the first active instance", () => {
-    const ice = getPrimaryIce();
+  it("activeIceInstances()[0] is the first active instance", () => {
+    const ice = activeIceInstances(getState())[0];
     assert.ok(ice);
     assert.equal(ice.active, true);
     assert.equal(ice.id, "ice-1");
   });
 
-  it("getPrimaryIce() returns null when no active instances", () => {
+  it("hasActiveIce() is false when no active instances", () => {
     setIceActive(false);
-    assert.equal(getPrimaryIce(), null);
+    assert.equal(hasActiveIce(getState()), false);
+    assert.equal(activeIceInstances(getState()).length, 0);
   });
 });

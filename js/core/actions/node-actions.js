@@ -14,7 +14,7 @@
 
 import { getGlobalActions } from "./global-actions.js";
 import { A } from "../action-ids.js";
-import { getPrimaryIceFromState } from "../state/ice.js";
+import { activeIceInstances } from "../state/ice.js";
 import { isScriptAction } from "./scripts.js";
 
 /**
@@ -33,10 +33,9 @@ export function getAvailableActions(node, state) {
 
   // Apply global state filters the graph can't check
   const filtered = graphActions.filter(action => {
-    // Kick requires ICE attention at this specific node
+    // Kick requires ICE attention at this specific node — any active instance.
     if (action.id === A.KICK) {
-      const ice = getPrimaryIceFromState(state);
-      return !!(ice?.active && ice.attentionNodeId === node.id);
+      return activeIceInstances(state).some((i) => i.attentionNodeId === node.id);
     }
     return true;
   });

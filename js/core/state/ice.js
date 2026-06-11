@@ -1,7 +1,7 @@
 // @ts-check
 // Pure ICE state mutations. No event emission, no orchestration.
 
-import { mutate, getState } from "./index.js";
+import { mutate } from "./index.js";
 
 /**
  * Resolve an ICE instance from the collection.
@@ -42,6 +42,14 @@ export function setIceDwellTimer(timerId, iceId) {
   });
 }
 
+/** Sets ice.moveTimerId. */
+export function setIceMoveTimer(timerId, iceId) {
+  mutate((s) => {
+    const ice = resolveIce(s, iceId);
+    if (ice) ice.moveTimerId = timerId;
+  });
+}
+
 /** Increments ice.detectionCount. */
 export function incrementIceDetectionCount(iceId) {
   mutate((s) => {
@@ -66,30 +74,20 @@ export function setLastDisturbedNode(nodeId) {
 }
 
 /**
- * Pure variant of getPrimaryIce: derives the first active instance from the
- * passed-in state argument, not the module-global state. Use when callers
- * already hold a state parameter (perception, action availability, etc.) so
- * the function stays a pure derivation.
- *
+ * Return all active ICE instances from the passed-in state.
+ * Pure derivation — does not read module-global state.
  * @param {import('../types.js').GameState} state
- * @returns {import('../types.js').IceInstance|null}
+ * @returns {import('../types.js').IceInstance[]}
  */
-export function getPrimaryIceFromState(state) {
-  const inst = state.ice?.instances ?? {};
-  for (const id of Object.keys(inst)) {
-    if (inst[id]?.active) return inst[id];
-  }
-  return null;
+export function activeIceInstances(state) {
+  return Object.values(state.ice?.instances ?? {}).filter((i) => i.active);
 }
 
 /**
- * Return the first active instance, or null if none.
- * Compatibility shim — callers iterate `state.ice.instances` directly in
- * later sessions. Phase 4 of session 1 migrates existing callers to use
- * this shim before broader iteration changes.
- *
- * @returns {import('../types.js').IceInstance|null}
+ * True if at least one ICE instance is active in the passed-in state.
+ * @param {import('../types.js').GameState} state
+ * @returns {boolean}
  */
-export function getPrimaryIce() {
-  return getPrimaryIceFromState(getState());
+export function hasActiveIce(state) {
+  return activeIceInstances(state).length > 0;
 }

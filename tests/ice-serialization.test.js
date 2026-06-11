@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
 import { clearAll } from "../js/core/timers.js";
-import { getPrimaryIce } from "../js/core/state/ice.js";
+import { activeIceInstances } from "../js/core/state/ice.js";
 
 describe("ice: multi-instance serialization round-trip", () => {
   beforeEach(() => { clearAll(); });
@@ -49,8 +49,8 @@ describe("ice: multi-instance serialization round-trip", () => {
     assert.equal(rehydrated.ice.instances["ice-2"].active, true);
     assert.equal(rehydrated.ice.instances["ice-3"].active, false);
 
-    // getPrimaryIce returns the first active instance
-    const primary = getPrimaryIce();
+    // first active instance after round-trip
+    const primary = activeIceInstances(rehydrated)[0];
     assert.ok(primary);
     assert.equal(primary.active, true);
   });
@@ -68,6 +68,6 @@ describe("ice: multi-instance serialization round-trip", () => {
 
     const rehydrated = getState();
     assert.equal(Object.keys(rehydrated.ice.instances).length, 0);
-    assert.equal(getPrimaryIce(), null);
+    assert.equal(activeIceInstances(rehydrated).length, 0);
   });
 });

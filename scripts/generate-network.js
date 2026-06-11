@@ -101,7 +101,7 @@ try {
     console.log(`Spec: threat=${spec.threat} wealth=${spec.wealth} complexity=${spec.complexity} depth=${spec.depth}`);
     console.log(`Nodes: ${graphDef.nodes.length}  Edges: ${graphDef.edges.length}  Triggers: ${graphDef.triggers.length}`);
     console.log(`Start cash: ¥${meta.startCash.toLocaleString()}`);
-    console.log(`ICE: ${meta.ice ? `grade ${meta.ice.grade} at ${meta.ice.startNode}` : "none"}`);
+    console.log(`ICE: ${meta.ice?.instances?.length ? meta.ice.instances.map(c => `${c.grade}@${c.startNode}`).join(", ") : "none"}`);
     console.log(`Node types:`);
     for (const [type, count] of Object.entries(nodeTypes).sort((a, b) => b[1] - a[1])) {
       console.log(`  ${type}: ${count}`);

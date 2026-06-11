@@ -497,8 +497,14 @@ This is often worth the detour.
 ## ICE
 
 ICE — Intrusion Counter Electronics — is the autonomous security program patrolling the LAN.
-There is one ICE entity per run. It starts at its **resident node** (usually near the
-security monitor, deep in the network) and moves.
+Low-security LANs (threat C and below) field no ICE. On secured LANs (threat B and up),
+the network runs **one ICE program per security monitor** — so a heavily-monitored LAN may
+be patrolled by several at once (currently capped at three). Each ICE starts at its
+**resident node** (its security monitor, deep in the network) and patrols independently:
+they don't coordinate, move on their own schedules, and each can detect you on its own.
+And each is **its own type** — a single LAN can field a mix, so one ICE might drain your
+HEALTH while another corrupts your DECK and a third just raises the alert. Read the log:
+each instance announces what it did when it catches you.
 
 ### ICE Grades
 
@@ -517,7 +523,8 @@ your exploit resolves, it will start routing. Cancelling mid-run leaves that sig
 ICE moves every few seconds, traversing the network graph. You can only see ICE when it
 enters a node you **control** (compromised or owned) — it's invisible in the dark territory
 of unowned nodes. When it moves onto a node you control, a red diamond appears on the graph
-and the log reports its arrival.
+and the log reports its arrival. When a LAN has multiple ICE, each moves on its own
+cadence (set by its grade) and a node you control can be visited by more than one at a time.
 
 ### Passive vs Active Mode
 
@@ -540,10 +547,12 @@ then pull back.
 
 If ICE **dwells on your currently targeted node** long enough, a detection countdown begins.
 The sidebar shows the timer: `⚠ ICE DETECTION: Xs`. When it hits zero, ICE locks your signal
-and the global alert escalates by one level.
+and the global alert escalates by one level. Each ICE dwells and detects independently — if
+two ICE sit on your targeted node, each runs its own countdown, so you can be detected twice.
 
-Each detection event steps the alert up: **GREEN → YELLOW → RED → TRACE**. The number of
-detections before the trace countdown begins depends on ICE grade:
+Each detection event steps the alert up: **GREEN → YELLOW → RED → TRACE**. Detections from
+**all** ICE accumulate toward the same threshold — more ICE on you means the trace clock
+starts sooner. The number of detections before the trace countdown begins depends on ICE grade:
 
 | Grade | Detections to trace | What it means                                        |
 |-------|---------------------|------------------------------------------------------|
@@ -557,9 +566,12 @@ your node and returns, the dwell timer resets and another detection cycle begins
 **Counters:**
 
 - **Untarget** the node or target a different one — drops back to passive, cancels the dwell timer
-- **Kick** (owned nodes) — boots ICE to a random adjacent node: `> kick`
+- **Kick** (owned nodes) — boots the ICE present on this node to a random adjacent node: `> kick`
 - **Reboot** (owned nodes) — forces ICE back to its resident node and takes your node
   offline briefly: `> reboot`
+
+When several ICE are on the prowl, clearing one node doesn't help with the others — eject
+buys time against the ICE in front of you, not the swarm.
 
 ICE on a node you've untargeted continues its movement pattern but cannot detect you
 unless you target that node again.

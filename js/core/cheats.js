@@ -14,7 +14,7 @@ import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
 import { setCheating } from "./state/game.js";
 import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
 import { teleportIce } from "./ice.js";
-import { getPrimaryIce } from "./state/ice.js";
+import { activeIceInstances, hasActiveIce } from "./state/ice.js";
 import { addLogEntry } from "./log.js";
 import { generateExploit, generateExploitForVuln } from "./exploits.js";
 
@@ -199,7 +199,7 @@ function cheatOwnAll() {
 // CHEAT: summon-ice [nodeId]
 function cheatSummonIce(args) {
   const s = getState();
-  if (!getPrimaryIce()) {
+  if (!hasActiveIce(s)) {
     addLogEntry("[CHEAT] No ICE active.", "error");
     return false;
   }
@@ -256,7 +256,7 @@ function cheatTrace(args) {
 // CHEAT: ice-state — read-only ICE diagnostic dump (no cheat flag)
 function cheatIceState() {
   const s = getState();
-  const ice = getPrimaryIce();
+  const ice = activeIceInstances(s)[0];
   if (!ice) {
     addLogEntry("[CHEAT] No ICE in this run.", "meta");
     return true;

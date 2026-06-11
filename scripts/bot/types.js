@@ -20,9 +20,10 @@
 
 /**
  * @typedef {Object} WorldIce
- * @property {string|null} nodeId — current ICE attention node
- * @property {boolean} isOnSelectedNode
- * @property {boolean} isActive
+ * @property {{ nodeId: string, grade: string }[]} instances — all active ICE instances
+ * @property {string|null} nodeId — attention node of the instance on the selected node, else the first active instance
+ * @property {boolean} isOnSelectedNode — true if ANY active instance is on the selected node
+ * @property {boolean} isActive — true if any ICE instance is active
  */
 
 /**

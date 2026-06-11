@@ -25,6 +25,7 @@ import {
 import { fillSkeleton } from "../js/core/network/slot-filler.js";
 import { generateSkeleton, generateHierarchicalSkeleton, printSkeleton } from "../js/core/network/skeleton.js";
 import { generateNetwork } from "../js/core/network/generate.js";
+import { assembleNetwork } from "../js/core/network/assemble.js";
 
 // ---------------------------------------------------------------------------
 // Phase 1: Grade offset utilities
@@ -568,6 +569,81 @@ describe("Per-wing palette filtering", () => {
       for (const [idx, count] of wingCounts) {
         assert.ok(count >= 1, `seed ${seed}: wing-${idx} should have >= 1 node, got ${count}`);
       }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ICE placement — one roaming ICE per security-monitor (cap 3), threat >= B
+// ---------------------------------------------------------------------------
+
+describe("assembleNetwork: ICE placement per security-monitor", () => {
+  // Build a minimal PlacedPiece carrying a list of nodes, no edges/triggers.
+  function pieceWithNodes(nodes) {
+    return { nodes, edges: [], triggers: [], pieceDef: {}, gradeOffset: 0 };
+  }
+  function monitorNodes(n) {
+    const nodes = [];
+    for (let i = 1; i <= n; i++) {
+      nodes.push({ id: `mon-${i}`, type: "security-monitor", attributes: { grade: "B" } });
+    }
+    return nodes;
+  }
+  function assemble(nodes, spec) {
+    return assembleNetwork([pieceWithNodes(nodes)], [], spec, { id: "test-biome" }, "seed-x");
+  }
+
+  it("threat >= B with 2 monitors → 2 instances, each {startNode, grade: threat}", () => {
+    const spec = { threat: "B", wealth: "B", complexity: "B", depth: "B" };
+    const { meta } = assemble(monitorNodes(2), spec);
+    assert.ok(meta.ice, "meta.ice should be set");
+    assert.equal(meta.ice.instances.length, 2);
+    assert.deepEqual(meta.ice.instances[0], { startNode: "mon-1", grade: "B" });
+    assert.deepEqual(meta.ice.instances[1], { startNode: "mon-2", grade: "B" });
+  });
+
+  it("caps at 3 instances even with 5 monitors", () => {
+    const spec = { threat: "A", wealth: "A", complexity: "A", depth: "A" };
+    const { meta } = assemble(monitorNodes(5), spec);
+    assert.equal(meta.ice.instances.length, 3);
+    for (const cfg of meta.ice.instances) assert.equal(cfg.grade, "A");
+  });
+
+  it("single-monitor network → exactly 1 instance (parity)", () => {
+    const spec = { threat: "B", wealth: "B", complexity: "B", depth: "B" };
+    const { meta } = assemble(monitorNodes(1), spec);
+    assert.equal(meta.ice.instances.length, 1);
+    assert.deepEqual(meta.ice.instances[0], { startNode: "mon-1", grade: "B" });
+  });
+
+  it("zero monitors at threat >= B → meta.ice is null", () => {
+    const spec = { threat: "B", wealth: "B", complexity: "B", depth: "B" };
+    const { meta } = assemble([{ id: "fs-1", type: "fileserver", attributes: { grade: "B" } }], spec);
+    assert.equal(meta.ice, null);
+  });
+
+  it("threat < B → meta.ice is null even with monitors", () => {
+    const spec = { threat: "C", wealth: "C", complexity: "C", depth: "C" };
+    const { meta } = assemble(monitorNodes(2), spec);
+    assert.equal(meta.ice, null);
+  });
+
+  it("generated B network with multiple monitors yields multiple ICE instances", () => {
+    // Defense-contractor recipe has 2 security-ops wings → commonly >= 2 monitors.
+    const specB = { threat: "B", wealth: "B", complexity: "B", depth: "B", recipeId: "defense-contractor" };
+    let multi = null;
+    for (const seed of ["mon-multi-1", "mon-multi-2", "mon-multi-3", "mon-multi-4", "mon-multi-5"]) {
+      const result = generateNetwork(seed, specB, CORPORATE_BIOME);
+      const monitors = result.graphDef.nodes.filter(n => n.type === "security-monitor");
+      if (monitors.length >= 2) { multi = { result, monitors }; break; }
+    }
+    assert.ok(multi, "expected at least one seed with >= 2 security-monitors");
+    const { result, monitors } = multi;
+    assert.ok(result.meta.ice, "meta.ice should be set");
+    assert.equal(result.meta.ice.instances.length, Math.min(monitors.length, 3));
+    for (const cfg of result.meta.ice.instances) {
+      assert.equal(cfg.grade, "B");
+      assert.ok(monitors.some(m => m.id === cfg.startNode));
     }
   });
 });
