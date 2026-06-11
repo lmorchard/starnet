@@ -299,6 +299,13 @@ registerTrait("gate", {
   actions: [],
 });
 
+// WAN-boundary darknet broker: the access-darknet action opens the in-run store.
+registerTrait("darknet", {
+  attributes: {},
+  operators: [],
+  actions: [ACTION_TEMPLATES.ACCESS_DARKNET],
+});
+
 // ── New traits (stress-test the system) ─────────────────────
 
 registerTrait("hardened", {
