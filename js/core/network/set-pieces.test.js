@@ -5,6 +5,7 @@ import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, e
 import { NodeGraph } from "../node-graph/runtime.js";
 import { mockCtx } from "../node-graph/ctx.js";
 import { createMessage } from "../node-graph/message.js";
+import { isScriptAction } from "../actions/scripts.js";
 
 // ---------------------------------------------------------------------------
 // instantiate() — structural correctness
@@ -464,7 +465,7 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     assert.ok(actions.includes("extract-key"), "key ready after clock fires");
   });
 
-  it("fetch unavailable without extracted key; available after extraction", () => {
+  it("fetch-vault bonus unavailable without extracted key; available after extraction", () => {
     const ctx = mockCtx();
     const inst = instantiate(encryptedVault, "ev1");
     const graph = new NodeGraph(inst, ctx);
@@ -472,21 +473,50 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     graph._nodes.get("ev1/key-gen").attributes.accessLevel = "owned";
     graph._nodes.get("ev1/vault").attributes.accessLevel = "owned";
 
-    // Before clock: no key → fetch unavailable
-    assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("fetch"));
+    // Before clock: no key → key bonus unavailable
+    assert.ok(!graph.getAvailableActions("ev1/vault").map((a) => a.id).includes("fetch-vault"));
 
-    // Fire clock, extract key, then fetch
+    // Fire clock, extract key, then claim the vault bonus
     graph.tick(120);
     graph.executeAction("ev1/key-gen", "extract-key");
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
     const available = graph.getAvailableActions("ev1/vault").map((a) => a.id);
-    assert.ok(available.includes("fetch"));
+    assert.ok(available.includes("fetch-vault"));
 
-    graph.executeAction("ev1/vault", "fetch");
+    graph.executeAction("ev1/vault", "fetch-vault");
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [3000]);
     assert.equal(graph.getQuality("ev1/decryption-key"), 0);
+  });
+
+  // Regression (#TBD): the vault's key-gated bonus action must NOT reuse the
+  // core "fetch" verb id, or it (a) shadows the lootable trait's standard FETCH
+  // — making the vault's macguffins (incl. mission targets) uncollectable — and
+  // (b) renders top-level instead of under the EXEC ▸ submenu.
+  it("standard macguffin FETCH survives the trait merge (not shadowed by the bonus)", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(encryptedVault, "ev1");
+    const graph = new NodeGraph(inst, ctx);
+
+    const fetch = graph._nodes.get("ev1/vault").actions.find((a) => a.id === "fetch");
+    assert.ok(fetch, "standard lootable FETCH must not be shadowed by the key bonus");
+    // It must be the macguffin-loot action (sets `looting`), not the flat-reward bonus.
+    assert.ok(
+      fetch.effects.some((e) => e.effect === "set-attr" && e.attr === "looting"),
+      "the surviving 'fetch' must be the lootable FETCH, not the bonus action",
+    );
+  });
+
+  it("key bonus action uses a non-core id so it groups under EXEC", () => {
+    const inst = instantiate(encryptedVault, "ev1");
+    const vaultDef = inst.nodes.find((n) => n.id === "ev1/vault");
+    const bonus = vaultDef.actions.find((a) => a.label === "Fetch Vault");
+    assert.ok(bonus, "Fetch Vault action present on vault def");
+    assert.ok(
+      isScriptAction(bonus.id),
+      "Fetch Vault must be a script action (under EXEC), not the core 'fetch' verb",
+    );
   });
 
   it("key expires on next clock cycle if not looted in time", () => {
