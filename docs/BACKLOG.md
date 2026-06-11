@@ -429,6 +429,23 @@ cue. Caveats:
 hues by eye in the preview harness** (`preview.html`) rather than guessing. Deferred out
 of the overlay-refactor PR (#120) to keep that a behavior-parity change.
 
+### Hershey font ascent overshoot (latent clipping)
+
+The Hershey Futura Duplex webfont's `ascent` metric is shorter than its actual
+glyph ink — the first line of text overshoots its line box top by ~8px at body
+size. Anywhere text sits within ~8px of an `overflow: hidden` top edge, the ink
+clips. First (and so far only) sighting: the XPLOIT picker card titles, fixed
+surgically in PR #151 by scoping `overflow: visible` to `#action-choices
+.exploit-card`.
+
+**Deferred until more reports.** A blind `overflow: hidden` grep-sweep is the
+wrong tool — most clip edges have no text pinned to the top. The real root fix,
+if it recurs, is a single `@font-face` metric override (`ascent-override`, or
+`size-adjust` / `line-gap-override`) so the line box contains the ink globally —
+no per-site whack-a-mole. Catch: it shifts vertical rhythm across the whole UI,
+so it needs a visual pass over the main screens. Not worth that risk for one
+sighting.
+
 ### Console / UX
 
 - **Command prefix uniqueness sweep** — several command families share prefixes that
