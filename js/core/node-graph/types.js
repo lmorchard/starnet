@@ -106,7 +106,7 @@
 
 /**
  * Condition — union of supported condition shapes.
- * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | AllOfCondition | AnyOfCondition} Condition
+ * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | AllOfCondition | AnyOfCondition | NotCondition} Condition
  */
 
 /**
@@ -150,6 +150,12 @@
  * @typedef {Object} AnyOfCondition
  * @property {'any-of'} type
  * @property {Condition[]} conditions
+ */
+
+/**
+ * @typedef {Object} NotCondition
+ * @property {'not'} type
+ * @property {Condition} condition   - passes when the inner condition fails
  */
 
 /**

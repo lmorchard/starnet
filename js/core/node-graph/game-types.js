@@ -78,6 +78,9 @@ const EXPLOIT_ACTION = {
     { type: "node-attr", attr: "visibility", eq: "accessible" },
     { type: "node-attr", attr: "rebooting", eq: false },
     { type: "node-attr", attr: "exploiting", eq: false },
+    // Owned nodes are already at max access — don't offer XPLOIT at all (the
+    // hand stays a full-agency override for a deliberate re-exploit).
+    { type: "not", condition: { type: "node-attr", attr: "accessLevel", eq: "owned" } },
   ],
   followup: {
     title: (node) => `XPLOIT ${node.id}`,

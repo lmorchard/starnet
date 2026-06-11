@@ -69,14 +69,16 @@ class StarnetHub extends StarnetElement {
         </div>
 
         <div class="hub-section">EXPLOIT INVENTORY — loadout ${loadout.length}/5</div>
-        ${this.inventory.length === 0
-          ? html`<div class="hub-empty">(inventory empty — mine or buy exploits)</div>`
-          : repeat(this.inventory, (c) => c.instanceId, (c) => html`
-              <div class="hub-card ${loadout.includes(c.instanceId) ? "equipped" : ""} ${c.decayState === "disclosed" ? "burned" : ""}"
-                   @click=${() => this._toggle(c.instanceId)}>
-                <span class="hub-card-name">${loadout.includes(c.instanceId) ? "▣" : "▢"} ${c.name}</span>
-                <span class="hub-card-meta">[${c.rarity}] ${c.decayState} ×${c.usesRemaining}</span>
-              </div>`)}
+        <div class="hub-list">
+          ${this.inventory.length === 0
+            ? html`<div class="hub-empty">(inventory empty — mine or buy exploits)</div>`
+            : repeat(this.inventory, (c) => c.instanceId, (c) => html`
+                <div class="hub-card ${loadout.includes(c.instanceId) ? "equipped" : ""} ${c.decayState === "disclosed" ? "burned" : ""}"
+                     @click=${() => this._toggle(c.instanceId)}>
+                  <span class="hub-card-name">${loadout.includes(c.instanceId) ? "▣" : "▢"} ${c.name}</span>
+                  <span class="hub-card-meta">[${c.rarity}] ${c.decayState} ×${c.usesRemaining}</span>
+                </div>`)}
+        </div>
 
         <div class="hub-actions">
           <button class="hub-btn" ?disabled=${disclosed === 0} @click=${this._discardDisclosed}>
@@ -89,11 +91,13 @@ class StarnetHub extends StarnetElement {
                .value=${String(this.withdrawAmount)} @input=${this._withdraw} />
 
         <div class="hub-section">AVAILABLE TARGETS</div>
-        ${repeat(this.targets, (t) => t.id, (t) => html`
-          <div class="hub-target" @click=${() => this._launch(t.id)}>
-            <span class="hub-target-label">▸ ${t.label}</span>
-            <span class="hub-target-grade">threat ${t.spec.threat} · wealth ${t.spec.wealth}</span>
-          </div>`)}
+        <div class="hub-list">
+          ${repeat(this.targets, (t) => t.id, (t) => html`
+            <div class="hub-target" @click=${() => this._launch(t.id)}>
+              <span class="hub-target-label">▸ ${t.label}</span>
+              <span class="hub-target-grade">threat ${t.spec.threat} · wealth ${t.spec.wealth}</span>
+            </div>`)}
+        </div>
       </div>`;
   }
 }
