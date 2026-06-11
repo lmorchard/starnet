@@ -610,8 +610,10 @@ html, body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  max-height: 50vh;
-  overflow-y: auto;
+  /* No scroll: the picker sizes to its cards. A scroll container here (overflow
+     auto) clipped the top row's card titles at its edge — the `.match` lift
+     (translateY -2px) pushes the first row above the clip line — and produced a
+     stray horizontal scrollbar. The hand is small enough to always fit. */
 }
 
 /* EXEC-style action choices are list rows, not cards: the 2-col grid above is
@@ -626,13 +628,6 @@ html, body {
 #action-choices .ac-choices .ctx-item .ctx-item-desc {
   white-space: normal;
 }
-
-/* Picker cards don't run the executing progress-fill (the panel closes on pick),
-   so they don't need the hand's overflow:hidden. Keeping it clipped the Hershey
-   font's tall first-line glyph ink against the card's top edge, and its
-   side-effect of forcing a grid item's auto min-width to 0 over-narrowed the
-   cards (worsening the title wrap). Letting them overflow fixes both. */
-#action-choices .exploit-card { overflow: visible; }
 
 /* ── Action Buttons ─────────────────────────────────────── */
 
