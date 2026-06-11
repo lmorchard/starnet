@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { instantiate } from "./set-pieces.js";
-import { SET_PIECES, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect, scatteredLock1, scatteredLock3, scatteredLock5, scatteredKeyVault2, scatteredKeyVault3, scatteredEncryptedVault2, scatteredEncryptedVault3 } from "../../../data/biomes/corporate-pieces.js";
+import { SET_PIECES, entryPoint, combinationLock, deadmanCircuit, idsRelayChain, honeyPot, encryptedVault, cascadeShutdown, tripwireGauntlet, probeBurstAlarm, noisySensor, tamperDetect, scatteredLock1, scatteredLock3, scatteredLock5, scatteredKeyVault2, scatteredKeyVault3, scatteredEncryptedVault2, scatteredEncryptedVault3 } from "../../../data/biomes/corporate-pieces.js";
 import { NodeGraph } from "../node-graph/runtime.js";
 import { mockCtx } from "../node-graph/ctx.js";
 import { createMessage } from "../node-graph/message.js";
@@ -999,5 +999,22 @@ describe("scatteredEncryptedVault: quality communication", () => {
     graph._nodes.get("ev/vault").attributes.accessLevel = "owned";
     graph.executeAction("ev/vault", "scan-vault");
     assert.ok(ctx.calls.log?.some(args => args[0] === "Encrypted vault: 0/3 keys collected"));
+  });
+});
+
+describe("entryPoint: WAN offers in-run darknet access", () => {
+  it("access-darknet is available on the WAN node", () => {
+    const inst = instantiate(entryPoint, "entry");
+    const graph = new NodeGraph(inst, mockCtx());
+    const available = graph.getAvailableActions("entry/wan").map((a) => a.id);
+    assert.ok(available.includes("access-darknet"));
+  });
+
+  it("executing access-darknet opens the broker", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(entryPoint, "entry");
+    const graph = new NodeGraph(inst, ctx);
+    graph.executeAction("entry/wan", "access-darknet");
+    assert.equal(ctx.calls.openDarknetsStore?.length, 1);
   });
 });

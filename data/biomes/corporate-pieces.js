@@ -1871,7 +1871,7 @@ export const entryPoint = {
     {
       id: "wan",
       type: "wan",
-      traits: [],
+      traits: ["darknet"],
       attributes: { accessLevel: "owned", visibility: "accessible" },
       operators: [],
       actions: [],
