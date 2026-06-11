@@ -42,24 +42,25 @@ const DISCLOSURE_CHANCE = {
   F: 0.05,
 };
 
-// Rarity multiplier for skip-to-owned chance on successful exploit.
-// Higher rarity = more likely to jump locked → owned in one shot.
-// Target ranges: common-low ~2%, uncommon-mid ~20%, rare-high ~70%.
-const SKIP_TO_OWNED_RARITY_MULT = {
-  common: 0.15,
-  uncommon: 0.4,
-  rare: 1.0,
-};
+// Skip-to-owned floor and quality scaling. The chance a successful exploit
+// jumps locked → owned in one shot is driven by card QUALITY, not rarity:
+//   0.08 + quality * 0.55
+// This lifts the floor across the board (a fresh common skips ~19–38% of the
+// time, up from the old ~2–6%) while still rewarding the best cards most —
+// rare cards skip more only because they carry higher quality, not because of
+// a separate multiplier. Tops out near 0.60 for a best-in-class rare (q≈0.95);
+// never approaches certainty.
+const SKIP_TO_OWNED_FLOOR = 0.08;
+const SKIP_TO_OWNED_QUALITY_SCALE = 0.55;
 
 /**
  * Chance that a successful exploit jumps from locked directly to owned,
- * skipping the compromised step. Based on exploit quality and rarity.
+ * skipping the compromised step. Driven by exploit quality.
  * @param {ExploitCard} exploit
  * @returns {number} probability 0-1
  */
 export function skipToOwnedChance(exploit) {
-  const rarityMult = SKIP_TO_OWNED_RARITY_MULT[exploit.rarity] ?? 0.15;
-  return exploit.quality * 0.75 * rarityMult;
+  return SKIP_TO_OWNED_FLOOR + exploit.quality * SKIP_TO_OWNED_QUALITY_SCALE;
 }
 
 // Patch lag in turns by grade (how quickly vulns get patched after disclosure)
