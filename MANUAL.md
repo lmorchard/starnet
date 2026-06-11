@@ -232,8 +232,8 @@ on the node:
   shown disabled in the menu with a short reason ("No matching exploit available." / "No
   exploits available."). When that happens, play a long shot from the hand or shop the
   darknet broker.
-- On an **already-owned node**, XPLOIT is disabled ("Already owned.") — there's no further
-  access to gain. You can still play a card from the hand to re-exploit it if you really want.
+- On an **already-owned node**, XPLOIT isn't offered at all — there's no further access to
+  gain. You can still play a card from the hand to re-exploit it if you really want.
 
 The picker is the *guided* path. The **hand strip** and the `xploit <n>` console command
 are *full-agency* channels: they can play any usable card against the selected node,
@@ -647,7 +647,7 @@ Actions depend on the selected node's type and access level:
 | `exec access-darknet` | WAN node is targeted                       | Opens the darknet broker store; pauses the LAN while shopping (run via `exec`) |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
 | `abort`           | Timed action in progress on targeted node      | Aborts the current action (probe, xploit, dump, or fetch) |
-| `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies or the node is already owned. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
+| `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies. Not offered at all on an already-owned node. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |

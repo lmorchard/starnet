@@ -1186,6 +1186,14 @@ html, body {
 
 .hub-empty { color: var(--text-dim); font-size: 0.78rem; font-style: italic; }
 
+.hub-list {
+  max-height: 13rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
 .hub-card, .hub-target {
   display: flex;
   justify-content: space-between;

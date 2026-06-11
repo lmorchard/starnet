@@ -36,6 +36,9 @@ function fillNodeId(condition, nodeId) {
   if (condition.type === "all-of" || condition.type === "any-of") {
     return { ...condition, conditions: condition.conditions.map((c) => fillNodeId(c, nodeId)) };
   }
+  if (condition.type === "not") {
+    return { ...condition, condition: fillNodeId(condition.condition, nodeId) };
+  }
   return condition;
 }
 

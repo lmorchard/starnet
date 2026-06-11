@@ -88,6 +88,22 @@ describe("evaluateCondition: any-of", () => {
   });
 });
 
+describe("evaluateCondition: not", () => {
+  it("returns true when the inner condition fails", () => {
+    assert.equal(evaluateCondition({
+      type: "not",
+      condition: { type: "node-attr", nodeId: "node-B", attr: "accessLevel", eq: "owned" },
+    }, accessors), true);
+  });
+
+  it("returns false when the inner condition passes", () => {
+    assert.equal(evaluateCondition({
+      type: "not",
+      condition: { type: "node-attr", nodeId: "node-A", attr: "accessLevel", eq: "owned" },
+    }, accessors), false);
+  });
+});
+
 describe("evaluateCondition: unknown type", () => {
   it("throws for unknown condition type", () => {
     assert.throws(() => evaluateCondition(/** @type {any} */ ({ type: "bogus" }), accessors));

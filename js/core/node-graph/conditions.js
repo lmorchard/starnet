@@ -29,6 +29,9 @@ export function evaluateCondition(condition, { getNodeAttr, getQuality }) {
         evaluateCondition(c, { getNodeAttr, getQuality })
       );
 
+    case "not":
+      return !evaluateCondition(condition.condition, { getNodeAttr, getQuality });
+
     case "quality-from-attr": {
       // Read quality name from a node attribute, then check the quality value.
       // Enables dynamic quality gating — the quality name can change at runtime.

@@ -183,6 +183,20 @@ describe("action availability", () => {
     assert.ok(actions.some(a => a.id === "xploit"));
   });
 
+  it("exploit not available on owned node", () => {
+    const gw = createGateway("gw", { attributes: { visibility: "accessible", accessLevel: "owned" } });
+    const graph = new NodeGraph({ nodes: [gw], edges: [] });
+    const actions = graph.getAvailableActions("gw");
+    assert.ok(!actions.some(a => a.id === "xploit"));
+  });
+
+  it("exploit still available on compromised node", () => {
+    const gw = createGateway("gw", { attributes: { visibility: "accessible", accessLevel: "compromised" } });
+    const graph = new NodeGraph({ nodes: [gw], edges: [] });
+    const actions = graph.getAvailableActions("gw");
+    assert.ok(actions.some(a => a.id === "xploit"));
+  });
+
   it("exploit not available on hidden node", () => {
     const gw = createGateway("gw");
     const graph = new NodeGraph({ nodes: [gw], edges: [] });
