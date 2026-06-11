@@ -1,7 +1,7 @@
 // @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
-import { initGraph, getCy, addIceNode, fitGraph, syncInitialNodes } from "./graph.js";
-import { initGame, getState } from "../core/state.js";
-import { startIce, handleIceTick, handleIceDetect } from "../core/ice.js";
+import { initGraph } from "./graph.js";
+import { getState } from "../core/state.js";
+import { handleIceTick, handleIceDetect } from "../core/ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "../core/events.js";
 import { tick, TICK_MS, TIMER, getVisibleTimers, pauseTimers, resumeTimers } from "../core/timers.js";
@@ -12,6 +12,11 @@ import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from 
 import { openDarknetsStore } from "./store.js";
 import { initGraphBridge } from "../core/graph-bridge.js";
 import { initDynamicActions } from "../core/console-commands/dynamic-actions.js";
+import { initRng } from "../core/rng.js";
+import { toCytoscapeFormat } from "./run-control.js";
+import { openHub, initHub } from "./hub.js";
+import { initProfileRunCommit } from "./profile-store.js";
+import "./hub-commands.js";
 
 import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
 import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
@@ -49,49 +54,35 @@ function getSelectedNetwork() {
   return NETWORKS[name] ?? buildCorporateFoothold;
 }
 
-/**
- * Convert a graph network definition to the format initGraph (Cytoscape) expects.
- * @param {{ graphDef: { nodes: any[], edges: [string,string][] }, meta: any }} result
- */
-function toCytoscapeFormat(result) {
-  const { graphDef, meta } = result;
-  return {
-    nodes: graphDef.nodes.map(n => ({
-      id: n.id,
-      type: n.type,
-      label: n.attributes?.label ?? n.id,
-      grade: n.attributes?.grade ?? "D",
-    })),
-    edges: graphDef.edges.map(([a, b]) => ({ source: a, target: b })),
-    startNode: meta.startNode,
-    startCash: meta.startCash,
-    moneyCost: meta.moneyCost,
-    ice: meta.ice,
-  };
-}
-
-/** Module-scope so run-again can reuse it. */
+/** Module-scope: the default network builder, used to seed the empty graph at boot. */
 const buildNetworkFn = getSelectedNetwork();
 
 function init() {
-  const networkResult = buildNetworkFn();
-  const cytoscapeNetwork = toCytoscapeFormat(networkResult);
+  // Initialize the RNG streams up front. Previously initGame did this at boot, but
+  // now boot opens the hub first, and the hub bootstraps a fresh profile (generating
+  // a starter exploit hand) before any run — so the RNG must be ready beforehand.
+  // Each run's initGame re-seeds per its own seed afterward.
+  initRng();
+
+  // Build the cytoscape instance once from a default topology. The board starts
+  // empty; the hub launches the first (and every) run via run-control's startRun,
+  // which resets the graph to the chosen target's topology.
+  const cytoscapeNetwork = toCytoscapeFormat(buildNetworkFn());
 
   initLogRenderer();
-  const cy = initGraph(cytoscapeNetwork, buildNodeClickHandler(), () => {
+  initGraph(cytoscapeNetwork, buildNodeClickHandler(), () => {
     emitEvent("starnet:action", { actionId: "untarget" });
   });
   initConsole();
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
-  initGame(() => networkResult, undefined, { openDarknetsStore });
   initGraphBridge();
   initDynamicActions();
-  syncInitialNodes(getState().nodes);
-  fitGraph(cy);
-  addIceNode();  // after layout — ICE polygon shape crashes cola bounding box calc
-  startIce();
+  initProfileRunCommit();  // wire RUN_ENDED → commit results back to the profile
+  initHub();               // wire the hub component's events to the controller
+
   let prevVisibleCount = 0;
   setInterval(() => {
+    if (!getState()) return;  // no active run yet (player is in the hub at boot)
     tick(1);
     const count = getVisibleTimers().length;
     // Emit on the falling edge to zero too, so timer-driven UI (e.g. the sidebar
@@ -152,16 +143,15 @@ function init() {
   on(TIMER.TRACE_TICK,   () => handleTraceTick());
   // Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
-  // Run-again: from end screen component (custom event) or legacy event bus
-  const runAgainHandler = () => {
-    initGame(() => buildNetworkFn(), undefined, { openDarknetsStore });
-    const cy = getCy();
-    if (cy) fitGraph(cy);
-    addIceNode();
-    startIce();
-  };
-  on("starnet:action:run-again", runAgainHandler);
-  document.getElementById("end-screen")?.addEventListener("run-again", runAgainHandler);
+  // End-screen button / legacy run-again event → return to the hub, where the
+  // player re-equips and launches the next target. (The RUN_ENDED commit to the
+  // profile has already run by this point.)
+  const returnToHub = () => openHub();
+  on("starnet:action:run-again", returnToHub);
+  document.getElementById("end-screen")?.addEventListener("run-again", returnToHub);
+
+  // Boot into the hub — the player launches the first run from there.
+  openHub();
 }
 
 document.addEventListener("DOMContentLoaded", init);

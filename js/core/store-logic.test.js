@@ -1,9 +1,11 @@
 // @ts-check
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { buyFromStore } from "./store-logic.js";
+import { buyFromStore, buyFromStoreToProfile } from "./store-logic.js";
 import { getStoreCatalog } from "./exploits.js";
 import { initGame, getState } from "./state.js";
+import { initRng } from "./rng.js";
+import { createProfile } from "./profile/index.js";
 import { createGateway, createRouter } from "./node-graph/game-types.js";
 
 function buildStoreLAN() {
@@ -67,5 +69,34 @@ describe("buyFromStore", () => {
     // Now should fail
     const result = buyFromStore(1);
     assert.equal(result, null);
+  });
+});
+
+describe("buyFromStoreToProfile (hub darknet)", () => {
+  beforeEach(() => initRng("store-logic-profile-test"));
+
+  it("spends bank and adds the card to inventory", () => {
+    const p = createProfile({ bank: 1000 });
+    const price = getStoreCatalog()[0].price;
+    const result = buyFromStoreToProfile(p, 1);
+    assert.ok(result, "expected successful purchase");
+    assert.equal(result.price, price);
+    assert.equal(p.bank, 1000 - price);
+    assert.equal(p.inventory.length, 1);
+    assert.ok(p.inventory[0].instanceId, "purchased card gets an instanceId");
+    assert.equal(p.inventory[0].id, result.card.id);
+  });
+
+  it("refuses when the bank can't cover the price (no debit, no card)", () => {
+    const p = createProfile({ bank: 0 });
+    assert.equal(buyFromStoreToProfile(p, 1), null);
+    assert.equal(p.bank, 0);
+    assert.equal(p.inventory.length, 0);
+  });
+
+  it("returns null for an out-of-range index", () => {
+    const p = createProfile({ bank: 1000 });
+    assert.equal(buyFromStoreToProfile(p, 999), null);
+    assert.equal(p.bank, 1000);
   });
 });

@@ -120,6 +120,50 @@ An IDS at this level can be corrupted to stop forwarding alerts.
 
 ---
 
+## THE OVERWORLD HUB
+
+Between runs you sit in the **overworld hub** — your home base. The game opens
+here, and you return here after every run.
+
+The hub holds your **persistent state**. A single run is self-contained, but two
+things carry across runs:
+
+- **Bank** — your cash. Loot you extract is deposited here when you jack out clean.
+- **Exploit inventory** — the exploit cards you own. The darknet broker and mining
+  add to it, and it persists between runs.
+
+### Outfitting a run
+
+From the hub you:
+
+1. **Equip a loadout** — choose up to **5 exploits** from your inventory to take
+   into the run; these become your hand. (Click a card, or `equip <#>`.)
+2. **Carry cash** — decide how much of your bank to bring along, e.g. to shop the
+   darknet broker mid-run. (`carry <amount>`.)
+3. **Pick a target** — the hub offers a short list of targets at varying
+   difficulty. Selecting one launches the run. (`launch <id>`.)
+
+From the hub you can also **discard disclosed exploits** (burned-out cards
+cluttering your inventory) and **visit the darknet broker** — opened from the
+hub, the broker spends your **bank** and delivers purchases straight to your
+**inventory** (rather than in-run cash and your hand).
+
+### Stakes
+
+What you bring is what you risk:
+
+- **Clean jack-out** — your carried cash plus any loot is banked, and your loadout
+  returns to inventory (worn by use, but yours). Cards you bought or mined mid-run
+  are added to your inventory too.
+- **Traced (caught)** — you lose the run's cash **and your carried loadout is
+  burned** — those exploits are seized, gone from your inventory. Your bank and the
+  exploits you *didn't* bring are safe.
+
+A loadout is an ante: bring your best cards against a hard target and a trace costs
+you dearly; bring cheap cards and you risk less but crack less.
+
+---
+
 ## THE CORE LOOP
 
 ### 1. Select a Node
@@ -557,6 +601,17 @@ jackout                End run.
 
 darknet                List darknet broker catalog (requires WAN targeted).
 buy <index>            Purchase exploit card from broker (requires WAN targeted).
+
+hub                    Open the overworld hub (between runs).
+inventory              List your bank balance and persistent exploit inventory.
+equip <#|id>           Add an inventory exploit to your loadout (max 5).
+unequip <#|id>         Remove an exploit from your loadout.
+carry <amount>         Set how much cash to carry into the next run.
+discard-disclosed      Discard all disclosed (burned) exploits from inventory.
+targets                List available targets to launch.
+launch <targetId>      Start a run against a target with your loadout + carried cash.
+                       (At the hub, `darknet` lists the broker catalog and `buy <index>`
+                        purchases into your inventory, spending bank.)
 
 status                 Summary status (alias: status summary)
 status full            Complete state dump
