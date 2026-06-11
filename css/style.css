@@ -1271,6 +1271,7 @@ html, body {
 #hud .hud-meter {
   position: relative;
   display: inline-block;
+  flex: 0 0 auto; /* the HUD is a flex row — don't let the meter shrink below 64px */
   width: 64px;
   height: 12px;
   border: 1px solid var(--cyan);
