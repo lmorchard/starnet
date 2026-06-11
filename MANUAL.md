@@ -291,8 +291,9 @@ information without relying on color.
 **Vulnerability glyphs** — Each vulnerability type has its own **glyph**, shown on
 both the exploit card (next to each vuln it targets) and on the node panel (next to
 each revealed vulnerability). Color groups the glyphs by rarity tier: teal (common),
-amber (uncommon), magenta (rare). The textual vuln id stays next to the glyph, and
-`status` output is unchanged.
+amber (uncommon), magenta (rare). In the **hand** and node panel the textual vuln id
+sits beside the glyph; the in-graph **XPLOIT picker** is a denser "express" view that
+shows glyphs only (no labels). `status` output is unchanged.
 
 **Decay** — Cards wear out, and *look* worn as they do:
 
