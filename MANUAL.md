@@ -61,7 +61,7 @@ every ICE movement that crosses into your territory appears here.
 **Console** — Type commands directly. Tab-complete node names. Full command reference
 at the end of this manual.
 
-**HUD** — Top bar shows global alert level, your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**. Both ramp from green through yellow to red as they deplete.
+**HUD** — Top bar shows global alert level, your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**, drawn as vector-CRT vital traces that sweep left-to-right with a fading phosphor trail. HEALTH is a green ECG/heartbeat (PQRST) complex — as health falls the beat speeds up and grows erratic; it flatlines at zero. DECK INTEGRITY is a violet double square-pulse — as deck integrity falls the pulses develop deepening ringing, dropouts and timing/amplitude glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover either trace to see the exact value as a percentage.
 
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
@@ -493,7 +493,7 @@ In addition to the trace, you have two resource pools that start each run at 100
   Depleting DECK INTEGRITY to zero ends the run — outcome: **bricked** (end screen: "DECK FRIED").
   Fiction: the deck's OS is corrupted past recovery.
 
-Both are shown in the HUD as color-ramping meters (green → yellow → red). They appear in
+Both are shown in the HUD as animated vector-CRT vital traces that sweep left-to-right with a fading phosphor trail: HEALTH as a green ECG/heartbeat (PQRST) complex (the beat speeds up and turns erratic as it falls; flatlines at zero), DECK INTEGRITY as a violet double square-pulse (it develops ringing, dropouts and timing/amplitude glitches as it falls, at roughly constant amplitude; flatlines at zero). Hover either trace to see the exact percentage. They also appear in
 `status` and `status full`. Damage events are logged with the offending node, e.g.
 `[ICE] gateway neural feedback: −20 HEALTH (80 left)` or `[ICE] router-2 deck corruption: −20 DECK (80 left)`.
 

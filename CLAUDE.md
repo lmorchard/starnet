@@ -384,11 +384,11 @@ it is set is not testing the circuit — it's testing that assignment works.
 ## Design Aesthetic
 
 - Dark background (`#0a0a0f`), glowing neon vector phosphene look
-- Cyan nodes/borders, terminal-green text, magenta for selection
+- Cyan nodes/borders, terminal-green text, magenta for selection, violet for deck integrity
 - Alert states: green glow → yellow → red pulse
 - Scanline overlay on graph panel (CSS `::after`)
 - Monospace font throughout
-- Planned (future): screenshake, bloom, vector glitches on countermeasure hits
+- Vector visual effects are an active part of the aesthetic — graph degradation (health bloom, deck corruption) and HUD vital-sign waveforms have shipped. Specific effects still to come: screenshake, bloom, glitches on countermeasure hits.
 
 ### Rotation direction convention
 
@@ -425,7 +425,6 @@ and `preview.js`.
 - Sprites, daemons, machine elves
 - Player progression between runs
 - Wider world (galaxy, planets, cities)
-- Visual effects (screenshake, bloom, glitches)
 - Audio
 
 ## Backlog

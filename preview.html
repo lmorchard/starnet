@@ -243,11 +243,46 @@
         <h2>Alert States</h2>
         <p style="color:#445544; font-size:10px; margin:2px 0;">Green / Yellow / Red / Rebooting shown in graph</p>
       </div>
+
+      <!-- Vital Waveforms — <starnet-waveform> component demo (js/ui/preview.js). -->
+      <div class="section">
+        <h2>Vital Waveforms</h2>
+        <div id="waveform-demo" class="layout-inline"></div>
+        <div class="btn-row">
+          <label>HEALTH</label>
+          <input type="range" id="wave-health" min="0" max="100" step="1" value="100">
+          <span id="wave-health-val">100</span>
+        </div>
+        <div class="btn-row">
+          <label>DECK</label>
+          <input type="range" id="wave-deck" min="0" max="100" step="1" value="100">
+          <span id="wave-deck-val">100</span>
+        </div>
+        <div class="btn-row">
+          <label>SPEED</label>
+          <input type="range" id="wave-speed" min="20" max="320" step="5" value="100">
+          <span id="wave-speed-val">100</span>
+        </div>
+        <div class="btn-row">
+          <label>TRAIL×</label>
+          <input type="range" id="wave-trail" min="30" max="160" step="5" value="80">
+          <span id="wave-trail-val">0.80</span>
+        </div>
+        <div class="btn-row">
+          <label>BLOOM</label>
+          <input type="range" id="wave-bloom" min="0" max="20" step="1" value="14">
+          <span id="wave-bloom-val">14</span>
+        </div>
+        <div class="btn-row">
+          <button id="wave-layout-toggle">STRIP</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="dist/vendor.js"></script>
   <script type="module" src="js/ui/components/starnet-hand.js"></script>
+  <script type="module" src="js/ui/components/starnet-waveform.js"></script>
   <script type="module" src="js/ui/preview.js"></script>
 </body>
 </html>
