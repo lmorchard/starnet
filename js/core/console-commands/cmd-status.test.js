@@ -25,9 +25,9 @@ beforeEach(() => {
 describe("status shows resource pools", () => {
   it("summary includes HEALTH and DECK", () => {
     const out = logs(() => cmdStatusSummary()).map((p) => p.text).join("\n");
-    assert.match(out, /HEALTH/);
-    assert.match(out, /DECK/);
-    assert.match(out, /100/);
+    // Pin format + value together so the assertion can't pass on a stray "100".
+    assert.match(out, /HEALTH: 100\/100/);
+    assert.match(out, /DECK: 100\/100/);
   });
 
   it("full includes health and deck", () => {
