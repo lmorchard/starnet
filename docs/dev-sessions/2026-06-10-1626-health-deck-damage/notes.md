@@ -83,4 +83,10 @@ serving the *main* checkout — had to serve the worktree on :3101 to see the re
   for MVP).
 - **Bloom-driven-by-deck-integrity** (the `setBloomIntensity` seam on `main`) belongs to
   the #134 plasma visual pass, not #133.
+- **`status ice` reports `detections: 0` for damaging ICE.** `detectionCount` is only
+  incremented inside `recordIceDetection`, which Sentinel/Spike never call (they don't
+  raise alert). It's really the *trace* counter, so 0 is arguably correct — but a Sentinel
+  that has hit the player several times still shows 0 detections, which reads oddly. The
+  HEALTH/DECK pools + damage log carry the real signal. Tiny fix if it bothers anyone:
+  increment a separate per-instance hit counter in `applyIceEffects`.
 - **#134 (plasma overlay)** reads the now-live `health` pool — unblocked.
