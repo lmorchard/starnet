@@ -251,9 +251,16 @@ function syncContextMenu(node, state) {
   menu.nodeId = node.id;
   menu.visible = true;
 
-  _positionContextMenu(node.id);
-  menu.style.opacity = "1";
-  menu.style.pointerEvents = "auto";
+  // Lit renders asynchronously, so the menu's buttons aren't in the DOM yet —
+  // measuring offsetHeight now would read a stale (empty) height and mis-center
+  // the menu vertically. Defer positioning until the render flushes, and keep
+  // it hidden until then so it reveals already-centered (no visible jump).
+  menu.updateComplete.then(() => {
+    if (contextMenuNodeId !== node.id) return; // selection changed while awaiting
+    _positionContextMenu(node.id);
+    menu.style.opacity = "1";
+    menu.style.pointerEvents = "auto";
+  });
 }
 
 function clearContextMenu() {
