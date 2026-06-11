@@ -239,19 +239,33 @@ Your hand contains five exploit cards, randomly generated at the start of each r
 | Rare      | 3 vuln types | 8             | High–Very High|
 
 **Quality** is shown as a pip meter (█░░░░ to █████). Higher quality means better
-base success chances, especially on unprobed or high-grade nodes.
+base success chances, especially on unprobed or high-grade nodes. The pip meter is
+also **color-coded** along a ramp — dim red (low) → amber → bright green/white
+(high) — so a card's strength reads at a glance. The pip count carries the same
+information without relying on color.
 
-**Decay** — Cards wear out:
+**Vulnerability glyphs** — Each vulnerability type has its own **glyph**, shown on
+both the exploit card (next to each vuln it targets) and on the node panel (next to
+each revealed vulnerability). Color groups the glyphs by rarity tier: teal (common),
+amber (uncommon), magenta (rare). The textual vuln id stays next to the glyph, and
+`status` output is unchanged.
 
-- Each use costs one **use** from the remaining count
-- When uses drop low and the card takes a failure hit, it becomes **worn** — still usable, but flagged
-- A failed exploit can also **disclose** a card — the exploit signature leaks to the blue team,
-  rendering the card useless for further escalation attempts. Disclosed cards stay in your hand
+**Decay** — Cards wear out, and *look* worn as they do:
+
+- Each use costs one **use** from the remaining count; the card progressively
+  **desaturates** as its uses deplete
+- When uses drop low and the card takes a failure hit, it becomes **worn** — still
+  usable, but desaturated and showing hairline cracks
+- A failed exploit can also **disclose** a card — the exploit signature leaks to the
+  blue team, rendering the card useless for further escalation attempts. Disclosed
+  cards stay in your hand (rendered greyed-out, struck-through, and visibly burnt)
   but cannot be played.
 
 When a node is targeted, your hand re-sorts: matching cards first, then usable cards,
 then worn, then disclosed. Cards that match the selected node's known vulnerabilities
-highlight in cyan.
+**glow green and lift**, and the specific shared **vuln glyph lights up** on the card —
+a visual lock-and-key against the node's revealed vulnerabilities. Non-matching cards
+recede (dimmed and desaturated).
 
 The numbers shown next to cards in `status hand` are the numbers to use with
 `xploit <n>` — the sort order changes with your selection, so always check
