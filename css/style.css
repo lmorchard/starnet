@@ -644,16 +644,21 @@ html, body {
 
 .nd-vuln {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   font-size: 0.72rem;
-  gap: 0.5rem;
+  gap: 0.4rem;
+}
+
+.nd-vuln-glyph {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .nd-vuln.patched .vuln-name { text-decoration: line-through; color: var(--text-dim); }
 
 .vuln-name  { color: var(--green); }
-.vuln-rarity { font-size: 0.65rem; }
+.vuln-rarity { font-size: 0.65rem; margin-left: auto; }
 
 .nd-indent { padding: 0.25rem 0; font-size: 0.75rem; }
 
@@ -695,7 +700,40 @@ html, body {
   border-color: #bb0077;
   box-shadow: inset 0 0 10px rgba(255, 0, 200, 0.12);
 }
-.exploit-card.disclosed { opacity: 0.35; }
+/* ── Card wear ──────────────────────────────────────────────
+   Continuous desaturation as --wear drops (1 fresh → 0 spent), plus dramatic
+   discrete end states. --sat-extra is an extra multiplier other states (e.g.
+   .no-match) can set without clobbering the wear ramp; the two-class
+   .worn/.disclosed rules still outrank this base filter by specificity. */
+.exploit-card { filter: saturate(calc((0.4 + 0.6 * var(--wear, 1)) * var(--sat-extra, 1))); }
+
+.exploit-card.worn {
+  filter: saturate(0.45) brightness(0.9);
+}
+/* hairline cracks */
+.exploit-card.worn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 48%, rgba(180, 180, 180, 0.25) 49%, transparent 50%),
+    linear-gradient(200deg, transparent 60%, rgba(180, 180, 180, 0.18) 61%, transparent 62%);
+}
+
+.exploit-card.disclosed {
+  opacity: 0.4;
+  filter: grayscale(1) brightness(0.7);
+}
+.exploit-card.disclosed .ec-name { text-decoration: line-through; }
+/* heavy burnt strike */
+.exploit-card.disclosed::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, transparent 45%, rgba(120, 120, 120, 0.4) 50%, transparent 55%);
+}
 
 .ec-header {
   display: flex;
@@ -727,6 +765,15 @@ html, body {
 .ec-pips { color: var(--green); letter-spacing: 0.05em; }
 .ec-val  { color: var(--green); }
 
+/* Quality color ramp — dim-red (low) → amber → bright-green/white (high).
+   Color is the dramatic signal; the pip count stays the color-blind-safe
+   redundant channel. */
+.ec-pips.q0 { color: #c0392b; }
+.ec-pips.q1 { color: #e08a1e; }
+.ec-pips.q2 { color: #c9d11e; }
+.ec-pips.q3 { color: var(--green); }
+.ec-pips.q4 { color: #b8ffce; text-shadow: var(--glow-sm) var(--green-dim); }
+
 .ec-vulns {
   display: flex;
   flex-direction: column;
@@ -736,9 +783,22 @@ html, body {
 }
 
 .ec-vuln {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--text-dim);
   font-size: 0.65rem;
   white-space: nowrap;
+  overflow: hidden;
+}
+
+.ec-vuln-glyph {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.ec-vuln-label {
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -752,12 +812,29 @@ html, body {
   background: #0d1a0d;
 }
 
+/* Positive match highlight — matching cards glow + lift; the shared glyph(s)
+   light up (the lock-and-key click). Non-matches recede. */
 .exploit-card.match {
   opacity: 1;
+  border-color: var(--green);
+  box-shadow: var(--glow-md) rgba(0, 255, 65, 0.35);
+  transform: translateY(-2px);
 }
 
+/* Recede non-matches; --sat-extra multiplies into the base wear filter so the
+   wear ramp stays visible on no-match cards instead of being overridden. */
 .exploit-card.no-match {
-  opacity: 0.35;
+  opacity: 0.4;
+  --sat-extra: 0.5;
+}
+
+.ec-vuln.matched .ec-vuln-label {
+  color: var(--green);
+  text-shadow: var(--glow-sm) var(--green-dim);
+}
+
+.ec-vuln.matched .ec-vuln-glyph {
+  filter: drop-shadow(0 0 3px rgba(0, 255, 65, 0.7));
 }
 
 
@@ -841,6 +918,36 @@ html, body {
 .ec-cancel-overlay:hover .ec-cancel-x {
   opacity: 1;
   box-shadow: var(--glow-md) rgba(204, 0, 204, 0.5);
+}
+
+/* ── Vuln glyph swatches (preview harness) ──────────────── */
+
+#vuln-swatches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.vuln-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem 0.2rem;
+  border: 1px solid var(--grey);
+  background: var(--bg-panel2);
+}
+
+.vuln-swatch img {
+  width: 40px;
+  height: 40px;
+}
+
+.vuln-swatch span {
+  color: var(--text-dim);
+  font-size: 0.55rem;
+  text-align: center;
+  word-break: break-word;
 }
 
 /* ── Action Log ─────────────────────────────────────────── */

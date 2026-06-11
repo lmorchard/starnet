@@ -15,7 +15,7 @@ import {
 import { mountOverlays } from "./overlays/index.js";
 import { mountReticle } from "./overlays/selection-reticle.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
-import { mountCardGallery } from "./preview-cards.js";
+import { mountCardGallery, mountVulnSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
 
@@ -305,3 +305,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
 // ── Card gallery ─────────────────────────────────────────────
 
 mountCardGallery(document.getElementById("card-gallery"));
+
+// ── Vuln glyph swatches ──────────────────────────────────────
+
+mountVulnSwatches(document.getElementById("vuln-swatches"));
