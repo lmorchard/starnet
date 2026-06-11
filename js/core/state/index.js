@@ -24,7 +24,7 @@
 /** @typedef {import('../types.js').GlobalAlertLevel} GlobalAlertLevel */
 
 import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt, random } from "../rng.js";
-import { pickIceTypeId, getType } from "../ice/registry.js";
+import { pickIceTypeId, getType } from "../ice/index.js";
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";

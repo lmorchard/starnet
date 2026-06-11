@@ -18,5 +18,5 @@ export {
 // registry.js self-registers the classic ICE presets in its module body, so this
 // re-export also runs that registration at load (no separate side-effect import needed).
 export {
-  ICE_TYPES, registerType, getType,
+  ICE_TYPES, registerType, getType, pickIceTypeId,
 } from "./registry.js";

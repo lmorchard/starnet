@@ -262,7 +262,9 @@ function applyIceEffects(ice, state, nodeId) {
     damagePlayerHealth,
     damagePlayerDeck,
   };
-  emitEvent(E.ICE_ACTIVATED, { iceId: ice.id, trigger: "on-dwell-grade", hostNodeId: ice.attentionNodeId });
+  // hostNodeId = the ICE's install node (real instance field); nodeId = where it
+  // activated (the detection node, == attentionNodeId at detection time).
+  emitEvent(E.ICE_ACTIVATED, { iceId: ice.id, trigger: "on-dwell-grade", hostNodeId: ice.hostNodeId, nodeId });
   for (const eff of effects) {
     const atom = getEffect(eff.atom);
     if (!atom) continue;
