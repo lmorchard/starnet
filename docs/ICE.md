@@ -8,6 +8,18 @@ describes the conceptual model and its architectural shape.
 For the vision that drove the design and its multi-session rollout plan, see
 `docs/dev-sessions/2026-04-24-1243-ice-reinvention/spec.md`.
 
+### Implementation status
+
+The runtime is now **fully multi-instance**: detection, dwell timers, movement
+cadence, and alert/trace are all per-instance (the `getPrimaryIce` singleton shim
+is retired). Production spawns **one roaming ICE per security-monitor node**, at
+threat B and above, capped at three — the concrete instantiation of "configurable
+via network meta" below. That cap is a temporary swarm-guard; tuning network
+monitor density (the real ICE-count balance lever) is tracked in
+[#136](https://github.com/lmorchard/starnet/issues/136). Stationary/trap ICE, the
+effect-atom catalog, and the hack verbs described below remain forthcoming
+(ICE-reinvention sessions 2+).
+
 ---
 
 ## The model
@@ -36,8 +48,8 @@ IceInstance {
   that detonates on `on-select`, a vault honeypot that fires on `on-probe-fail`.
 - **Roaming** ICE patrols the graph. Its behavior pattern decides where to go
   each tick (`patrol-random`, `disturbance-tracker`, `player-hunter`,
-  `sentry-radius`, etc.). It reports through its host's IDS chain the same way
-  the current singleton does.
+  `sentry-radius`, etc.). It reports through its host's IDS chain into the global
+  alert ladder.
 
 Both share the same `hostNodeId`. The host is the management anchor: owning it
 unlocks the hack verbs (§ below) that let the player uninstall, disable, or

@@ -60,15 +60,14 @@ export function assembleNetwork(pieces, crossEdges, spec, biome, seed) {
     }
   }
 
-  // 3. ICE placement
+  // 3. ICE placement — one roaming ICE per security-monitor (cap 3), threat >= B.
+  /** @type {{ instances: { startNode: string, grade: import('../types.js').Grade }[] } | null} */
   let iceConfig = null;
   if (gradeToNumber(spec.threat) >= 4) { // B or better
-    const monitorNode = allNodes.find(n => n.type === "security-monitor");
-    if (monitorNode) {
-      iceConfig = {
-        startNode: monitorNode.id,
-        grade: spec.threat,
-      };
+    const monitors = allNodes.filter(n => n.type === "security-monitor").slice(0, 3); // cap 3 — TEMP swarm-guard (#136)
+    if (monitors.length) {
+      const grade = /** @type {import('../types.js').Grade} */ (spec.threat);
+      iceConfig = { instances: monitors.map(m => ({ startNode: m.id, grade })) };
     }
   }
 

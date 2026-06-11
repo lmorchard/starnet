@@ -7,21 +7,24 @@
 /** @typedef {import('../types.js').NodeState} NodeState */
 
 import { getState } from "../state.js";
-import { getPrimaryIce, setIceAttention, setIceDetectedAt, setIceDwellTimer, setIceActive, setLastDisturbedNode } from "../state/ice.js";
+import { activeIceInstances, setIceAttention, setIceDetectedAt, setIceDwellTimer, setIceMoveTimer, setIceActive, setLastDisturbedNode } from "../state/ice.js";
 import { recordIceDetection } from "../alert.js";
-import { scheduleEvent, scheduleRepeating, cancelAllByType, TIMER } from "../timers.js";
+import { scheduleEvent, scheduleRepeating, cancelAllByType, cancelEvent, TIMER } from "../timers.js";
 import { emitEvent, on, E } from "../events.js";
 import { A } from "../action-ids.js";
 import { RNG, randomPick } from "../rng.js";
 import { getType, getEffect } from "./index.js";
 import { damagePlayerHealth, damagePlayerDeck } from "../player-orchestration.js";
 
-// Called whenever ICE vacates a node for any reason: normal movement, eject, or reboot.
-// Cancels any pending detection dwell and releases the detection lock so ICE can
-// re-detect on its next visit.
-function handleIceDeparture() {
-  cancelAllByType(TIMER.ICE_DETECT);
-  setIceDetectedAt(null);
+// Called whenever an ICE instance vacates a node for any reason: normal movement,
+// eject, or reboot. Cancels that instance's pending detection dwell and releases
+// its detection lock so it can re-detect on its next visit.
+function handleIceDeparture(iceId) {
+  if (!iceId) return;
+  const s = getState();
+  const instance = s.ice?.instances?.[iceId];
+  if (instance?.dwellTimerId != null) cancelEvent(instance.dwellTimerId);
+  setIceDetectedAt(null, iceId);
 }
 
 // Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry.
@@ -38,10 +41,18 @@ const DWELL_TIMES = { S: 800, A: 1500, B: 4500, C: 5500, D: 9000, F: 10000 };
 const ICE_NOISE_THRESHOLD = { S: 1, A: 2, B: 3, C: 5, D: 7, F: 9 };
 
 export function startIce() {
-  const ice = getPrimaryIce();
-  if (!ice) return;
-  const interval = MOVE_INTERVALS[ice.grade] ?? 6000;
-  scheduleRepeating(TIMER.ICE_MOVE, interval);
+  const s = getState();
+  // Idempotent: drop any move timers from a prior call before scheduling fresh
+  // ones, so repeated startIce() calls re-schedule cleanly instead of stacking
+  // orphaned timers (which would accelerate ICE cadence over a run).
+  cancelAllByType(TIMER.ICE_MOVE);
+  // Each active instance gets its own repeating ICE_MOVE timer at its grade's
+  // interval, carrying its iceId so handleIceTick moves only that instance.
+  for (const ice of activeIceInstances(s)) {
+    const interval = MOVE_INTERVALS[ice.grade] ?? 6000;
+    const id = scheduleRepeating(TIMER.ICE_MOVE, interval, { iceId: ice.id });
+    setIceMoveTimer(id, ice.id);
+  }
 }
 
 export function stopIce() {
@@ -58,19 +69,26 @@ export function initIceHandlers() {
   // lock so ICE can re-detect on a revisit, and start a new dwell if ICE is already
   // at the node the player just entered. nodeId is null on deselect.
   on(E.PLAYER_NAVIGATED, ({ nodeId }) => {
-    cancelAllByType(TIMER.ICE_DETECT);
+    const s = getState();
+    // Reset every active instance's dwell + detection lock so each can re-detect
+    // on the node the player just entered (or simply clear on deselect).
+    for (const ice of activeIceInstances(s)) {
+      if (ice.dwellTimerId != null) cancelEvent(ice.dwellTimerId);
+      setIceDetectedAt(null, ice.id);
+    }
     if (nodeId !== null) {
-      setIceDetectedAt(null);
-      const ice = getPrimaryIce();
-      if (ice && ice.attentionNodeId === nodeId) {
-        checkIceDetection(nodeId);
+      for (const ice of activeIceInstances(getState())) {
+        if (ice.attentionNodeId === nodeId) {
+          checkIceDetection(ice, nodeId);
+        }
       }
     }
   });
 
-  // Eject and reboot forcibly move ICE off its current node — treat as a departure.
-  on(E.ICE_EJECTED,  handleIceDeparture);
-  on(E.ICE_REBOOTED, handleIceDeparture);
+  // Eject and reboot forcibly move an instance off its current node — treat as a
+  // departure for that specific instance (both events carry iceId).
+  on(E.ICE_EJECTED,  ({ iceId }) => handleIceDeparture(iceId));
+  on(E.ICE_REBOOTED, ({ iceId }) => handleIceDeparture(iceId));
 
   // Respond to exploit execution noise via ACTION_FEEDBACK progress events.
   // The timed-action operator emits progress at every tick. We convert the progress
@@ -79,13 +97,15 @@ export function initIceHandlers() {
   on(E.ACTION_FEEDBACK, ({ nodeId, action, phase, progress }) => {
     if (action !== A.XPLOIT || phase !== "progress") return;
     const s = getState();
-    const ice = getPrimaryIce();
-    if (!ice || s.phase !== "playing") return;
-    const noiseTick = Math.floor(progress * 10);
-    const threshold = ICE_NOISE_THRESHOLD[ice.grade] ?? 5;
-    if (noiseTick < threshold) return;
+    if (s.phase !== "playing") return;
     if (s.lastDisturbedNodeId === nodeId) return;
-    setLastDisturbedNode(nodeId);
+    const noiseTick = Math.floor(progress * 10);
+    // Disturbance is a single global signal. If ANY active instance is sensitive
+    // enough at this noise level, record it once.
+    const disturbed = activeIceInstances(s).some(
+      (ice) => noiseTick >= (ICE_NOISE_THRESHOLD[ice.grade] ?? 5)
+    );
+    if (disturbed) setLastDisturbedNode(nodeId);
   });
 }
 
@@ -117,9 +137,17 @@ function nextHopToward(src, dst, adjacency) {
   return null;
 }
 
-export function handleIceTick() {
+export function handleIceTick(payload) {
   const s = getState();
   if (s.phase !== "playing") return;
+  // Per-instance timer: payload carries the iceId of the single instance to move.
+  if (payload?.iceId) {
+    const ice = s.ice?.instances?.[payload.iceId];
+    if (ice?.active) moveInstance(ice, s);
+    return;
+  }
+  // No iceId in payload: move all active instances. No production caller forwards
+  // an empty payload — retained as a defensive fallback / for direct test invocation.
   const instances = Object.values(s.ice?.instances ?? {});
   for (const instance of instances) {
     if (!instance.active) continue;
@@ -183,13 +211,8 @@ function moveInstance(ice, s) {
   const toLabel = toVisible ? (s.nodes[nextNode]?.label ?? nextNode) : "???";
   emitEvent(E.ICE_MOVED, { iceId: ice.id, fromId, toId: nextNode, fromLabel, toLabel, fromVisible, toVisible });
 
-  // Detection state is singleton-bound to the primary ICE for session 1.
-  // Only the primary instance drives dwell timer creation/cancellation;
-  // non-primary instances moving would otherwise cancel the primary's dwell.
-  const primaryIce = getPrimaryIce();
-  if (primaryIce?.id === ice.id) {
-    checkIceDetection(nextNode, { justArrived: true });
-  }
+  // Each instance drives its own per-id dwell timer on arrival.
+  checkIceDetection(ice, nextNode, { justArrived: true });
 }
 
 // Delay before detection starts when ICE arrives via movement (ms).
@@ -197,50 +220,51 @@ function moveInstance(ice, s) {
 // detection timer stay in sync — player sees ICE arrive, then countdown starts.
 const ARRIVAL_DELAY_MS = 400;
 
-function checkIceDetection(nodeId, { justArrived = false } = {}) {
+function checkIceDetection(ice, nodeId, { justArrived = false } = {}) {
   const s = getState();
-  const ice = getPrimaryIce();
   if (!ice) return;
   if (s.selectedNodeId !== nodeId) {
-    // ICE moved away from player's node — use shared departure handler.
-    handleIceDeparture();
+    // This instance moved away from the player's node — clear its own dwell/lock.
+    handleIceDeparture(ice.id);
     return;
   }
   if (ice.detectedAtNode === nodeId) return; // already detected here; player must move first
 
   const dwellMs = DWELL_TIMES[ice.grade];
-  cancelAllByType(TIMER.ICE_DETECT);
+  // Cancel only THIS instance's prior dwell — never the whole type.
+  if (ice.dwellTimerId != null) cancelEvent(ice.dwellTimerId);
 
   if (dwellMs === null) {
     // Instant detection — no escape possible
-    triggerDetection(nodeId);
+    triggerDetection(ice, nodeId);
   } else {
     const totalMs = dwellMs + (justArrived ? ARRIVAL_DELAY_MS : 0);
-    const timerId = scheduleEvent(TIMER.ICE_DETECT, totalMs, { nodeId }, { label: "ICE DETECTION" });
-    setIceDwellTimer(timerId);
+    const timerId = scheduleEvent(TIMER.ICE_DETECT, totalMs, { iceId: ice.id, nodeId }, { label: "ICE DETECTION" });
+    setIceDwellTimer(timerId, ice.id);
     emitEvent(E.ICE_DETECT_PENDING, { iceId: ice.id, nodeId, label: s.nodes[nodeId]?.label ?? nodeId, dwellMs: totalMs });
   }
 }
 
-export function handleIceDetect({ nodeId }) {
+export function handleIceDetect({ iceId, nodeId }) {
   const s = getState();
-  const ice = getPrimaryIce();
-  if (!ice) return;
+  // Resolve by id when present; fall back to the primary instance for legacy
+  // timer payloads serialized before per-instance iceId keying (snapshot parity).
+  const ice = iceId ? s.ice?.instances?.[iceId] : activeIceInstances(s)[0];
+  if (!ice || !ice.active) return;
   // Only fire if player is still on the detected node
   if (s.selectedNodeId === nodeId) {
-    triggerDetection(nodeId);
+    triggerDetection(ice, nodeId);
+    setIceDwellTimer(null, ice.id);
   }
 }
 
-function triggerDetection(nodeId) {
+function triggerDetection(ice, nodeId) {
   const s = getState();
-  const ice = getPrimaryIce();
   emitEvent(E.ICE_DETECTED, { iceId: ice?.id ?? null, nodeId, label: s.nodes[nodeId]?.label ?? nodeId });
   if (!ice) return;
   // Detection lock — applies to ALL ICE regardless of effects, so the same node
-  // doesn't re-detect until the player moves. (recordIceDetection also sets this
-  // for classic ICE; idempotent.)
-  setIceDetectedAt(nodeId);
+  // doesn't re-detect until the player moves. Per-instance: lock THIS instance.
+  setIceDetectedAt(nodeId, ice.id);
   applyIceEffects(ice, s, nodeId);
 }
 
@@ -250,6 +274,10 @@ function triggerDetection(nodeId) {
  * the player-orchestration wrappers (which end the run on depletion) and log a
  * readout. Untyped/legacy instances fall back to raise-alert — preserving
  * pre-dispatch behavior for fixtures like 'standard-ice'.
+ *
+ * Multi-instance: each detecting instance dispatches ITS OWN type's effects with
+ * its own id — a sentinel and a spike on the same run drain HEALTH and DECK
+ * independently, and a classic instance steps the shared alert via its own iceId.
  * @param {import('../types.js').IceInstance} ice
  * @param {import('../types.js').GameState} state
  * @param {string} nodeId
@@ -258,7 +286,7 @@ function applyIceEffects(ice, state, nodeId) {
   const type = getType(ice.typeId);
   const effects = type?.effects ?? [{ atom: "raise-alert", params: {} }];
   const ctx = {
-    propagateAlertEvent: (nid) => recordIceDetection(nid),
+    propagateAlertEvent: (nid) => recordIceDetection(nid, ice.id),
     damagePlayerHealth,
     damagePlayerDeck,
   };
@@ -305,14 +333,16 @@ export function cancelIceDwell() {
 // Resets detectedAtNode so the detection dwell fires immediately on arrival.
 export function teleportIce(nodeId) {
   const s = getState();
-  const ice = getPrimaryIce();
+  const ice = activeIceInstances(s)[0];
   if (!ice) return;
   if (!s.nodes[nodeId]) return;
   setIceDetectedAt(null);
-  // Reschedule ICE_MOVE from now so it doesn't fire mid-dwell and cancel detection.
+  // Reschedule only THIS instance's ICE_MOVE from now so it doesn't fire mid-dwell
+  // and cancel detection — leave other instances' move timers untouched.
+  if (ice.moveTimerId != null) cancelEvent(ice.moveTimerId);
   const interval = MOVE_INTERVALS[ice.grade] ?? 6000;
-  cancelAllByType(TIMER.ICE_MOVE);
-  scheduleRepeating(TIMER.ICE_MOVE, interval);
+  const id = scheduleRepeating(TIMER.ICE_MOVE, interval, { iceId: ice.id });
+  setIceMoveTimer(id, ice.id);
   const fromId = ice.attentionNodeId;
   if (fromId !== nodeId) {
     setIceAttention(nodeId);
@@ -322,32 +352,56 @@ export function teleportIce(nodeId) {
     const toLabel   = toVisible   ? (s.nodes[nodeId]?.label  ?? nodeId) : "???";
     emitEvent(E.ICE_MOVED, { iceId: ice.id, fromId, toId: nodeId, fromLabel, toLabel, fromVisible, toVisible });
   }
-  checkIceDetection(nodeId);
+  checkIceDetection(ice, nodeId);
 }
 
 // ── ICE orchestration (moved from state/index.js) ────────
 
-export function ejectIce() {
+// Eject the ICE instance present at a node. The EJECT action is node-targeted,
+// so `target` is normally a nodeId — we eject the active instance whose attention
+// is on that node (multi-instance correctness: a co-active instance elsewhere is
+// left alone). `target` may also be an explicit iceId (programmatic/test callers),
+// and a missing arg falls back to the first active instance (single-instance legacy).
+export function ejectIce(target) {
   const s = getState();
-  const ice = getPrimaryIce();
+  const active = activeIceInstances(s);
+  let ice;
+  if (target && s.ice?.instances?.[target]?.active) {
+    ice = s.ice.instances[target]; // explicit iceId
+  } else if (target) {
+    ice = active.find((i) => i.attentionNodeId === target); // nodeId
+  } else {
+    ice = active[0]; // legacy no-arg fallback
+  }
   if (!ice) return;
   const fromId = ice.attentionNodeId;
   const neighbors = s.adjacency[fromId] || [];
   if (neighbors.length === 0) return;
   const toId = randomPick(RNG.ICE, neighbors);
-  setIceAttention(toId);
+  setIceAttention(toId, ice.id);
   emitEvent(E.ICE_EJECTED, { iceId: ice.id, fromId, toId });
 }
 
+// Trigger-driven (IDS subversion of the ICE host monitor). Operates on the first
+// active instance — a single-instance assumption. No generated multi-ICE network
+// currently wires a disable trigger (only the legacy single-ICE corporate-exchange).
+// Revisit when multi-ICE networks gain disable triggers.
 export function disableIce() {
-  const ice = getPrimaryIce();
+  const ice = activeIceInstances(getState())[0];
   if (!ice) return;
   setIceActive(false);
   emitEvent(E.ICE_DISABLED, { iceId: ice.id });
 }
 
-export function rebootIce() {
-  const ice = getPrimaryIce();
+// Send the ICE instance present at `nodeId` back to its host node. Reboot is a
+// node-targeted action, so we resolve the instance whose attention is on the
+// rebooted node — leaving any co-active instance elsewhere untouched. A missing
+// arg falls back to the first active instance (single-instance legacy).
+export function rebootIce(nodeId) {
+  const active = activeIceInstances(getState());
+  const ice = nodeId
+    ? active.find((i) => i.attentionNodeId === nodeId)
+    : active[0];
   if (!ice) return;
-  setIceAttention(ice.hostNodeId);
+  setIceAttention(ice.hostNodeId, ice.id);
 }

@@ -114,6 +114,7 @@
  *   focus: "stationary" | "roaming",
  *   behaviorPattern: string,
  *   dwellTimerId: number|null,
+ *   moveTimerId: number|null,
  *   detectedAtNode: string|null,
  *   detectionCount: number,
  * }} IceInstance

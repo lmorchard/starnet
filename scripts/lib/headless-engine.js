@@ -44,7 +44,7 @@ export function initHeadlessEngine(opts = {}) {
  */
 function wireRunHandlers() {
   // Timer → handler wiring
-  on(TIMER.ICE_MOVE,   () => handleIceTick());
+  on(TIMER.ICE_MOVE,   (payload) => handleIceTick(payload));
   on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK, () => handleTraceTick());
 
