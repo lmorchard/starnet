@@ -1,11 +1,11 @@
 /* Starnet — Cyberpunk Vector Phosphene Aesthetic */
 
 /* Hershey vector webfont — stroke-built letterforms that match the retro
-   vector CRT aesthetic. The Regular .woff covers the whole 400–700 range so a
+   vector CRT aesthetic. The Light .woff covers the whole 400–700 range so a
    `font-weight: bold` request maps to the same file (no faux-bold synthesis). */
 @font-face {
   font-family: "Hershey Futura Duplex";
-  src: url("fonts/hershey/Hershey-Noailles-Futura-Duplex-Regular.woff") format("woff");
+  src: url("fonts/hershey/Hershey-Noailles-Futura-Duplex-Light.woff") format("woff");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
