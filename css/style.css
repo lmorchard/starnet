@@ -608,7 +608,11 @@ html, body {
 
 #action-choices .ac-choices {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Two columns: at the panel's width this gives ~135px cards, wide enough for
+     exploit names to sit on one line (or break cleanly at the space). Three
+     columns left cards too narrow for the longest name word, forcing ugly
+     mid-word wraps. */
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
   /* No scroll: the picker sizes to its cards. A scroll container here (overflow
      auto) clipped the top row's card titles at its edge — the `.match` lift
