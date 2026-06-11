@@ -4,6 +4,7 @@
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
 import { exploitCardBody } from "./exploit-card-view.js";
+import { matchingVulnIds, wearFraction } from "../../core/exploits.js";
 
 class StarnetHand extends StarnetElement {
   static properties = {
@@ -57,20 +58,23 @@ class StarnetHand extends StarnetElement {
   _renderCard(card, index) {
     const isExec = this.executingCardId === card.id;
     const disclosed = card.decayState === "disclosed";
+    const worn = card.decayState === "worn";
 
+    // Only usable cards participate in match highlighting — a disclosed or
+    // used-up card can't be played, so it should never read as a match.
+    const usable = !disclosed && card.usesRemaining > 0;
     let matchClass = "";
-    if (this.selectedNode?.probed && !isExec) {
-      const knownVulnIds = this.selectedNode.vulnerabilities
-        .filter((v) => !v.patched && !v.hidden)
-        .map((v) => v.id);
-      const hasMatch = card.targetVulnTypes.some((t) => knownVulnIds.includes(t));
-      matchClass = hasMatch ? "match" : "no-match";
+    let matchedVulnIds = [];
+    if (this.selectedNode?.probed && !isExec && usable) {
+      matchedVulnIds = matchingVulnIds(card, this.selectedNode);
+      matchClass = matchedVulnIds.length > 0 ? "match" : "no-match";
     }
 
     const isSelectable = this.isSelecting && !disclosed;
     const classes = [
       "exploit-card", `rarity-${card.rarity}`,
       disclosed ? "disclosed" : "",
+      worn ? "worn" : "",
       matchClass,
       isSelectable ? "selectable-card" : "",
       isExec ? "executing" : "",
@@ -80,8 +84,9 @@ class StarnetHand extends StarnetElement {
 
     return html`
       <div class="${classes}"
+           style=${`--wear:${wearFraction(card)}`}
            @click=${isSelectable ? () => this._onCardClick(card, index) : null}>
-        ${exploitCardBody(card, `${index}.`)}
+        ${exploitCardBody(card, `${index}.`, matchedVulnIds)}
         <div class="ec-executing-label">▶ EXECUTING — ${execPct}%</div>
         ${isExec ? html`
           <div class="ec-cancel-overlay" @click=${(e) => { e.stopPropagation(); this._onCancel(); }}>

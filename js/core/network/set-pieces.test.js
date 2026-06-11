@@ -851,6 +851,30 @@ describe("scatteredLock3: crack-vault requires all switches + owned", () => {
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [1500]);
   });
+
+  it("crack-vault is one-shot — spent after the first crack", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(scatteredLock3, "sl");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (const sw of ["sl/switch-a", "sl/switch-b", "sl/switch-c"]) {
+      graph._nodes.get(sw).attributes.accessLevel = "owned";
+    }
+    graph.executeAction("sl/switch-a", "activate");
+    graph.executeAction("sl/switch-b", "activate");
+    graph.executeAction("sl/switch-c", "activate");
+    graph._nodes.get("sl/vault").attributes.accessLevel = "owned";
+
+    // First crack pays out.
+    graph.executeAction("sl/vault", "crack-vault");
+    assert.equal(ctx.calls.giveReward?.length, 1);
+
+    // The vault is now spent: crack-vault is no longer offered, so the player
+    // cannot keep cracking it for cash. (Without a one-shot guard, the monotonic
+    // requires — owned + locks-opened>=n — stay true forever and it repeats.)
+    const available = graph.getAvailableActions("sl/vault").map((a) => a.id);
+    assert.ok(!available.includes("crack-vault"), "crack-vault should be spent after one crack");
+  });
 });
 
 describe("scatteredLock variants: correct switch counts and thresholds", () => {

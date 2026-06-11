@@ -120,6 +120,50 @@ An IDS at this level can be corrupted to stop forwarding alerts.
 
 ---
 
+## THE OVERWORLD HUB
+
+Between runs you sit in the **overworld hub** — your home base. The game opens
+here, and you return here after every run.
+
+The hub holds your **persistent state**. A single run is self-contained, but two
+things carry across runs:
+
+- **Bank** — your cash. Loot you extract is deposited here when you jack out clean.
+- **Exploit inventory** — the exploit cards you own. The darknet broker and mining
+  add to it, and it persists between runs.
+
+### Outfitting a run
+
+From the hub you:
+
+1. **Equip a loadout** — choose up to **5 exploits** from your inventory to take
+   into the run; these become your hand. (Click a card, or `equip <#>`.)
+2. **Carry cash** — decide how much of your bank to bring along, e.g. to shop the
+   darknet broker mid-run. (`carry <amount>`.)
+3. **Pick a target** — the hub offers a short list of targets at varying
+   difficulty. Selecting one launches the run. (`launch <id>`.)
+
+From the hub you can also **discard disclosed exploits** (burned-out cards
+cluttering your inventory) and **visit the darknet broker** — opened from the
+hub, the broker spends your **bank** and delivers purchases straight to your
+**inventory** (rather than in-run cash and your hand).
+
+### Stakes
+
+What you bring is what you risk:
+
+- **Clean jack-out** — your carried cash plus any loot is banked, and your loadout
+  returns to inventory (worn by use, but yours). Cards you bought or mined mid-run
+  are added to your inventory too.
+- **Traced (caught)** — you lose the run's cash **and your carried loadout is
+  burned** — those exploits are seized, gone from your inventory. Your bank and the
+  exploits you *didn't* bring are safe.
+
+A loadout is an ante: bring your best cards against a hard target and a trace costs
+you dearly; bring cheap cards and you risk less but crack less.
+
+---
+
 ## THE CORE LOOP
 
 ### 1. Select a Node
@@ -239,19 +283,33 @@ Your hand contains five exploit cards, randomly generated at the start of each r
 | Rare      | 3 vuln types | 8             | High–Very High|
 
 **Quality** is shown as a pip meter (█░░░░ to █████). Higher quality means better
-base success chances, especially on unprobed or high-grade nodes.
+base success chances, especially on unprobed or high-grade nodes. The pip meter is
+also **color-coded** along a ramp — dim red (low) → amber → bright green/white
+(high) — so a card's strength reads at a glance. The pip count carries the same
+information without relying on color.
 
-**Decay** — Cards wear out:
+**Vulnerability glyphs** — Each vulnerability type has its own **glyph**, shown on
+both the exploit card (next to each vuln it targets) and on the node panel (next to
+each revealed vulnerability). Color groups the glyphs by rarity tier: teal (common),
+amber (uncommon), magenta (rare). The textual vuln id stays next to the glyph, and
+`status` output is unchanged.
 
-- Each use costs one **use** from the remaining count
-- When uses drop low and the card takes a failure hit, it becomes **worn** — still usable, but flagged
-- A failed exploit can also **disclose** a card — the exploit signature leaks to the blue team,
-  rendering the card useless for further escalation attempts. Disclosed cards stay in your hand
+**Decay** — Cards wear out, and *look* worn as they do:
+
+- Each use costs one **use** from the remaining count; the card progressively
+  **desaturates** as its uses deplete
+- When uses drop low and the card takes a failure hit, it becomes **worn** — still
+  usable, but desaturated and showing hairline cracks
+- A failed exploit can also **disclose** a card — the exploit signature leaks to the
+  blue team, rendering the card useless for further escalation attempts. Disclosed
+  cards stay in your hand (rendered greyed-out, struck-through, and visibly burnt)
   but cannot be played.
 
 When a node is targeted, your hand re-sorts: matching cards first, then usable cards,
 then worn, then disclosed. Cards that match the selected node's known vulnerabilities
-highlight in cyan.
+**glow green and lift**, and the specific shared **vuln glyph lights up** on the card —
+a visual lock-and-key against the node's revealed vulnerabilities. Non-matching cards
+recede (dimmed and desaturated).
 
 The numbers shown next to cards in `status hand` are the numbers to use with
 `xploit <n>` — the sort order changes with your selection, so always check
@@ -586,6 +644,17 @@ jackout                End run.
 
 darknet                List darknet broker catalog (requires WAN targeted).
 buy <index>            Purchase exploit card from broker (requires WAN targeted).
+
+hub                    Open the overworld hub (between runs).
+inventory              List your bank balance and persistent exploit inventory.
+equip <#|id>           Add an inventory exploit to your loadout (max 5).
+unequip <#|id>         Remove an exploit from your loadout.
+carry <amount>         Set how much cash to carry into the next run.
+discard-disclosed      Discard all disclosed (burned) exploits from inventory.
+targets                List available targets to launch.
+launch <targetId>      Start a run against a target with your loadout + carried cash.
+                       (At the hub, `darknet` lists the broker catalog and `buy <index>`
+                        purchases into your inventory, spending bank.)
 
 status                 Summary status — alert, wallet, HEALTH, DECK INTEGRITY, ICE, hand (alias: status summary)
 status full            Complete state dump — includes HEALTH and DECK INTEGRITY

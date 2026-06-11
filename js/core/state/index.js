@@ -156,7 +156,12 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     nodeGraph: graph,
     player: {
       cash: meta.startCash ?? 1000,
-      hand: generateStartingHand(meta.startHand),
+      // Clone startHandCards so in-run decay never mutates the caller's objects
+      // (e.g. profile inventory) — matches generateStartingHand's fresh-objects
+      // contract. instanceId is preserved for commit write-back.
+      hand: meta.startHandCards
+        ? meta.startHandCards.map((c) => ({ ...c, targetVulnTypes: [...c.targetVulnTypes] }))
+        : generateStartingHand(meta.startHand),
       health:        { current: meta.startHealth        ?? 100, max: meta.startHealth        ?? 100 },
       deckIntegrity: { current: meta.startDeckIntegrity ?? 100, max: meta.startDeckIntegrity ?? 100 },
     },

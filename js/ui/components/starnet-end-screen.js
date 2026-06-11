@@ -87,7 +87,7 @@ class StarnetEndScreen extends StarnetElement {
           <span class="end-val">${this.macguffinsLooted}</span>
         </div>
         <div class="end-divider">════════════════════════</div>
-        <button class="end-btn" @click=${this._onRunAgain}>[ RUN AGAIN ]</button>
+        <button class="end-btn" @click=${this._onRunAgain}>[ RETURN TO HUB ]</button>
       </div>`;
   }
 }

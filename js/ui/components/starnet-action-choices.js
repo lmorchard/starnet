@@ -7,6 +7,7 @@
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
 import { exploitCardBody } from "./exploit-card-view.js";
+import { wearFraction } from "../../core/exploits.js";
 
 class StarnetActionChoices extends StarnetElement {
   static properties = {
@@ -63,11 +64,16 @@ class StarnetActionChoices extends StarnetElement {
 
   _renderChoice(choice) {
     if (choice.render === "exploit-card") {
-      // All cards shown here are pre-filtered to applicable choices, so "match" is always correct.
+      // Mirror the hand: light the shared glyph(s) + apply the match glow when the
+      // node reveals a target. Pre-probe (blind play) matchedVulnIds is empty, so
+      // candidates render neutral rather than falsely highlighted.
+      const matched = choice.matchedVulnIds || [];
+      const worn = choice.data.decayState === "worn";
       return html`
-        <div class="exploit-card rarity-${choice.data.rarity} selectable-card match"
+        <div class="exploit-card rarity-${choice.data.rarity} selectable-card ${matched.length ? "match" : ""} ${worn ? "worn" : ""}"
+             style=${`--wear:${wearFraction(choice.data)}`}
              @click=${() => this._pick(choice)}>
-          ${exploitCardBody(choice.data)}
+          ${exploitCardBody(choice.data, undefined, matched)}
         </div>`;
     }
     return nothing;

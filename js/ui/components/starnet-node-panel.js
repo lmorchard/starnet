@@ -4,6 +4,7 @@
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
 import { isObscured } from "../../core/state.js";
+import { vulnGlyphDataUri } from "../vuln-glyphs.js";
 
 class StarnetNodePanel extends StarnetElement {
   static properties = {
@@ -92,6 +93,7 @@ class StarnetNodePanel extends StarnetElement {
       <div class="nd-vulns">
         ${visibleVulns.map((v) => html`
           <div class="nd-vuln ${v.patched ? "patched" : ""}">
+            <img class="nd-vuln-glyph" src=${vulnGlyphDataUri(v.id)} alt="" />
             <span class="vuln-name">${v.name}</span>
             <span class="vuln-rarity rarity-${v.rarity}">[${v.rarity.toUpperCase()}]</span>
           </div>

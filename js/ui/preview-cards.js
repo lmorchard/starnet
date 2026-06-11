@@ -7,6 +7,8 @@
 
 /** @typedef {import('../core/types.js').ExploitCard} ExploitCard */
 
+import { ALL_VULN_GLYPH_IDS, vulnGlyphDataUri } from "./vuln-glyphs.js";
+
 const RARITIES = /** @type {const} */ (["common", "uncommon", "rare"]);
 const WEARS = /** @type {const} */ (["fresh", "worn", "disclosed"]);
 const QUALITY = { low: 0.2, mid: 0.55, high: 0.9 };
@@ -65,10 +67,31 @@ export function cardGalleryGroups() {
       selectedNode: MOCK_SELECTED_NODE,
       cards: [
         card({ rarity: "rare", vuln: "unpatched-ssh", name: "match (ssh)" }),
-        card({ rarity: "common", vuln: "sql-injection", name: "no-match (sqli)" }),
+        card({ rarity: "common", vuln: "kernel-exploit", name: "no-match (kernel)" }),
       ],
     },
   ];
+}
+
+/**
+ * Mount the vuln-glyph swatch sheet: one labeled cell per vuln type, so all 15
+ * glyphs can be eyeballed for distinctness/legibility at small size.
+ * @param {HTMLElement} container
+ */
+export function mountVulnSwatches(container) {
+  for (const id of ALL_VULN_GLYPH_IDS) {
+    const cell = document.createElement("div");
+    cell.className = "vuln-swatch";
+    const img = document.createElement("img");
+    img.src = vulnGlyphDataUri(id);
+    img.width = 40;
+    img.height = 40;
+    img.alt = id;
+    const label = document.createElement("span");
+    label.textContent = id;
+    cell.append(img, label);
+    container.appendChild(cell);
+  }
 }
 
 /**

@@ -47,6 +47,10 @@
 
 /**
  * An exploit card in the player's hand.
+ * `instanceId` is a profile-scoped unique id, assigned when the card enters the
+ * persistent inventory (js/core/profile). It is distinct from `id` (a per-run,
+ * vuln-type+counter display id) and is what lets a specific card be written back
+ * or burned across runs. Absent on freshly-generated, not-yet-banked cards.
  * @typedef {{
  *   id: string,
  *   name: string,
@@ -55,6 +59,7 @@
  *   targetVulnTypes: string[],
  *   decayState: DecayState,
  *   usesRemaining: number,
+ *   instanceId?: string,
  * }} ExploitCard
  */
 
@@ -134,6 +139,19 @@
  *   health: { current: number, max: number },
  *   deckIntegrity: { current: number, max: number },
  * }} PlayerState
+ */
+
+/**
+ * Persistent cross-run player profile. Lives OUTSIDE GameState (in localStorage
+ * via js/ui/profile-store.js), so it survives resetGame between runs. Model and
+ * mutations are in js/core/profile.
+ * @typedef {{
+ *   version: number,
+ *   bank: number,
+ *   inventory: ExploitCard[],
+ *   _instanceSeq: number,
+ *   _hubVisits: number,
+ * }} StarnetProfile
  */
 
 /**
