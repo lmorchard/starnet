@@ -618,11 +618,11 @@ export const honeyPot = {
     {
       id: "honey-pot",
       type: "honey-pot",
-      traits: ["graded", "hackable", "rebootable"],
-      attributes: { accessLevel: "owned", contents: "corp-secrets", poisoned: false },
+      traits: ["graded", "hackable", "rebootable", "lootable"],
+      attributes: { accessLevel: "owned", contents: "corp-secrets", poisoned: false, trap: true },
       operators: [{ name: "flag", on: "exploit", attr: "poisoned" }],
       actions: [],
-      // Per-node trigger: fire trace when poisoned (exploit received)
+      // Per-node trigger: fire trace when poisoned (exploit/fetch/mine received)
       triggers: [{
         id: "triggered",
         when: { type: "node-attr", attr: "poisoned", eq: true },

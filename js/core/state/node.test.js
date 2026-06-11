@@ -115,12 +115,12 @@ describe("state/node — node mutations", () => {
 });
 
 describe("state/node — isObscured", () => {
-  it("aliased and unprobed node is obscured", () => {
-    assert.equal(isObscured({ sigAlias: "sig-1", probed: false }), true);
+  it("aliased and unprobed locked node is obscured", () => {
+    assert.equal(isObscured({ sigAlias: "sig-1", accessLevel: "locked", probed: false }), true);
   });
 
   it("aliased but probed node is NOT obscured (probe revealed it)", () => {
-    assert.equal(isObscured({ sigAlias: "sig-1", probed: true }), false);
+    assert.equal(isObscured({ sigAlias: "sig-1", accessLevel: "locked", probed: true }), false);
   });
 
   it("node without an alias is never obscured (e.g. foothold/gateway)", () => {
@@ -129,8 +129,24 @@ describe("state/node — isObscured", () => {
 
   it("accessible-but-unprobed aliased node is obscured (the navigation case)", () => {
     assert.equal(
-      isObscured({ sigAlias: "sig-2", visibility: "accessible", probed: false }),
+      isObscured({ sigAlias: "sig-2", accessLevel: "locked", visibility: "accessible", probed: false }),
       true
+    );
+  });
+
+  it("owned-but-unprobed node is NOT obscured (you're inside it — e.g. honey-pot bait)", () => {
+    // Honey-pot ships accessLevel:"owned" + probed:false and can never be probed
+    // (PROBE requires locked), so the only escape from sig-N is the "own it = know it" rule.
+    assert.equal(
+      isObscured({ sigAlias: "sig-11", accessLevel: "owned", probed: false }),
+      false
+    );
+  });
+
+  it("compromised-but-unprobed node is NOT obscured (you're inside it)", () => {
+    assert.equal(
+      isObscured({ sigAlias: "sig-1", accessLevel: "compromised", probed: false }),
+      false
     );
   });
 

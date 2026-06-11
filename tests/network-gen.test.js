@@ -574,6 +574,30 @@ describe("Per-wing palette filtering", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Honey-pot disguise in generated networks
+// ---------------------------------------------------------------------------
+
+describe("generateNetwork: honey-pots are disguised", () => {
+  it("a generated corporate network never exposes a honey-pot type, and disguise is seeded", () => {
+    // "disguise-seed-8" reliably produces a honey-pot in the security-ops wing.
+    const a = generateNetwork("disguise-seed-8", CORPORATE_BIOME.defaultBudget, CORPORATE_BIOME).graphDef;
+    const trap = a.nodes.find((n) => n.attributes?.trap);
+    // Fail loudly (not a silent skip) if this seed stops yielding a honey-pot —
+    // that would mean generation changed and the seed must be re-picked, else
+    // the disguise invariant would go silently unverified.
+    assert.ok(trap, "expected seed 'disguise-seed-8' to produce a honey-pot; pick a new seed if generation changed");
+    assert.notEqual(trap.type, "honey-pot", "disguise must hide the real type");
+    assert.ok(["fileserver", "workstation"].includes(trap.type));
+
+    // Same seed → identical disguise (deterministic).
+    const b = generateNetwork("disguise-seed-8", CORPORATE_BIOME.defaultBudget, CORPORATE_BIOME).graphDef;
+    const trapB = b.nodes.find((n) => n.id === trap.id);
+    assert.equal(trapB.type, trap.type);
+    assert.equal(trapB.attributes.label, trap.attributes.label);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // ICE placement — one roaming ICE per security-monitor (cap 3), threat >= B
 // ---------------------------------------------------------------------------
 

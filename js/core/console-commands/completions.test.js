@@ -259,7 +259,7 @@ describe("tabComplete: card completion (exploit, explicit form)", () => {
 describe("tabComplete: revealed node alias completion", () => {
   // sigAlias is assigned by revealNeighbors in real gameplay; set it directly in tests.
   function makeRevealed(id, label, sigAlias) {
-    return { ...makeNode(id, label, "revealed"), sigAlias };
+    return { ...makeNode(id, label, "revealed"), accessLevel: "locked", sigAlias };
   }
 
   const state = makeState({
@@ -306,7 +306,7 @@ describe("tabComplete: navigated-but-unprobed node stays obscured", () => {
   // An accessible node that has a sig-N alias and is not yet probed — the state
   // produced by traversing into a revealed neighbor. Identity must stay hidden.
   function makeObscuredAccessible(id, label, sigAlias) {
-    return { ...makeNode(id, label, "accessible"), sigAlias, probed: false };
+    return { ...makeNode(id, label, "accessible"), accessLevel: "locked", sigAlias, probed: false };
   }
 
   const state = makeState({

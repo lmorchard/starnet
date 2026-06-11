@@ -44,6 +44,7 @@ import { setGlobalAlert } from "../js/core/state/alert.js";
 // NODE_RECONFIGURED listeners. No separate init call needed.
 // Old executor imports removed — timed actions now graph-native
 import { RNG, _forceNext } from "../js/core/rng.js";
+import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { activeIceInstances } from "../js/core/state/ice.js";
 import { cmdStatusIce } from "../js/core/console-commands/cmd-status.js";
 import { initActionDispatcher, buildActionContext } from "../js/core/actions/action-context.js";
@@ -1141,6 +1142,53 @@ describe("mine action", () => {
 
   it("MINE_TAPOUT threshold is the documented ~5%", () => {
     assert.equal(MINE_TAPOUT, 0.05);
+  });
+});
+
+describe("honey-pot trap: MINE springs the counter-trace", () => {
+  beforeEach(() => {
+    clearAll();
+  });
+
+  it("mining a trap node poisons it, starts the trace, and grants no card", () => {
+    initGame(() => buildCorporateExchange(), "honeypot-mine-seed");
+    const s = getState();
+    const graph = s.nodeGraph;
+    const handBefore = s.player.hand.length;
+
+    graph.executeAction("pot/honey-pot", "mine");
+    graph.tick(60);
+
+    assert.equal(graph.getNodeState("pot/honey-pot").poisoned, true, "mine must poison the node");
+    assert.notEqual(getState().traceSecondsRemaining, null, "mine must start the trace");
+    assert.equal(getState().player.hand.length, handBefore, "mine must grant no card on a trap node");
+  });
+});
+
+describe("honey-pot trap: FETCH springs the counter-trace", () => {
+  beforeEach(() => {
+    clearAll();
+  });
+
+  it("dumping is safe; fetching traps, pays no cash, and starts the trace", () => {
+    initGame(() => buildCorporateExchange(), "honeypot-fetch-seed");
+    const s = getState();
+    const graph = s.nodeGraph;
+    const cashBefore = s.player.cash;
+
+    // DUMP — safe bait. resolveRead sets read:true; trap must NOT fire.
+    graph.executeAction("pot/honey-pot", "dump");
+    graph.tick(40);
+    assert.equal(graph.getNodeState("pot/honey-pot").read, true, "dump should complete");
+    assert.equal(graph.getNodeState("pot/honey-pot").poisoned, false, "dump must not spring the trap");
+    assert.equal(getState().traceSecondsRemaining, null, "dump must not start a trace");
+
+    // FETCH — the snap.
+    graph.executeAction("pot/honey-pot", "fetch");
+    graph.tick(40);
+    assert.equal(graph.getNodeState("pot/honey-pot").poisoned, true, "fetch must poison the node");
+    assert.notEqual(getState().traceSecondsRemaining, null, "fetch must start the trace");
+    assert.equal(getState().player.cash, cashBefore, "fetch must pay no cash on a trap node");
   });
 });
 

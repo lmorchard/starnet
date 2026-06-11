@@ -13,6 +13,8 @@ import {
   createGateway, createRouter, createFirewall, createCryptovault,
   createWAN,
 } from "../../js/core/node-graph/game-types.js";
+import { disguiseTrapNodes } from "../../js/core/network/disguise.js";
+import { makeSeededRng } from "../../js/core/rng.js";
 
 /**
  * @returns {{ graphDef: import('../../js/core/node-graph/runtime.js').NodeGraphDef, meta: object }}
@@ -89,6 +91,11 @@ export function buildNetwork() {
       then: [{ effect: "ctx-call", method: "disableIce", args: [] }],
     },
   ];
+
+  // Static network: deterministic disguise via an arbitrary stable seed (this
+  // string only seeds the disguise pick — changing it changes which loot type
+  // the honey-pot masquerades as) so the honey-pot still looks like a loot node.
+  disguiseTrapNodes(nodes, makeSeededRng("corporate-exchange-honeypot"));
 
   return {
     graphDef: { nodes, edges, triggers },
