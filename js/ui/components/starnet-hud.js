@@ -14,6 +14,10 @@ class StarnetHud extends StarnetElement {
     isCheating: { type: Boolean },
     phase: { type: String },
     paused: { type: Boolean },
+    health: { type: Number },
+    healthMax: { type: Number },
+    deck: { type: Number },
+    deckMax: { type: Number },
   };
 
   constructor() {
@@ -26,6 +30,10 @@ class StarnetHud extends StarnetElement {
     this.isCheating = false;
     this.phase = "";
     this.paused = false;
+    this.health = 100;
+    this.healthMax = 100;
+    this.deck = 100;
+    this.deckMax = 100;
   }
 
   _emit(action, detail = {}) {
@@ -39,6 +47,18 @@ class StarnetHud extends StarnetElement {
     if (!file) return;
     this._emit("load", { file });
     e.target.value = "";
+  }
+
+  _meter(label, current, max) {
+    const frac = max > 0 ? current / max : 0;
+    const color = frac > 0.6 ? "var(--green)" : frac > 0.3 ? "var(--yellow)" : "var(--red)";
+    return html`
+      <span class="hud-label">${label}:</span>
+      <span class="hud-meter" title="${current}/${max}">
+        <span class="hud-meter-fill" style="width:${Math.round(frac * 100)}%;background:${color}"></span>
+        <span class="hud-meter-text" style="color:${color}">${current}</span>
+      </span>
+    `;
   }
 
   render() {
@@ -67,6 +87,9 @@ class StarnetHud extends StarnetElement {
 
       <span class="hud-label">WALLET:</span>
       <span class="hud-value" id="wallet">¥${this.cash.toLocaleString()}</span>
+
+      ${this._meter("HEALTH", this.health, this.healthMax)}
+      ${this._meter("DECK", this.deck, this.deckMax)}
 
       ${this.traceSeconds !== null && this.phase === "playing" ? html`
         <span id="trace-countdown" class="hud-value trace-countdown">TRACE: ${this.traceSeconds}s</span>
