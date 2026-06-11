@@ -413,7 +413,8 @@ In addition to the trace, you have two resource pools that start each run at 100
   Fiction: the deck's OS is corrupted past recovery.
 
 Both are shown in the HUD as color-ramping meters (green → yellow → red). They appear in
-`status` and `status full`. Damage events are logged: e.g. `neural feedback: −20 HEALTH (80 left)`.
+`status` and `status full`. Damage events are logged with the offending node, e.g.
+`[ICE] gateway neural feedback: −20 HEALTH (80 left)` or `[ICE] router-2 deck corruption: −20 DECK (80 left)`.
 
 These are **parallel loss conditions** alongside the trace. A successful jack-out ends in
 `success`; a trace that hits zero ends in `caught`; HEALTH depletion ends in `burned`; DECK
@@ -521,7 +522,8 @@ The practical implication: **which ICE you face determines which clock you're ra
 network with patrol ICE puts pressure on your trace timer. A network with a Sentinel puts
 pressure on your HEALTH. A Spike pursues your deck. A run can end without the trace ever
 reaching red — if Sentinel or Spike detects you enough times. (There is one ICE entity per
-run; its type is set at spawn.)
+run; its type is rolled at spawn. At B+ that roll is weighted — a patrol ICE can still turn
+up — so a high-threat run doesn't guarantee a damaging type.)
 
 Counters are the same regardless of ICE type: untarget, eject, or reboot.
 
