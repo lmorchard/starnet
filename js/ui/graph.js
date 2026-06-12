@@ -15,6 +15,31 @@ const DEFAULT_LAYOUT_ALGO = "cola";
 // common dodecagon container (state on border/fill) + an ideographic glyph
 // background-image (type identity). See issue #126.
 
+// graph.js keeps @ts-nocheck for the untyped Cytoscape API, but documents its
+// OWN data shapes so callers/readers have a contract (#172). These typedefs are
+// documentation here (this file isn't checked); they're real enough to import.
+/**
+ * @typedef {Object} GraphNodeInput
+ * @property {string} id
+ * @property {string} label
+ * @property {string} type
+ * @property {string} grade
+ */
+/**
+ * @typedef {Object} GraphEdgeInput
+ * @property {string} source
+ * @property {string} target
+ */
+/**
+ * Topology handed to initGraph/resetGraph. The board starts empty; nodes are
+ * added to Cytoscape as they become visible. (toCytoscapeFormat also attaches
+ * startNode/startCash/moneyCost/ice for other consumers; graph.js reads only
+ * nodes + edges.)
+ * @typedef {Object} GraphNetworkConfig
+ * @property {GraphNodeInput[]} nodes
+ * @property {GraphEdgeInput[]} edges
+ */
+
 // Grade → border color intensity
 const GRADE_COLORS = {
   S: "#ff2020",
@@ -192,6 +217,11 @@ export function getBloomIntensity() {
   return bloomIntensity;
 }
 
+/**
+ * @param {GraphNetworkConfig} networkData
+ * @param {(nodeId: string) => void} [onNodeClick]
+ * @param {() => void} [onBackgroundTap]
+ */
 export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   ensureBloomFilter();
   // Store full topology for deferred node addition
@@ -302,7 +332,7 @@ export function syncInitialNodes(nodes) {
  * Reuses the existing cy instance — clears all elements rather than destroying
  * cy, so there's no teardown/leak. Call before syncInitialNodes when starting a
  * fresh run (first boot, run-again, hub launch); a no-op if cy isn't built yet.
- * @param {{ nodes: {id:string,label:string,type:string,grade:string}[], edges: {source:string,target:string}[] }} networkData
+ * @param {GraphNetworkConfig} networkData
  */
 export function resetGraph(networkData) {
   if (!cy) return;

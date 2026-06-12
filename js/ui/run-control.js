@@ -1,4 +1,4 @@
-// @ts-nocheck — DOM/graph wiring; cy typing noise outweighs benefit here.
+// @ts-check
 // The single in-place run-start path, shared by first boot, run-again, and the
 // hub launch. Extracted from main.js so hub.js can start runs without a circular
 // import on main.js.

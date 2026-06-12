@@ -18,12 +18,12 @@ serve:
 
 # Run JSDoc/TypeScript type checker (no build step, annotations only)
 # Discovers all js/**/*.js automatically; excludes:
-#   graph.js and main.js  (@ts-nocheck — Cytoscape/CustomEvent typing noise)
+#   graph.js              (@ts-nocheck — Cytoscape.js has no bundled types)
 #   *.test.js             (test files, not type-checked here)
 #   fixtures/             (test fixture data)
 lint:
 	npx tsc --noEmit --allowJs --checkJs --target ES2020 --moduleResolution bundler --module ES2020 \
-		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'main.js' ! -name 'vendor.js' ! -name 'lit-vendor.js')
+		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'vendor.js' ! -name 'lit-vendor.js')
 
 # Run unit + integration tests
 test:
