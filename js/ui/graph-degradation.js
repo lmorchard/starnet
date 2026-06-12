@@ -501,7 +501,17 @@ export function stopGraphDegradation() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0;
   const cy = getCy();
-  if (cy && (basePos || pool.size)) restoreDeck(cy);
+  if (cy && (basePos || pool.size)) {
+    restoreDeck(cy); // graph still live → restore positions/styles, then clear deck state
+  } else if (basePos || pool.size || gridGlitchActive) {
+    // Graph already disposed: we can't restore to a dead cy, but the module must still
+    // return to a clean baseline (per this function's contract) so a later restart can't
+    // inherit stale particles / a stuck grid flag. Discard without restoring.
+    pool.reset();
+    basePos = null;
+    if (containerEl) { containerEl.style.backgroundImage = ""; containerEl.style.backgroundSize = ""; }
+    gridGlitchActive = false;
+  }
   if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
   gl = null; canvas = null; program = null; uniforms = null;
   // Reset the health CSS filter to the base bloom so the graph doesn't stay blurred/hue-shifted

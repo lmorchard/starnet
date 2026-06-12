@@ -61,4 +61,13 @@ export class ParticlePool {
     for (const p of this._particles) p.restore?.();
     this._particles = [];
   }
+
+  /**
+   * Drop every particle WITHOUT restoring — for when the thing particles act on is
+   * already gone (e.g. the graph was disposed), so calling restore would touch a dead
+   * target. Prefer clear() whenever the target is still alive.
+   */
+  reset() {
+    this._particles = [];
+  }
 }

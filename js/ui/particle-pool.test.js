@@ -75,4 +75,14 @@ describe("ParticlePool", () => {
   test("tick on an empty pool is a no-op", () => {
     assert.doesNotThrow(() => new ParticlePool().tick(123));
   });
+
+  test("reset empties the pool WITHOUT calling restore", () => {
+    const pool = new ParticlePool();
+    let restored = 0;
+    pool.add({ until: 999, restore: () => restored++ });
+    pool.add({ until: 999, restore: () => restored++ });
+    pool.reset();
+    assert.equal(restored, 0, "reset must not restore (target may be gone)");
+    assert.equal(pool.size, 0);
+  });
 });
