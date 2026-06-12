@@ -8,17 +8,10 @@ import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCount
 import { setIceDetectedAt, incrementIceDetectionCount, activeIceInstances } from "./state/ice.js";
 import { emitEvent, E } from "./events.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
+import { DETECTION_TRACE_THRESHOLD, MONITOR_TRACE_THRESHOLD, TRACE_SECONDS } from "./balance.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
-
-// Detection thresholds: cumulative detections before trace starts, by ICE grade
-const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
-
-// Security-grid trace gate: accumulated monitor alerts before trace starts, by network grade.
-// Mirrors DETECTION_TRACE_THRESHOLD (ICE) but kept separate so the passive grid and the active
-// ICE pursuit can be tuned independently.
-const MONITOR_TRACE_THRESHOLD = { S: 4, A: 5, B: 7, C: 9, D: 12, F: 15 };
 
 // Global alert escalation now flows entirely through the two sensors:
 //   - recordIceDetection (active ICE pursuit), below
@@ -26,11 +19,10 @@ const MONITOR_TRACE_THRESHOLD = { S: 4, A: 5, B: 7, C: 9, D: 12, F: 15 };
 // plus set-piece startTrace alarms. The legacy node-type-counting layer
 // (recomputeGlobalAlert / propagateAlertEvent / raiseGlobalAlert, gated on
 // alertState + eventForwardingDisabled) was retired in #173.
+// Trace thresholds (DETECTION_/MONITOR_TRACE_THRESHOLD) and the countdown
+// durations (TRACE_SECONDS) are tuning knobs — see js/core/balance.js (#169).
 
 // ── Trace countdown ───────────────────────────────────────
-
-/** Trace countdown duration scales with network threat grade. */
-const TRACE_SECONDS = { S: 30, A: 40, B: 45, C: 60, D: 75, F: 90 };
 
 export function startTraceCountdown() {
   const s = getState();

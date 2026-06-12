@@ -64,8 +64,10 @@
  */
 
 /**
- * Result of resolveExploit(). levelChanged and partialBurn are added by state.js
- * after the initial result is constructed.
+ * Result of resolveExploit() / resolveCombat(). The first six fields are the pure
+ * combat outcome; the rest form the side-effect-free PLAN that resolveCombat decides
+ * and applyCombatResult executes (access transition, alert raise, staged-vuln
+ * surfacing). partialBurn is set later by applyCardDecay.
  * @typedef {{
  *   success: boolean,
  *   disclosed: boolean,
@@ -75,6 +77,13 @@
  *   flavor: string,
  *   levelChanged?: boolean,
  *   partialBurn?: boolean,
+ *   skippedToOwned?: boolean,
+ *   prevAccess?: AccessLevel,
+ *   nextAccess?: AccessLevel,
+ *   revealNeighbors?: boolean,
+ *   vulnsToSurface?: number[],
+ *   prevAlert?: NodeAlertLevel,
+ *   nextAlert?: NodeAlertLevel,
  * }} ExploitResult
  */
 
