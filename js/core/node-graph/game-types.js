@@ -13,14 +13,15 @@
 
 import { A } from "../action-ids.js";
 import { getExploitChoices, getExploitEmptyReason } from "../exploits.js";
+import { ABORTABLE_FLAGS, getTimedActionAttrNames } from "./timed-actions.js";
 
 // ── Shared action templates ──────────────────────────────────
 
-// activeAttr flag for each player-initiated timed action. This is the single
-// source of truth for the abortable timed-action set: ABORT shows when any of
-// these is true, and NOT_BUSY (below) requires all of them false. When adding a
-// new timed action, add its activeAttr here — both lists stay in sync.
-const TIMED_ACTION_FLAGS = ["probing", "exploiting", "reading", "looting", "mining", "lyingLow"];
+// activeAttr flags for the player-initiated, abortable timed actions, sourced
+// from the TIMED_ACTIONS registry (timed-actions.js): ABORT shows when any is
+// true, and NOT_BUSY (below) requires all of them false. Add new timed actions
+// to the registry, not here.
+const TIMED_ACTION_FLAGS = ABORTABLE_FLAGS;
 
 // A node may run at most ONE timed action at a time. Every startable action
 // requires the node be idle: no timed action in flight, and not rebooting.
@@ -48,7 +49,7 @@ const PROBE_ACTION = {
   ],
   effects: [
     { effect: "set-attr", attr: "probing", value: true },
-    { effect: "set-attr", attr: "_ta_probe_progress", value: 0 },
+    { effect: "set-attr", attr: getTimedActionAttrNames("probe").progressAttr, value: 0 },
   ],
 };
 
@@ -123,9 +124,8 @@ const DUMP_ACTION = {
   ],
   effects: [
     { effect: "set-attr", attr: "reading", value: true },
-    // Must match the dump timed-action operator's progress attr (_ta_dump_progress,
-    // derived from action:"dump"), not a phantom _ta_read_progress.
-    { effect: "set-attr", attr: "_ta_dump_progress", value: 0 },
+    // Derived from the registry so it always matches the dump operator's progress attr.
+    { effect: "set-attr", attr: getTimedActionAttrNames("dump").progressAttr, value: 0 },
   ],
 };
 
@@ -144,9 +144,8 @@ const FETCH_ACTION = {
   ],
   effects: [
     { effect: "set-attr", attr: "looting", value: true },
-    // Must match the fetch timed-action operator's progress attr (_ta_fetch_progress,
-    // derived from action:"fetch"), not a phantom _ta_loot_progress.
-    { effect: "set-attr", attr: "_ta_fetch_progress", value: 0 },
+    // Derived from the registry so it always matches the fetch operator's progress attr.
+    { effect: "set-attr", attr: getTimedActionAttrNames("fetch").progressAttr, value: 0 },
   ],
 };
 
@@ -164,7 +163,7 @@ const MINE_ACTION = {
   ],
   effects: [
     { effect: "set-attr", attr: "mining", value: true },
-    { effect: "set-attr", attr: "_ta_mine_progress", value: 0 },
+    { effect: "set-attr", attr: getTimedActionAttrNames("mine").progressAttr, value: 0 },
   ],
 };
 
@@ -267,7 +266,7 @@ const LIE_LOW_ACTION = {
   ],
   effects: [
     { effect: "set-attr", attr: "lyingLow", value: true },
-    { effect: "set-attr", attr: "_ta_lie-low_progress", value: 0 },
+    { effect: "set-attr", attr: getTimedActionAttrNames("lie-low").progressAttr, value: 0 },
   ],
 };
 

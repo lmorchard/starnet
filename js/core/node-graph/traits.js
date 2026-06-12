@@ -25,6 +25,8 @@
  * @property {import('./types.js').TriggerDef[]} [triggers]
  */
 
+import { getTimedActionAttrNames } from "./timed-actions.js";
+
 /** @type {Map<string, TraitDef>} */
 const _registry = new Map();
 
@@ -354,8 +356,8 @@ registerTrait("encrypted", {
     ],
     effects: [
       { effect: "set-attr", attr: "reading", value: true },
-      // Matches the lootable dump operator's progress attr (_ta_dump_progress).
-      { effect: "set-attr", attr: "_ta_dump_progress", value: 0 },
+      // Derived from the registry so it always matches the dump operator's progress attr.
+      { effect: "set-attr", attr: getTimedActionAttrNames("dump").progressAttr, value: 0 },
     ],
   }],
 });

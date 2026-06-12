@@ -15,6 +15,10 @@ import { fillConditionNodeId } from "./conditions.js";
 import { applyEffect } from "./effects.js";
 import { nullCtx } from "./ctx.js";
 import { resolveTraits } from "./traits.js";
+import { getTimedActionAttrNames } from "./timed-actions.js";
+
+// Re-exported so callers can reach the timed-action attr-name helper via runtime.
+export { getTimedActionAttrNames } from "./timed-actions.js";
 
 /**
  * @typedef {Object} NodeGraphDef
@@ -219,11 +223,12 @@ export class NodeGraph {
       const activeAttr = op.activeAttr;
       if (!activeAttr || !node.attributes[activeAttr]) continue;
       const action = op.action ?? "unknown";
+      const names = getTimedActionAttrNames(action);
       return {
         action,
         activeAttr,
-        progressAttr: op.progressAttr ?? `_ta_${action}_progress`,
-        durationAttr: op.durationAttr ?? `_ta_${action}_duration`,
+        progressAttr: op.progressAttr ?? names.progressAttr,
+        durationAttr: op.durationAttr ?? names.durationAttr,
       };
     }
     return null;

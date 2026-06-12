@@ -36,6 +36,12 @@ import { getState } from "../state.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
 import { launchExploit } from "../combat.js";
+import { getTimedActionAttrNames } from "./timed-actions.js";
+
+/** Convenience: `_ta_<action>_progress` for the given timed action. */
+const progressAttr = (action) => getTimedActionAttrNames(action).progressAttr;
+/** Convenience: `_ta_<action>_duration` for the given timed action. */
+const durationAttr = (action) => getTimedActionAttrNames(action).durationAttr;
 
 /**
  * Build the real CtxInterface for game integration.
@@ -96,8 +102,8 @@ export function buildGameCtx(opts = {}) {
       if (ctx._graph) {
         ctx._graph.setNodeAttr(nodeId, "exploiting", true);
         ctx._graph.setNodeAttr(nodeId, "activeExploitId", exploitId);
-        ctx._graph.setNodeAttr(nodeId, "_ta_xploit_progress", 0);
-        ctx._graph.setNodeAttr(nodeId, "_ta_xploit_duration", durationTicks);
+        ctx._graph.setNodeAttr(nodeId, progressAttr("xploit"), 0);
+        ctx._graph.setNodeAttr(nodeId, durationAttr("xploit"), durationTicks);
       }
       // Emit start feedback immediately (operator skips start for pre-set durations)
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.XPLOIT, phase: "start", progress: 0, durationTicks });
@@ -111,8 +117,8 @@ export function buildGameCtx(opts = {}) {
       if (!exploitingNode) return;
       if (ctx._graph) {
         ctx._graph.setNodeAttr(exploitingNode.id, "exploiting", false);
-        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_xploit_progress", 0);
-        ctx._graph.setNodeAttr(exploitingNode.id, "_ta_xploit_duration", 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, progressAttr("xploit"), 0);
+        ctx._graph.setNodeAttr(exploitingNode.id, durationAttr("xploit"), 0);
         ctx._graph.setNodeAttr(exploitingNode.id, "activeExploitId", null);
       }
       emitEvent(E.ACTION_FEEDBACK, { nodeId: exploitingNode.id, action: A.XPLOIT, phase: "cancel", progress: 0 });
@@ -180,8 +186,8 @@ export function buildGameCtx(opts = {}) {
       const durationTicks = 10 + Math.round(random(RNG.WORLD) * 20);
       if (ctx._graph) {
         ctx._graph.setNodeAttr(nodeId, "rebooting", true);
-        ctx._graph.setNodeAttr(nodeId, "_ta_reboot_progress", 0);
-        ctx._graph.setNodeAttr(nodeId, "_ta_reboot_duration", durationTicks);
+        ctx._graph.setNodeAttr(nodeId, progressAttr("reboot"), 0);
+        ctx._graph.setNodeAttr(nodeId, durationAttr("reboot"), durationTicks);
       }
 
       emitEvent(E.ACTION_RESOLVED, { action: "reboot-start", nodeId, label: node.label, detail: { durationMs: durationTicks * 100 } });
@@ -384,39 +390,39 @@ export function initNavigationCancelHandler() {
     // overlay/log un-armed. (XPLOIT already cleared its ctx-set duration below.)
     if (attrs.probing) {
       graph.setNodeAttr(nodeId, "probing", false);
-      graph.setNodeAttr(nodeId, "_ta_probe_progress", 0);
-      graph.setNodeAttr(nodeId, "_ta_probe_duration", 0);
+      graph.setNodeAttr(nodeId, progressAttr("probe"), 0);
+      graph.setNodeAttr(nodeId, durationAttr("probe"), 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.PROBE, phase: "cancel", progress: 0 });
     }
     if (attrs.exploiting) {
       graph.setNodeAttr(nodeId, "exploiting", false);
-      graph.setNodeAttr(nodeId, "_ta_xploit_progress", 0);
-      graph.setNodeAttr(nodeId, "_ta_xploit_duration", 0);
+      graph.setNodeAttr(nodeId, progressAttr("xploit"), 0);
+      graph.setNodeAttr(nodeId, durationAttr("xploit"), 0);
       graph.setNodeAttr(nodeId, "activeExploitId", null);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.XPLOIT, phase: "cancel", progress: 0 });
     }
     if (attrs.reading) {
       graph.setNodeAttr(nodeId, "reading", false);
-      graph.setNodeAttr(nodeId, "_ta_dump_progress", 0);
-      graph.setNodeAttr(nodeId, "_ta_dump_duration", 0);
+      graph.setNodeAttr(nodeId, progressAttr("dump"), 0);
+      graph.setNodeAttr(nodeId, durationAttr("dump"), 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.DUMP, phase: "cancel", progress: 0 });
     }
     if (attrs.looting) {
       graph.setNodeAttr(nodeId, "looting", false);
-      graph.setNodeAttr(nodeId, "_ta_fetch_progress", 0);
-      graph.setNodeAttr(nodeId, "_ta_fetch_duration", 0);
+      graph.setNodeAttr(nodeId, progressAttr("fetch"), 0);
+      graph.setNodeAttr(nodeId, durationAttr("fetch"), 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.FETCH, phase: "cancel", progress: 0 });
     }
     if (attrs.mining) {
       graph.setNodeAttr(nodeId, "mining", false);
-      graph.setNodeAttr(nodeId, "_ta_mine_progress", 0);
-      graph.setNodeAttr(nodeId, "_ta_mine_duration", 0);
+      graph.setNodeAttr(nodeId, progressAttr("mine"), 0);
+      graph.setNodeAttr(nodeId, durationAttr("mine"), 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.MINE, phase: "cancel", progress: 0 });
     }
     if (attrs.lyingLow) {
       graph.setNodeAttr(nodeId, "lyingLow", false);
-      graph.setNodeAttr(nodeId, "_ta_lie-low_progress", 0);
-      graph.setNodeAttr(nodeId, "_ta_lie-low_duration", 0);
+      graph.setNodeAttr(nodeId, progressAttr("lie-low"), 0);
+      graph.setNodeAttr(nodeId, durationAttr("lie-low"), 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.LIE_LOW, phase: "cancel", progress: 0 });
     }
   }
