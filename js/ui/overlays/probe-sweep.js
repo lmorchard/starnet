@@ -14,6 +14,13 @@ const OFF = 0.12; // unlit segment opacity (the dim ring)
 const ON = 0.95;  // fully-lit segment opacity
 
 class ProbeSweepOverlay extends NodeOverlay {
+  constructor() {
+    super();
+    // Continuous radial sweep "hand" + sweep-front cross-fade — render at display
+    // rate so the hand doesn't step around the dial at the ~10fps game tick.
+    this.enableProgressSmoothing(120);
+  }
+
   render() {
     return html`
       <svg style="position:absolute; opacity:0; pointer-events:none; overflow:visible; z-index:5; transition:opacity 0.15s ease;">
@@ -46,7 +53,7 @@ class ProbeSweepOverlay extends NodeOverlay {
 
     const v = facetVertices(r, r, rr); // 12 vertices, first at 12 o'clock, clockwise
     const segs = group.children;
-    const p = this.progress;
+    const p = this.displayProgress;
     const front = p * FACET_SIDES; // fractional count of segments the sweep has crossed
     for (let i = 0; i < FACET_SIDES; i++) {
       const a1 = v[i];

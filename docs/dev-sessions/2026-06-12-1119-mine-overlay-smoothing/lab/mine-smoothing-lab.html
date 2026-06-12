@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MINE overlay smoothing lab</title>
+<style>
+  body { background:#0a0a0f; color:#39ff14; font:13px monospace; margin:0; padding:16px; }
+  h1 { font-size:15px; font-weight:normal; color:#cc00cc; }
+  .row { display:flex; gap:24px; align-items:flex-start; margin-top:12px; }
+  .panel { background:#06060a; border:1px solid #1a3a1a; }
+  .panel h2 { font-size:12px; margin:0; padding:4px 8px; color:#888; border-bottom:1px solid #1a3a1a; }
+  svg { display:block; }
+  .h, .v { stroke:#cc00cc; stroke-width:2; stroke-opacity:0.5; }
+  .box { fill:none; stroke:#ff44ff; stroke-width:1; stroke-opacity:0.9; }
+  .controls { margin-top:16px; line-height:2; }
+  .controls label { display:inline-block; width:170px; }
+  input[type=range] { vertical-align:middle; width:260px; }
+  button { background:#1a3a1a; color:#39ff14; border:1px solid #39ff14; font:13px monospace; padding:4px 12px; cursor:pointer; }
+  .val { color:#fff; }
+  .note { color:#666; max-width:740px; margin-top:14px; line-height:1.5; }
+</style>
+</head>
+<body>
+<h1>MINE overlay — progress smoothing lab</h1>
+<div class="note">
+  Both panels animate the real MINE crosshair geometry from the SAME target progress,
+  which advances 0→1 but is only <b>updated at 10 fps</b> (the game tick).
+  LEFT = today's behavior (renders only when the target updates).
+  RIGHT = proposed fix (rAF easing a displayed progress toward the target).
+  Watch the crosshair roam and the reticle spin.
+</div>
+<div class="row">
+  <div class="panel"><h2>RAW — render on 10fps sync (current)</h2>
+    <svg id="raw" width="220" height="220"></svg>
+  </div>
+  <div class="panel"><h2>SMOOTHED — rAF + ease (proposed)</h2>
+    <svg id="smooth" width="220" height="220"></svg>
+  </div>
+</div>
+<div class="controls">
+  <div><label>smoothing τ (ms)</label><input id="tau" type="range" min="20" max="400" step="5" value="120"><span class="val" id="tauv">120</span></div>
+  <div><label>scan duration (ms)</label><input id="dur" type="range" min="1000" max="6000" step="250" value="3000"><span class="val" id="durv">3000</span></div>
+  <div><label>tick rate (fps)</label><input id="fps" type="range" min="4" max="30" step="1" value="10"><span class="val" id="fpsv">10</span></div>
+  <div><button id="scan">▶ run scan</button> <button id="loop">⟲ loop</button></div>
+</div>
+<script>
+const R = 100, SIZE = R * 2, OFF = 10; // svg padding offset for stroke
+const FX = 2.5, FY = 3.5, PHASE = Math.PI / 2;
+
+function makeReticle(svg) {
+  svg.innerHTML = `
+    <line class="h"></line><line class="v"></line>
+    <rect class="box"></rect>`;
+  return { h: svg.querySelector('.h'), v: svg.querySelector('.v'), box: svg.querySelector('.box') };
+}
+function draw(els, p) {
+  const c = OFF + R;
+  const amp = R * 0.62 * (1 - p * p);
+  const ix = c + amp * Math.sin(2 * Math.PI * FX * p);
+  const iy = c + amp * Math.sin(2 * Math.PI * FY * p + PHASE);
+  els.h.setAttribute('x1', OFF); els.h.setAttribute('y1', iy);
+  els.h.setAttribute('x2', OFF + SIZE); els.h.setAttribute('y2', iy);
+  els.v.setAttribute('x1', ix); els.v.setAttribute('y1', OFF);
+  els.v.setAttribute('x2', ix); els.v.setAttribute('y2', OFF + SIZE);
+  const side = R * 0.42;
+  els.box.setAttribute('x', ix - side / 2); els.box.setAttribute('y', iy - side / 2);
+  els.box.setAttribute('width', side); els.box.setAttribute('height', side);
+  els.box.setAttribute('transform', `rotate(${p * 360} ${ix} ${iy})`);
+}
+
+const rawEls = makeReticle(document.getElementById('raw'));
+const smoothEls = makeReticle(document.getElementById('smooth'));
+
+let target = 0, disp = 0, start = 0, last = 0, tickTimer = null, running = false, looping = false;
+const tau = () => +document.getElementById('tau').value;
+const dur = () => +document.getElementById('dur').value;
+const fps = () => +document.getElementById('fps').value;
+
+function startScan() {
+  stop();
+  target = 0; disp = 0; start = performance.now(); last = start; running = true;
+  // 10fps (configurable) stepped target feed — mimics the game's per-tick sync().
+  const stepTarget = () => {
+    if (!running) return;
+    const t = Math.min(1, (performance.now() - start) / dur());
+    target = t;
+    draw(rawEls, target);          // RAW renders ONLY here (on the stepped sync)
+    if (t >= 1) { running = false; if (looping) setTimeout(startScan, 500); return; }
+    tickTimer = setTimeout(stepTarget, 1000 / fps());
+  };
+  stepTarget();
+  requestAnimationFrame(loop);
+}
+function loop(now) {
+  const dt = now - last; last = now;
+  const k = 1 - Math.exp(-dt / tau());
+  disp += (target - disp) * k;
+  draw(smoothEls, disp);
+  if (running || Math.abs(target - disp) > 0.001) requestAnimationFrame(loop);
+}
+function stop() {
+  running = false;
+  if (tickTimer) { clearTimeout(tickTimer); tickTimer = null; }
+}
+for (const id of ['tau', 'dur', 'fps']) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => document.getElementById(id + 'v').textContent = el.value);
+}
+document.getElementById('scan').onclick = () => { looping = false; startScan(); };
+document.getElementById('loop').onclick = () => { looping = !looping; if (looping) startScan(); else stop(); };
+draw(rawEls, 0); draw(smoothEls, 0);
+</script>
+</body>
+</html>

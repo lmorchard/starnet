@@ -13,6 +13,11 @@
 import { html } from "lit";
 import { StarnetElement } from "../components/starnet-element.js";
 import { getCy } from "../graph.js";
+import { easeToward } from "./ease.js";
+
+// Below this gap between displayed and target progress, the smoothing loop has
+// effectively converged and parks itself (a later sync() restarts it).
+const SMOOTH_EPSILON = 0.0005;
 
 export class NodeOverlay extends StarnetElement {
   constructor() {
@@ -22,11 +27,68 @@ export class NodeOverlay extends StarnetElement {
     // Lit renders asynchronously, so the SVG children don't exist until
     // firstUpdated(). sync()/reposition() no-op until then, then _render() runs.
     this._ready = false;
+    // Progress smoothing (opt-in via enableProgressSmoothing). When off, behavior
+    // is identical to the original: render on sync(), displayProgress === progress.
+    this._smoothing = false;
+    this._tau = 120;
+    this._displayProgress = 0;
+    this._raf = null;
+    this._lastFrame = 0;
+  }
+
+  /**
+   * Opt in to display-rate smoothing. Progress is fed at the ~10fps game tick, but
+   * effects whose geometry is a continuous function of progress look choppy unless
+   * they render at display rate. With smoothing on, an internal rAF eases a
+   * displayed progress toward the tick-fed target; subclasses read
+   * `this.displayProgress` (not `this.progress`) in _render(). Only for continuous
+   * motion — discrete-fill / CSS-driven overlays should NOT enable it.
+   * @param {number} [tauMs] smoothing time-constant (larger = smoother + more lag)
+   */
+  enableProgressSmoothing(tauMs = 120) {
+    this._smoothing = true;
+    this._tau = tauMs;
+  }
+
+  /** Progress to render from: the eased value when smoothing, else the raw target. */
+  get displayProgress() {
+    return this._smoothing ? this._displayProgress : this.progress;
+  }
+
+  _smoothFrame(now) {
+    const dt = this._lastFrame ? now - this._lastFrame : 16;
+    this._lastFrame = now;
+    this._displayProgress = easeToward(this._displayProgress, this.progress, dt, this._tau);
+    const converged =
+      this.nodeId === null || Math.abs(this.progress - this._displayProgress) <= SMOOTH_EPSILON;
+    if (converged) this._displayProgress = this.progress; // snap to target
+    if (this._ready) this._render();
+    if (converged) {
+      this._raf = null;
+      this._lastFrame = 0;
+    } else {
+      this._raf = requestAnimationFrame((t) => this._smoothFrame(t));
+    }
+  }
+
+  _stopSmoothing() {
+    if (this._raf !== null) {
+      cancelAnimationFrame(this._raf);
+      this._raf = null;
+    }
+    this._lastFrame = 0;
   }
 
   firstUpdated() {
     this._ready = true;
     this._render();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Stop the smoothing rAF if the element is removed without an explicit clear(),
+    // so it can't keep firing against a detached element.
+    this._stopSmoothing();
   }
 
   /**
@@ -74,8 +136,22 @@ export class NodeOverlay extends StarnetElement {
    * @param {number} progress
    */
   sync(nodeId, progress) {
+    const newTarget = nodeId !== this.nodeId;
     this.nodeId = nodeId;
-    this.progress = Math.max(0, Math.min(1, progress));
+    // Sanitize before clamping — a non-finite progress (e.g. a malformed payload)
+    // would otherwise render invalid SVG and stall the smoothing loop's convergence.
+    const p = Number(progress);
+    this.progress = Number.isFinite(p) ? Math.max(0, Math.min(1, p)) : 0;
+    if (this._smoothing) {
+      // A fresh target node starts at its synced value (no ease-in from a stale
+      // displayed progress); then the rAF loop drives all rendering.
+      if (newTarget) this._displayProgress = this.progress;
+      if (this._raf === null) {
+        this._lastFrame = 0;
+        this._raf = requestAnimationFrame((t) => this._smoothFrame(t));
+      }
+      return;
+    }
     if (this._ready) this._render();
   }
 
@@ -85,8 +161,10 @@ export class NodeOverlay extends StarnetElement {
   }
 
   clear() {
+    this._stopSmoothing();
     this.nodeId = null;
     this.progress = 0;
+    this._displayProgress = 0;
     this._hide();
   }
 
