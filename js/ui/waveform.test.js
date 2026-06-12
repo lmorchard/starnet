@@ -174,6 +174,18 @@ describe("pulsePoints", () => {
       pulsePoints({ frac: 0.4, width: W, height: H }),
     );
   });
+
+  test("fixed cycle width: a wider strip shows MORE pulses, not stretched ones", () => {
+    // Cycle width is anchored to height (like ecgPoints' period), so widening the
+    // strip adds clock cycles rather than stretching a fixed few to fill. A 4×
+    // wider strip should yield substantially more vertices, not the same count.
+    const narrow = pulsePoints({ frac: 0.7, width: 200, height: H });
+    const wide = pulsePoints({ frac: 0.7, width: 800, height: H });
+    assert.ok(
+      wide.length > narrow.length * 2,
+      `expected wide (${wide.length}) >> narrow (${narrow.length}) — pulse appears width-stretched`,
+    );
+  });
 });
 
 describe("frac clamping (both)", () => {

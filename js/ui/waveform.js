@@ -189,7 +189,12 @@ export function pulsePoints({ frac, width, height }) {
   const ramp = Math.pow(dmg, 0.4);
   const over = H * lerp(0.06, 0.34, ramp);      // edge overshoot, visible healthy → grows with damage
   const nw = Math.round(lerp(0, 4, ramp));      // extra damped ring wobbles from damage
-  const CYCLES = 4;                             // hi+lo cycles across the width (~W/8 plateaus)
+  // Cycle width is anchored to height (like ecgPoints' period) so a wider strip
+  // shows MORE clock cycles rather than stretching a fixed few to fill. CYCLE_W
+  // ≈ the old four-cycles-across-the-default-strip ratio; the count is snapped so
+  // plateaus tile the width edge-to-edge (a continuous clock).
+  const CYCLE_W = H * 2.05;                      // one hi+lo cycle, height-relative
+  const CYCLES = Math.max(1, Math.round(W / CYCLE_W));
   const half = W / (CYCLES * 2);                // one plateau (up OR down) — equal duty
   const eW = half * lerp(0.375, 0.6, ramp);     // ringing-edge region width
 

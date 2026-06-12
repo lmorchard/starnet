@@ -159,3 +159,59 @@ export function recordMonitorAlert(monitorId) {
     emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next });
   }
 }
+
+// ── Cooldown (grid-only relief; #174) ─────────────────────
+
+/** @returns {string[]} security-monitor node ids in the current state */
+function monitorNodeIds(s) {
+  return Object.keys(s.nodes).filter((id) => s.nodes[id].type === "security-monitor");
+}
+
+/**
+ * Ease the security grid below trace: reset `alertCount` on the given monitors and lower the
+ * global alert. Grid-only — never touches ICE detectionCount. No-op (returns false) at trace,
+ * where relief is jack-out or own→cancel-trace. Emits ALERT_COOLED for the log.
+ * @param {string[]} monitorIds
+ * @param {"green"|"step"} mode  green = drop to green; step = down one level
+ * @returns {boolean} true if it cooled (i.e. not blocked by an active trace)
+ */
+function coolGrid(monitorIds, mode) {
+  const s = getState();
+  if (s.globalAlert === "trace") return false; // below-trace only
+  const graph = s.nodeGraph;
+  for (const id of monitorIds) graph?.setNodeAttr(id, "alertCount", 0);
+  const idx = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
+  const targetIdx = mode === "green" ? 0 : Math.max(0, idx - 1);
+  if (targetIdx < idx) {
+    const prev = s.globalAlert;
+    const next = GLOBAL_ALERT_ORDER[targetIdx];
+    setGlobalAlert(next);
+    emitEvent(E.ALERT_COOLED, { prev, next });
+  }
+  return true;
+}
+
+/**
+ * Scrub one compromised monitor's logs: reset its accumulated alertCount and ease the global
+ * alert one level. Below-trace only. (Player relief lever — see #174.)
+ * @param {string} monitorId
+ */
+export function scrubLogs(monitorId) {
+  coolGrid([monitorId], "step");
+}
+
+/**
+ * Lie low at the WAN node: fully calm the security grid (every monitor → 0, global → green) and
+ * spend one per-run use. No-op while a trace is running. When uses run out, mark the WAN node
+ * `lieLowExhausted` so the action gates itself off (fiction: a human admin has clocked the tether).
+ * @param {string} wanNodeId
+ */
+export function lieLow(wanNodeId) {
+  const s = getState();
+  const graph = s.nodeGraph;
+  if (!graph) return;
+  if (!coolGrid(monitorNodeIds(s), "green")) return; // at trace — no-op, no use spent
+  const remaining = (graph.getNodeState(wanNodeId)?.lieLowUsesRemaining ?? 0) - 1;
+  graph.setNodeAttr(wanNodeId, "lieLowUsesRemaining", Math.max(0, remaining));
+  if (remaining <= 0) graph.setNodeAttr(wanNodeId, "lieLowExhausted", true);
+}

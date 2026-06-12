@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { OVERLAY_DESCRIPTORS, overlayDescriptorForAction } from "../js/ui/overlays/registry.js";
 import { A } from "../js/core/action-ids.js";
 
-test("registry has six overlays", () => {
-  assert.equal(OVERLAY_DESCRIPTORS.length, 6);
+test("registry has seven overlays", () => {
+  assert.equal(OVERLAY_DESCRIPTORS.length, 7);
 });
 
-test("action-feedback overlays map 1:1 to the five timed actions", () => {
+test("action-feedback overlays map 1:1 to the timed/cooldown actions", () => {
   const af = OVERLAY_DESCRIPTORS.filter((d) => d.driver === "action-feedback");
   const actions = af.map((d) => d.action).sort();
-  assert.deepEqual(actions, [A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.MINE].sort());
+  assert.deepEqual(actions, [A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.MINE, A.LIE_LOW].sort());
   assert.equal(new Set(actions).size, actions.length, "no duplicate action mappings");
 });
 

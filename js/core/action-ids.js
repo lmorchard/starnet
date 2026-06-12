@@ -30,4 +30,6 @@ export const A = Object.freeze({
   SPOOF: "spoof",
   CANCEL_TRACE: "cancel-trace",
   ACCESS_DARKNET: "access-darknet",
+  SCRUB_LOGS: "scrub-logs",
+  LIE_LOW: "lie-low",
 });

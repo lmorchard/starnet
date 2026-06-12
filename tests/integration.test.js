@@ -44,6 +44,7 @@ import { setGlobalAlert } from "../js/core/state/alert.js";
 // NODE_RECONFIGURED listeners. No separate init call needed.
 // Old executor imports removed — timed actions now graph-native
 import { RNG, _forceNext } from "../js/core/rng.js";
+import { handleCheatCommand } from "../js/core/cheats.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { activeIceInstances } from "../js/core/state/ice.js";
 import { cmdStatusIce } from "../js/core/console-commands/cmd-status.js";
@@ -1159,6 +1160,159 @@ describe("timed-action cancel clears the operator's real progress attr (B2)", ()
     assert.equal(after.reading, false, "navigation must cancel the dump");
     assert.equal(after._ta_dump_progress, 0,
       "cancel must reset the operator's real progress attr, not a phantom _ta_read_progress");
+  });
+});
+
+describe("cheat alert set/raise/lower (#174)", () => {
+  beforeEach(() => { clearAll(); initGame(() => buildBasicLAN(), "cheat-alert"); });
+
+  it("set forces the global alert to a level", () => {
+    handleCheatCommand(["alert", "set", "red"]);
+    assert.equal(getState().globalAlert, "red");
+  });
+
+  it("raise and lower step the global alert one level", () => {
+    handleCheatCommand(["alert", "set", "green"]);
+    handleCheatCommand(["alert", "raise"]);
+    assert.equal(getState().globalAlert, "yellow");
+    handleCheatCommand(["alert", "raise"]);
+    assert.equal(getState().globalAlert, "red");
+    handleCheatCommand(["alert", "lower"]);
+    assert.equal(getState().globalAlert, "yellow");
+  });
+
+  it("lowering out of trace cancels the trace countdown", () => {
+    handleCheatCommand(["alert", "set", "trace"]);
+    assert.equal(getState().globalAlert, "trace");
+    assert.notEqual(getState().traceSecondsRemaining, null, "trace should be running");
+    handleCheatCommand(["alert", "lower"]);
+    assert.equal(getState().globalAlert, "red");
+    assert.equal(getState().traceSecondsRemaining, null, "lowering out of trace must cancel the countdown");
+  });
+
+  it("raise saturates at trace, lower at green", () => {
+    handleCheatCommand(["alert", "set", "green"]);
+    handleCheatCommand(["alert", "lower"]);
+    assert.equal(getState().globalAlert, "green");
+    handleCheatCommand(["alert", "set", "trace"]);
+    handleCheatCommand(["alert", "raise"]);
+    assert.equal(getState().globalAlert, "trace");
+  });
+});
+
+describe("security grid cooldown: lie low (#174)", () => {
+  beforeEach(() => { clearAll(); });
+  const sendAlert = (graph) => graph.sendMessage("sp/ids", { type: "alert", payload: {} });
+  const climbToRed = (graph) => { sendAlert(graph); sendAlert(graph); sendAlert(graph); };
+  const completeLieLow = (graph) => { graph.executeAction("wan", "lie-low"); graph.tick(60); };
+
+  it("lie-low fully calms the grid (monitors → 0, global → green) and spends one use", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "lielow-1");
+    const graph = getState().nodeGraph;
+    climbToRed(graph);
+    assert.notEqual(getState().globalAlert, "green");
+
+    completeLieLow(graph);
+
+    assert.equal(getState().globalAlert, "green", "grid fully calmed");
+    assert.equal(graph.getNodeState("sp/monitor").alertCount, 0, "monitor accumulation cleared");
+    assert.equal(graph.getNodeState("wan").lieLowUsesRemaining, 1, "one use spent");
+  });
+
+  it("exhausts after 2 uses, then the action is unavailable", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "lielow-2");
+    const graph = getState().nodeGraph;
+    climbToRed(graph); completeLieLow(graph);
+    climbToRed(graph); completeLieLow(graph);
+    assert.equal(graph.getNodeState("wan").lieLowUsesRemaining, 0);
+    assert.equal(graph.getNodeState("wan").lieLowExhausted, true, "exhausted after 2 uses");
+    assert.ok(!graph.getAvailableActions("wan").some((a) => a.id === "lie-low"),
+      "lie-low no longer offered once exhausted");
+  });
+
+  it("is not re-offered while already in progress", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "lielow-reentry");
+    const graph = getState().nodeGraph;
+    graph.executeAction("wan", "lie-low");
+    graph.tick(5); // mid-wait, lyingLow still true
+    assert.equal(graph.getNodeState("wan").lyingLow, true, "should be lying low");
+    assert.ok(!graph.getAvailableActions("wan").some((a) => a.id === "lie-low"),
+      "lie-low must not be re-offered while in progress (would reset the timer)");
+  });
+
+  it("navigating away cancels an in-progress lie-low (no grid change)", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "lielow-3");
+    const graph = getState().nodeGraph;
+    climbToRed(graph);
+    const before = getState().globalAlert;
+    graph.executeAction("wan", "lie-low");
+    graph.tick(5); // partial — operator has set _ta_lie-low_duration by now
+    navigateAway(); // PLAYER_NAVIGATED → nav-cancel
+    assert.equal(graph.getNodeState("wan").lyingLow, false, "lie-low cancelled");
+    assert.equal(getState().globalAlert, before, "no grid change from a cancelled lie-low");
+    // Duration must reset too, else a restart skips the operator's "start" phase.
+    assert.equal(graph.getNodeState("wan")["_ta_lie-low_duration"], 0, "duration cleared on cancel");
+  });
+
+  it("re-arms (re-emits the start phase) when restarted after a cancel", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "lielow-rearm");
+    const graph = getState().nodeGraph;
+    graph.executeAction("wan", "lie-low");
+    graph.tick(5);
+    navigateAway(); // cancel mid-wait
+    // Restart: a fresh "start" ACTION_FEEDBACK must fire (the overlay/log dispatcher keys off it).
+    const fb = withEvents(E.ACTION_FEEDBACK, () => {
+      graph.executeAction("wan", "lie-low");
+      graph.tick(1);
+    });
+    assert.ok(fb.some((p) => p.action === A.LIE_LOW && p.phase === "start"),
+      "restarting after a cancel must re-emit the lie-low start phase");
+  });
+
+  it("is a no-op while a trace is running (no use spent)", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "lielow-4");
+    const graph = getState().nodeGraph;
+    for (let i = 0; i < 30 && getState().traceSecondsRemaining === null; i++) sendAlert(graph);
+    assert.equal(getState().globalAlert, "trace");
+    completeLieLow(graph);
+    assert.equal(getState().globalAlert, "trace", "lie-low must not cool an active trace");
+    assert.equal(graph.getNodeState("wan").lieLowUsesRemaining, 2, "no use spent at trace");
+  });
+});
+
+describe("security grid cooldown: scrub logs (#174)", () => {
+  beforeEach(() => { clearAll(); });
+  const ORDER = ["green", "yellow", "red", "trace"];
+  const sendAlert = (graph) => graph.sendMessage("sp/ids", { type: "alert", payload: {} });
+
+  it("scrubbing a compromised monitor resets its alertCount and eases the global alert one level", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "scrub-1");
+    const graph = getState().nodeGraph;
+    sendAlert(graph); sendAlert(graph); sendAlert(graph); // 3 alerts (grade C): climbs to red
+    const before = getState().globalAlert;
+    assert.notEqual(before, "green", "grid should have climbed");
+    assert.ok(graph.getNodeState("sp/monitor").alertCount > 0, "monitor should have accumulated");
+
+    graph.setNodeAttr("sp/monitor", "accessLevel", "compromised");
+    graph.executeAction("sp/monitor", "scrub-logs");
+
+    assert.equal(graph.getNodeState("sp/monitor").alertCount, 0, "scrub resets the monitor's count");
+    assert.equal(ORDER.indexOf(getState().globalAlert), ORDER.indexOf(before) - 1,
+      "scrub eases the global alert one level");
+  });
+
+  it("scrub is a no-op while a trace is running", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "scrub-2");
+    const graph = getState().nodeGraph;
+    for (let i = 0; i < 30 && getState().traceSecondsRemaining === null; i++) sendAlert(graph);
+    assert.equal(getState().globalAlert, "trace", "should be at trace");
+    const countAtTrace = graph.getNodeState("sp/monitor").alertCount;
+
+    graph.setNodeAttr("sp/monitor", "accessLevel", "compromised");
+    graph.executeAction("sp/monitor", "scrub-logs");
+
+    assert.equal(getState().globalAlert, "trace", "scrub must not cool an active trace");
+    assert.equal(graph.getNodeState("sp/monitor").alertCount, countAtTrace, "no-op at trace");
   });
 });
 
