@@ -18,6 +18,7 @@
 
 import { instantiate } from "./set-pieces.js";
 import { gradeToNumber, costBudget } from "./budget.js";
+import { walkSlots } from "./tree-utils.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -87,7 +88,13 @@ export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
   const preAssigned = preAssignRequired(requiredPieceIds, skeleton, biome);
 
   // Pass 1: fill all skeleton slots
-  const ok = fillSlot(skeleton, null, biome, spec, rng, pieces, crossEdges, placed, { budget: budgetRemaining }, usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome);
+  /** @type {FillContext} */
+  const fillContext = {
+    biome, rng, pieces, crossEdges, placed,
+    state: { budget: budgetRemaining },
+    usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome,
+  };
+  const ok = fillSlot(skeleton, null, fillContext);
   if (!ok) return { pieces, crossEdges, ok: false };
 
   // Pass 2: place scattered nodes (unless caller wants to handle them)
@@ -100,24 +107,35 @@ export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
 }
 
 /**
+ * Shared context threaded through a single fillSkeleton pass — the config + the
+ * mutable accumulators every fillSlot call reads and writes. Constant across the
+ * whole recursion, so it's bundled into one object rather than 12 positional args.
+ * @typedef {Object} FillContext
+ * @property {BiomeDef} biome
+ * @property {() => number} rng
+ * @property {PlacedPiece[]} pieces                 accumulator: placed pieces
+ * @property {[string, string][]} crossEdges        accumulator: inter-piece edges
+ * @property {Map<string, PlacedPiece>} placed      slotId → placed piece
+ * @property {{ budget: number }} state             remaining cost budget (mutated)
+ * @property {Set<string>} usedPieceIds             diversity tracking
+ * @property {ScatterObligation[]} scatterObligations accumulator for pass 2
+ * @property {Set<string>|null} piecePalette        allowed piece ids, or null for all
+ * @property {Map<string, SetPieceDef>} preAssigned slotId → required piece
+ * @property {boolean} [skipSubBiome]               skip wing-entry slots (backbone-only fill)
+ */
+
+/**
  * Recursively fill a slot and its children.
  * @param {SkeletonSlot} slot
  * @param {PlacedPiece|null} parentPiece
- * @param {BiomeDef} biome
- * @param {NetworkSpec} spec
- * @param {() => number} rng
- * @param {PlacedPiece[]} pieces
- * @param {[string, string][]} crossEdges
- * @param {Map<string, PlacedPiece>} placed
- * @param {{ budget: number }} state
- * @param {Set<string>} usedPieceIds
- * @param {ScatterObligation[]} scatterObligations
- * @param {Set<string>|null} piecePalette
- * @param {Map<string, SetPieceDef>} preAssigned
- * @param {boolean} [skipSubBiome]
+ * @param {FillContext} ctx
  * @returns {boolean}
  */
-function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome = false) {
+function fillSlot(slot, parentPiece, ctx) {
+  const {
+    biome, rng, pieces, crossEdges, placed, state,
+    usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome = false,
+  } = ctx;
   // Skip wing entry slots when filling backbone only
   if (skipSubBiome && slot.subBiomeId) return true;
 
@@ -212,7 +230,7 @@ function fillSlot(slot, parentPiece, biome, spec, rng, pieces, crossEdges, place
 
   // 8. Fill children
   for (const child of slot.children) {
-    if (!fillSlot(child, piece, biome, spec, rng, pieces, crossEdges, placed, state, usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome)) {
+    if (!fillSlot(child, piece, ctx)) {
       return false;
     }
   }
@@ -381,7 +399,7 @@ function preAssignRequired(requiredPieceIds, skeleton, biome) {
   if (requiredPieceIds.length === 0) return assignments;
 
   const catalogMap = new Map(biome.catalog.map(p => [p.id, p]));
-  const allSlots = collectSlots(skeleton);
+  const allSlots = walkSlots(skeleton);
   const usedSlots = new Set();
 
   for (const pieceId of requiredPieceIds) {
@@ -407,23 +425,6 @@ function preAssignRequired(requiredPieceIds, skeleton, biome) {
     }
   }
   return assignments;
-}
-
-/**
- * Collect all slots from a skeleton tree into a flat array.
- * @param {SkeletonSlot} root
- * @returns {SkeletonSlot[]}
- */
-function collectSlots(root) {
-  /** @type {SkeletonSlot[]} */
-  const result = [];
-  /** @param {SkeletonSlot} slot */
-  function walk(slot) {
-    result.push(slot);
-    for (const child of slot.children) walk(child);
-  }
-  walk(root);
-  return result;
 }
 
 // ---------------------------------------------------------------------------

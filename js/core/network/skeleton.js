@@ -13,6 +13,7 @@
 /** @typedef {import('./set-pieces.js').SetPieceDef} SetPieceDef */
 
 import { gradeToNumber, maxDepth, TAG_WEIGHTS, costBudget, wingCount, hierarchicalBudget, lanGradeOffset, applyGradeOffset, minWingSlots } from "./budget.js";
+import { walkSlots } from "./tree-utils.js";
 
 /** @typedef {import('./set-pieces.js').SubBiomeDef} SubBiomeDef */
 /** @typedef {import('./set-pieces.js').RecipeDef} RecipeDef */
@@ -295,16 +296,12 @@ function ensureTagEarly(root, tag, coverage) {
 }
 
 /**
- * Collect all slots from a skeleton tree.
+ * Collect all slots from a skeleton tree (pre-order).
  * @param {SkeletonSlot} slot
  * @returns {SkeletonSlot[]}
  */
 function collectAll(slot) {
-  const result = [slot];
-  for (const child of slot.children) {
-    result.push(...collectAll(child));
-  }
-  return result;
+  return walkSlots(slot);
 }
 
 /**
@@ -329,8 +326,7 @@ function ensureTreasureLeaf(root, coverage) {
  * @returns {SkeletonSlot[]}
  */
 function collectLeaves(slot) {
-  if (slot.children.length === 0) return [slot];
-  return slot.children.flatMap(c => collectLeaves(c));
+  return walkSlots(slot, s => s.children.length === 0);
 }
 
 /**
@@ -543,14 +539,7 @@ function countChildren(slot) {
 
 /** Collect slots that can accept new children (depth < maxD, sorted shallowest first). */
 function collectExpandable(root, maxD) {
-  const result = [];
-  function walk(slot) {
-    if (slot.depth < maxD - 1) result.push(slot);
-    for (const child of slot.children) walk(child);
-  }
-  walk(root);
-  result.sort((a, b) => a.depth - b.depth);
-  return result;
+  return walkSlots(root, slot => slot.depth < maxD - 1).sort((a, b) => a.depth - b.depth);
 }
 
 // ---------------------------------------------------------------------------
