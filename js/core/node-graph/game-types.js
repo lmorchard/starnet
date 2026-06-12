@@ -16,6 +16,26 @@ import { getExploitChoices, getExploitEmptyReason } from "../exploits.js";
 
 // ── Shared action templates ──────────────────────────────────
 
+// activeAttr flag for each player-initiated timed action. This is the single
+// source of truth for the abortable timed-action set: ABORT shows when any of
+// these is true, and NOT_BUSY (below) requires all of them false. When adding a
+// new timed action, add its activeAttr here — both lists stay in sync.
+const TIMED_ACTION_FLAGS = ["probing", "exploiting", "reading", "looting", "mining"];
+
+// A node may run at most ONE timed action at a time. Every startable action
+// requires the node be idle: no timed action in flight, and not rebooting.
+// `rebooting` is involuntary (forced offline after a failure) so it isn't in
+// TIMED_ACTION_FLAGS — ABORT can't cancel it — but it still blocks starting
+// anything new. Spread `...NOT_BUSY` into each startable action's requires.
+//
+// A flag means "busy" only when explicitly true, so we test `not (eq true)`
+// rather than `eq false`: some flags (e.g. reading/looting) aren't defined on
+// non-lootable node types, and undefined must read as idle, not busy.
+/** @type {import('./types.js').Condition[]} */
+const NOT_BUSY = [...TIMED_ACTION_FLAGS, "rebooting"].map(
+  (attr) => ({ type: "not", condition: { type: "node-attr", attr, eq: true } })
+);
+
 /** @type {ActionDef} */
 const PROBE_ACTION = {
   id: A.PROBE,
@@ -24,8 +44,7 @@ const PROBE_ACTION = {
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "locked" },
     { type: "node-attr", attr: "probed", eq: false },
-    { type: "node-attr", attr: "rebooting", eq: false },
-    { type: "node-attr", attr: "probing", eq: false },
+    ...NOT_BUSY,
   ],
   effects: [
     { effect: "set-attr", attr: "probing", value: true },
@@ -34,9 +53,8 @@ const PROBE_ACTION = {
 };
 
 // Abort: unified cancel for any timed action. The execution is generic
-// (queries timed-action operators at runtime), but the requires list must
-// enumerate activeAttr flags so the action system knows when to show it.
-// When adding a new timed action, add its activeAttr here.
+// (queries timed-action operators at runtime); the requires list shows it
+// whenever any abortable timed action is in flight (see TIMED_ACTION_FLAGS).
 /** @type {ActionDef} */
 const ABORT_ACTION = {
   id: A.ABORT,
@@ -44,13 +62,8 @@ const ABORT_ACTION = {
   desc: "Cancel the current timed action.",
   requires: [
     {
-      type: "any-of", conditions: [
-        { type: "node-attr", attr: "probing", eq: true },
-        { type: "node-attr", attr: "exploiting", eq: true },
-        { type: "node-attr", attr: "reading", eq: true },
-        { type: "node-attr", attr: "looting", eq: true },
-        { type: "node-attr", attr: "mining", eq: true },
-      ],
+      type: "any-of",
+      conditions: TIMED_ACTION_FLAGS.map((attr) => ({ type: "node-attr", attr, eq: true })),
     },
   ],
   effects: [
@@ -76,8 +89,7 @@ const EXPLOIT_ACTION = {
   desc: "Attack with an exploit card.",
   requires: [
     { type: "node-attr", attr: "visibility", eq: "accessible" },
-    { type: "node-attr", attr: "rebooting", eq: false },
-    { type: "node-attr", attr: "exploiting", eq: false },
+    ...NOT_BUSY,
     // Owned nodes are already at max access — don't offer XPLOIT at all (the
     // hand stays a full-agency override for a deliberate re-exploit).
     { type: "not", condition: { type: "node-attr", attr: "accessLevel", eq: "owned" } },
@@ -107,8 +119,7 @@ const DUMP_ACTION = {
       ],
     },
     { type: "node-attr", attr: "read", eq: false },
-    { type: "node-attr", attr: "rebooting", eq: false },
-    { type: "node-attr", attr: "reading", eq: false },
+    ...NOT_BUSY,
   ],
   effects: [
     { effect: "set-attr", attr: "reading", value: true },
@@ -128,9 +139,8 @@ const FETCH_ACTION = {
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
     { type: "node-attr", attr: "read", eq: true },
-    { type: "node-attr", attr: "rebooting", eq: false },
     { type: "node-attr", attr: "looted", eq: false },
-    { type: "node-attr", attr: "looting", eq: false },
+    ...NOT_BUSY,
   ],
   effects: [
     { effect: "set-attr", attr: "looting", value: true },
@@ -149,9 +159,8 @@ const MINE_ACTION = {
   desc: "Data-mine for exploits.",
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
-    { type: "node-attr", attr: "rebooting", eq: false },
-    { type: "node-attr", attr: "mining", eq: false },
     { type: "node-attr", attr: "mineExhausted", eq: false },
+    ...NOT_BUSY,
   ],
   effects: [
     { effect: "set-attr", attr: "mining", value: true },
@@ -179,7 +188,7 @@ const REBOOT_ACTION = {
   desc: "Force ICE home and take node offline 1-3s.",
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
-    { type: "node-attr", attr: "rebooting", eq: false },
+    ...NOT_BUSY,
   ],
   effects: [
     // startReboot handles ICE eviction + deselect + setting rebooting + duration
