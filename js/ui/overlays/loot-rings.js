@@ -2,11 +2,13 @@
 // FETCH loot rings: thin faceted (12-gon) "ripple" rings spawn at the node and
 // expand + fade outward. Ripples are dense when the node is full and thin out
 // (spawn less often) as it drains — spawn cadence tracks remaining loot. Stroke-
-// only, vector-CRT. Self-running: a self-rescheduling spawn timer + per-ring RAF.
+// only, vector-CRT. Driven by the base class's managed time loop: it ticks a
+// ParticlePool of rings (each ages itself) and accumulates the spawn cadence.
 
 import { html } from "lit";
 import { NodeOverlay } from "./node-overlay.js";
 import { ringPoints } from "./facet.js";
+import { ParticlePool } from "../particle-pool.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const LOOT_RING_LIFETIME_MS = 800;
@@ -19,6 +21,7 @@ class LootRingsOverlay extends NodeOverlay {
     super();
     this._spawnAcc = 0;   // ms accumulated toward the next ring
     this._nextDelay = 0;  // 0 → spawn on the first frame after sync
+    this._pool = new ParticlePool(); // in-flight ripple rings
   }
 
   sync(nodeId, progress) {
@@ -30,24 +33,20 @@ class LootRingsOverlay extends NodeOverlay {
   // (dense when the node is full, sparser as it drains). The base loop stops
   // itself on clear()/disconnect, so there's no timer to leak.
   _timeFrame(now, dtMs) {
+    this._pool.tick(now); // age in-flight rings (expand/fade), reap finished ones
     this._spawnAcc += dtMs;
     if (this._spawnAcc >= this._nextDelay) {
-      this._spawn();
+      this._spawn(now);
       this._spawnAcc = 0;
       this._nextDelay = SPAWN_MIN_MS + this.progress * SPAWN_PROGRESS_MS;
     }
   }
 
   clear() {
-    super.clear(); // stops the managed loop(s), resets, hides
+    super.clear();      // stops the managed loop(s), resets, hides
+    this._pool.clear(); // remove any in-flight ring elements
     this._spawnAcc = 0;
     this._nextDelay = 0;
-    const svg = this._svg();
-    if (svg) {
-      setTimeout(() => {
-        if (!this.nodeId && svg) svg.querySelectorAll("polygon").forEach((c) => c.remove());
-      }, 200);
-    }
   }
 
   render() {
@@ -66,7 +65,9 @@ class LootRingsOverlay extends NodeOverlay {
     svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
   }
 
-  _spawn() {
+  // Spawn one ripple ring as a pool particle: it expands + fades over its lifetime
+  // (the pool ticks its update each frame) and removes itself on expiry (restore).
+  _spawn(now) {
     const svg = this._svg();
     if (!svg) return;
     const a = this._anchor();
@@ -83,19 +84,19 @@ class LootRingsOverlay extends NodeOverlay {
     ring.setAttribute("points", ringPoints(cx, cy, 2));
     svg.appendChild(ring);
 
-    const startTime = performance.now();
+    const birth = now;
     const maxR = r + PAD - 1;
-
-    function animate(now) {
-      const t = Math.min(1, (now - startTime) / LOOT_RING_LIFETIME_MS);
-      const currentR = 2 + t * (maxR - 2);
-      const opacity = 0.95 * (1 - t); // fade as it expands
-      ring.setAttribute("points", ringPoints(cx, cy, currentR));
-      ring.setAttribute("stroke", `rgba(0,255,160,${opacity})`);
-      if (t < 1) requestAnimationFrame(animate);
-      else ring.remove();
-    }
-    requestAnimationFrame(animate);
+    this._pool.add({
+      until: now + LOOT_RING_LIFETIME_MS,
+      update: (n) => {
+        const t = Math.min(1, (n - birth) / LOOT_RING_LIFETIME_MS);
+        const currentR = 2 + t * (maxR - 2);
+        const opacity = 0.95 * (1 - t); // fade as it expands
+        ring.setAttribute("points", ringPoints(cx, cy, currentR));
+        ring.setAttribute("stroke", `rgba(0,255,160,${opacity})`);
+      },
+      restore: () => ring.remove(),
+    });
   }
 }
 

@@ -15,6 +15,7 @@
 import { degradationParams, buildGraphFilterString } from "./graph-degradation-params.js";
 import { getCy } from "./graph.js";
 import { ALL_GLYPH_TYPES, nodeFaceDataUri } from "./node-glyphs.js";
+import { ParticlePool } from "./particle-pool.js";
 
 let gl = null, canvas = null, program = null, raf = 0;
 let uniforms = null;
@@ -25,14 +26,12 @@ let gridGlitchActive = false;  // guard so overlapping grid glitches don't clear
 // visual; base positions are restored on heal.
 let basePos = null;        // Map<nodeId, {x,y}> | null — resting positions while degraded
 let deckTickLast = 0;      // throttle for the position/style writes
-/**
- * A glitch "particle": a transient corruption with a lifetime. `update` (optional) runs each
- * tick while alive (shakes re-jitter); `restore` undoes the particle exactly, called on expiry
- * or heal. Style/structural glitches are apply-on-spawn + restore (no update).
- * @typedef {{ until: number, update?: (now: number) => void, restore: () => void }} Particle
- */
-/** @type {Particle[]} */
-let particles = [];        // the live particle pool — one list for every glitch type
+// A glitch "particle" is a transient corruption with a lifetime: `update` (optional) runs each
+// tick while alive (shakes re-jitter); `restore` undoes it exactly, on expiry or heal. Style/
+// structural glitches are apply-on-spawn + restore (no update). The shared ParticlePool owns the
+// age/cull lifecycle (see js/ui/particle-pool.js).
+/** @typedef {import("./particle-pool.js").Particle} Particle */
+const pool = new ParticlePool(); // live glitch particles — every type shares one pool
 let phantomSeq = 0;        // unique-id counter for hallucinated phantom nodes
 let flowTime = 0;          // heartbeat-warped flow clock fed to the plasma shader (u_t)
 let flowLast = 0;          // previous loop timestamp, for dt
@@ -281,7 +280,7 @@ function applyDeckPerturbation(now) {
   if (!cy) return;
   const sev = cur.deck.severity;
   if (sev <= 0) {
-    if (basePos || particles.length) restoreDeck(cy);
+    if (basePos || pool.size) restoreDeck(cy);
     return;
   }
   // Particle UPDATES run every rAF frame (so the 1–2px shake re-jitters at full ~60Hz and
@@ -289,7 +288,7 @@ function applyDeckPerturbation(now) {
   // event rate is frame-rate-independent.
   const tick = now - deckTickLast >= 33;
   if (tick) deckTickLast = now;
-  if (!particles.length && !tick) return; // nothing to do this frame
+  if (pool.size === 0 && !tick) return; // nothing to do this frame
 
   cy.batch(() => {
     if (!basePos) basePos = new Map();
@@ -297,14 +296,7 @@ function applyDeckPerturbation(now) {
     // Update the live pool EVERY frame; reap expired particles (each restores itself). The
     // graph is STILL wherever no particle is acting — shakes settle their node on expiry, so
     // there's no residue. Independent shake windows desync into a sequence, not one burst.
-    if (particles.length) {
-      const live = [];
-      for (const pt of particles) {
-        if (now >= pt.until) pt.restore();
-        else { if (pt.update) pt.update(now); live.push(pt); }
-      }
-      particles = live;
-    }
+    pool.tick(now);
 
     if (!tick) return; // base capture + spawning only at the throttled cadence
 
@@ -327,25 +319,25 @@ function applyDeckPerturbation(now) {
         const roll = Math.random();
         if (roll < 0.46) {
           const axis = () => (Math.random() < 0.5 ? "h" : "v"); // mix of horizontal + vertical tremors
-          particles.push(shakeParticle(cy, pick().id(), dur(), axis()));
-          if (Math.random() < sev) particles.push(shakeParticle(cy, pick().id(), dur(), axis())); // a 2nd, staggered, at high severity
+          pool.add(shakeParticle(cy, pick().id(), dur(), axis()));
+          if (Math.random() < sev) pool.add(shakeParticle(cy, pick().id(), dur(), axis())); // a 2nd, staggered, at high severity
         } else if (roll < 0.57) {
-          particles.push({ until: hold(80, 380), restore: glitchBlink(pick()) });        // flicker
+          pool.add({ until: hold(80, 380), restore: glitchBlink(pick()) });        // flicker
         } else if (roll < 0.68) {
-          particles.push({ until: hold(400, 1600), restore: glitchScramble(pick()) });   // lingering scramble
+          pool.add({ until: hold(400, 1600), restore: glitchScramble(pick()) });   // lingering scramble
         } else if (roll < 0.78) {
-          particles.push({ until: hold(400, 1600), restore: glitchGlyph(pick()) });      // wrong glyph holds
+          pool.add({ until: hold(400, 1600), restore: glitchGlyph(pick()) });      // wrong glyph holds
         } else if (roll < 0.86) {
-          particles.push({ until: hold(400, 1600), restore: glitchUndiscover(pick()) }); // stays "???"
+          pool.add({ until: hold(400, 1600), restore: glitchUndiscover(pick()) }); // stays "???"
         } else if (roll < 0.92) {
-          particles.push({ until: hold(400, 1800), restore: glitchHideEdge(cy) });        // a real link drops out
+          pool.add({ until: hold(400, 1800), restore: glitchHideEdge(cy) });        // a real link drops out
         } else if (roll < 0.97) {
           if (real.length >= 2) {
             const restore = Math.random() < 0.5 ? glitchPhantom(cy) : glitchPhantomEdge(cy);
-            particles.push({ until: hold(700, 2500), restore });                          // phantoms persist
+            pool.add({ until: hold(700, 2500), restore });                          // phantoms persist
           }
         } else if (!gridGlitchActive) {
-          particles.push({ until: hold(150, 700), restore: glitchGrid(containerEl) });    // grid backdrop spasms
+          pool.add({ until: hold(150, 700), restore: glitchGrid(containerEl) });    // grid backdrop spasms
         }
       };
       // Budget = expected events this tick. Spawn floor(budget) particles + a fractional
@@ -366,8 +358,7 @@ function applyDeckPerturbation(now) {
  * blanket-clears styles legit code may set inline). Then clear all deck state.
  */
 function restoreDeck(cy) {
-  cy.batch(() => { for (const pt of particles) pt.restore(); });
-  particles = [];
+  cy.batch(() => pool.clear());
   basePos = null;
   // Defensive: ensure the global grid backdrop is back to its stylesheet state.
   if (containerEl) { containerEl.style.backgroundImage = ""; containerEl.style.backgroundSize = ""; }
@@ -510,7 +501,17 @@ export function stopGraphDegradation() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0;
   const cy = getCy();
-  if (cy && (basePos || particles.length)) restoreDeck(cy);
+  if (cy && (basePos || pool.size)) {
+    restoreDeck(cy); // graph still live → restore positions/styles, then clear deck state
+  } else if (basePos || pool.size || gridGlitchActive) {
+    // Graph already disposed: we can't restore to a dead cy, but the module must still
+    // return to a clean baseline (per this function's contract) so a later restart can't
+    // inherit stale particles / a stuck grid flag. Discard without restoring.
+    pool.reset();
+    basePos = null;
+    if (containerEl) { containerEl.style.backgroundImage = ""; containerEl.style.backgroundSize = ""; }
+    gridGlitchActive = false;
+  }
   if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
   gl = null; canvas = null; program = null; uniforms = null;
   // Reset the health CSS filter to the base bloom so the graph doesn't stay blurred/hue-shifted
