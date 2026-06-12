@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Waveform Lab — Zoids CRT sweep</title>
+<!--
+  Throwaway tuning harness from the vital-waveforms session (2026-06-11), reconstructed
+  and preserved as a session artifact. Self-contained: open directly in a browser.
+  This is where the ECG / deck-pulse shapes, the CRT sweep + phosphor persistence, and the
+  speed/trail/bloom feel were dialed in by eye before porting to js/ui/waveform.js +
+  <starnet-waveform>. See ../notes.md (Retrospective).
+-->
+<style>
+  :root { --bg:#0a0a0f; --green:#39ff7a; --violet:#b06cff; --fg:#9fb3c8; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+  .wrap { max-width:760px; margin:24px auto; padding:0 16px; }
+  h1 { font-size:14px; color:#cfe; font-weight:600; letter-spacing:.08em; }
+  p.note { color:#6b7a90; }
+  .panel { background:#06060a; border:1px solid #20283a; border-radius:6px; padding:14px 16px; margin:14px 0;
+           box-shadow:inset 0 0 40px #000a; }
+  canvas { display:block; width:100%; height:auto; }
+  .lab-label { font-size:11px; letter-spacing:.12em; color:#6b7a90; margin:0 0 6px; }
+  .controls { display:grid; grid-template-columns:auto 1fr auto; gap:10px 14px; align-items:center; margin-top:8px; }
+  .controls label { color:#8aa; font-size:12px; }
+  .controls output { color:#cfe; min-width:46px; text-align:right; }
+  input[type=range]{ width:100%; accent-color:var(--violet); }
+  .row { display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .row label { font-size:12px; color:#8aa; display:flex; gap:6px; align-items:center; }
+  button { background:#141a2a; color:#cfe; border:1px solid #2a3550; border-radius:4px;
+           padding:5px 10px; font:inherit; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>★ WAVEFORM LAB — vector-CRT sweep + phosphor persistence</h1>
+  <p class="note">Static trace shape, drawn left→right by a sweep head; old phosphor fades. Drag HEALTH/DECK
+     and watch the rate change ripple in behind the head — only freshly-drawn pulses show the new rate.</p>
+
+  <div class="panel">
+    <p class="lab-label">HEALTH — ECG (clinical PQRST + U complex)</p>
+    <canvas id="ecg" width="720" height="90"></canvas>
+  </div>
+  <div class="panel">
+    <p class="lab-label">DECK INTEGRITY — symmetric CPU clock (edge-overshoot ringing; breaks down with damage)</p>
+    <canvas id="pulse" width="720" height="90"></canvas>
+  </div>
+
+  <div class="controls">
+    <label for="h">HEALTH</label>
+    <input id="h" type="range" min="0" max="100" value="100" /><output id="hv">100%</output>
+    <label for="d">DECK</label>
+    <input id="d" type="range" min="0" max="100" value="100" /><output id="dv">100%</output>
+    <label for="spd">SWEEP&nbsp;SPEED</label>
+    <input id="spd" type="range" min="30" max="320" value="150" /><output id="spdv">150</output>
+    <label for="trail">TRAIL&nbsp;(×&nbsp;sweep)</label>
+    <input id="trail" type="range" min="50" max="160" value="100" /><output id="trailv">1.00</output>
+    <label for="bloom">BLOOM</label>
+    <input id="bloom" type="range" min="0" max="14" value="5" /><output id="bloomv">5</output>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="dot" checked /> leading dot</label>
+    <button id="quick">quick HEALTH drop demo</button>
+  </div>
+  <p class="note">TRAIL is tied to sweep speed: 1.00× = the trail spans the full display, so the left edge
+     fades out just as the head loops back to redraw it. The trace never reshapes globally — history is
+     preserved until the head sweeps over it (drag a slider to see the rate change ripple in behind the dot).</p>
+</div>
+
+<script>
+function lerp(a,b,t){return a+(b-a)*t;}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+
+// ── static shapes anchored to [0,W]; y(x) for the CURRENT frac ────────────────
+function ecgPoints(frac, W, H){
+  const mid=H/2;
+  if (frac<=0) return [{x:0,y:mid},{x:W,y:mid}];
+  const beats=Math.round(lerp(4,7,1-frac));
+  const period=W/beats;
+  const cw=Math.min(period*0.72, period-2); // PQRST complex width; rest is flat diastole
+  const top=H*0.04, bot=H*0.96;
+  const spike0=H*0.56;                       // R height
+  const P=H*0.13, Q=H*0.08, S=H*0.20, T=H*0.22, U=H*0.07;
+  const erratic=1-frac;
+  const pts=[{x:0,y:mid}];
+  for(let k=0;k<beats;k++){
+    const hS=Math.abs(Math.sin(k*13.7+2.3));
+    const spike=spike0*lerp(1,lerp(0.8,1.2,hS),erratic);
+    const jit=lerp(0,period*0.12,erratic)*(Math.abs(Math.sin(k*7.3+1.1))-0.5)*2;
+    const bx=k*period+period*0.10+jit;
+    const X=(f)=>bx+cw*f;
+    pts.push({x:X(0.00),y:mid});
+    pts.push({x:X(0.06),y:mid});
+    pts.push({x:X(0.10),y:mid-P*0.7});       // P wave
+    pts.push({x:X(0.13),y:mid-P});
+    pts.push({x:X(0.16),y:mid-P*0.7});
+    pts.push({x:X(0.20),y:mid});
+    pts.push({x:X(0.28),y:mid});             // PR segment
+    pts.push({x:X(0.31),y:clamp(mid+Q,top,bot)}); // Q
+    pts.push({x:X(0.34),y:clamp(mid-spike,top,bot)}); // R
+    pts.push({x:X(0.37),y:clamp(mid+S,top,bot)}); // S
+    pts.push({x:X(0.41),y:mid});             // J point
+    pts.push({x:X(0.52),y:mid});             // ST segment
+    pts.push({x:X(0.58),y:mid-T*0.5});       // T wave
+    pts.push({x:X(0.66),y:mid-T});
+    pts.push({x:X(0.74),y:mid-T*0.5});
+    pts.push({x:X(0.80),y:mid});
+    pts.push({x:X(0.86),y:mid-U*0.7});       // U wave
+    pts.push({x:X(0.89),y:mid-U});
+    pts.push({x:X(0.92),y:mid-U*0.7});
+    pts.push({x:X(0.96),y:mid});
+  }
+  pts.push({x:W,y:mid});
+  return pts;
+}
+function pulsePoints(frac, W, H){
+  const mid=H/2;
+  if (frac<=0) return [{x:0,y:mid},{x:W,y:mid}];
+  const dmg=1-frac;
+  const amp=H*lerp(0.30,0.38,frac);           // ~constant amplitude across health
+  const mTop=H*0.04, mBot=H*0.96;
+  const hi=clamp(mid-amp,mTop,mBot);          // up-pulse level
+  const lo=clamp(mid+amp,mTop,mBot);          // down-pulse level
+  const ramp=Math.pow(dmg,0.4);
+  const over=H*lerp(0.06,0.34,ramp);          // edge overshoot, visible healthy → grows with damage
+  const nw=Math.round(lerp(0,4,ramp));        // extra damped ring wobbles added by damage
+  const CYCLES=4;                             // hi+lo cycles across the width (~25% narrower pulses)
+  const half=W/(CYCLES*2);                    // one plateau (up OR down) — equal duty
+  const eW=half*lerp(0.375,0.60,ramp);        // ringing-edge region width (wider overshoot micro-pulses)
+
+  // Symmetric clock edge: leaving fromY, overshoot further in fromY's direction (the
+  // departing pulse's trailing spike), swing to toY and overshoot past it (the arriving
+  // pulse's leading spike), then a damped ring settling to toY. Up-pulses spike up,
+  // down-pulses spike down, so each transition is a positive-then-negative pair (or vice versa).
+  const edge=(pts,x,fromY,toY)=>{
+    const dFrom=Math.sign(fromY-toY), dTo=Math.sign(toY-fromY);
+    const oFrom=clamp(fromY+dFrom*over,mTop,mBot), oTo=clamp(toY+dTo*over,mTop,mBot);
+    const X=(f)=>x+eW*f;
+    pts.push({x, y:fromY});
+    pts.push({x:X(0.10), y:oFrom});          // departing overshoot...
+    pts.push({x:X(0.28), y:oFrom});          // ...held briefly → little square micro-pulse
+    pts.push({x:X(0.44), y:oTo});            // arriving overshoot...
+    pts.push({x:X(0.62), y:oTo});            // ...held briefly → little square micro-pulse
+    for(let w=1;w<=nw;w++)
+      pts.push({x:X(0.62 + 0.30*w/(nw+1)), y:clamp(toY+dTo*over*Math.pow(-0.5,w),mTop,mBot)});
+    pts.push({x:X(1.0), y:toY});             // settle
+  };
+
+  const NH=CYCLES*2;
+  let prev=lo;                                 // arrive from a low pulse at the left edge
+  const pts=[{x:0,y:lo}];
+  for(let k=0;k<NH;k++){
+    const level=(k%2===0)?hi:lo;
+    const px0=k*half, px1=(k+1)*half;
+    edge(pts, px0, prev, level);               // ringing transition into this plateau
+    // ragged plateau (chaos grows with damage; flat when healthy) — same for hi and lo
+    const p0=px0+eW;
+    for(let j=1;j<=4;j++){
+      const noise=ramp*over*0.55*(Math.abs(Math.sin(k*9.1+j*3.3))-0.5)*2;
+      pts.push({x:p0+(px1-p0)*j/4, y:clamp(level+noise,mTop,mBot)});
+    }
+    prev=level;
+  }
+  pts.push({x:W, y:prev});
+  return pts;
+}
+// y at arbitrary x by walking the polyline (x monotonic non-decreasing)
+function yAt(pts,x){
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1], b=pts[i];
+    if(x<=b.x){ if(b.x===a.x) return b.y; const t=(x-a.x)/(b.x-a.x); return lerp(a.y,b.y,t); }
+  }
+  return pts[pts.length-1].y;
+}
+
+const state={h:1,d:1,speed:150,trail:1.0,bloom:5,dot:true};
+function bind(id,key,scale,out,fmt){
+  const el=document.getElementById(id);
+  const apply=()=>{ state[key]=scale?el.value/scale:+el.value; if(out)document.getElementById(out).textContent=fmt?fmt(el.value):el.value; };
+  el.addEventListener("input",apply); apply();
+}
+bind("h","h",100,"hv",v=>v+"%");
+bind("d","d",100,"dv",v=>v+"%");
+bind("spd","speed",0,"spdv");
+bind("trail","trail",100,"trailv",v=>(v/100).toFixed(2));
+bind("bloom","bloom",0,"bloomv");
+document.getElementById("dot").addEventListener("change",e=>state.dot=e.target.checked);
+document.getElementById("quick").onclick=()=>{
+  let t0=performance.now();
+  const anim=(t)=>{ const u=(t-t0)/4000; if(u>=1){ document.getElementById("h").value=100; state.h=1; document.getElementById("hv").textContent="100%"; return; }
+    const v=u<0.5? lerp(1,0.15,u*2) : lerp(0.15,1,(u-0.5)*2);
+    state.h=v; document.getElementById("h").value=Math.round(v*100); document.getElementById("hv").textContent=Math.round(v*100)+"%";
+    requestAnimationFrame(anim); };
+  requestAnimationFrame(anim);
+};
+
+const css=getComputedStyle(document.documentElement);
+const GREEN=css.getPropertyValue("--green").trim(), VIOLET=css.getPropertyValue("--violet").trim(), BG=css.getPropertyValue("--bg").trim();
+
+// ── CRT sweep + phosphor persistence (redraw-from-history; age-banded glow) ───
+function makeSweeper(canvas, color, getFrac){
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width, H=canvas.height;
+  const STEP=2;       // px between samples
+  let buf=[];         // ring of {x,y,t,gap} swept points
+  let head=0;         // absolute swept distance (monotonic)
+  return (dt, now)=>{
+    const sweepT=W/Math.max(1,state.speed);     // seconds for one full pass
+    const trailDur=sweepT*state.trail;          // how long a point stays lit
+    const frac=getFrac();
+    const pts=frac<=0 ? [{x:0,y:H/2},{x:W,y:H/2}] : (color===GREEN?ecgPoints(frac,W,H):pulsePoints(frac,W,H));
+    // Sample new points between old and new head using the CURRENT shape → history.
+    const target=head+state.speed*dt;
+    while(head<target){
+      const segStart=head;
+      const next=Math.min(head+STEP,target);
+      const x=next%W;
+      const gap=Math.floor(next/W)!==Math.floor(segStart/W); // crossed the right edge
+      buf.push({x, y:yAt(pts,x), t:now, gap});
+      head=next;
+    }
+    // Drop fully-decayed points outright (no residual to round-stick on).
+    const cutoff=now-trailDur;
+    while(buf.length && buf[0].t<cutoff) buf.shift();
+    // Redraw from scratch: clear, then stroke segments with age→alpha, batched by band.
+    ctx.clearRect(0,0,W,H);
+    ctx.lineWidth=1.3; ctx.lineJoin="round"; ctx.lineCap="round"; ctx.strokeStyle=color;
+    ctx.shadowColor=color; ctx.shadowBlur=state.bloom;
+    const NB=12;
+    const bandOf=(p)=>Math.floor(((now-p.t)/trailDur)*NB);
+    let curBand=-1, open=false;
+    const flush=()=>{ if(open){ ctx.globalAlpha=1-(curBand+0.5)/NB; ctx.stroke(); open=false; } };
+    for(let i=1;i<buf.length;i++){
+      const a=buf[i-1], b=buf[i];
+      const band=bandOf(b);
+      if(b.gap||band>=NB){ flush(); curBand=-1; continue; }
+      if(band!==curBand){ flush(); ctx.beginPath(); ctx.moveTo(a.x,a.y); curBand=band; open=true; }
+      ctx.lineTo(b.x,b.y);
+    }
+    flush();
+    ctx.globalAlpha=1;
+    // Leading dot rides the newest point.
+    if(state.dot && buf.length){
+      const p=buf[buf.length-1];
+      ctx.fillStyle=color; ctx.shadowColor=color; ctx.shadowBlur=state.bloom+3;
+      ctx.beginPath(); ctx.arc(p.x,p.y,2.0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#eaffff"; ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,0.8,0,Math.PI*2); ctx.fill();
+    }
+    ctx.shadowBlur=0;
+  };
+}
+
+const sweepE=makeSweeper(document.getElementById("ecg"), GREEN, ()=>state.h);
+const sweepP=makeSweeper(document.getElementById("pulse"), VIOLET, ()=>state.d);
+let last=0;
+function frame(t){
+  const now=t/1000;
+  const dt=last?Math.min(now-last,0.05):0; last=now;
+  sweepE(dt,now); sweepP(dt,now);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

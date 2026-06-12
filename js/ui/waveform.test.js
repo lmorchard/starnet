@@ -97,6 +97,16 @@ describe("pulsePoints", () => {
     }
   });
 
+  test("symmetric clock: rings both above and below the midline", () => {
+    // Up-pulses overshoot above the high level, down-pulses below the low level — so the
+    // trace must reach well past mid in BOTH directions, roughly symmetrically.
+    const pts = pulsePoints({ frac: 1, width: W, height: H });
+    const above = Math.max(...pts.map((p) => MID - p.y)); // up excursion
+    const below = Math.max(...pts.map((p) => p.y - MID)); // down excursion
+    assert.ok(above > H * 0.25 && below > H * 0.25, `not both-sided: up=${above} down=${below}`);
+    assert.ok(Math.abs(above - below) < H * 0.12, `not symmetric: up=${above} down=${below}`);
+  });
+
   test("points ascending in x and within bounds across frac", () => {
     for (const frac of [0.1, 0.4, 0.7, 1.0]) {
       const pts = pulsePoints({ frac, width: W, height: H });
