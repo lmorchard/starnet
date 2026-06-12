@@ -167,6 +167,14 @@ retired in #173. (Node `alertState` is now purely the per-node visual alert glow
 
 ## Branching and Pull Requests
 
+**Always start work in a git worktree.** This repo is frequently worked by multiple
+agents/sessions at once that share the same checkout, so doing your work in an isolated
+worktree (e.g. `.claude/worktrees/<slug>/`) is mandatory, not optional — it keeps a
+parallel session from switching branches or resetting `main` out from under you (which
+*has* happened: a mid-session branch tangle traced straight back to sharing the main
+checkout). Create the worktree first, then create your branch inside it. If your harness
+has a native worktree tool, use it; otherwise `git worktree add`.
+
 **Never commit feature or bugfix work directly to `main`.** Whenever starting a new arc
 of development or bugfixing — even a small one — create a branch first:
 
