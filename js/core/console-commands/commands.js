@@ -22,7 +22,7 @@ import {
 // ── Shared constants for completion ──────────────────────────────────────────
 
 const STATUS_NOUNS     = ["summary", "ice", "hand", "node", "alert", "mission"];
-const CHEAT_SUBS       = ["give", "set", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "help"];
+const CHEAT_SUBS       = ["give", "set", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "fps", "help"];
 const CHEAT_GIVE_SUBS  = ["matching", "card", "cash"];
 const CHEAT_POOLS      = ["health", "deck"];
 const CHEAT_RARITIES   = ["common", "uncommon", "rare"];
