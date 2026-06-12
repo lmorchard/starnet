@@ -5,6 +5,7 @@ import { isIceVisible, isObscured } from "../core/state.js";
 import { CONTAINER_POLYGON_POINTS, nodeFaceDataUri } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
 import { ringPoints } from "./overlays/facet.js";
+import { findPath } from "./graph-path.js";
 
 // Still playing with what might be the best default here
 // const DEFAULT_LAYOUT_ALGO = "breadthfirst";
@@ -14,6 +15,31 @@ const DEFAULT_LAYOUT_ALGO = "cola";
 // Node type → glyph/shape now lives in node-glyphs.js. Every node renders as a
 // common dodecagon container (state on border/fill) + an ideographic glyph
 // background-image (type identity). See issue #126.
+
+// graph.js keeps @ts-nocheck for the untyped Cytoscape API, but documents its
+// OWN data shapes so callers/readers have a contract (#172). These typedefs are
+// documentation here (this file isn't checked); they're real enough to import.
+/**
+ * @typedef {Object} GraphNodeInput
+ * @property {string} id
+ * @property {string} label
+ * @property {string} type
+ * @property {string} grade
+ */
+/**
+ * @typedef {Object} GraphEdgeInput
+ * @property {string} source
+ * @property {string} target
+ */
+/**
+ * Topology handed to initGraph/resetGraph. The board starts empty; nodes are
+ * added to Cytoscape as they become visible. (toCytoscapeFormat also attaches
+ * startNode/startCash/moneyCost/ice for other consumers; graph.js reads only
+ * nodes + edges.)
+ * @typedef {Object} GraphNetworkConfig
+ * @property {GraphNodeInput[]} nodes
+ * @property {GraphEdgeInput[]} edges
+ */
 
 // Grade → border color intensity
 const GRADE_COLORS = {
@@ -44,93 +70,69 @@ const pulsingNodes = new Set();       // nodeIds running red-alert pulse
 const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
 const rebootingNodes = new Set();     // nodeIds running reboot opacity pulse
 
-function startRedPulse(node) {
-  const id = node.id();
-  if (pulsingNodes.has(id)) return;
-  pulsingNodes.add(id);
-  runRedPulse(node);
-}
-
-function stopRedPulse(node) {
-  pulsingNodes.delete(node.id());
-  node.stop();
-  node.removeStyle("border-color border-width");
+// Build a looping node-style pulse. All three pulses share the same shape —
+// start → add to a membership Set → chain `frames` forever, re-checking
+// membership before every animate so stop() halts the loop cleanly. They differ
+// only in the Set, the looped frames, and which style props stop() clears.
+//
+// @param {object} opts
+// @param {Set<string>} opts.set       membership Set keyed by node id
+// @param {{ style: object, duration: number }[]} opts.frames  looped in order
+// @param {string} opts.clearStyle     space-separated props removed on stop()
+function createPulseAnimator({ set, frames, clearStyle }) {
+  function step(node, id, i) {
+    if (!set.has(id)) return;
+    const frame = frames[i % frames.length];
+    node.animate(
+      { style: frame.style },
+      { duration: frame.duration, complete: () => step(node, id, i + 1) }
+    );
+  }
+  return {
+    start(node) {
+      const id = node.id();
+      if (set.has(id)) return;
+      set.add(id);
+      step(node, id, 0);
+    },
+    stop(node) {
+      set.delete(node.id());
+      node.stop();
+      node.removeStyle(clearStyle);
+    },
+  };
 }
 
 // Thin strobe blink (not a fattening breathe): a thin constant-width border that
 // flickers bright→dim, so under the global bloom it reads as a vector alarm
 // strobe rather than a throbbing halo. Red strobes fast (urgent).
-function runRedPulse(node) {
-  const id = node.id();
-  if (!pulsingNodes.has(id)) return;
-  node.animate(
-    { style: { "border-color": "#ff3030", "border-width": 1.5 } },
-    { duration: 220, complete: () => {
-      if (!pulsingNodes.has(id)) return;
-      node.animate(
-        { style: { "border-color": "#5a1010", "border-width": 1.5 } },
-        { duration: 420, complete: () => runRedPulse(node) }
-      );
-    }}
-  );
-}
-
-function startYellowPulse(node) {
-  const id = node.id();
-  if (yellowPulsingNodes.has(id)) return;
-  yellowPulsingNodes.add(id);
-  runYellowPulse(node);
-}
-
-function stopYellowPulse(node) {
-  yellowPulsingNodes.delete(node.id());
-  node.stop();
-  node.removeStyle("border-color border-width");
-}
+const redPulse = createPulseAnimator({
+  set: pulsingNodes,
+  clearStyle: "border-color border-width",
+  frames: [
+    { style: { "border-color": "#ff3030", "border-width": 1.5 }, duration: 220 },
+    { style: { "border-color": "#5a1010", "border-width": 1.5 }, duration: 420 },
+  ],
+});
 
 // Yellow strobes slower/softer than red (lower urgency), same thin-blink idea.
-function runYellowPulse(node) {
-  const id = node.id();
-  if (!yellowPulsingNodes.has(id)) return;
-  node.animate(
-    { style: { "border-color": "#ffcc00", "border-width": 1.5 } },
-    { duration: 480, complete: () => {
-      if (!yellowPulsingNodes.has(id)) return;
-      node.animate(
-        { style: { "border-color": "#4a3800", "border-width": 1.5 } },
-        { duration: 720, complete: () => runYellowPulse(node) }
-      );
-    }}
-  );
-}
+const yellowPulse = createPulseAnimator({
+  set: yellowPulsingNodes,
+  clearStyle: "border-color border-width",
+  frames: [
+    { style: { "border-color": "#ffcc00", "border-width": 1.5 }, duration: 480 },
+    { style: { "border-color": "#4a3800", "border-width": 1.5 }, duration: 720 },
+  ],
+});
 
-function startRebootPulse(node) {
-  const id = node.id();
-  if (rebootingNodes.has(id)) return;
-  rebootingNodes.add(id);
-  runRebootPulse(node);
-}
-
-function stopRebootPulse(node) {
-  rebootingNodes.delete(node.id());
-  node.stop();
-  node.removeStyle("opacity");
-}
-
-function runRebootPulse(node) {
-  const id = node.id();
-  if (!rebootingNodes.has(id)) return;
-  node.animate(
-    { style: { opacity: 0.2 } },
-    { duration: 1000, complete: () => {
-      if (!rebootingNodes.has(id)) return;
-      node.animate(
-        { style: { opacity: 0.55 } },
-        { duration: 1200, complete: () => runRebootPulse(node) }
-      );
-    }}
-  );
-}
+const rebootPulse = createPulseAnimator({
+  set: rebootingNodes,
+  clearStyle: "opacity",
+  frames: [
+    { style: { opacity: 0.2 }, duration: 1000 },
+    { style: { opacity: 0.55 }, duration: 1200 },
+  ],
+});
 
 // Full network topology — stored for deferred node addition.
 // Nodes are only added to Cytoscape when they become visible.
@@ -192,6 +194,11 @@ export function getBloomIntensity() {
   return bloomIntensity;
 }
 
+/**
+ * @param {GraphNetworkConfig} networkData
+ * @param {(nodeId: string) => void} [onNodeClick]
+ * @param {() => void} [onBackgroundTap]
+ */
 export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   ensureBloomFilter();
   // Store full topology for deferred node addition
@@ -302,7 +309,7 @@ export function syncInitialNodes(nodes) {
  * Reuses the existing cy instance — clears all elements rather than destroying
  * cy, so there's no teardown/leak. Call before syncInitialNodes when starting a
  * fresh run (first boot, run-again, hub launch); a no-op if cy isn't built yet.
- * @param {{ nodes: {id:string,label:string,type:string,grade:string}[], edges: {source:string,target:string}[] }} networkData
+ * @param {GraphNetworkConfig} networkData
  */
 export function resetGraph(networkData) {
   if (!cy) return;
@@ -548,10 +555,10 @@ export function updateNodeStyle(nodeId, nodeState) {
   // Rebooting state
   if (nodeState.rebooting) {
     node.addClass("rebooting");
-    startRebootPulse(node);
+    rebootPulse.start(node);
   } else {
     node.removeClass("rebooting");
-    stopRebootPulse(node);
+    rebootPulse.stop(node);
   }
 
   // Visibility class
@@ -584,14 +591,14 @@ export function updateNodeStyle(nodeId, nodeState) {
 
     // Alert pulse animations (shadow-blur is invalid in Cytoscape; use bg/border instead)
     if (nodeState.alertState === "red") {
-      if (yellowPulsingNodes.has(nodeId)) stopYellowPulse(node);
-      startRedPulse(node);
+      if (yellowPulsingNodes.has(nodeId)) yellowPulse.stop(node);
+      redPulse.start(node);
     } else if (nodeState.alertState === "yellow") {
-      if (pulsingNodes.has(nodeId)) stopRedPulse(node);
-      startYellowPulse(node);
+      if (pulsingNodes.has(nodeId)) redPulse.stop(node);
+      yellowPulse.start(node);
     } else {
-      if (pulsingNodes.has(nodeId)) stopRedPulse(node);
-      if (yellowPulsingNodes.has(nodeId)) stopYellowPulse(node);
+      if (pulsingNodes.has(nodeId)) redPulse.stop(node);
+      if (yellowPulsingNodes.has(nodeId)) yellowPulse.stop(node);
     }
 
     // Glyph by node type — but an obscured node shows the bare dodecagon (no
@@ -814,105 +821,60 @@ function clearIceTrace() {
   cy.edges(".ice-trace").removeClass("ice-trace");
 }
 
-// Flash edges along the BFS path from fromId to toId, staggered per hop.
-// Only flashes edges that are currently visible (respects fog of war).
-function flashIcePath(fromId, toId) {
-  // BFS: find shortest path, recording edge objects
-  const visited = new Map([[fromId, { prev: null, edge: null }]]);
-  const queue = [fromId];
-  let found = false;
-
-  outer: while (queue.length) {
-    const cur = queue.shift();
-    for (const edge of cy.edges()) {
-      const s = edge.data("source");
-      const t = edge.data("target");
-      let neighbor = null;
-      if (s === cur && !visited.has(t)) neighbor = t;
-      else if (t === cur && !visited.has(s)) neighbor = s;
-      if (neighbor !== null) {
-        visited.set(neighbor, { prev: cur, edge });
-        if (neighbor === toId) { found = true; break outer; }
-        queue.push(neighbor);
-      }
-    }
-  }
-
-  if (!found) return;
-
-  // Reconstruct ordered edge list (from → to direction)
-  const pathEdges = [];
-  let cur = toId;
-  while (cur !== fromId) {
-    const { prev, edge } = visited.get(cur);
-    pathEdges.unshift(edge);
-    cur = prev;
-  }
-
-  // Flash each edge in sequence; skip edges not in player-controlled territory.
-  // Requires at least one endpoint to be compromised or owned (not just visible).
-  pathEdges.forEach((edge, i) => {
-    if (edge.hasClass("hidden")) return;
-    const src = cy.getElementById(edge.data("source"));
-    const tgt = cy.getElementById(edge.data("target"));
-    const srcControlled = src.hasClass("compromised") || src.hasClass("owned");
-    const tgtControlled = tgt.hasClass("compromised") || tgt.hasClass("owned");
-    if (!srcControlled && !tgtControlled) return;
-    setTimeout(() => {
-      edge.animate(
-        { style: { "line-color": "#ff00aa", width: 3, opacity: 1 } },
-        { duration: 150, complete: () => edge.animate(
-          { style: { "line-color": "#440033", width: 1.5, opacity: 0.4 } },
-          { duration: 400, complete: () => edge.removeStyle("line-color width opacity") }
-        )}
-      );
-    }, i * 100);
+// Edges connecting two node ids (undirected); usually one, but tolerant of
+// parallel edges. Used to recover edge objects from findPath's node list.
+function edgesBetween(a, b) {
+  return cy.edges().filter((e) => {
+    const s = e.data("source");
+    const t = e.data("target");
+    return (s === a && t === b) || (s === b && t === a);
   });
 }
 
-function drawIceTrace(fromId, toId, nodeStates) {
-  // BFS to find shortest path from attention focus back to resident node
-  const visited = new Map([[fromId, null]]); // node → predecessor
-  const queue = [fromId];
-  let found = false;
+// Flash edges along the shortest path from fromId to toId, staggered per hop.
+// Only flashes edges that are currently visible (respects fog of war).
+function flashIcePath(fromId, toId) {
+  const path = findPath(cy, fromId, toId);
+  if (!path) return;
 
-  while (queue.length && !found) {
-    const cur = queue.shift();
-    for (const edge of cy.edges()) {
-      const s = edge.data("source");
-      const t = edge.data("target");
-      let neighbor = null;
-      if (s === cur && !visited.has(t)) neighbor = t;
-      else if (t === cur && !visited.has(s)) neighbor = s;
-      if (neighbor !== null) {
-        visited.set(neighbor, cur);
-        if (neighbor === toId) { found = true; break; }
-        queue.push(neighbor);
-      }
-    }
+  // Flash each hop's edge in sequence; skip edges not in player-controlled
+  // territory. Requires at least one endpoint compromised/owned (not just visible).
+  for (let hop = 1; hop < path.length; hop++) {
+    const delay = (hop - 1) * 100;
+    edgesBetween(path[hop - 1], path[hop]).forEach((edge) => {
+      if (edge.hasClass("hidden")) return;
+      const src = cy.getElementById(edge.data("source"));
+      const tgt = cy.getElementById(edge.data("target"));
+      const srcControlled = src.hasClass("compromised") || src.hasClass("owned");
+      const tgtControlled = tgt.hasClass("compromised") || tgt.hasClass("owned");
+      if (!srcControlled && !tgtControlled) return;
+      setTimeout(() => {
+        edge.animate(
+          { style: { "line-color": "#ff00aa", width: 3, opacity: 1 } },
+          { duration: 150, complete: () => edge.animate(
+            { style: { "line-color": "#440033", width: 1.5, opacity: 0.4 } },
+            { duration: 400, complete: () => edge.removeStyle("line-color width opacity") }
+          )}
+        );
+      }, delay);
+    });
   }
+}
 
-  if (!found) return;
+function drawIceTrace(fromId, toId, nodeStates) {
+  const path = findPath(cy, fromId, toId);
+  if (!path) return;
 
-  // Walk path from toId back to fromId, marking waypoints and edges
-  let cur = toId;
-  while (cur && cur !== fromId) {
+  // Walk waypoints from toId back toward (but not including) fromId, marking
+  // hidden nodes as traced and every hop's edge as part of the trace.
+  for (let hop = path.length - 1; hop > 0; hop--) {
+    const cur = path[hop];
     const cyNode = cy.getElementById(cur);
-    if (cyNode.length > 0) {
-      if (cyNode.hasClass("hidden")) {
-        // Reveal hidden nodes along the path as traced waypoints
-        cyNode.addClass("ice-traced");
-      }
+    if (cyNode.length > 0 && cyNode.hasClass("hidden")) {
+      // Reveal hidden nodes along the path as traced waypoints
+      cyNode.addClass("ice-traced");
     }
-    const prev = visited.get(cur);
-    if (prev !== undefined && prev !== null) {
-      cy.edges().filter((e) => {
-        const s = e.data("source");
-        const t = e.data("target");
-        return (s === prev && t === cur) || (s === cur && t === prev);
-      }).addClass("ice-trace");
-    }
-    cur = prev;
+    edgesBetween(path[hop - 1], cur).addClass("ice-trace");
   }
 
   // Mark the resident node distinctly

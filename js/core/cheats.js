@@ -35,8 +35,8 @@ export function handleCheatCommand(args, { saveGame = null } = {}) {
 
   if (sub === "give") {
     return cheatGive(args.slice(1));
-  } else if (sub === "set") {
-    return cheatSet(args.slice(1));
+  } else if (sub === "alert") {
+    return cheatAlert(args.slice(1));
   } else if (sub === "own") {
     return cheatOwn(args.slice(1));
   } else if (sub === "own-all") {
@@ -135,24 +135,49 @@ function cheatGive(args) {
   return false;
 }
 
-// CHEAT: set alert <level>
-function cheatSet(args) {
-  const what = args[0]?.toLowerCase();
+// CHEAT: alert <set <level> | raise | lower>
+function cheatAlert(args) {
+  const verb = args[0]?.toLowerCase();
 
-  if (what === "alert") {
+  if (verb === "set") {
     const level = args[1]?.toLowerCase();
     if (!VALID_ALERTS.includes(level)) {
-      addLogEntry(`Usage: cheat set alert <green|yellow|red|trace>`, "error");
+      addLogEntry("Usage: cheat alert set <green|yellow|red|trace>", "error");
       return false;
     }
-    activateCheat();
-    forceGlobalAlert(level);
-    addLogEntry(`[CHEAT] Global alert forced to ${level.toUpperCase()}.`, "success");
+    applyAlertLevel(level);
+    addLogEntry(`[CHEAT] Global alert set to ${level.toUpperCase()}.`, "success");
     return true;
   }
 
-  addLogEntry("Usage: cheat set alert <green|yellow|red|trace>", "error");
+  if (verb === "raise" || verb === "lower") {
+    const cur = getState()?.globalAlert ?? "green";
+    const idx = VALID_ALERTS.indexOf(cur);
+    const nextIdx = verb === "raise"
+      ? Math.min(idx + 1, VALID_ALERTS.length - 1)
+      : Math.max(idx - 1, 0);
+    const level = VALID_ALERTS[nextIdx];
+    applyAlertLevel(level);
+    addLogEntry(`[CHEAT] Global alert ${verb}d: ${cur.toUpperCase()} → ${level.toUpperCase()}.`, "success");
+    return true;
+  }
+
+  addLogEntry("Usage: cheat alert <set <green|yellow|red|trace> | raise | lower>", "error");
   return false;
+}
+
+/**
+ * Force the global alert to a level (cheat bypass of the escalate-only rule). When dropping
+ * below trace, cancel the running trace countdown first — otherwise forceGlobalAlert lowers the
+ * displayed level but leaves the trace timer ticking toward a loss.
+ * @param {string} level
+ */
+function applyAlertLevel(level) {
+  activateCheat();
+  if (level !== "trace" && getState()?.traceSecondsRemaining != null) {
+    cancelTraceCountdown(); // stop the in-flight trace before settling on a lower level
+  }
+  forceGlobalAlert(level);
 }
 
 // Resolve a pool token to its state key, label, and orchestration mutators.
@@ -344,7 +369,8 @@ function cheatHelp() {
     "  cheat give matching [node]  Add exploits matching node's vulns (balance rescue).",
     "  cheat give card [rarity]    Add random exploit card. Rarities: common uncommon rare",
     "  cheat give cash <amount>    Add credits to wallet.",
-    "  cheat set alert <level>     Force alert level: green yellow red trace",
+    "  cheat alert set <level>     Force alert level: green yellow red trace",
+    "  cheat alert raise|lower     Step the global alert up/down one level",
     "  cheat hurt <pool> <amount>  Damage health|deck (ends run if depleted).",
     "  cheat heal <pool> [amount]  Restore health|deck by amount, or to full.",
     "  cheat own <node>            Set node to owned + reveal neighbors.",

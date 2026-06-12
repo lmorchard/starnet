@@ -63,6 +63,12 @@ at the end of this manual.
 
 **HUD** — Top bar shows global alert level (as a vector lamp whose shape encodes the level: hexagon = safe, point-up triangle = warning, inverted triangle = danger/trace), your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**, drawn as vector-CRT vital traces that sweep left-to-right with a fading phosphor trail. HEALTH is a green ECG/heartbeat (PQRST) complex — as health falls the beat speeds up and decays through escalating ECG abnormalities (ST/T-wave changes, then premature and skipped beats), breaking into a chaotic fibrillation flutter near death before flatlining at zero. DECK INTEGRITY is a violet symmetric CPU-clock pulse — as deck integrity falls its edges develop deepening ringing, overshoot and timing/amplitude glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover either trace to see the exact value as a percentage.
 
+**Resizing the layout** — Three borders are drag-resizable: the sidebar's left
+edge (its width), the border above the log/console (graph vs. log height), and
+the border above the exploit hand (hand vs. node-info height). Grab a border and
+drag; **double-click a border to reset that split** to its default. Your chosen
+sizes persist across reloads. The header bar is fixed.
+
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
 and exploit hand. Use `status summary` to see your current seed.
@@ -535,6 +541,22 @@ goes dark and stops climbing the alert ladder, no matter how many exploits you f
 with more than one IDS/monitor pair needs each IDS corrupted to fully go dark.) This is often
 worth the detour, especially on an ICE-less LAN where the grid is your only clock.
 
+### Cooling the grid (below trace)
+
+The security grid climbs, but — below trace — you can also push it back down. Two relief levers
+(both **grid only**: they don't touch ICE, which keeps hunting):
+
+- **Scrub logs** (`exec scrub-logs`) — on a **compromised** security-monitor. Wipes that monitor's
+  accumulated alerts and eases the global alert one level. Cheap and repeatable.
+- **Lie low** (`exec lie-low`) — at the **WAN node**. You go quiet and *wait* (a timed action — ICE
+  keeps moving while you sit). A clock face spins on the WAN node, its edges lighting up as the wait
+  completes. On completion the whole grid calms to green. But it's **limited to a couple of uses per
+  run**: keep lying low and a human admin eventually clocks your tether, and the option's gone.
+
+So the security chain gives you a tiered toolkit: **corrupt the IDS** (stop new alerts) → **scrub the
+monitor** (clear what's piled up) → **own the monitor + `cancel-trace`** (kill an active trace). Once a
+trace is actually running, lie-low and scrub do nothing — jack out or cancel it.
+
 ---
 
 ## ICE
@@ -669,6 +691,8 @@ Actions depend on the selected node's type and access level:
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
 | `exec <script>` | A compromised/owned node exposes node scripts | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
 | `corrupt`      | IDS node is compromised or owned               | Severs event forwarding to security monitor (run via `exec`) |
+| `scrub-logs`   | Security-monitor, compromised or owned         | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
+| `lie-low`      | WAN node, uses remaining this run              | Timed wait that calms the whole grid to green (below trace); limited per run (run via `exec`) |
 | `spoof`        | Security-monitor node, compromised or owned    | Recalibrates security monitor (run via `exec`) |
 | `kick`         | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |

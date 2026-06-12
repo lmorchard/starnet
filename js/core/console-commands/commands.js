@@ -22,8 +22,9 @@ import {
 // ── Shared constants for completion ──────────────────────────────────────────
 
 const STATUS_NOUNS     = ["summary", "ice", "hand", "node", "alert", "mission"];
-const CHEAT_SUBS       = ["give", "set", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "fps", "help"];
+const CHEAT_SUBS       = ["give", "alert", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "fps", "help"];
 const CHEAT_GIVE_SUBS  = ["matching", "card", "cash"];
+const CHEAT_ALERT_VERBS = ["set", "raise", "lower"];
 const CHEAT_POOLS      = ["health", "deck"];
 const CHEAT_RARITIES   = ["common", "uncommon", "rare"];
 const CHEAT_ALERTS     = ["green", "yellow", "red", "trace"];
@@ -320,7 +321,8 @@ export const COMMANDS = [
         "  cheat give matching [node]  Add exploits matching node's vulns (balance rescue).",
         "  cheat give card [rarity]    Add random exploit card.",
         "  cheat give cash <amount>    Add credits to wallet.",
-        "  cheat set alert <level>     Force alert level: green yellow red trace",
+        "  cheat alert set <level>     Force alert level: green yellow red trace",
+        "  cheat alert raise|lower     Step the global alert up/down one level",
         "  cheat hurt <pool> <amount>  Damage health|deck (ends run if depleted).",
         "  cheat heal <pool> [amount]  Restore health|deck by amount, or to full.",
         "  cheat own <node>            Set node to owned + reveal neighbors.",
@@ -349,9 +351,9 @@ export const COMMANDS = [
         return null;
       }
 
-      if (sub === "set") {
-        if (subArgs.length === 0) return fromList(["alert"], partial);
-        if (subArgs[0] === "alert" && subArgs.length === 1) return fromList(CHEAT_ALERTS, partial);
+      if (sub === "alert") {
+        if (subArgs.length === 0) return fromList(CHEAT_ALERT_VERBS, partial);
+        if (subArgs[0] === "set" && subArgs.length === 1) return fromList(CHEAT_ALERTS, partial);
         return null;
       }
 
