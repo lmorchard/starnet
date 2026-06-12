@@ -17,6 +17,8 @@
  * @typedef {(config: OperatorConfig, nodeAttributes: Record<string, any>, message: Message | null, ctx: CtxInterface) => OperatorResult} OperatorFn
  */
 
+import { getTimedActionAttrNames } from "./timed-actions.js";
+
 /**
  * Resolve a timing value from a grade table or fall back to a fixed value.
  * Operators can declare e.g. `periodTable: { S: 20, A: 25, B: 30, C: 40, D: 50, F: 60 }`
@@ -374,8 +376,9 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
   const activeAttr = config.activeAttr;
   if (!activeAttr) return {};
 
-  const progressAttr = config.progressAttr ?? `_ta_${action}_progress`;
-  const durationAttr = config.durationAttr ?? `_ta_${action}_duration`;
+  const names = getTimedActionAttrNames(action);
+  const progressAttr = config.progressAttr ?? names.progressAttr;
+  const durationAttr = config.durationAttr ?? names.durationAttr;
 
   const isActive = attrs[activeAttr];
   const progress = attrs[progressAttr] ?? 0;
