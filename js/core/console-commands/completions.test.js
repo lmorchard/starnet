@@ -395,9 +395,14 @@ describe("tabComplete: cheat completion", () => {
     assert.equal(r.completed, "cheat give matching gateway ");
   });
 
-  it("cheat set alert completes alert levels", () => {
-    const r = tabComplete("cheat set alert gr", state);
-    assert.equal(r.completed, "cheat set alert green ");
+  it("cheat alert completes its verbs", () => {
+    const r = tabComplete("cheat alert ra", state);
+    assert.equal(r.completed, "cheat alert raise ");
+  });
+
+  it("cheat alert set completes alert levels", () => {
+    const r = tabComplete("cheat alert set gr", state);
+    assert.equal(r.completed, "cheat alert set green ");
   });
 
   it("cheat own completes nodes", () => {

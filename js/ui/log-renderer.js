@@ -133,6 +133,8 @@ export function initLogRenderer() {
   // ── Alert events ─────────────────────────────────────────
   on(E.ALERT_GLOBAL_RAISED, (/** @type {AlertGlobalRaisedPayload} */ { prev, next }) =>
     add(`[ALERT] Global alert: ${prev.toUpperCase()} → ${next.toUpperCase()}`, "error"));
+  on(E.ALERT_COOLED, ({ prev, next }) =>
+    add(`[ALERT] Alert cooled: ${prev.toUpperCase()} → ${next.toUpperCase()}`, "info"));
   on(E.ALERT_TRACE_STARTED,   (/** @type {AlertTraceStartedPayload} */ { seconds }) =>
     add(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s to disconnect.`, "error"));
   on(E.ALERT_TRACE_CANCELLED, () =>

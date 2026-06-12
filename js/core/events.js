@@ -41,6 +41,7 @@ export const E = Object.freeze({
   EXPLOIT_SURFACE:      "exploit:surface-revealed",
 
   ALERT_GLOBAL_RAISED:   "alert:global-raised",
+  ALERT_COOLED:          "alert:cooled",
   ALERT_TRACE_STARTED:   "alert:trace-started",
   ALERT_TRACE_CANCELLED: "alert:trace-cancelled",
   ALERT_PROPAGATED:      "alert:propagated",

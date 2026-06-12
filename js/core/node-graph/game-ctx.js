@@ -14,7 +14,7 @@
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
 import { A } from "../action-ids.js";
-import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert } from "../alert.js";
+import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert, scrubLogs, lieLow } from "../alert.js";
 import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
 import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
@@ -55,6 +55,8 @@ export function buildGameCtx(opts = {}) {
     startTrace: () => startTraceCountdown(),
     cancelTrace: () => cancelTraceCountdown(),
     recordMonitorAlert: (nodeId) => recordMonitorAlert(nodeId),
+    scrubLogs: (nodeId) => scrubLogs(nodeId),
+    lieLow: (nodeId) => lieLow(nodeId),
     giveReward: (amount) => addCash(amount),
     spawnICE: (_nodeId) => startIce(),
     stopIce: () => stopIce(),
@@ -131,6 +133,10 @@ export function buildGameCtx(opts = {}) {
 
       ctx._graph.setNodeAttr(nodeId, active.activeAttr, false);
       ctx._graph.setNodeAttr(nodeId, active.progressAttr, 0);
+      // Reset duration too: the timed-action operator only re-emits the "start" phase when
+      // BOTH progress and duration are 0. A stale duration after a cancel would make a restart
+      // skip "start", leaving the overlay/log dispatcher un-armed (it keys off "start").
+      ctx._graph.setNodeAttr(nodeId, active.durationAttr, 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: active.action, phase: "cancel", progress: 0 });
     },
     startRead: (_nodeId) => { /* now handled by timed-action operator */ },
@@ -373,9 +379,13 @@ export function initNavigationCancelHandler() {
 
   for (const nodeId of graph.getNodeIds()) {
     const attrs = graph.getNodeState(nodeId);
+    // Reset duration along with progress on every cancel: the timed-action operator only
+    // re-emits "start" when both are 0, so a stale duration would leave a restarted action's
+    // overlay/log un-armed. (XPLOIT already cleared its ctx-set duration below.)
     if (attrs.probing) {
       graph.setNodeAttr(nodeId, "probing", false);
       graph.setNodeAttr(nodeId, "_ta_probe_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_probe_duration", 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.PROBE, phase: "cancel", progress: 0 });
     }
     if (attrs.exploiting) {
@@ -388,17 +398,26 @@ export function initNavigationCancelHandler() {
     if (attrs.reading) {
       graph.setNodeAttr(nodeId, "reading", false);
       graph.setNodeAttr(nodeId, "_ta_dump_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_dump_duration", 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.DUMP, phase: "cancel", progress: 0 });
     }
     if (attrs.looting) {
       graph.setNodeAttr(nodeId, "looting", false);
       graph.setNodeAttr(nodeId, "_ta_fetch_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_fetch_duration", 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.FETCH, phase: "cancel", progress: 0 });
     }
     if (attrs.mining) {
       graph.setNodeAttr(nodeId, "mining", false);
       graph.setNodeAttr(nodeId, "_ta_mine_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_mine_duration", 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.MINE, phase: "cancel", progress: 0 });
+    }
+    if (attrs.lyingLow) {
+      graph.setNodeAttr(nodeId, "lyingLow", false);
+      graph.setNodeAttr(nodeId, "_ta_lie-low_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_lie-low_duration", 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.LIE_LOW, phase: "cancel", progress: 0 });
     }
   }
   });

@@ -250,6 +250,8 @@
  * @property {() => void} startTrace
  * @property {() => void} cancelTrace
  * @property {(nodeId: string) => void} recordMonitorAlert
+ * @property {(nodeId: string) => void} scrubLogs
+ * @property {(nodeId: string) => void} lieLow
  * @property {(amount: number) => void} giveReward
  * @property {(nodeId: string) => void} spawnICE
  * @property {() => void} [stopIce]

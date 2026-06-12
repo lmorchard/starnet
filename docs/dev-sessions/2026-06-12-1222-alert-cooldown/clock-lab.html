@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lie-low clock overlay — tuning lab</title>
+<style>
+  :root { --cyan:#00f0ff; --green:#3cff7a; --amber:#ffc107; --bg:#0a0a0f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:#9fb; font:13px/1.5 ui-monospace,Menlo,monospace; display:flex; min-height:100vh; }
+  #stage { flex:1; display:grid; place-items:center; position:relative; }
+  /* faint node ring context, to imagine the glyph sitting ON the WAN node */
+  #nodeCtx { position:absolute; width:140px; height:140px; border:2px solid #1a3340; border-radius:6px; opacity:.5; }
+  canvas { position:relative; z-index:1; }
+  #panel { width:300px; padding:16px; background:#070709; border-left:1px solid #14202a; overflow:auto; }
+  h1 { font-size:13px; color:#6cf; letter-spacing:.08em; text-transform:uppercase; margin:0 0 12px; }
+  label { display:block; margin:10px 0 2px; color:#7a8; }
+  .row { display:flex; align-items:center; gap:8px; }
+  input[type=range]{ width:100%; accent-color:var(--cyan); }
+  output { color:#cfe; min-width:42px; text-align:right; }
+  select,button { width:100%; background:#0e1620; color:#bdf; border:1px solid #1d3340; padding:5px; font:inherit; border-radius:4px; }
+  button { margin-top:14px; cursor:pointer; }
+  .hint { color:#566; margin-top:14px; font-size:11px; }
+  .seg { color:#456; margin-top:16px; border-top:1px solid #14202a; padding-top:8px; text-transform:uppercase; letter-spacing:.06em; }
+</style>
+</head>
+<body>
+  <div id="stage"><div id="nodeCtx"></div><canvas id="c" width="420" height="420"></canvas></div>
+  <div id="panel">
+    <h1>Lie-low clock — feel lab</h1>
+
+    <div class="seg">Progress (lie-low ~5s)</div>
+    <div class="row"><input id="progress" type="range" min="0" max="1" step="0.001" value="0.35"><output id="progressV"></output></div>
+    <label class="row"><input id="autorun" type="checkbox"> auto-run demo loop</label>
+    <label>duration (s) <span id="durV"></span></label>
+    <input id="dur" type="range" min="2" max="10" step="0.5" value="5">
+
+    <div class="seg">Clock form</div>
+    <label>face sides <span id="sidesV"></span></label>
+    <input id="sides" type="range" min="3" max="16" step="1" value="12">
+    <label>radius <span id="radiusV"></span></label>
+    <input id="radius" type="range" min="20" max="120" step="1" value="64">
+    <label>stroke width <span id="strokeV"></span></label>
+    <input id="stroke" type="range" min="1" max="6" step="0.5" value="2">
+    <label>glow <span id="glowV"></span></label>
+    <input id="glow" type="range" min="0" max="24" step="1" value="10">
+
+    <div class="seg">Hands (fast-forward)</div>
+    <label>hand model</label>
+    <select id="hands">
+      <option value="sweep">single sweep hand</option>
+      <option value="clock" selected>hour + minute</option>
+    </select>
+    <label>sweep speed (rev/s) <span id="speedV"></span></label>
+    <input id="speed" type="range" min="0.25" max="6" step="0.25" value="2.5">
+
+    <div class="seg">Progress channel</div>
+    <select id="pstyle">
+      <option value="edges" selected>polygon edges light up (CW)</option>
+      <option value="ticks">tick ladder around rim (CW)</option>
+      <option value="none">none (hands only)</option>
+    </select>
+
+    <div class="seg">Palette</div>
+    <select id="color">
+      <option value="--cyan" selected>cyan</option>
+      <option value="--green">green</option>
+      <option value="--amber">amber</option>
+    </select>
+
+    <button id="reset">reset progress</button>
+    <div class="hint">Convention: clockwise = player action. Vector-CRT: strokes only, no fills, polygon face (no circles). Tune, then call out the values you like.</div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const cv = $("c"), ctx = cv.getContext("2d");
+const CX = cv.width/2, CY = cv.height/2;
+
+const ctrls = ["progress","dur","sides","radius","stroke","glow","speed","autorun","hands","pstyle","color"];
+const val = {};
+function sync() {
+  for (const id of ctrls) { const el = $(id); val[id] = el.type==="checkbox" ? el.checked : (el.value.match(/^-?[\d.]+$/)?parseFloat(el.value):el.value); }
+  $("progressV").textContent = val.progress.toFixed(2);
+  $("durV").textContent = val.dur+"s"; $("sidesV").textContent = val.sides;
+  $("radiusV").textContent = val.radius; $("strokeV").textContent = val.stroke;
+  $("glowV").textContent = val.glow; $("speedV").textContent = val.speed.toFixed(2);
+}
+ctrls.forEach(id => $(id).addEventListener("input", sync));
+$("reset").onclick = () => { $("progress").value = 0; sync(); };
+sync();
+
+function col() { return getComputedStyle(document.documentElement).getPropertyValue(val.color).trim(); }
+// polygon vertex i (of N), starting at top, going clockwise
+function vert(i, N, r) { const a = -Math.PI/2 + (i/N)*Math.PI*2; return [CX + Math.cos(a)*r, CY + Math.sin(a)*r]; }
+
+let t0 = performance.now();
+function frame(now) {
+  const t = (now - t0)/1000;
+  if (val.autorun) { $("progress").value = ((t % val.dur)/val.dur).toFixed(3); sync(); }
+  const p = val.progress, N = val.sides, R = val.radius, c = col();
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.shadowBlur = val.glow; ctx.shadowColor = c;
+
+  // 1) face — dim full polygon outline
+  ctx.strokeStyle = c; ctx.lineWidth = val.stroke; ctx.globalAlpha = 0.18;
+  ctx.beginPath();
+  for (let i=0;i<=N;i++){ const [x,y]=vert(i,N,R); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.stroke();
+
+  // 2) progress channel (clockwise from top)
+  ctx.globalAlpha = 1;
+  if (val.pstyle === "edges") {
+    // Chunky reveal: each WHOLE edge fades in (alpha) one at a time as progress enters its
+    // slot — like the PROBE facet reveal. No partial geometric fill along an edge.
+    const slot = 1/N, fadeFrac = 0.35; // each edge alpha-ramps over the first 35% of its slot
+    for (let i=0;i<N;i++){
+      const a = Math.max(0, Math.min(1, (p - i*slot) / (slot*fadeFrac)));
+      if (a<=0) continue;
+      const [x1,y1]=vert(i,N,R), [x2,y2]=vert(i+1,N,R);
+      ctx.globalAlpha = a; ctx.lineWidth = val.stroke+1;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    }
+  } else if (val.pstyle === "ticks") {
+    const ticks = N*2, lit = p*ticks;
+    for (let i=0;i<ticks;i++){
+      const a = -Math.PI/2 + (i/ticks)*Math.PI*2;
+      const r1 = R+3, r2 = R+10;
+      ctx.globalAlpha = i < lit ? 1 : 0.12; ctx.lineWidth = val.stroke;
+      ctx.beginPath(); ctx.moveTo(CX+Math.cos(a)*r1, CY+Math.sin(a)*r1); ctx.lineTo(CX+Math.cos(a)*r2, CY+Math.sin(a)*r2); ctx.stroke();
+    }
+  }
+
+  // 3) hands — fast-forward clockwise spin
+  ctx.globalAlpha = 1; ctx.strokeStyle = c;
+  const spin = t * val.speed * Math.PI*2; // clockwise (canvas y-down)
+  const hand = (ang, len, w) => { ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(CX+Math.cos(ang-Math.PI/2)*len, CY+Math.sin(ang-Math.PI/2)*len); ctx.stroke(); };
+  if (val.hands === "sweep") {
+    hand(spin, R*0.82, val.stroke+0.5);
+  } else {
+    hand(spin/12, R*0.5, val.stroke+1);   // hour (slow)
+    hand(spin,    R*0.8, val.stroke);       // minute (fast)
+  }
+  // hub pin
+  ctx.beginPath(); ctx.arc(CX,CY, val.stroke+1, 0, Math.PI*2); ctx.stroke();
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
