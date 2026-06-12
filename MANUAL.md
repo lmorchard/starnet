@@ -63,6 +63,12 @@ at the end of this manual.
 
 **HUD** — Top bar shows global alert level (as a vector lamp whose shape encodes the level: hexagon = safe, point-up triangle = warning, inverted triangle = danger/trace), your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**, drawn as vector-CRT vital traces that sweep left-to-right with a fading phosphor trail. HEALTH is a green ECG/heartbeat (PQRST) complex — as health falls the beat speeds up and decays through escalating ECG abnormalities (ST/T-wave changes, then premature and skipped beats), breaking into a chaotic fibrillation flutter near death before flatlining at zero. DECK INTEGRITY is a violet symmetric CPU-clock pulse — as deck integrity falls its edges develop deepening ringing, overshoot and timing/amplitude glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover either trace to see the exact value as a percentage.
 
+**Resizing the layout** — Three borders are drag-resizable: the sidebar's left
+edge (its width), the border above the log/console (graph vs. log height), and
+the border above the exploit hand (hand vs. node-info height). Grab a border and
+drag; **double-click a border to reset that split** to its default. Your chosen
+sizes persist across reloads. The header bar is fixed.
+
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
 and exploit hand. Use `status summary` to see your current seed.

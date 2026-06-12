@@ -16,6 +16,7 @@ import { initRng } from "../core/rng.js";
 import { toCytoscapeFormat } from "./run-control.js";
 import { openHub, initHub } from "./hub.js";
 import { initProfileRunCommit } from "./profile-store.js";
+import { initResizers } from "./resizers.js";
 import "./hub-commands.js";
 
 import { NAMED_NETWORKS, DEFAULT_NETWORK, buildGenerated } from "../../data/networks/index.js";
@@ -64,6 +65,7 @@ function init() {
     emitEvent("starnet:action", { actionId: "untarget" });
   });
   initConsole();
+  initResizers();  // apply saved layout + wire the resize splitters
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
   initGraphBridge();
   initDynamicActions();
