@@ -1,4 +1,6 @@
-// @ts-nocheck — preview harness, no type checking needed
+// @ts-check — preview harness; $() is a typed (any) element lookup so DOM/custom-element
+// property access (.value, .frac, .kind, .w) needs no per-site casts. Name-resolution
+// checks still apply (they caught a dropped overlayLayer ref during #172).
 // Visual Preview Harness — standalone effect viewer
 //
 // Initializes a minimal Cytoscape graph with demo nodes and wires up
@@ -17,6 +19,11 @@ import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./p
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
 import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation.js";
+
+/** Typed element lookup for the harness — returns `any` so input `.value`,
+ *  custom-element props (.frac/.kind/.w), etc. need no per-site casts.
+ *  @param {string} id @returns {any} */
+const $ = (id) => document.getElementById(id);
 
 // ── Demo node definitions ────────────────────────────────────
 
@@ -142,13 +149,13 @@ cy.userPanningEnabled(true);
 // Mount the registry overlays + selection reticle and wire them to re-anchor on
 // pan/zoom — shared with the game via initializeGraphOverlays (#167). The layer
 // element is kept for the preview-only ICE-presence demo node mounted below.
-const overlayLayer = document.getElementById("overlay-layer");
+const overlayLayer = $("overlay-layer");
 const { overlays } = initializeGraphOverlays(overlayLayer);
 
 // ── Animation helpers ────────────────────────────────────────
 
 function getSpeed() {
-  return parseFloat(document.getElementById("speed-select").value) || 1;
+  return parseFloat($("speed-select").value) || 1;
 }
 
 const BASE_DURATION = 3000; // ms at 1x speed
@@ -158,8 +165,8 @@ const BASE_DURATION = 3000; // ms at 1x speed
  * Returns an object with a cancel() method.
  */
 function animateEffect(sliderId, valId, syncFn, nodeId) {
-  const slider = document.getElementById(sliderId);
-  const valEl = document.getElementById(valId);
+  const slider = $(sliderId);
+  const valEl = $(valId);
   const duration = BASE_DURATION / getSpeed();
   const start = performance.now();
   let cancelled = false;
@@ -182,7 +189,7 @@ const runningAnimations = {};
 // ── Wire up effect controls ──────────────────────────────────
 
 // Generate a control row per overlay effect from the registry.
-const overlayControls = document.getElementById("overlay-controls");
+const overlayControls = $("overlay-controls");
 for (const d of OVERLAY_DESCRIPTORS) {
   overlayControls.insertAdjacentHTML("beforeend", `
     <h3>${d.label}</h3>
@@ -206,10 +213,10 @@ const EFFECTS = OVERLAY_DESCRIPTORS.map((d) => ({
 }));
 
 for (const effect of EFFECTS) {
-  const slider = document.getElementById(`slider-${effect.name}`);
-  const valEl = document.getElementById(`val-${effect.name}`);
-  const playBtn = document.getElementById(`btn-${effect.name}-play`);
-  const resetBtn = document.getElementById(`btn-${effect.name}-reset`);
+  const slider = $(`slider-${effect.name}`);
+  const valEl = $(`val-${effect.name}`);
+  const playBtn = $(`btn-${effect.name}-play`);
+  const resetBtn = $(`btn-${effect.name}-reset`);
 
   // Slider scrub
   slider.addEventListener("input", () => {
@@ -261,81 +268,81 @@ onViewport(repositionIcePresence);
 repositionIcePresence();
 
 let iceOn = false;
-document.getElementById("btn-ice-toggle").addEventListener("click", () => {
+$("btn-ice-toggle").addEventListener("click", () => {
   iceOn = !iceOn;
   icePresenceEl.style.opacity = iceOn ? "1" : "0";
   repositionIcePresence();
-  document.getElementById("btn-ice-toggle").textContent = iceOn ? "HIDE" : "SHOW";
-  document.getElementById("btn-ice-toggle").classList.toggle("active", iceOn);
+  $("btn-ice-toggle").textContent = iceOn ? "HIDE" : "SHOW";
+  $("btn-ice-toggle").classList.toggle("active", iceOn);
 });
 // Pulse is on by default (the .ice-cage animation). Toggle adds .ice-pulse-off
 // which disables it (rule in css/style.css).
-document.getElementById("btn-ice-pulse").addEventListener("click", () => {
+$("btn-ice-pulse").addEventListener("click", () => {
   const off = icePresenceEl.classList.toggle("ice-pulse-off");
-  document.getElementById("btn-ice-pulse").classList.toggle("active", !off);
+  $("btn-ice-pulse").classList.toggle("active", !off);
 });
 
 // Selection reticle toggle
 let reticleOn = false;
-document.getElementById("btn-reticle-toggle").addEventListener("click", () => {
+$("btn-reticle-toggle").addEventListener("click", () => {
   reticleOn = !reticleOn;
   syncSelection(reticleOn ? "demo-select" : null);
-  document.getElementById("btn-reticle-toggle").classList.toggle("active", reticleOn);
+  $("btn-reticle-toggle").classList.toggle("active", reticleOn);
 });
 
 // ── Node flash ───────────────────────────────────────────────
 
-document.getElementById("btn-flash-success").addEventListener("click", () => flashNode("demo-flash", "success"));
-document.getElementById("btn-flash-failure").addEventListener("click", () => flashNode("demo-flash", "failure"));
-document.getElementById("btn-flash-reveal").addEventListener("click", () => flashNode("demo-flash", "reveal"));
+$("btn-flash-success").addEventListener("click", () => flashNode("demo-flash", "success"));
+$("btn-flash-failure").addEventListener("click", () => flashNode("demo-flash", "failure"));
+$("btn-flash-reveal").addEventListener("click", () => flashNode("demo-flash", "reveal"));
 
 // ── Play All / Reset All ─────────────────────────────────────
 
-document.getElementById("btn-play-all").addEventListener("click", () => {
+$("btn-play-all").addEventListener("click", () => {
   for (const effect of EFFECTS) {
     if (runningAnimations[effect.name]) runningAnimations[effect.name].cancel();
     effect.clear();
-    document.getElementById(`slider-${effect.name}`).value = 0;
+    $(`slider-${effect.name}`).value = 0;
     runningAnimations[effect.name] = animateEffect(
       `slider-${effect.name}`, `val-${effect.name}`, effect.sync, effect.nodeId
     );
   }
 });
 
-document.getElementById("btn-reset-all").addEventListener("click", () => {
+$("btn-reset-all").addEventListener("click", () => {
   for (const effect of EFFECTS) {
     if (runningAnimations[effect.name]) runningAnimations[effect.name].cancel();
     effect.clear();
-    const slider = document.getElementById(`slider-${effect.name}`);
+    const slider = $(`slider-${effect.name}`);
     slider.value = 0;
-    document.getElementById(`val-${effect.name}`).textContent = "0.00";
+    $(`val-${effect.name}`).textContent = "0.00";
   }
   if (reticleOn) {
     reticleOn = false;
     syncSelection(null);
-    document.getElementById("btn-reticle-toggle").classList.remove("active");
+    $("btn-reticle-toggle").classList.remove("active");
   }
 });
 
 // ── Card gallery ─────────────────────────────────────────────
 
-mountCardGallery(document.getElementById("card-gallery"));
+mountCardGallery($("card-gallery"));
 
 // ── Vuln glyph swatches ──────────────────────────────────────
 
-mountVulnSwatches(document.getElementById("vuln-swatches"));
+mountVulnSwatches($("vuln-swatches"));
 
 // ── Indicator glyphs swatches ────────────────────────────────
 
-mountIndicatorSwatches(document.getElementById("indicator-swatches"));
+mountIndicatorSwatches($("indicator-swatches"));
 
 // ── Graph degradation overlay — driven by dummy health/deck sliders ──────────
 
 initGraphDegradation();
-const degH = document.getElementById("degrade-health");
-const degD = document.getElementById("degrade-deck");
-const degHVal = document.getElementById("degrade-health-val");
-const degDVal = document.getElementById("degrade-deck-val");
+const degH = $("degrade-health");
+const degD = $("degrade-deck");
+const degHVal = $("degrade-health-val");
+const degDVal = $("degrade-deck-val");
 function syncDegrade() {
   const h = +degH.value, d = +degD.value;
   degHVal.textContent = String(h);
@@ -352,20 +359,20 @@ if (degH && degD) {
 }
 
 // Vital waveforms demo
-const wfDemo        = document.getElementById("waveform-demo");
-const waveHealth    = document.getElementById("wave-health");
-const waveDeck      = document.getElementById("wave-deck");
-const waveHealthVal = document.getElementById("wave-health-val");
-const waveDeckVal   = document.getElementById("wave-deck-val");
-const waveToggle    = document.getElementById("wave-layout-toggle");
+const wfDemo        = $("waveform-demo");
+const waveHealth    = $("wave-health");
+const waveDeck      = $("wave-deck");
+const waveHealthVal = $("wave-health-val");
+const waveDeckVal   = $("wave-deck-val");
+const waveToggle    = $("wave-layout-toggle");
 
 if (wfDemo && waveHealth && waveDeck && waveToggle) {
-  const ecg = document.createElement("starnet-waveform");
+  const ecg = /** @type {any} */ (document.createElement("starnet-waveform"));
   ecg.kind = "ecg";
   ecg.color = "var(--green)";
   ecg.label = "HEALTH";
   ecg.frac = 1;
-  const pulse = document.createElement("starnet-waveform");
+  const pulse = /** @type {any} */ (document.createElement("starnet-waveform"));
   pulse.kind = "pulse";
   pulse.color = "var(--violet)";
   pulse.label = "DECK";
@@ -382,12 +389,12 @@ if (wfDemo && waveHealth && waveDeck && waveToggle) {
   });
 
   // Sweep/persistence/glow tuning — applies to both traces.
-  const waveSpeed = document.getElementById("wave-speed");
-  const waveTrail = document.getElementById("wave-trail");
-  const waveBloom = document.getElementById("wave-bloom");
+  const waveSpeed = $("wave-speed");
+  const waveTrail = $("wave-trail");
+  const waveBloom = $("wave-bloom");
   const bindBoth = (el, valId, prop, scale, fmt) => {
     if (!el) return;
-    const out = document.getElementById(valId);
+    const out = $(valId);
     el.addEventListener("input", () => {
       const v = scale ? +el.value / scale : +el.value;
       ecg[prop] = v; pulse[prop] = v;

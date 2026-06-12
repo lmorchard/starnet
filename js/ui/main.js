@@ -1,4 +1,4 @@
-// @ts-nocheck — main.js is DOM event wiring; CustomEvent.detail typing noise outweighs benefit here.
+// @ts-check
 import { initGraph } from "./graph.js";
 import { getState } from "../core/state.js";
 import { handleIceTick, handleIceDetect } from "../core/ice.js";
@@ -86,7 +86,7 @@ function init() {
   }, TICK_MS);
 
   // LLM playtesting API — accessible via browser console or Playwright evaluate
-  window.starnet = { cmd: runCommand, state: getState };
+  /** @type {any} */ (window).starnet = { cmd: runCommand, state: getState };
 
   // Pause timers when tab is hidden; resume when visible again
   document.addEventListener("visibilitychange", () => {
@@ -98,12 +98,13 @@ function init() {
   // Components dispatch "starnet:action" as DOM events (bubbling); the action
   // dispatcher listens on the event bus. This listener connects the two.
   document.addEventListener("starnet:action", (e) => {
-    emitEvent("starnet:action", e.detail);
+    emitEvent("starnet:action", /** @type {CustomEvent} */ (e).detail);
   });
 
-  // Wire HUD actions via <starnet-hud> custom events
+  // Wire HUD actions via <starnet-hud> custom events. hudEl is the custom element,
+  // typed `any` so its component props (.paused) and CustomEvent details don't need casts.
   let _userPaused = false;
-  const hudEl = document.getElementById("hud");
+  const hudEl = /** @type {any} */ (document.getElementById("hud"));
   hudEl.addEventListener("hud-action", (e) => {
     const { action, file } = e.detail;
     switch (action) {

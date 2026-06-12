@@ -98,7 +98,13 @@ export function buildNetwork() {
   disguiseTrapNodes(nodes, makeSeededRng("corporate-exchange-honeypot"));
 
   return {
-    graphDef: { nodes, edges, triggers },
+    graphDef: {
+      nodes,
+      // Set-piece spreads infer edges as string[][] and triggers as a widened
+      // union; both are correct at runtime — assert the NodeGraphDef field shapes.
+      edges: /** @type {[string, string][]} */ (edges),
+      triggers: /** @type {import("../../js/core/node-graph/types.js").TriggerDef[]} */ (triggers),
+    },
     meta: {
       name: "Corporate Exchange",
       startNode: "gateway",
