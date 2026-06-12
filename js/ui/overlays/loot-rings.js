@@ -17,33 +17,33 @@ const PAD = 20; // ripples travel this far past the node rim
 class LootRingsOverlay extends NodeOverlay {
   constructor() {
     super();
-    this._timer = null;
-    this._running = false;
+    this._spawnAcc = 0;   // ms accumulated toward the next ring
+    this._nextDelay = 0;  // 0 → spawn on the first frame after sync
   }
 
   sync(nodeId, progress) {
     super.sync(nodeId, progress);
-    if (!this._running) {
-      this._running = true;
-      this._tick();
+    this.startTimeLoop(); // idempotent; the managed loop drives spawn cadence
+  }
+
+  // Spawn a ring once the accumulated time reaches the progress-scaled delay
+  // (dense when the node is full, sparser as it drains). The base loop stops
+  // itself on clear()/disconnect, so there's no timer to leak.
+  _timeFrame(now, dtMs) {
+    this._spawnAcc += dtMs;
+    if (this._spawnAcc >= this._nextDelay) {
+      this._spawn();
+      this._spawnAcc = 0;
+      this._nextDelay = SPAWN_MIN_MS + this.progress * SPAWN_PROGRESS_MS;
     }
   }
 
-  _tick() {
-    if (!this._running) return;
-    this._spawn();
-    const delay = SPAWN_MIN_MS + this.progress * SPAWN_PROGRESS_MS;
-    this._timer = setTimeout(() => this._tick(), delay);
-  }
-
   clear() {
-    this._running = false;
-    if (this._timer !== null) { clearTimeout(this._timer); this._timer = null; }
-    this.nodeId = null;
-    this.progress = 0;
+    super.clear(); // stops the managed loop(s), resets, hides
+    this._spawnAcc = 0;
+    this._nextDelay = 0;
     const svg = this._svg();
     if (svg) {
-      svg.style.opacity = "0";
       setTimeout(() => {
         if (!this.nodeId && svg) svg.querySelectorAll("polygon").forEach((c) => c.remove());
       }, 200);
