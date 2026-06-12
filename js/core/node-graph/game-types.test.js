@@ -153,9 +153,13 @@ describe("operators", () => {
     }
   });
 
-  it("wan has no operators", () => {
+  it("wan has the lie-low timed-action operator (#174) and the darknet + lie-low actions", () => {
     const def = createWAN("test");
-    assert.equal(def.operators.length, 0);
+    assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "lie-low"),
+      "WAN carries the lie-low timed-action");
+    assert.ok(def.actions.some(a => a.id === "access-darknet"));
+    assert.ok(def.actions.some(a => a.id === "lie-low"));
+    assert.equal(def.attributes.lieLowUsesRemaining, 2);
   });
 });
 

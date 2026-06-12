@@ -20,7 +20,7 @@ import { getExploitChoices, getExploitEmptyReason } from "../exploits.js";
 // source of truth for the abortable timed-action set: ABORT shows when any of
 // these is true, and NOT_BUSY (below) requires all of them false. When adding a
 // new timed action, add its activeAttr here — both lists stay in sync.
-const TIMED_ACTION_FLAGS = ["probing", "exploiting", "reading", "looting", "mining"];
+const TIMED_ACTION_FLAGS = ["probing", "exploiting", "reading", "looting", "mining", "lyingLow"];
 
 // A node may run at most ONE timed action at a time. Every startable action
 // requires the node be idle: no timed action in flight, and not rebooting.
@@ -240,6 +240,56 @@ const ACCESS_DARKNET_ACTION = {
   ],
 };
 
+/** @type {ActionDef} */
+const SCRUB_LOGS_ACTION = {
+  id: A.SCRUB_LOGS,
+  label: "SCRUB LOGS",
+  desc: "Wipe this monitor's accumulated alert logs, easing the global alert one level.",
+  requires: [{
+    type: "any-of", conditions: [
+      { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+      { type: "node-attr", attr: "accessLevel", eq: "owned" },
+    ],
+  }],
+  effects: [
+    { effect: "ctx-call", method: "scrubLogs", args: ["$nodeId"] },
+  ],
+};
+
+/** @type {ActionDef} */
+const LIE_LOW_ACTION = {
+  id: A.LIE_LOW,
+  label: "LIE LOW",
+  desc: "Go quiet and let the security grid's logs age out. Limited — a human admin eventually notices.",
+  requires: [
+    { type: "node-attr", attr: "lieLowExhausted", eq: false },
+    ...NOT_BUSY, // one-timed-action-per-node (#189); includes lyingLow so it can't re-trigger itself
+  ],
+  effects: [
+    { effect: "set-attr", attr: "lyingLow", value: true },
+    { effect: "set-attr", attr: "_ta_lie-low_progress", value: 0 },
+  ],
+};
+
+// Lie-low wiring shared by every WAN node — the createWAN factory and the `darknet` trait.
+// Attributes track the per-run uses; the timed-action operator is the "time cost" wait that
+// fires ctx.lieLow on completion. (Tunable: LIE_LOW_USES, LIE_LOW_TICKS.)
+const LIE_LOW_USES = 2;
+const LIE_LOW_TICKS = 50; // ~5s wait; flat across grades (the wait isn't grade-scaled)
+export const LIE_LOW_ATTRS = {
+  lyingLow: false,
+  lieLowUsesRemaining: LIE_LOW_USES,
+  lieLowExhausted: false,
+};
+/** @type {import('./types.js').OperatorConfig} */
+export const LIE_LOW_OPERATOR = {
+  name: "timed-action",
+  action: "lie-low", // matches A.LIE_LOW so ACTION_FEEDBACK.action correlates across start/cancel
+  activeAttr: "lyingLow",
+  durationTable: { S: LIE_LOW_TICKS, A: LIE_LOW_TICKS, B: LIE_LOW_TICKS, C: LIE_LOW_TICKS, D: LIE_LOW_TICKS, F: LIE_LOW_TICKS },
+  onComplete: [{ effect: "ctx-call", method: "lieLow", args: ["$nodeId"] }],
+};
+
 
 // ── Node type factories (optional sugar) ─────────────────────
 
@@ -405,10 +455,11 @@ export function createWAN(id, config = {}) {
       grade: "F",
       visibility: "accessible",
       accessLevel: "owned",
+      ...LIE_LOW_ATTRS,
       ...config.attributes,
     },
-    operators: [],
-    actions: [ACCESS_DARKNET_ACTION],
+    operators: [LIE_LOW_OPERATOR],
+    actions: [ACCESS_DARKNET_ACTION, LIE_LOW_ACTION],
   };
 }
 
@@ -427,5 +478,7 @@ export const ACTION_TEMPLATES = {
   RECONFIGURE: RECONFIGURE_ACTION,
   CANCEL_TRACE: CANCEL_TRACE_ACTION,
   ACCESS_DARKNET: ACCESS_DARKNET_ACTION,
+  SCRUB_LOGS: SCRUB_LOGS_ACTION,
+  LIE_LOW: LIE_LOW_ACTION,
 };
 

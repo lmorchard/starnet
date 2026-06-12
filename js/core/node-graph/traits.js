@@ -141,7 +141,7 @@ export function clearTraits() {
 
 // ── Built-in trait definitions ──────────────────────────────────
 
-import { ACTION_TEMPLATES } from "./game-types.js";
+import { ACTION_TEMPLATES, LIE_LOW_ATTRS, LIE_LOW_OPERATOR } from "./game-types.js";
 
 registerTrait("graded", {
   attributes: { grade: "D" },
@@ -278,7 +278,7 @@ registerTrait("security", {
     // reached only via an un-corrupted IDS relay, so corrupting the IDS severs this sensor.
     { name: "report", on: "alert", call: "recordMonitorAlert" },
   ],
-  actions: [ACTION_TEMPLATES.CANCEL_TRACE],
+  actions: [ACTION_TEMPLATES.CANCEL_TRACE, ACTION_TEMPLATES.SCRUB_LOGS],
   triggers: [
     // (alert-escalate removed: escalation now flows per-alert through the report operator
     //  → recordMonitorAlert, which climbs green→yellow→red→trace by accumulated count.)
@@ -302,11 +302,12 @@ registerTrait("gate", {
   actions: [],
 });
 
-// WAN-boundary darknet broker: the access-darknet action opens the in-run store.
+// WAN-boundary darknet broker: access-darknet opens the in-run store; lie-low is the
+// time-costly, per-run-limited grid cooldown (same wiring as the createWAN factory).
 registerTrait("darknet", {
-  attributes: {},
-  operators: [],
-  actions: [ACTION_TEMPLATES.ACCESS_DARKNET],
+  attributes: { ...LIE_LOW_ATTRS },
+  operators: [LIE_LOW_OPERATOR],
+  actions: [ACTION_TEMPLATES.ACCESS_DARKNET, ACTION_TEMPLATES.LIE_LOW],
 });
 
 // ── New traits (stress-test the system) ─────────────────────

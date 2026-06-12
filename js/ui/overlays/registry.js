@@ -25,6 +25,7 @@ export const OVERLAY_DESCRIPTORS = [
   { key: "loot",    action: A.FETCH,  tag: "loot-rings-overlay",       label: "FETCH",   driver: "action-feedback", demo: { type: "fileserver",  grade: "B" } },
   { key: "exploit", action: A.XPLOIT, tag: "exploit-brackets-overlay", label: "XPLOIT",  driver: "action-feedback", demo: { type: "firewall",     grade: "B" } },
   { key: "ice",     action: null,     tag: "ice-detect-overlay",       label: "ICE DET", driver: "ice-timer",       demo: { type: "ids",          grade: "A" } },
+  { key: "lielow",  action: A.LIE_LOW, tag: "lie-low-clock-overlay",    label: "LIE LOW", driver: "action-feedback", demo: { type: "wan",          grade: "F" } },
 ];
 
 /**

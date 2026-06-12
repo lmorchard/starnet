@@ -10,6 +10,7 @@ import "./read-sectors.js";
 import "./loot-rings.js";
 import "./exploit-brackets.js";
 import "./ice-detect.js";
+import "./lie-low-clock.js";
 import { OVERLAY_DESCRIPTORS } from "./registry.js";
 
 /**
