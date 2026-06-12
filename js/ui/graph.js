@@ -414,8 +414,11 @@ function buildStylesheet() {
         "font-weight": "bold",
         "text-valign": "bottom",
         "text-margin-y": 6,
+        // Wider dark buffer between glyph and the global bloom: the outline is
+        // background-dark, so under the bloom it surrounds the bright text and
+        // knocks back the halo at the glyph edges without dimming the text.
         "text-outline-color": "#0a0a0f",
-        "text-outline-width": 2,
+        "text-outline-width": 3,
       },
     },
     // Alert state: yellow — thin amber border (strobe-blinked by JS animation)
