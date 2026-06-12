@@ -18,22 +18,12 @@ import { openHub, initHub } from "./hub.js";
 import { initProfileRunCommit } from "./profile-store.js";
 import "./hub-commands.js";
 
-import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
-import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
-import { buildNetwork as buildCorporateExchange } from "../../data/networks/corporate-exchange.js";
-import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
-
-/** Available graph-based networks. */
-const NETWORKS = {
-  "corporate-foothold": buildCorporateFoothold,
-  "research-station": buildResearchStation,
-  "corporate-exchange": buildCorporateExchange,
-};
+import { NAMED_NETWORKS, DEFAULT_NETWORK, buildGenerated } from "../../data/networks/index.js";
 
 /** Read network from URL params. Supports hand-crafted networks and generated. */
 function getSelectedNetwork() {
   const p = new URLSearchParams(location.search);
-  const name = p.get("network") ?? "corporate-foothold";
+  const name = p.get("network") ?? DEFAULT_NETWORK;
 
   if (name === "generated") {
     const spec = {
@@ -51,7 +41,7 @@ function getSelectedNetwork() {
     return () => result;
   }
 
-  return NETWORKS[name] ?? buildCorporateFoothold;
+  return NAMED_NETWORKS[name] ?? NAMED_NETWORKS[DEFAULT_NETWORK];
 }
 
 /** Module-scope: the default network builder, used to seed the empty graph at boot. */

@@ -5,7 +5,7 @@
 
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { getState, endRun, ALERT_ORDER } from "./state.js";
+import { getState, endRun, nextAlertLevel } from "./state.js";
 import { setNodeAlertState } from "./state/node.js";
 import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
 import { setIceDetectedAt, incrementIceDetectionCount, activeIceInstances } from "./state/ice.js";
@@ -67,9 +67,9 @@ export function propagateAlertEvent(fromNodeId) {
   (s.adjacency[fromNodeId] || []).forEach((neighborId) => {
     const neighbor = s.nodes[neighborId];
     if (neighbor && MONITOR_TYPES.has(neighbor.type)) {
-      const idx = ALERT_ORDER.indexOf(neighbor.alertState);
-      if (idx < ALERT_ORDER.length - 1) {
-        setNodeAlertState(neighborId, ALERT_ORDER[idx + 1]);
+      const raised = nextAlertLevel(neighbor.alertState);
+      if (raised !== neighbor.alertState) {
+        setNodeAlertState(neighborId, raised);
       }
       emitEvent(E.ALERT_PROPAGATED, {
         fromNodeId,

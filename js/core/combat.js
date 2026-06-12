@@ -6,7 +6,7 @@
 /** @typedef {import('./types.js').ExploitResult} ExploitResult */
 /** @typedef {import('./types.js').Grade} Grade */
 
-import { getState, ALERT_ORDER, revealNeighbors } from "./state.js";
+import { getState, nextAlertLevel, revealNeighbors } from "./state.js";
 import { RNG, random, randomPick } from "./rng.js";
 import {
   setNodeAccessLevel, setNodeAlertState, setNodeVisible, setNodeVulnHidden, setNodeProbed,
@@ -289,9 +289,9 @@ export function launchExploit(nodeId, exploitId) {
   } else {
     // Raise node alert on failure
     const prevAlert = node.alertState;
-    const idx = ALERT_ORDER.indexOf(node.alertState);
-    if (idx < ALERT_ORDER.length - 1) {
-      setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
+    const raised = nextAlertLevel(node.alertState);
+    if (raised !== prevAlert) {
+      setNodeAlertState(nodeId, raised);
     }
 
     setLastDisturbedNode(nodeId);

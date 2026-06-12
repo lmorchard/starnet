@@ -1165,6 +1165,30 @@ describe("honey-pot trap: MINE springs the counter-trace", () => {
   });
 });
 
+describe("timed-action cancel clears the operator's real progress attr (B2)", () => {
+  beforeEach(() => { clearAll(); });
+
+  it("navigating away from an in-progress DUMP resets _ta_dump_progress", () => {
+    initGame(() => buildCorporateExchange(), "b2-dump-cancel-seed");
+    const graph = getState().nodeGraph;
+
+    navigateTo("pot/honey-pot");
+    graph.executeAction("pot/honey-pot", "dump");
+    graph.tick(3); // advance but do not complete (dump duration is >= 8 ticks)
+
+    assert.equal(graph.getNodeState("pot/honey-pot").reading, true, "dump should be in progress");
+    assert.ok(graph.getNodeState("pot/honey-pot")._ta_dump_progress > 0,
+      "operator should have advanced _ta_dump_progress");
+
+    navigateAway(); // emits PLAYER_NAVIGATED → navigation-cancel handler
+
+    const after = graph.getNodeState("pot/honey-pot");
+    assert.equal(after.reading, false, "navigation must cancel the dump");
+    assert.equal(after._ta_dump_progress, 0,
+      "cancel must reset the operator's real progress attr, not a phantom _ta_read_progress");
+  });
+});
+
 describe("honey-pot trap: FETCH springs the counter-trace", () => {
   beforeEach(() => {
     clearAll();

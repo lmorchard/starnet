@@ -1,7 +1,6 @@
 // @ts-check
 /** @typedef {import('./types.js').ActionDef} ActionDef */
-/** @typedef {import('./types.js').Condition} Condition */
-import { evaluateCondition } from "./conditions.js";
+import { evaluateCondition, fillConditionNodeId } from "./conditions.js";
 import { applyEffect } from "./effects.js";
 
 /**
@@ -24,25 +23,6 @@ import { applyEffect } from "./effects.js";
  */
 
 /**
- * Fill in missing nodeId on node-attr conditions that target self.
- * @param {Condition} condition
- * @param {string} nodeId
- * @returns {Condition}
- */
-function fillNodeId(condition, nodeId) {
-  if (condition.type === "node-attr" && !condition.nodeId) {
-    return { ...condition, nodeId };
-  }
-  if (condition.type === "all-of" || condition.type === "any-of") {
-    return { ...condition, conditions: condition.conditions.map((c) => fillNodeId(c, nodeId)) };
-  }
-  if (condition.type === "not") {
-    return { ...condition, condition: fillNodeId(condition.condition, nodeId) };
-  }
-  return condition;
-}
-
-/**
  * Check whether all requires conditions pass for the given node.
  * @param {ActionDef} action
  * @param {string} nodeId
@@ -51,7 +31,7 @@ function fillNodeId(condition, nodeId) {
  */
 function requiresPass(action, nodeId, accessors) {
   return (action.requires ?? []).every((condition) =>
-    evaluateCondition(fillNodeId(condition, nodeId), accessors)
+    evaluateCondition(fillConditionNodeId(condition, nodeId), accessors)
   );
 }
 

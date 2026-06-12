@@ -6,8 +6,11 @@ A cyberpunk nethacking game with an interplanetary setting.
 
 You are a decker. You jack into a corporate LAN, probe its nodes for vulnerabilities,
 exploit your way through security systems, and loot macguffins before the trace countdown
-reaches zero. One ICE entity patrols the network. The alert system is layered — subvert
-the IDS before it reports you to the security monitor.
+reaches zero. ICE patrols the network, hunting your disturbances. The alert system is
+layered — subvert the IDS before it reports you to the security monitor.
+
+Networks are either hand-crafted or procedurally generated, and seeded with hand-authored
+set-piece puzzles.
 
 **→ [Read the Player's Manual](MANUAL.md)**
 
@@ -23,8 +26,9 @@ Then open `http://localhost:3000` in a browser. No build step required.
 
 ## Tech Stack
 
-- Vanilla HTML/CSS/JS — no framework, no bundler
-- [Cytoscape.js](https://cytoscape.org/) (CDN) for network graph rendering
+- Vanilla HTML/CSS/JS — no framework; game code is unbundled ES modules
+- [Cytoscape.js](https://cytoscape.org/) for network graph rendering and [Lit](https://lit.dev/)
+  for UI components, both bundled locally via esbuild into `dist/` (run `make bundle-vendor`)
 - ES modules, JSDoc `@ts-check` for lightweight type safety
 
 ## Development

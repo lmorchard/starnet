@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-Starnet is a cyberpunk nethacking game with an interplanetary setting. The immediate focus is a web-based HTML prototype of the core **LAN dungeon mechanic** — a network graph puzzle the player navigates by exploiting vulnerabilities, subverting security systems, and looting macguffins for cash.
+Starnet is a cyberpunk nethacking game with an interplanetary setting. Its core is the **LAN dungeon mechanic** — a network graph puzzle the player navigates by exploiting vulnerabilities, subverting security systems, and looting macguffins for cash.
+
+It began as a single-mechanic HTML prototype and has since grown into an actively-developed game: procedural network generation, hand-authored set-piece puzzles, multiple ICE behaviors, a darknet store, health/deck loss-clock pressure, and a headless bot/census harness all ship today. "Prototype" no longer describes the scope — treat it as a maturing game in active development. (The early experiment sketches that seeded it are still listed under "Experiments / prototypes" in `docs/SPEC.md` for historical context.)
 
 See `docs/SPEC.md` for the full game design document.
 
@@ -435,20 +437,28 @@ or raster textures. This governs HUD/UI chrome, not just the graph.
 When in doubt: would an oscilloscope or a vector arcade cabinet draw it that way? If it
 needs a fill, a circle, or a dither, it's the wrong primitive.
 
-## What's In Scope (Current Prototype)
+## What's Shipped (Current Build)
 
-- Single static LAN dungeon, hand-crafted
-- Freeform macguffin hunting (no mission objectives)
-- Probe → Xploit → Dump → Fetch → Jack Out loop
-- Two-layer alert system with IDS subversion puzzle
-- Exploit card decay (use/disclosure)
+- Probe → Xploit → Dump → Fetch → Jack Out core loop
+- Procedural network generation (skeleton → slot-filler → assemble) plus hand-crafted
+  named networks and hand-authored set-piece puzzles (biomes)
+- Node-graph runtime: nodes as composable atoms/operators/triggers driving reactive behavior
+- Alert + trace system and ICE (multiple instances, grade-scaled behavior, detection/dwell)
+- Darknet store, exploit card decay (use/disclosure), health/deck loss-clock pressure
+- Headless playtest harness + automated bot + census for balance testing
+
+> **Known gap (2026-06-11 deep audit):** the *documented* two-layer IDS→monitor→TRACE
+> alert ladder is only partially wired in graph mode (the live escalation comes from graph
+> triggers, set-piece alarms, and ICE detection; the legacy `recomputeGlobalAlert` /
+> `alertState` path is largely vestigial). See the deep-audit analysis in
+> `docs/dev-sessions/2026-06-11-1810-code-review-refactor/`. Don't treat the manual's alert
+> model as fully implemented until that's reconciled.
 
 ## Out of Scope (Future)
 
-- Procedural network generation
-- Missions / quest objectives
+- Missions / quest objectives (freeform macguffin hunting today)
 - Sprites, daemons, machine elves
-- Player progression between runs
+- Full player progression / persistent meta-loop between runs (overworld is early)
 - Wider world (galaxy, planets, cities)
 - Audio
 

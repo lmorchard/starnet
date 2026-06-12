@@ -12,7 +12,7 @@ import { A } from "../core/action-ids.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
 import { isScriptAction } from "../core/actions/scripts.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, relayout, onViewport, setReticleOverlay } from "./graph.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, onViewport, setReticleOverlay } from "./graph.js";
 import { mountOverlays } from "./overlays/index.js";
 import { mountReticle } from "./overlays/selection-reticle.js";
 import { dispatchActionFeedback } from "./overlays/dispatch.js";

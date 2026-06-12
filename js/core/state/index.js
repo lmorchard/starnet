@@ -110,7 +110,7 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
   // Generate vulnerabilities for each node (seeded RNG)
   for (const nodeId of graph.getNodeIds()) {
     const nodeData = graph.getNode(nodeId);
-    const vulns = generateVulnerabilities(nodeData.grade, nodeData.type);
+    const vulns = generateVulnerabilities(nodeData.grade);
     graph.setNodeAttr(nodeId, "vulnerabilities", vulns);
   }
 
@@ -288,6 +288,18 @@ export function accessNeighbors(nodeId) {
 
 /** @type {NodeAlertLevel[]} */
 export const ALERT_ORDER = ["green", "yellow", "red"];
+
+/**
+ * The next node alert level up from `level`, or `level` unchanged if it's already
+ * at the top or not a recognized level. Pure — does not mutate state.
+ * @param {NodeAlertLevel} level
+ * @returns {NodeAlertLevel}
+ */
+export function nextAlertLevel(level) {
+  const idx = ALERT_ORDER.indexOf(level);
+  if (idx < 0 || idx >= ALERT_ORDER.length - 1) return level;
+  return ALERT_ORDER[idx + 1];
+}
 
 // ── End run ──────────────────────────────────────────────
 
