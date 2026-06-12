@@ -255,8 +255,8 @@ export function cmdStatusNode(args) {
     lines.push(`- mine: attempts:${attempts}  exhausted:${node.mineExhausted ?? false}  next-yield:${yieldPct}%`);
   }
   if (node.rebooting) lines.push(`- REBOOTING`);
-  if (node.eventForwardingDisabled !== undefined) {
-    lines.push(`- event forwarding: ${node.eventForwardingDisabled ? "disabled" : "enabled"}`);
+  if (node.forwardingEnabled !== undefined) {
+    lines.push(`- event forwarding: ${node.forwardingEnabled === false ? "disabled" : "enabled"}`);
   }
   if (node.probed && node.vulnerabilities.length > 0) {
     const vulns = node.vulnerabilities
@@ -293,7 +293,7 @@ export function cmdStatusAlert() {
     lines.push("- security nodes:");
     secNodes.forEach((n) => {
       const fwd = n.type === "ids"
-        ? (n.eventForwardingDisabled ? "  [fwd:OFF]" : "  [fwd:ON]")
+        ? (n.forwardingEnabled === false ? "  [fwd:OFF]" : "  [fwd:ON]")
         : "";
       lines.push(`  ${n.id}  [${n.type}]  alert:${n.alertState}${fwd}`);
     });

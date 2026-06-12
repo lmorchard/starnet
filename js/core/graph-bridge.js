@@ -31,18 +31,31 @@ export function initGraphBridge() {
         try { graph.sendMessage(neighborId, msg); } catch (_) { }
       }
     } else if (action === A.XPLOIT) {
-      // Exploit attempt → send "exploit" message to the node.
+      // Exploit attempt → send "exploit" message to the node (honeypots etc.).
       const msg = createMessage({ type: "exploit", origin: nodeId, payload: { nodeId, success } });
       try { graph.sendMessage(nodeId, msg); } catch (_) { }
+      // A FAILED exploit is what the security grid notices: broadcast an "alert" to every
+      // IDS. Each un-corrupted IDS relays it to its monitor (forwardingEnabled gate), which
+      // accumulates and climbs the alert ladder (recordMonitorAlert). Grid-wide sensing,
+      // subversion-scoped: corrupting an IDS blinds its monitor. Routine probing does NOT
+      // trip the grid — only failures do (dedicated sensors like nthAlarm handle probe-noise).
+      // (Detectors are type "ids"; extend if a future set-piece adds another detector type.)
+      if (success === false) broadcastAlertToIds(graph, getState().nodes, nodeId);
     }
   });
+}
 
-  // Alert raised on a node → send "alert" message to that node.
-  // IDS relay chain forwards alerts to security monitors via the relay operator.
-  on(E.NODE_ALERT_RAISED, ({ nodeId }) => {
-    const graph = getState().nodeGraph;
-    if (!graph) return;
-    const msg = createMessage({ type: "alert", origin: nodeId, payload: { nodeId } });
-    try { graph.sendMessage(nodeId, msg); } catch (_) { }
-  });
+/**
+ * Send an "alert" message to every IDS node so the security grid hears it. The message
+ * keeps the *triggering* node (the one whose exploit failed) as origin/payload, so the
+ * alert stays attributable through the relay chain — consistent with the other bridge
+ * messages.
+ * @param {string} sourceNodeId  the node whose exploit failure raised the alert
+ */
+function broadcastAlertToIds(graph, nodes, sourceNodeId) {
+  for (const id of Object.keys(nodes)) {
+    if (nodes[id].type !== "ids") continue;
+    const msg = createMessage({ type: "alert", origin: sourceNodeId, payload: { nodeId: sourceNodeId } });
+    try { graph.sendMessage(id, msg); } catch (_) { }
+  }
 }

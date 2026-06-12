@@ -269,20 +269,19 @@ registerTrait("security", {
   attributes: {
     alerted: false,
     alertState: "green",
+    alertCount: 0,
   },
   operators: [
     { name: "flag", on: "alert", attr: "alerted", value: true },
+    // Each alert that reaches the monitor reports to the global alert layer, which
+    // accumulates and climbs the ladder to trace (recordMonitorAlert). The monitor is
+    // reached only via an un-corrupted IDS relay, so corrupting the IDS severs this sensor.
+    { name: "report", on: "alert", call: "recordMonitorAlert" },
   ],
   actions: [ACTION_TEMPLATES.CANCEL_TRACE],
   triggers: [
-    {
-      id: "alert-escalate",
-      when: { type: "node-attr", attr: "alerted", eq: true },
-      then: [
-        { effect: "ctx-call", method: "setGlobalAlert", args: ["yellow"] },
-        { effect: "ctx-call", method: "log", args: ["Security monitor: intrusion alert raised"] },
-      ],
-    },
+    // (alert-escalate removed: escalation now flows per-alert through the report operator
+    //  → recordMonitorAlert, which climbs green→yellow→red→trace by accumulated count.)
     {
       // Repeating, not one-shot: owning the monitor must cancel a trace even if the
       // node was owned BEFORE the trace started (a one-shot would fire once into a

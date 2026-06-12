@@ -442,8 +442,8 @@ around it.
 
 ## THE ALERT SYSTEM
 
-The LAN has a two-layer security architecture. Understanding it is the difference between
-a clean run and a trace.
+The LAN watches you through two sensors — a passive security grid and active ICE — both
+feeding one alert ladder. Understanding it is the difference between a clean run and a trace.
 
 ### Node Alert State
 
@@ -454,17 +454,25 @@ Every node has its own alert level: **GREEN → YELLOW → RED**. This escalates
 A **successful exploit resets the node's alert to green** — you found a clean way in and
 contained the noise. Failed attempts leave their mark; successes erase it.
 
-### Global Alert
+### Global Alert — two sensors, one ladder
 
-The **global alert** (shown in the HUD) is driven by **security monitors** — special nodes
-that aggregate alerts from **IDS nodes** connected to them.
+The **global alert** (shown in the HUD) climbs `GREEN → YELLOW → RED → TRACE`. It is driven by
+**two independent sensors** that feed the same ladder and the same trace clock:
+
+**1. The security grid (passive).** Sloppy hacking trips it. Every failed exploit raises an
+alert that the LAN's **IDS** nodes hear; each un-corrupted IDS relays it to its **security
+monitor**, which accumulates the alerts and climbs the ladder — starting the trace once enough
+have piled up (a grade-scaled count: fewer on tougher networks).
 
 ```
-IDS node  →  (alert event)  →  Security Monitor  →  Global Alert
+exploit failure  →  IDS  →  (relay, unless corrupted)  →  Security Monitor  →  Global Alert
 ```
 
-An IDS node that detects an exploit failure on a connected node fires an alert event
-upstream to its security monitor. The security monitor raises the global alert.
+**2. ICE (active).** A roaming ICE that detects you climbs the *same* ladder and starts the
+trace after a grade-scaled number of detections (see ICE, below).
+
+A LAN with no ICE is more static and forgiving — the grid is the only clock, and you control
+it: hack carefully, corrupt the IDS to go dark, or own the monitor to cancel a trace.
 
 **Global alert levels** (lamp shape: hexagon → point-up triangle → inverted triangle → inverted triangle):
 
@@ -475,9 +483,9 @@ upstream to its security monitor. The security monitor raises the global alert.
 
 ### The TRACE Countdown
 
-When global alert hits red and security monitors confirm active intrusion, a **TRACE
-countdown** begins (30–90 seconds depending on network threat grade). The countdown shows in the HUD and sidebar. If it reaches zero,
-your tether is traced back to your home node — run over, score lost.
+When either sensor reaches its threshold, a **TRACE countdown** begins (30–90 seconds
+depending on network threat grade). The countdown shows in the HUD and sidebar. If it reaches
+zero, your tether is traced back to your home node — run over, score lost.
 
 To stop it: **jack out** before zero, or **own the security monitor** and run
 `exec cancel-trace`.
@@ -522,9 +530,10 @@ If you can compromise and then **corrupt** an IDS node:
 > exec corrupt
 ```
 
-Event forwarding from that IDS to its connected security monitor is severed. Subsequent
-exploit failures on nodes watched by that IDS will no longer escalate the global alert.
-This is often worth the detour.
+Event forwarding from that IDS to its connected security monitor is severed — that monitor
+goes dark and stops climbing the alert ladder, no matter how many exploits you fail. (A LAN
+with more than one IDS/monitor pair needs each IDS corrupted to fully go dark.) This is often
+worth the detour, especially on an ICE-less LAN where the grid is your only clock.
 
 ---
 

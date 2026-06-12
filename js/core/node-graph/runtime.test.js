@@ -19,131 +19,47 @@ function makeSpyNode(id) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. IDS relay chain
+// 1. IDS relay chain — alert relays to the monitor, gated by forwardingEnabled
 // ---------------------------------------------------------------------------
 describe("IDS relay chain", () => {
-  it("alert sent to IDS arrives at monitor via relay", () => {
-    const graph = new NodeGraph({
-      nodes: [
-        { id: "ids-1", type: "ids", attributes: { forwardingEnabled: true }, operators: [{ name: "relay", filter: "alert" }] },
-        { id: "monitor", type: "security-monitor", attributes: { receivedAlert: false }, operators: [
-          // A custom operator to record receipt — we use latch to flip a flag
-          { name: "latch" }
-        ]},
-      ],
-      edges: [["ids-1", "monitor"]],
-    });
-
-    graph.sendMessage("ids-1", createMessage({ type: "alert", origin: "probe", payload: {} }));
-    // monitor receives the message; latch only reacts to set/reset, so we check
-    // via a trigger instead
-    // Re-test with a direct relay check: inject the message and observe monitor state
-    // via a trigger that sets a flag.
-  });
-
-  it("relay forwards alert to connected monitor", () => {
-    const ctx = mockCtx();
-    const graph = new NodeGraph({
-      nodes: [
-        { id: "ids", type: "ids", attributes: { forwardingEnabled: true }, operators: [{ name: "relay", filter: "alert" }] },
-        { id: "mon", type: "monitor", attributes: {}, operators: [] },
-      ],
-      edges: [["ids", "mon"]],
-      triggers: [{
-        id: "mon-received",
-        when: { type: "node-attr", nodeId: "mon", attr: "alerted", eq: true },
-        then: [{ effect: "ctx-call", method: "log", args: ["monitor alerted"] }],
-      }],
-    }, ctx);
-
-    // Inject alert — relay on ids forwards to mon, but mon has no operator to set alerted.
-    // Let's use set-node-attr effect instead: trigger when mon receives via operator.
-    // Simpler approach: use a trigger on ids being alerted, then check mon via relay + trigger.
-    // Actually the cleanest test: verify trigger fires after manual state update.
-    // For relay specifically, test by observing the mon node gets a message delivered.
-    // We'll do this via a tick-0 trigger pattern.
-
-    graph.sendMessage("ids", createMessage({ type: "alert", origin: "probe", payload: {} }));
-    // The relay on ids forwards the alert to mon. Mon has no operators so no state change.
-    // Verify by checking ids forwarding still works at the operator level (covered in operators.test.js).
-    // This integration test verifies the full path: sendMessage → operator → outgoing → deliver to neighbor.
-    assert.ok(true); // relay chain exercised without error
-  });
-
-  it("forwardingEnabled:false blocks relay to monitor", () => {
-    const ctx = mockCtx();
-    // Use a trigger on monitor to detect if it received an alert
-    const graph = new NodeGraph({
-      nodes: [
-        { id: "ids", type: "ids", attributes: { forwardingEnabled: false }, operators: [{ name: "relay", filter: "alert" }] },
-        { id: "mon", type: "monitor", attributes: { alerted: false },
-          operators: [{ name: "latch" }],
-          actions: [],
-        },
-      ],
-      edges: [["ids", "mon"]],
-      triggers: [{
-        id: "mon-alerted",
-        when: { type: "node-attr", nodeId: "mon", attr: "latched", eq: true },
-        then: [{ effect: "ctx-call", method: "log", args: ["monitor alerted"] }],
-      }],
-    }, ctx);
-
-    graph.sendMessage("ids", createMessage({ type: "set", origin: "probe", payload: {} }));
-    // ids has relay(filter:alert) — set message won't be relayed anyway.
-    // Let's use a direct alert to show forwarding is blocked:
-    graph.sendMessage("ids", createMessage({ type: "alert", origin: "probe", payload: {} }));
-    assert.equal(ctx.calls.log, undefined); // monitor never alerted
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Cleaner IDS test using a flag-setting operator workaround
-// ---------------------------------------------------------------------------
-describe("IDS relay — flag via trigger", () => {
+  // ids relays alert messages; monitor flags `alerted` when one arrives.
   function makeAlertChainGraph(forwardingEnabled) {
-    const ctx = mockCtx();
-    const graph = new NodeGraph({
+    return new NodeGraph({
       nodes: [
-        {
-          id: "ids", type: "ids",
-          attributes: { forwardingEnabled },
-          operators: [{ name: "relay", filter: "alert" }],
-        },
-        {
-          id: "mon", type: "monitor",
-          attributes: { alertCount: 0 },
-          operators: [],
-        },
+        { id: "ids", type: "ids", attributes: { forwardingEnabled },
+          operators: [{ name: "relay", filter: "alert" }] },
+        { id: "mon", type: "security-monitor", attributes: { alerted: false, sawNoise: false },
+          operators: [
+            { name: "flag", on: "alert", attr: "alerted", value: true },
+            // Would flip if the relay wrongly forwarded a non-alert message — lets the
+            // "only forwards alert" test actually observe the relay's filtering.
+            { name: "flag", on: "probe-noise", attr: "sawNoise", value: true },
+          ] },
       ],
       edges: [["ids", "mon"]],
-      triggers: [{
-        id: "mon-triggered",
-        when: { type: "quality-gte", name: "monAlerts", value: 1 },
-        then: [{ effect: "ctx-call", method: "log", args: ["monitor received alert"] }],
-      }],
-    }, ctx);
-    return { graph, ctx };
+    });
   }
 
-  it("alert reaches monitor when forwardingEnabled is true", () => {
-    // Since mon has no operators to set a flag, we verify via manual quality set after:
-    // The real integration value is that the graph doesn't throw and the relay fires.
-    const { graph } = makeAlertChainGraph(true);
-    // No error = relay executed correctly
-    assert.doesNotThrow(() => {
-      graph.sendMessage("ids", createMessage({ type: "alert", origin: "probe", payload: {} }));
-    });
+  it("relay forwards an alert to the connected monitor (forwardingEnabled:true)", () => {
+    const graph = makeAlertChainGraph(true);
+    assert.equal(graph.getNodeState("mon").alerted, false);
+    graph.sendMessage("ids", createMessage({ type: "alert", origin: "probe", payload: {} }));
+    assert.equal(graph.getNodeState("mon").alerted, true, "alert must reach the monitor via relay");
   });
 
-  it("no propagation when forwardingEnabled is false", () => {
-    const { graph } = makeAlertChainGraph(false);
-    assert.doesNotThrow(() => {
-      graph.sendMessage("ids", createMessage({ type: "alert", origin: "probe", payload: {} }));
-    });
-    // Verify ids attributes unchanged (no relay side-effects)
-    const idsState = graph.getNodeState("ids");
-    assert.equal(idsState.forwardingEnabled, false);
+  it("forwardingEnabled:false severs the relay — monitor never alerted", () => {
+    const graph = makeAlertChainGraph(false);
+    graph.sendMessage("ids", createMessage({ type: "alert", origin: "probe", payload: {} }));
+    assert.equal(graph.getNodeState("mon").alerted, false, "a subverted IDS must not forward the alert");
+  });
+
+  it("relay only forwards matching message types (alert), not others", () => {
+    const graph = makeAlertChainGraph(true);
+    graph.sendMessage("ids", createMessage({ type: "probe-noise", origin: "probe", payload: {} }));
+    // The monitor flags `sawNoise` on probe-noise, so if the relay had forwarded it this
+    // would be true. It stays false → the relay correctly filtered the non-alert message.
+    assert.equal(graph.getNodeState("mon").sawNoise, false, "relay must not forward non-alert messages");
+    assert.equal(graph.getNodeState("mon").alerted, false, "non-alert messages must not flag the monitor");
   });
 });
 

@@ -14,7 +14,7 @@
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
 import { A } from "../action-ids.js";
-import { startTraceCountdown, cancelTraceCountdown } from "../alert.js";
+import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert } from "../alert.js";
 import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
 import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
@@ -54,6 +54,7 @@ export function buildGameCtx(opts = {}) {
     // ── Set-piece callbacks ─────────────────────────────
     startTrace: () => startTraceCountdown(),
     cancelTrace: () => cancelTraceCountdown(),
+    recordMonitorAlert: (nodeId) => recordMonitorAlert(nodeId),
     giveReward: (amount) => addCash(amount),
     spawnICE: (_nodeId) => startIce(),
     stopIce: () => stopIce(),

@@ -34,7 +34,8 @@ export const idsRelayChain = {
       type: "ids",
       traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      operators: [{ name: "relay", filter: "alert" }],
+      // relay(filter:alert) comes from the detectable trait — no inline duplicate
+      // (a second relay would double-count alerts at the monitor → recordMonitorAlert).
       actions: [
         {
           id: "corrupt",
@@ -1092,7 +1093,8 @@ export const tamperDetect = {
       type: "ids",
       traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      operators: [{ name: "relay", filter: "alert" }],
+      // relay(filter:alert) comes from the detectable trait — no inline duplicate
+      // (a second relay would double-count alerts at the monitor → recordMonitorAlert).
       actions: [
         {
           id: "corrupt",
@@ -1404,7 +1406,8 @@ export const defensePlex = {
       id: "ids-1", type: "ids",
       traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      operators: [{ name: "relay", filter: "alert" }],
+      // relay(filter:alert) comes from the detectable trait — no inline duplicate
+      // (a second relay would double-count alerts at the monitor → recordMonitorAlert).
       actions: [{
         id: "corrupt", label: "Corrupt IDS",
         requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
@@ -1415,7 +1418,8 @@ export const defensePlex = {
       id: "ids-2", type: "ids",
       traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      operators: [{ name: "relay", filter: "alert" }],
+      // relay(filter:alert) comes from the detectable trait — no inline duplicate
+      // (a second relay would double-count alerts at the monitor → recordMonitorAlert).
       actions: [{
         id: "corrupt", label: "Corrupt IDS",
         requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
@@ -1455,7 +1459,8 @@ export const fortifiedGate = {
       id: "ids", type: "ids",
       traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
       attributes: { accessLevel: "locked", forwardingEnabled: true },
-      operators: [{ name: "relay", filter: "alert" }],
+      // relay(filter:alert) comes from the detectable trait — no inline duplicate
+      // (a second relay would double-count alerts at the monitor → recordMonitorAlert).
       actions: [{
         id: "corrupt", label: "Corrupt IDS",
         requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],

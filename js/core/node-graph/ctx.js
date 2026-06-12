@@ -8,6 +8,7 @@
 export const nullCtx = {
   startTrace() {},
   cancelTrace() {},
+  recordMonitorAlert(_nodeId) {},
   giveReward(_amount) {},
   spawnICE(_nodeId) {},
   stopIce() {},
@@ -65,6 +66,7 @@ export function mockCtx() {
   const ctx = {
     startTrace: spy("startTrace"),
     cancelTrace: spy("cancelTrace"),
+    recordMonitorAlert: spy("recordMonitorAlert"),
     giveReward: spy("giveReward"),
     spawnICE: spy("spawnICE"),
     stopIce: spy("stopIce"),

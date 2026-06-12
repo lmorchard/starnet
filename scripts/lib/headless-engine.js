@@ -15,7 +15,7 @@
 import { initGame, getState, serializeState, deserializeState } from "../../js/core/state.js";
 import { buildActionContext, initActionDispatcher } from "../../js/core/actions/action-context.js";
 import { startIce, handleIceTick, handleIceDetect, initIceHandlers } from "../../js/core/ice.js";
-import { handleTraceTick, initAlertHandlers } from "../../js/core/alert.js";
+import { handleTraceTick } from "../../js/core/alert.js";
 import { initNavigationCancelHandler } from "../../js/core/node-graph/game-ctx.js";
 import { initGraphBridge } from "../../js/core/graph-bridge.js";
 import { initDynamicActions } from "../../js/core/console-commands/dynamic-actions.js";
@@ -63,7 +63,6 @@ export function wireRunHandlers() {
   // Game-logic listeners that are normally auto-registered at module import.
   // clearHandlers() wiped those, so re-register them explicitly per run.
   initIceHandlers();
-  initAlertHandlers();
   initNavigationCancelHandler();
   initGraphBridge();
   initDynamicActions();

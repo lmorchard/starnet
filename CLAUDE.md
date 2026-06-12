@@ -142,12 +142,28 @@ Rules:
 8. Global alert rises as detection nodes fire events to security monitors
 9. At TRACE: countdown begins (30–90s by threat grade) — jack out or lose your score
 
-## Alert System (Two-Layer)
+## Alert System (two sensors, one ladder)
 
-- **Detection nodes** (type: `ids`): raise alert on exploit failures, propagate events to connected security monitors
-- **Security monitors** (type: `security-monitor`): aggregate detection events, drive global alert
-- **Global alert** recomputes from monitor/detector states; only escalates, never de-escalates
-- Subverting an IDS (`eventForwardingDisabled: true`) severs the chain
+Global alert (`green → yellow → red → trace`) is driven by two independent sensors that share
+the same ladder and trace clock. It only escalates, never de-escalates (below trace), except
+the deliberate cancel paths (own the monitor → `cancelTrace`; jack out). Both sensors live in
+`js/core/alert.js` and call into the trace-countdown machinery there.
+
+- **Security grid (passive).** On a *failed* exploit (the graph bridge's `ACTION_RESOLVED`
+  handler, `XPLOIT` with `success:false` — routine probing does NOT trip the grid), the bridge
+  broadcasts an `alert` message to every `ids` node. Each IDS relays it to its `security-monitor`
+  via the `relay` operator — *unless corrupted* (`forwardingEnabled:false`, set by the
+  `corrupt`/CORRUPT action). The monitor's `report` operator calls `recordMonitorAlert`,
+  which accumulates per-monitor and climbs the ladder, starting the trace at a grade-scaled count
+  (`MONITOR_TRACE_THRESHOLD`). Grid-wide sensing, subversion-scoped: corrupt an IDS to blind its
+  monitor.
+- **ICE (active).** `recordIceDetection` — detections climb the same ladder and start the trace
+  at a grade-scaled count. Owned by the ICE subsystem.
+- An ICE-less LAN relies entirely on the grid — its only failure clock.
+
+Escalation lives in `recordMonitorAlert` / `recordIceDetection` (+ set-piece `startTrace`
+alarms). There is no node-`alertState`-counting global recompute — that legacy layer was
+retired in #173. (Node `alertState` is now purely the per-node visual alert glow.)
 
 ## Branching and Pull Requests
 
@@ -446,13 +462,6 @@ needs a fill, a circle, or a dither, it's the wrong primitive.
 - Alert + trace system and ICE (multiple instances, grade-scaled behavior, detection/dwell)
 - Darknet store, exploit card decay (use/disclosure), health/deck loss-clock pressure
 - Headless playtest harness + automated bot + census for balance testing
-
-> **Known gap (2026-06-11 deep audit):** the *documented* two-layer IDS→monitor→TRACE
-> alert ladder is only partially wired in graph mode (the live escalation comes from graph
-> triggers, set-piece alarms, and ICE detection; the legacy `recomputeGlobalAlert` /
-> `alertState` path is largely vestigial). See the deep-audit analysis in
-> `docs/dev-sessions/2026-06-11-1810-code-review-refactor/`. Don't treat the manual's alert
-> model as fully implemented until that's reconciled.
 
 ## Out of Scope (Future)
 

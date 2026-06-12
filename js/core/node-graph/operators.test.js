@@ -568,3 +568,35 @@ describe("debounce operator", () => {
     assert.deepEqual(result.outgoing?.[0].destinations, ["Y"]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// report
+// ---------------------------------------------------------------------------
+describe("report operator", () => {
+  it("emits a ctx-call operator-effect (with $nodeId) on a matching message", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const result = invoke("report", { on: "alert", call: "recordMonitorAlert" }, {}, msg);
+    assert.deepEqual(result.events, [{
+      type: "operator-effect",
+      payload: { effect: "ctx-call", method: "recordMonitorAlert", args: ["$nodeId"] },
+    }]);
+  });
+
+  it("respects config.on — ignores non-matching message types", () => {
+    const msg = createMessage({ type: "probe-noise", origin: "A" });
+    const result = invoke("report", { on: "alert", call: "recordMonitorAlert" }, {}, msg);
+    assert.equal(result.events?.length ?? 0, 0);
+  });
+
+  it("ignores tick messages", () => {
+    const msg = createMessage({ type: "tick", origin: "__system__" });
+    const result = invoke("report", { call: "recordMonitorAlert" }, {}, msg);
+    assert.equal(result.events?.length ?? 0, 0);
+  });
+
+  it("is a no-op when config.call is missing", () => {
+    const msg = createMessage({ type: "alert", origin: "A" });
+    const result = invoke("report", { on: "alert" }, {}, msg);
+    assert.equal(result.events?.length ?? 0, 0);
+  });
+});
