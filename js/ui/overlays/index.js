@@ -11,6 +11,8 @@ import "./loot-rings.js";
 import "./exploit-brackets.js";
 import "./ice-detect.js";
 import { OVERLAY_DESCRIPTORS } from "./registry.js";
+import { onViewport, setReticleOverlay } from "../graph.js";
+import { mountReticle } from "./selection-reticle.js";
 
 /**
  * @param {HTMLElement} container
@@ -26,4 +28,25 @@ export function mountOverlays(container) {
     if (d.driver === "action-feedback" && d.action) byAction.set(d.action, el);
   }
   return { byKey, byAction };
+}
+
+/**
+ * Bring up the graph overlay layer, shared by the game (visual-renderer) and the
+ * preview harness so new overlays work in both automatically (#167): mount the
+ * registry overlays + the selection reticle into the overlay container, register
+ * the reticle with graph.js, and wire both to re-anchor on every pan/zoom.
+ * @param {HTMLElement} [layer] overlay container; defaults to #overlay-layer
+ * @returns {{ overlays: ReturnType<typeof mountOverlays>, reticle: any }}
+ */
+export function initializeGraphOverlays(
+  layer = /** @type {HTMLElement} */ (document.getElementById("overlay-layer")),
+) {
+  const overlays = mountOverlays(layer);
+  onViewport(() => overlays.byKey.forEach((o) => o.reposition()));
+
+  const reticle = mountReticle(layer);
+  setReticleOverlay(reticle);
+  onViewport(() => reticle.reposition());
+
+  return { overlays, reticle };
 }

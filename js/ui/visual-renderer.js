@@ -12,9 +12,8 @@ import { A } from "../core/action-ids.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
 import { isScriptAction } from "../core/actions/scripts.js";
-import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection, onViewport, setReticleOverlay } from "./graph.js";
-import { mountOverlays } from "./overlays/index.js";
-import { mountReticle } from "./overlays/selection-reticle.js";
+import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
+import { initializeGraphOverlays } from "./overlays/index.js";
 import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
@@ -73,15 +72,10 @@ export function initVisualRenderer() {
   // Mount overlay animations into the graph's overlay layer and drive them from
   // the registry. visual-renderer no longer knows individual effects — it maps
   // action id → overlay element and calls the sync/clear/reposition contract.
-  const layer = /** @type {HTMLElement} */ (document.getElementById("overlay-layer"));
-  const overlays = mountOverlays(layer);
-  onViewport(() => overlays.byKey.forEach((o) => o.reposition()));
-
-  // Selection reticle — a NodeOverlay too, but selection-driven (graph.js calls
-  // it from syncSelection) rather than action-driven.
-  const reticle = mountReticle(layer);
-  setReticleOverlay(reticle);
-  onViewport(() => reticle.reposition());
+  // Shared with the preview harness via initializeGraphOverlays (#167): mounts
+  // the registry overlays + the selection reticle (graph.js drives the latter
+  // from syncSelection) and wires both to re-anchor on pan/zoom.
+  const { overlays } = initializeGraphOverlays();
 
   // action id → node id of the in-flight animation (tracked across feedback events)
   const activeNodeIds = new Map();
