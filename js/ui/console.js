@@ -44,6 +44,15 @@ registerCommand({
       return;
     }
 
+    if (sub === "fps") {
+      // Dev frame-time meter — DOM/rAF, so lazy-loaded from the UI layer (#190).
+      import("./fps-meter.js").then(({ toggleFpsMeter }) => {
+        const on = toggleFpsMeter();
+        addLogEntry(`[CHEAT] FPS meter ${on ? "ON" : "off"}.`, "meta");
+      });
+      return;
+    }
+
     coreCheat.execute(args);
   },
 });

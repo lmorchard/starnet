@@ -421,3 +421,12 @@ if (wfDemo && waveHealth && waveDeck && waveToggle) {
     }
   });
 }
+
+// FPS meter toggle — dev frame-time readout (js/ui/fps-meter.js; `cheat fps` in game).
+const fpsToggleBtn = document.getElementById("btn-fps-toggle");
+if (fpsToggleBtn) {
+  fpsToggleBtn.addEventListener("click", async () => {
+    const { toggleFpsMeter } = await import("./fps-meter.js");
+    fpsToggleBtn.textContent = toggleFpsMeter() ? "HIDE FPS METER" : "TOGGLE FPS METER";
+  });
+}
