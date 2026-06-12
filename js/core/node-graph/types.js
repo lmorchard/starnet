@@ -33,7 +33,8 @@
  * @property {Record<string, number>} [ticksTable]  - delay / debounce: grade → ticks
  * @property {number} [n]             - counter: emit after N triggers
  * @property {MessageDescriptor} [emits] - counter: message to emit when threshold reached
- * @property {string} [on]            - flag / tally / debounce: message type to react to
+ * @property {string} [on]            - flag / tally / debounce / report: message type to react to
+ * @property {string} [call]          - report: ctx method name to invoke (with the node id)
  * @property {Record<string, any>} [when] - flag: payload key=value pairs that must match
  * @property {string} [attr]          - flag: node attribute name to set
  * @property {any} [value]            - flag: value to assign (default: true)
@@ -248,6 +249,7 @@
  * @typedef {Object} CtxInterface
  * @property {() => void} startTrace
  * @property {() => void} cancelTrace
+ * @property {(nodeId: string) => void} recordMonitorAlert
  * @property {(amount: number) => void} giveReward
  * @property {(nodeId: string) => void} spawnICE
  * @property {() => void} [stopIce]

@@ -8,7 +8,7 @@ import { clearAll } from "../timers.js";
 import {
   setNodeVisible, setNodeAccessLevel, setNodeProbed, setNodeAlertState,
   setNodeRead, collectMacguffins, setNodeLooted, setNodeRebooting,
-  setNodeEventForwarding, setNodeVulnHidden, isObscured,
+  setNodeVulnHidden, isObscured,
 } from "./node.js";
 
 describe("state/node — node mutations", () => {
@@ -82,16 +82,6 @@ describe("state/node — node mutations", () => {
     assert.equal(getState().nodes["gateway"].rebooting, true);
     setNodeRebooting("gateway", false);
     assert.equal(getState().nodes["gateway"].rebooting, false);
-  });
-
-  it("setNodeEventForwarding sets eventForwardingDisabled", () => {
-    // Find an IDS node that has eventForwardingDisabled
-    const s = getState();
-    const idsNode = Object.values(s.nodes).find((n) => n.type === "ids");
-    if (!idsNode) return;
-
-    setNodeEventForwarding(idsNode.id, true);
-    assert.equal(getState().nodes[idsNode.id].eventForwardingDisabled, true);
   });
 
   it("setNodeVulnHidden sets vulnerability hidden flag", () => {

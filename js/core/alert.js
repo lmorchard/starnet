@@ -1,132 +1,31 @@
 // @ts-check
-// Alert subsystem — node alert propagation, global alert computation, trace countdown.
-// Registers event listeners so state.js can emit NODE_ALERT_RAISED / NODE_RECONFIGURED
-// without importing this module (no circular dependency).
+// Alert subsystem — global alert escalation (two sensors) and the trace countdown.
 
 /** @typedef {import('./types.js').GlobalAlertLevel} GlobalAlertLevel */
 
-import { getState, endRun, nextAlertLevel } from "./state.js";
-import { setNodeAlertState } from "./state/node.js";
+import { getState, endRun } from "./state.js";
 import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
 import { setIceDetectedAt, incrementIceDetectionCount, activeIceInstances } from "./state/ice.js";
-import { emitEvent, on, E } from "./events.js";
-import { A } from "./action-ids.js";
+import { emitEvent, E } from "./events.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
 
-// Node types that act as detectors (IDS) or monitors (security-monitor)
-const DETECTOR_TYPES = new Set(["ids"]);
-const MONITOR_TYPES = new Set(["security-monitor"]);
-
 // Detection thresholds: cumulative detections before trace starts, by ICE grade
 const DETECTION_TRACE_THRESHOLD = { S: 1, A: 1, B: 2, C: 2, D: 3, F: 3 };
 
-// ── Event-driven hooks ────────────────────────────────────
+// Security-grid trace gate: accumulated monitor alerts before trace starts, by network grade.
+// Mirrors DETECTION_TRACE_THRESHOLD (ICE) but kept separate so the passive grid and the active
+// ICE pursuit can be tuned independently.
+const MONITOR_TRACE_THRESHOLD = { S: 4, A: 5, B: 7, C: 9, D: 12, F: 15 };
 
-/**
- * Register alert event handlers. Called at module load and can be re-called
- * after clearHandlers() (e.g. in the bot census loop).
- */
-export function initAlertHandlers() {
-  on(E.NODE_ALERT_RAISED, ({ nodeId }) => {
-    const s = getState();
-    const node = s.nodes[nodeId];
-    if (!node) return;
-
-    // When a graph is active, alert propagation is handled by graph operators/triggers.
-    // Just recompute global alert from node states.
-    if (s.nodeGraph) {
-      recomputeGlobalAlert();
-      return;
-    }
-
-    // Legacy path: IDS detection nodes propagate alerts to monitors
-    if (DETECTOR_TYPES.has(node.type)) {
-      propagateAlertEvent(nodeId);
-    }
-    recomputeGlobalAlert();
-  });
-
-  on(E.ACTION_RESOLVED, ({ action }) => {
-    if (action === A.CORRUPT) recomputeGlobalAlert();
-  });
-}
-
-// Register on first import
-initAlertHandlers();
-
-// ── Propagation ───────────────────────────────────────────
-
-export function propagateAlertEvent(fromNodeId) {
-  const s = getState();
-  const fromNode = s.nodes[fromNodeId];
-  if (!fromNode || fromNode.eventForwardingDisabled) return;
-
-  (s.adjacency[fromNodeId] || []).forEach((neighborId) => {
-    const neighbor = s.nodes[neighborId];
-    if (neighbor && MONITOR_TYPES.has(neighbor.type)) {
-      const raised = nextAlertLevel(neighbor.alertState);
-      if (raised !== neighbor.alertState) {
-        setNodeAlertState(neighborId, raised);
-      }
-      emitEvent(E.ALERT_PROPAGATED, {
-        fromNodeId,
-        fromLabel: fromNode.label,
-        toNodeId: neighborId,
-        toLabel: neighbor.label,
-      });
-      recomputeGlobalAlert();
-    }
-  });
-}
-
-function recomputeGlobalAlert() {
-  const s = getState();
-  const monitors  = Object.values(s.nodes).filter((n) => MONITOR_TYPES.has(n.type));
-  const detectors = Object.values(s.nodes).filter((n) => DETECTOR_TYPES.has(n.type));
-
-  const redMonitors    = monitors.filter((n) => n.alertState === "red").length;
-  const redDetectors   = detectors.filter((n) => n.alertState === "red"   && !n.eventForwardingDisabled).length;
-  const yellowDetectors = detectors.filter((n) => n.alertState !== "green" && !n.eventForwardingDisabled).length;
-
-  /** @type {GlobalAlertLevel} */
-  let newLevel = "green";
-  if (yellowDetectors >= 1)                  newLevel = "yellow";
-  if (redDetectors >= 1)                     newLevel = "red";
-  if (redDetectors >= 2 || redMonitors >= 1) newLevel = "trace";
-
-  // Only escalate, never de-escalate
-  const current = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
-  const next    = GLOBAL_ALERT_ORDER.indexOf(newLevel);
-  if (next > current) {
-    const prev = s.globalAlert;
-    setGlobalAlert(newLevel);
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: newLevel });
-    if (newLevel === "trace" && s.traceSecondsRemaining === null) {
-      startTraceCountdown();
-    }
-  }
-}
-
-// ── Global alert ──────────────────────────────────────────
-
-export function raiseGlobalAlert() {
-  const s = getState();
-  const prev = s.globalAlert;
-  const idx = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
-  if (idx < GLOBAL_ALERT_ORDER.length - 1) {
-    setGlobalAlert(GLOBAL_ALERT_ORDER[idx + 1]);
-  }
-  const updated = getState().globalAlert;
-  if (prev !== updated) {
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next: updated });
-  }
-  if (updated === "trace" && getState().traceSecondsRemaining === null) {
-    startTraceCountdown();
-  }
-}
+// Global alert escalation now flows entirely through the two sensors:
+//   - recordIceDetection (active ICE pursuit), below
+//   - recordMonitorAlert (passive security grid: IDS → monitor), below
+// plus set-piece startTrace alarms. The legacy node-type-counting layer
+// (recomputeGlobalAlert / propagateAlertEvent / raiseGlobalAlert, gated on
+// alertState + eventForwardingDisabled) was retired in #173.
 
 // ── Trace countdown ───────────────────────────────────────
 
@@ -193,9 +92,9 @@ export function forceGlobalAlert(level) {
  * Record an ICE detection event. Drives the global alert directly: each
  * detection steps the alert up one level (capped below trace), and once the
  * grade-scaled detection count is reached (DETECTION_TRACE_THRESHOLD), the trace
- * countdown begins. This is the ICE pursuit layer — it does NOT colour IDS nodes
- * or propagate through the security monitor (that's the separate exploit-failure
- * puzzle layer in recomputeGlobalAlert). See MANUAL.md "Detection".
+ * countdown begins. This is the active-ICE-pursuit sensor; the passive security
+ * grid (exploit-failure → IDS → monitor) is the separate recordMonitorAlert sensor.
+ * Both feed the same global alert ladder. See MANUAL.md "Detection".
  */
 export function recordIceDetection(nodeId, iceId) {
   const s = getState();
@@ -206,10 +105,8 @@ export function recordIceDetection(nodeId, iceId) {
 
   // ICE detection drives the global alert directly (MANUAL.md "Detection"):
   // each detection steps the alert up; after a grade-scaled number of detections
-  // the trace countdown begins (S/A:1, B/C:2, D/F:3). This is the ICE *pursuit*
-  // layer — distinct from the exploit-failure → IDS → monitor *puzzle* layer
-  // (recomputeGlobalAlert). Trace here is gated purely on detection COUNT, not on
-  // counting red IDS nodes (which is unreachable on a 1-detector network).
+  // the trace countdown begins (S/A:1, B/C:2, D/F:3). The active-ICE sensor; the
+  // passive grid sensor (recordMonitorAlert) climbs the same ladder in parallel.
   //
   // Trace gate: TOTAL detections across ALL instances vs the detecting instance's
   // grade threshold (instances share the run grade in production).
@@ -224,6 +121,39 @@ export function recordIceDetection(nodeId, iceId) {
   const idx = GLOBAL_ALERT_ORDER.indexOf(s.globalAlert);
   if (idx < GLOBAL_ALERT_ORDER.indexOf("red")) {
     const prev = s.globalAlert;
+    const next = GLOBAL_ALERT_ORDER[idx + 1];
+    setGlobalAlert(next);
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next });
+  }
+}
+
+/**
+ * Record an alert reaching a security monitor — the passive security-grid sensor. The
+ * counterpart to recordIceDetection: each alert steps the global alert up one level (capped
+ * below trace), and once a grade-scaled number of alerts have accumulated on the monitor the
+ * trace countdown begins. The accumulated count lives on the monitor's graph node (so it
+ * serializes with the graph). An alert only reaches a monitor via an un-corrupted IDS relay,
+ * so corrupting the IDS (forwardingEnabled:false) severs this sensor. See MANUAL.md "Detection".
+ * @param {string} monitorId
+ */
+export function recordMonitorAlert(monitorId) {
+  const s = getState();
+  const graph = s.nodeGraph;
+  if (!graph) return;
+
+  const count = (graph.getNodeState(monitorId)?.alertCount ?? 0) + 1;
+  graph.setNodeAttr(monitorId, "alertCount", count);
+
+  const threat = s.spec?.threat ?? "C";
+  const threshold = MONITOR_TRACE_THRESHOLD[threat] ?? 2;
+  if (count >= threshold) {
+    if (getState().traceSecondsRemaining === null) startTraceCountdown();
+    return;
+  }
+  // Sub-threshold: step the alert up one level for feedback, capped below trace.
+  const idx = GLOBAL_ALERT_ORDER.indexOf(getState().globalAlert);
+  if (idx < GLOBAL_ALERT_ORDER.indexOf("red")) {
+    const prev = getState().globalAlert;
     const next = GLOBAL_ALERT_ORDER[idx + 1];
     setGlobalAlert(next);
     emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next });

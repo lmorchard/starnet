@@ -262,6 +262,25 @@ registerOperator("counter", (config, attrs, message, _ctx) => {
 });
 
 /**
+ * report — on a matching message, fire a ctx-call (as an operator-effect the runtime applies).
+ * config.on: message type to match (if omitted, matches any non-tick message).
+ * config.call: ctx method name; invoked with the node id ($nodeId).
+ * Used by security monitors to report each received alert to the global alert layer.
+ */
+registerOperator("report", (config, _attrs, message, _ctx) => {
+  if (!message) return {};
+  if (message.type === "tick") return {};
+  if (config.on && message.type !== config.on) return {};
+  if (!config.call) return {};
+  return {
+    events: [{
+      type: "operator-effect",
+      payload: { effect: "ctx-call", method: config.call, args: ["$nodeId"] },
+    }],
+  };
+});
+
+/**
  * flag — set a named attribute when a matching message arrives.
  * config.on: message type to match (if omitted, matches any non-tick message).
  * config.when: optional { key: value, ... } payload filter — all pairs must match.

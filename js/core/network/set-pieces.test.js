@@ -178,10 +178,11 @@ describe("ids-relay-chain: alert forwarding and subversion", () => {
     const graph = new NodeGraph({ nodes, edges: inst.edges, triggers: inst.triggers }, ctx);
 
     // Send an alert into IDS — relay forwards it to monitor — monitor flags alerted:true
-    // security trait per-node trigger fires setGlobalAlert("yellow")
+    // and its report operator reports the alert to the global alert layer.
     graph.sendMessage("east/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
-    assert.equal(ctx.calls.setGlobalAlert?.length, 1);
-    assert.deepEqual(ctx.calls.setGlobalAlert[0], ["yellow"]);
+    assert.equal(graph.getNodeState("east/monitor").alerted, true);
+    assert.equal(ctx.calls.recordMonitorAlert?.length, 1);
+    assert.deepEqual(ctx.calls.recordMonitorAlert[0], ["east/monitor"]);
   });
 
   it("corrupt action requires owned", () => {
@@ -777,7 +778,8 @@ describe("tamper-detect: corrupting IDS without neutralizing relay triggers trac
 
     graph.sendMessage("td1/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
     assert.equal(graph.getNodeState("td1/security-monitor").alerted, true);
-    assert.equal(ctx.calls.setGlobalAlert?.length, 1);
+    assert.equal(ctx.calls.recordMonitorAlert?.length, 1);
+    assert.deepEqual(ctx.calls.recordMonitorAlert[0], ["td1/security-monitor"]);
   });
 });
 

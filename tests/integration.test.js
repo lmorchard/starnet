@@ -306,37 +306,10 @@ describe("Trace: startTraceCountdown drives global alert to trace", () => {
   });
 });
 
-// ── Alert flow ────────────────────────────────────────────────────────────────
-
-describe("Alert flow: ids alert escalates global alert", () => {
-  beforeEach(() => {
-    clearAll();
-    initGame(() => buildAlertLAN(), "itest-6");
-  });
-
-  it("NODE_ALERT_RAISED on ids (with raised alertState) escalates global alert", () => {
-    // In the graph path, NODE_ALERT_RAISED triggers recomputeGlobalAlert(),
-    // which reads all IDS/monitor alertStates to compute the global level.
-    const s = getState();
-    assert.equal(s.globalAlert, "green");
-    s.nodes["ids-1"].alertState = "yellow";
-    emitEvent(E.NODE_ALERT_RAISED, { nodeId: "ids-1", label: "ids-1" });
-    assert.ok(
-      ["yellow", "red", "trace"].includes(s.globalAlert),
-      `expected alert to escalate, got: ${s.globalAlert}`
-    );
-  });
-
-  it("NODE_ALERT_RAISED does NOT escalate when forwarding disabled", () => {
-    // When eventForwardingDisabled is set, recomputeGlobalAlert skips the detector.
-    const s = getState();
-    s.nodes["ids-1"].eventForwardingDisabled = true;
-    s.nodes["ids-1"].alertState = "yellow";
-    emitEvent(E.NODE_ALERT_RAISED, { nodeId: "ids-1", label: "ids-1" });
-    assert.equal(s.globalAlert, "green",
-      "global alert must not escalate when forwarding is disabled");
-  });
-});
+// (The legacy "Alert flow: ids alert escalates global alert" suite was removed in #173 —
+//  it injected alertState/eventForwardingDisabled directly to exercise the retired
+//  recomputeGlobalAlert path. The honest replacement is the "security grid: IDS->monitor
+//  escalation" suite, which drives the real relay→monitor→recordMonitorAlert chain.)
 
 // ── Action availability ───────────────────────────────────────────────────────
 
@@ -1186,6 +1159,53 @@ describe("timed-action cancel clears the operator's real progress attr (B2)", ()
     assert.equal(after.reading, false, "navigation must cancel the dump");
     assert.equal(after._ta_dump_progress, 0,
       "cancel must reset the operator's real progress attr, not a phantom _ta_read_progress");
+  });
+});
+
+describe("security grid: IDS->monitor escalation (#173)", () => {
+  beforeEach(() => { clearAll(); });
+
+  // Drive the graph chain directly: an alert arriving at the IDS relays to its monitor
+  // (the bridge's job in real play — verified separately via playtest/census).
+  const sendAlert = (graph) => graph.sendMessage("sp/ids", { type: "alert", payload: {} });
+  // Send alerts until the trace starts (threshold is grade-scaled — don't hardcode it).
+  const alertUntilTrace = (graph) => {
+    for (let i = 0; i < 30 && getState().traceSecondsRemaining === null; i++) sendAlert(graph);
+  };
+
+  it("alerts through an un-corrupted IDS climb the global alert to trace", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "grid-seed-1");
+    const graph = getState().nodeGraph;
+    assert.equal(getState().globalAlert, "green");
+
+    sendAlert(graph);
+    assert.notEqual(getState().globalAlert, "green", "first alert should climb the ladder");
+
+    alertUntilTrace(graph);
+    assert.notEqual(getState().traceSecondsRemaining, null,
+      "repeated alerts through the monitor must start the trace");
+  });
+
+  it("corrupting the IDS severs the chain — no escalation, no trace", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "grid-seed-2");
+    const graph = getState().nodeGraph;
+    graph.setNodeAttr("sp/ids", "accessLevel", "owned");
+    graph.executeAction("sp/ids", "corrupt");
+    assert.equal(graph.getNodeState("sp/ids").forwardingEnabled, false, "corrupt should disable forwarding");
+
+    for (let i = 0; i < 30; i++) sendAlert(graph); // far past any grade threshold
+    assert.equal(getState().globalAlert, "green", "a corrupted IDS must not escalate the global alert");
+    assert.equal(getState().traceSecondsRemaining, null, "a corrupted IDS must not start a trace");
+  });
+
+  it("owning the monitor cancels an in-flight grid trace", () => {
+    initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "grid-seed-3");
+    const graph = getState().nodeGraph;
+    alertUntilTrace(graph);
+    assert.notEqual(getState().traceSecondsRemaining, null, "trace should be running first");
+
+    graph.setNodeAttr("sp/monitor", "accessLevel", "owned"); // owned-cancel-trace (repeating)
+    assert.equal(getState().traceSecondsRemaining, null, "owning the monitor cancels the trace");
   });
 });
 

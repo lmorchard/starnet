@@ -178,14 +178,6 @@ export function setNodeSigAlias(nodeId, alias) {
   syncToGraph(nodeId, "sigAlias", alias);
 }
 
-/** Sets node.eventForwardingDisabled. */
-export function setNodeEventForwarding(nodeId, disabled) {
-  mutate((s) => {
-    const node = s.nodes[nodeId];
-    if (node) node.eventForwardingDisabled = disabled;
-  });
-  syncToGraph(nodeId, "eventForwardingDisabled", disabled);
-}
 
 /** Sets hidden flag on a specific vulnerability by index. */
 export function setNodeVulnHidden(nodeId, vulnIndex, hidden) {
