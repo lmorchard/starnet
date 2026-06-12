@@ -108,12 +108,15 @@ export function ecgPoints({ frac, width, height }) {
 }
 
 /**
- * Deck-integrity pulse — a clean, defined double square pulse (main + smaller follow),
- * clustered early in each cell with flat space before the next. As integrity falls the
- * regulation breaks down: edges develop deepening, lengthening overshoot/ring (jagged),
- * plateaus shrink and go ragged, and pulses occasionally drop out or get their height/
- * width glitched. Amplitude stays roughly constant (degradation reads as chaos, not
- * flattening); timing stays metronomic.
+ * Deck-integrity pulse — a symmetric CPU-clock signal (no resting baseline): equal-duty
+ * alternating up-pulses (`hi = mid-amp`) and down-pulses (`lo = mid+amp`), ~4 hi+lo cycles
+ * across the width. Every transition rings — a departing overshoot (further in the
+ * departing pulse's direction) and an arriving overshoot (past the arriving level), each
+ * held briefly so it reads as a small square micro-pulse, then a damped settle. Up-pulses
+ * overshoot up, down-pulses down (a positive trailing spike leads into the next negative
+ * leading spike). Overshoot is visible even healthy (clock-edge ringing); damage grows the
+ * overshoot + adds damped wobbles and roughens both plateaus. Amplitude/timing stay ~constant
+ * — degradation reads as ringing/instability, not flattening.
  *
  * @param {{ frac: number, width: number, height: number }} opts
  *   frac — integrity 0..1 (0 = flat line)
@@ -125,77 +128,53 @@ export function pulsePoints({ frac, width, height }) {
   if (f <= 0) return [{ x: 0, y: mid }, { x: W, y: mid }];
 
   const dmg = 1 - f;
-  // Height-relative cell width → constant aspect; wider strips show more pulses
-  // (lab-matched proportions) rather than stretching a fixed count.
-  const period = H * 2.0;
-  const CELLS = Math.max(1, Math.floor(W / period));
+  const amp = H * lerp(0.3, 0.38, f);          // ~constant amplitude across health
   const mTop = H * 0.04, mBot = H * 0.96;
   const cl = (y) => Math.max(mTop, Math.min(mBot, y));
-  const halfAmp = H * lerp(0.3, 0.38, f);   // ~constant amplitude across health
-  const base = cl(mid + halfAmp);
-  const top = cl(mid - halfAmp);
-  const follow = cl(mid - halfAmp * 0.55);   // smaller second pulse
+  const hi = cl(mid - amp);                     // up-pulse level
+  const lo = cl(mid + amp);                     // down-pulse level
 
-  // Ring escalates on a curve: shows EARLY and takes over near 0. Jaggedness is
-  // vertical (depth + wobble count); horizontal width stays modest so timing holds.
   const ramp = Math.pow(dmg, 0.4);
-  const over = H * lerp(0.015, 0.34, ramp);
-  const ringW = period * lerp(0.018, 0.05, ramp);
-  const nw = Math.round(lerp(1, 7, ramp));
+  const over = H * lerp(0.06, 0.34, ramp);      // edge overshoot, visible healthy → grows with damage
+  const nw = Math.round(lerp(0, 4, ramp));      // extra damped ring wobbles from damage
+  const CYCLES = 4;                             // hi+lo cycles across the width (~W/8 plateaus)
+  const half = W / (CYCLES * 2);                // one plateau (up OR down) — equal duty
+  const eW = half * lerp(0.375, 0.6, ramp);     // ringing-edge region width
 
-  /** Damped overshoot edge from fromY to toY at x, settling over ringW with nw wobbles. */
-  const ring = (pts, x, fromY, toY) => {
-    const dir = toY < fromY ? -1 : 1;
-    const step = ringW / (nw + 2);
+  // Symmetric clock edge: leaving fromY, overshoot further in fromY's direction (departing
+  // trailing spike), swing to toY and overshoot past it (arriving leading spike) — each held
+  // briefly so it reads as a small square micro-pulse — then a damped ring settling to toY.
+  const edge = (pts, x, fromY, toY) => {
+    const dFrom = Math.sign(fromY - toY), dTo = Math.sign(toY - fromY);
+    const oFrom = cl(fromY + dFrom * over), oTo = cl(toY + dTo * over);
+    const X = (fr) => x + eW * fr;
     pts.push({ x, y: fromY });
-    pts.push({ x: x + step * 0.6, y: cl(toY + dir * over) });
+    pts.push({ x: X(0.1), y: oFrom });          // departing overshoot...
+    pts.push({ x: X(0.28), y: oFrom });         // ...held → little square micro-pulse
+    pts.push({ x: X(0.44), y: oTo });           // arriving overshoot...
+    pts.push({ x: X(0.62), y: oTo });           // ...held → little square micro-pulse
     for (let w = 1; w <= nw; w++) {
-      pts.push({ x: x + step * (w + 0.6), y: cl(toY + dir * over * Math.pow(-0.62, w)) });
+      pts.push({ x: X(0.62 + (0.3 * w) / (nw + 1)), y: cl(toY + dTo * over * Math.pow(-0.5, w)) });
     }
-    pts.push({ x: x + ringW, y: toY });
+    pts.push({ x: X(1.0), y: toY });            // settle
   };
 
-  const peaks = [
-    { level: top, gap: 0.08, w: 0.2 },     // main — wide square, shifted off the left edge
-    { level: follow, gap: 0.38, w: 0.09 }, // smaller follow
-  ];
-
+  const NH = CYCLES * 2;
+  let prev = lo;                                // arrive from a low pulse at the left edge
   /** @type {Array<Point>} */
-  const pts = [{ x: 0, y: base }];
-  for (let c = 0; c < CELLS; c++) {
-    const cx = c * period;
-    pts.push({ x: cx, y: base });
-    let cur = cx; // monotonic guard only — fixed gaps mean timing doesn't stretch
-    peaks.forEach((pk, pi) => {
-      const gk = c * 17.7 + pi * 4.3;
-      let level = pk.level, skip = false, wMul = 1;
-      if (hash01(gk * 1.7 + 2.1) < ramp * 0.6) {
-        const s = hash01(gk * 0.9 + 5.5);
-        if (s < 0.22) skip = true;                              // dropped pulse
-        else level = base - (base - pk.level) * lerp(0.3, 1.5, s); // scrambled height
-      }
-      if (hash01(gk * 2.3 + 8.8) < ramp * 0.5) {               // glitched width
-        wMul = lerp(0.4, 1.8, hash01(gk * 1.1 + 3.3));
-      }
-      const xr = Math.max(cx + period * pk.gap, cur + ringW * 0.6);
-      if (skip || Math.abs(level - base) < 1) {
-        pts.push({ x: xr, y: base }); cur = xr;                // flat — pulse skipped
-      } else {
-        pts.push({ x: xr, y: base });
-        ring(pts, xr, base, level);                            // rise + overshoot
-        const plW = period * pk.w * (1 - 0.55 * ramp) * wMul;  // plateau shrinks with damage
-        const x0 = xr + ringW, xf = x0 + plW, segs = 4;
-        for (let j = 1; j <= segs; j++) {
-          const noise = ramp * over * 0.6 * (hash01(gk * 5.3 + j * 2.7) - 0.5) * 2;
-          pts.push({ x: x0 + (plW * j) / segs, y: cl(level + noise) }); // ragged plateau
-        }
-        ring(pts, xf, level, base);                            // fall + undershoot
-        cur = xf + ringW;
-      }
-    });
-    pts.push({ x: cx + period, y: base });
+  const pts = [{ x: 0, y: lo }];
+  for (let k = 0; k < NH; k++) {
+    const level = (k % 2 === 0) ? hi : lo;
+    const px0 = k * half, px1 = (k + 1) * half;
+    edge(pts, px0, prev, level);                // ringing transition into this plateau
+    const p0 = px0 + eW;                         // ragged plateau (chaos grows with damage)
+    for (let j = 1; j <= 4; j++) {
+      const noise = ramp * over * 0.55 * (hash01(k * 9.1 + j * 3.3) - 0.5) * 2;
+      pts.push({ x: p0 + ((px1 - p0) * j) / 4, y: cl(level + noise) });
+    }
+    prev = level;
   }
-  pts.push({ x: W, y: base }); // flat tail to the right edge (count rarely divides W evenly)
+  pts.push({ x: W, y: prev });
   return pts;
 }
 
