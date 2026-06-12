@@ -7,44 +7,32 @@
 //   node scripts/bot/cli.js --generated --seed test-1 --threat C --wealth B
 
 import { runBot } from "./run.js";
-import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
-import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
-import { buildNetwork as buildCorporateExchange } from "../../data/networks/corporate-exchange.js";
-import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
-
-const NETWORKS = {
-  "corporate-foothold": buildCorporateFoothold,
-  "research-station": buildResearchStation,
-  "corporate-exchange": buildCorporateExchange,
-};
+import { NAMED_NETWORKS, DEFAULT_NETWORK, buildGenerated } from "../../data/networks/index.js";
+import { parseGradeArgs } from "../lib/grade-args.js";
 
 // Parse args
-let networkName = "corporate-foothold";
+let networkName = DEFAULT_NETWORK;
 let seed = undefined;
 let verbose = false;
 let generated = false;
-let threat = "C", wealth = "B", complexity = "C", depth = "C";
 
 const argv = process.argv.slice(2);
+const spec = parseGradeArgs(argv);
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === "--network" && argv[i + 1]) networkName = argv[++i];
   else if (argv[i] === "--seed" && argv[i + 1]) seed = argv[++i];
   else if (argv[i] === "--verbose" || argv[i] === "-v") verbose = true;
   else if (argv[i] === "--generated" || argv[i] === "-g") generated = true;
-  else if (argv[i] === "--threat" && argv[i + 1]) threat = argv[++i];
-  else if (argv[i] === "--wealth" && argv[i + 1]) wealth = argv[++i];
-  else if (argv[i] === "--complexity" && argv[i + 1]) complexity = argv[++i];
-  else if (argv[i] === "--depth" && argv[i + 1]) depth = argv[++i];
 }
 
 /** @returns {{ graphDef: any, meta: any }} */
 function getBuildNetwork() {
   if (generated) {
-    return buildGenerated({ seed: seed ?? "gen-1", spec: { threat, wealth, complexity, depth } });
+    return buildGenerated({ seed: seed ?? "gen-1", spec });
   }
-  const fn = NETWORKS[networkName];
+  const fn = NAMED_NETWORKS[networkName];
   if (!fn) {
-    console.error(`Unknown network: ${networkName}. Available: ${Object.keys(NETWORKS).join(", ")}, --generated`);
+    console.error(`Unknown network: ${networkName}. Available: ${Object.keys(NAMED_NETWORKS).join(", ")}, --generated`);
     process.exit(1);
   }
   return fn();

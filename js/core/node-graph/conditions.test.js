@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { evaluateCondition } from "./conditions.js";
+import { evaluateCondition, fillConditionNodeId } from "./conditions.js";
 
 const attrs = {
   "node-A": { accessLevel: "owned", grade: "B" },
@@ -107,5 +107,48 @@ describe("evaluateCondition: not", () => {
 describe("evaluateCondition: unknown type", () => {
   it("throws for unknown condition type", () => {
     assert.throws(() => evaluateCondition(/** @type {any} */ ({ type: "bogus" }), accessors));
+  });
+});
+
+describe("fillConditionNodeId", () => {
+  it("fills a missing nodeId on a node-attr condition", () => {
+    const filled = fillConditionNodeId({ type: "node-attr", attr: "accessLevel", eq: "owned" }, "self");
+    assert.equal(filled.nodeId, "self");
+  });
+
+  it("fills a missing nodeId on a quality-from-attr condition", () => {
+    const filled = fillConditionNodeId({ type: "quality-from-attr", attr: "tokenName", gte: 1 }, "self");
+    assert.equal(filled.nodeId, "self");
+  });
+
+  it("leaves an existing nodeId untouched", () => {
+    const filled = fillConditionNodeId({ type: "node-attr", nodeId: "other", attr: "x", eq: 1 }, "self");
+    assert.equal(filled.nodeId, "other");
+  });
+
+  it("recurses into all-of and any-of compositions", () => {
+    const filled = fillConditionNodeId({
+      type: "all-of",
+      conditions: [
+        { type: "node-attr", attr: "a", eq: 1 },
+        { type: "any-of", conditions: [{ type: "quality-from-attr", attr: "q", eq: 1 }] },
+      ],
+    }, "self");
+    assert.equal(filled.conditions[0].nodeId, "self");
+    assert.equal(filled.conditions[1].conditions[0].nodeId, "self");
+  });
+
+  it("recurses into not compositions", () => {
+    const filled = fillConditionNodeId({
+      type: "not",
+      condition: { type: "node-attr", attr: "a", eq: 1 },
+    }, "self");
+    assert.equal(filled.condition.nodeId, "self");
+  });
+
+  it("does not mutate the input condition", () => {
+    const input = { type: "node-attr", attr: "a", eq: 1 };
+    fillConditionNodeId(input, "self");
+    assert.equal(input.nodeId, undefined);
   });
 });

@@ -11,6 +11,7 @@ import { applyOperators } from "./operators.js";
 import { QualityStore } from "./qualities.js";
 import { TriggerStore } from "./triggers.js";
 import { getAvailableActions, executeAction } from "./actions.js";
+import { fillConditionNodeId } from "./conditions.js";
 import { applyEffect } from "./effects.js";
 import { nullCtx } from "./ctx.js";
 import { resolveTraits } from "./traits.js";
@@ -69,7 +70,7 @@ export class NodeGraph {
             ...t,
             id: `${n.id}/${t.id}`,
             _nodeId: n.id,
-            when: _fillNodeId(t.when, n.id),
+            when: fillConditionNodeId(t.when, n.id),
             then: t.then.map(eff => _fillEffectNodeId(eff, n.id)),
           });
         }
@@ -97,7 +98,12 @@ export class NodeGraph {
     const msg = /** @type {Message} */ (
       "path" in message ? message : createMessage({ type: message.type, origin: nodeId, payload: message.payload ?? {}, destinations: message.destinations })
     );
-    this._deliver(nodeId, msg);
+    // A message may originate at its own target (origin === nodeId — e.g. graph-bridge
+    // injecting exploit/alert events). createMessage seeds path:[origin], so the entry
+    // delivery's cycle guard would drop it. Strip the target from the entry path; _deliver
+    // re-appends it, keeping onward propagation cycle-safe.
+    const entry = msg.path.includes(nodeId) ? { ...msg, path: msg.path.filter((p) => p !== nodeId) } : msg;
+    this._deliver(nodeId, entry);
     this._evaluateTriggers();
   }
 
@@ -476,27 +482,6 @@ export class NodeGraph {
 }
 
 // ── Per-node trigger helpers ────────────────────────────────
-
-/**
- * Pre-fill nodeId in a condition tree. For node-attr conditions without a nodeId,
- * sets it to the owning node's ID. Recurses into all-of/any-of compositions.
- * @param {import('./types.js').Condition} cond
- * @param {string} nodeId
- * @returns {import('./types.js').Condition}
- */
-function _fillNodeId(cond, nodeId) {
-  if (cond.type === "node-attr" && !cond.nodeId) {
-    return { ...cond, nodeId };
-  }
-  if (cond.type === "all-of" || cond.type === "any-of") {
-    return { ...cond, conditions: cond.conditions.map(c => _fillNodeId(c, nodeId)) };
-  }
-  // quality-from-attr needs nodeId for attr lookup
-  if (cond.type === "quality-from-attr" && !cond.nodeId) {
-    return { ...cond, nodeId };
-  }
-  return cond;
-}
 
 /**
  * Pre-fill $nodeId in effect args. Replaces "$nodeId" string with the actual nodeId.

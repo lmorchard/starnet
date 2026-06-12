@@ -453,3 +453,33 @@ describe("player action execute — full pipeline", () => {
     assert.deepEqual(ctx.calls.giveReward[0], [500]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 11. sendMessage delivers to the target even when origin === target (B1)
+// ---------------------------------------------------------------------------
+describe("sendMessage: origin == target node", () => {
+  it("an alert injected at its own node reaches that node's operators and relays onward", () => {
+    // graph-bridge.js injects exploit/alert messages with origin === the node it
+    // delivers to (createMessage seeds path:[origin]). The cycle guard must not drop
+    // this initial delivery.
+    const graph = new NodeGraph({
+      nodes: [
+        { id: "ids", type: "ids", attributes: { alerted: false }, operators: [
+          { name: "relay", filter: "alert" },
+          { name: "flag", on: "alert", attr: "alerted", value: true },
+        ] },
+        { id: "mon", type: "security-monitor", attributes: { alerted: false }, operators: [
+          { name: "flag", on: "alert", attr: "alerted", value: true },
+        ] },
+      ],
+      edges: [["ids", "mon"]],
+    });
+
+    graph.sendMessage("ids", createMessage({ type: "alert", origin: "ids", payload: {} }));
+
+    assert.equal(graph.getNodeState("ids").alerted, true,
+      "IDS flag operator must run on an alert injected at the IDS itself");
+    assert.equal(graph.getNodeState("mon").alerted, true,
+      "relay must forward the alert to the monitor");
+  });
+});

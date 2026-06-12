@@ -30,7 +30,7 @@ import { emitEvent, E } from "../events.js";
 function exploitDuration(quality) {
   return Math.round((2 + quality * 5) * 1000); // ms
 }
-import { endRun, ALERT_ORDER, revealNeighbors } from "../state.js";
+import { endRun, nextAlertLevel, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
@@ -200,9 +200,9 @@ export function buildGameCtx(opts = {}) {
       }
 
       const prevAlert = node.alertState ?? "green";
-      const idx = ALERT_ORDER.indexOf(prevAlert);
-      if (idx >= 0 && idx < ALERT_ORDER.length - 1) {
-        setNodeAlertState(nodeId, ALERT_ORDER[idx + 1]);
+      const raised = nextAlertLevel(prevAlert);
+      if (raised !== prevAlert) {
+        setNodeAlertState(nodeId, raised);
       }
 
       emitEvent(E.ACTION_RESOLVED, { action: A.PROBE, nodeId, label: node.label });
@@ -386,12 +386,12 @@ export function initNavigationCancelHandler() {
     }
     if (attrs.reading) {
       graph.setNodeAttr(nodeId, "reading", false);
-      graph.setNodeAttr(nodeId, "_ta_read_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_dump_progress", 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.DUMP, phase: "cancel", progress: 0 });
     }
     if (attrs.looting) {
       graph.setNodeAttr(nodeId, "looting", false);
-      graph.setNodeAttr(nodeId, "_ta_loot_progress", 0);
+      graph.setNodeAttr(nodeId, "_ta_fetch_progress", 0);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.FETCH, phase: "cancel", progress: 0 });
     }
     if (attrs.mining) {

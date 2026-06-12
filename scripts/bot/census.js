@@ -7,36 +7,22 @@
 //   node scripts/bot/census.js --seeds 20 --network corporate-foothold
 
 import { runBot } from "./run.js";
-import { buildNetwork as buildCorporateFoothold } from "../../data/networks/corporate-foothold.js";
-import { buildNetwork as buildResearchStation } from "../../data/networks/research-station.js";
-import { buildNetwork as buildCorporateExchange } from "../../data/networks/corporate-exchange.js";
-import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
-
-const NETWORKS = {
-  "corporate-foothold": buildCorporateFoothold,
-  "research-station": buildResearchStation,
-  "corporate-exchange": buildCorporateExchange,
-};
+import { NAMED_NETWORKS, buildGenerated } from "../../data/networks/index.js";
+import { parseGradeArgs } from "../lib/grade-args.js";
 
 // ── Arg parsing ─────────────────────────────────────────────
 
 let seedCount = 50;
-let threat = "C", wealth = "B", complexity = "C", depth = "C";
 let networkName = null;
 let full = false;
 
 const argv = process.argv.slice(2);
+const spec = parseGradeArgs(argv);
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === "--seeds" && argv[i + 1]) seedCount = parseInt(argv[++i], 10) || 50;
-  else if (argv[i] === "--threat" && argv[i + 1]) threat = argv[++i];
-  else if (argv[i] === "--wealth" && argv[i + 1]) wealth = argv[++i];
-  else if (argv[i] === "--complexity" && argv[i + 1]) complexity = argv[++i];
-  else if (argv[i] === "--depth" && argv[i + 1]) depth = argv[++i];
   else if (argv[i] === "--network" && argv[i + 1]) networkName = argv[++i];
   else if (argv[i] === "--full") full = true;
 }
-
-const spec = { threat, wealth, complexity, depth };
 
 // ── Run census ──────────────────────────────────────────────
 
@@ -49,9 +35,9 @@ for (let i = 0; i < seedCount; i++) {
     /** @returns {{ graphDef: any, meta: any }} */
     const buildFn = () => {
       if (networkName) {
-        const fn = NETWORKS[networkName];
+        const fn = NAMED_NETWORKS[networkName];
         if (!fn) {
-          throw new Error(`Unknown network: ${networkName}. Available: ${Object.keys(NETWORKS).join(", ")}`);
+          throw new Error(`Unknown network: ${networkName}. Available: ${Object.keys(NAMED_NETWORKS).join(", ")}`);
         }
         return fn();
       }

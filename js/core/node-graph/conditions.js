@@ -47,3 +47,25 @@ export function evaluateCondition(condition, { getNodeAttr, getQuality }) {
       throw new Error(`Unknown condition type: "${/** @type {any} */ (condition).type}"`);
   }
 }
+
+/**
+ * Pre-fill a missing `nodeId` on a condition tree so self-targeting conditions
+ * resolve against the owning node. Recurses through all-of/any-of/not and fills
+ * the two node-bearing condition types (node-attr, quality-from-attr).
+ *
+ * @param {Condition} condition
+ * @param {string} nodeId
+ * @returns {Condition}
+ */
+export function fillConditionNodeId(condition, nodeId) {
+  if ((condition.type === "node-attr" || condition.type === "quality-from-attr") && !condition.nodeId) {
+    return { ...condition, nodeId };
+  }
+  if (condition.type === "all-of" || condition.type === "any-of") {
+    return { ...condition, conditions: condition.conditions.map((c) => fillConditionNodeId(c, nodeId)) };
+  }
+  if (condition.type === "not") {
+    return { ...condition, condition: fillConditionNodeId(condition.condition, nodeId) };
+  }
+  return condition;
+}

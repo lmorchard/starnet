@@ -284,7 +284,11 @@ registerTrait("security", {
       ],
     },
     {
+      // Repeating, not one-shot: owning the monitor must cancel a trace even if the
+      // node was owned BEFORE the trace started (a one-shot would fire once into a
+      // no-op and never re-fire). cancelTrace is idempotent, so re-firing is safe.
       id: "owned-cancel-trace",
+      repeating: true,
       when: { type: "node-attr", attr: "accessLevel", eq: "owned" },
       then: [
         { effect: "ctx-call", method: "cancelTrace", args: [] },
@@ -350,7 +354,8 @@ registerTrait("encrypted", {
     ],
     effects: [
       { effect: "set-attr", attr: "reading", value: true },
-      { effect: "set-attr", attr: "_ta_read_progress", value: 0 },
+      // Matches the lootable dump operator's progress attr (_ta_dump_progress).
+      { effect: "set-attr", attr: "_ta_dump_progress", value: 0 },
     ],
   }],
 });

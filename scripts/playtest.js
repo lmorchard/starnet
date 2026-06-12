@@ -18,10 +18,8 @@ import {
   getState, serializeState, deserializeState,
   tick, on, emitEvent, E,
 } from "./lib/headless-engine.js";
-import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
-import { buildNetwork as buildResearchStation } from "../data/networks/research-station.js";
-import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
-import { buildNetwork as buildGenerated } from "../data/networks/generated.js";
+import { NAMED_NETWORKS, DEFAULT_NETWORK, buildGenerated } from "../data/networks/index.js";
+import { parseGradeArgs } from "./lib/grade-args.js";
 import { A } from "../js/core/action-ids.js";
 import { addLogEntry } from "../js/core/log.js";
 import { runCommand } from "../js/ui/console.js";
@@ -37,7 +35,8 @@ let networkArg = null;
 let pieceArg = null;
 let graphFileArg = null;
 let generatedArg = false;
-let threatArg = "C", wealthArg = "B", complexityArg = "C", depthArg = "C";
+const { threat: threatArg, wealth: wealthArg, complexity: complexityArg, depth: depthArg } =
+  parseGradeArgs(process.argv.slice(2));
 let recipeArg = null, lanGradeArg = null;
 let jsonMode = false;
 
@@ -59,13 +58,13 @@ let jsonMode = false;
     } else if (argv[i] === "--generated" || argv[i] === "-g") {
       generatedArg = true;
     } else if (argv[i] === "--threat" && argv[i + 1]) {
-      threatArg = argv[++i];
+      i++; // grade flags handled by parseGradeArgs; just consume the value
     } else if (argv[i] === "--wealth" && argv[i + 1]) {
-      wealthArg = argv[++i];
+      i++;
     } else if (argv[i] === "--complexity" && argv[i + 1]) {
-      complexityArg = argv[++i];
+      i++;
     } else if (argv[i] === "--depth" && argv[i + 1]) {
-      depthArg = argv[++i];
+      i++;
     } else if (argv[i] === "--recipe" && argv[i + 1]) {
       recipeArg = argv[++i];
     } else if (argv[i] === "--lan-grade" && argv[i + 1]) {
@@ -77,12 +76,6 @@ let jsonMode = false;
 }
 
 // ── Network selection ───────────────────────────────────────
-const GRAPH_NETWORKS = {
-  "corporate-foothold": buildCorporateFoothold,
-  "research-station": buildResearchStation,
-  "corporate-exchange": buildCorporateExchange,
-};
-
 let buildNetworkFn;
 if (generatedArg) {
   // Procedural generation mode
@@ -106,10 +99,10 @@ if (generatedArg) {
   buildNetworkFn = () => buildMiniNetwork(graphJson, { name: `File: ${graphFileArg}` });
 } else {
   // Standard network mode
-  const selectedNetwork = networkArg ?? "corporate-foothold";
-  buildNetworkFn = GRAPH_NETWORKS[selectedNetwork];
+  const selectedNetwork = networkArg ?? DEFAULT_NETWORK;
+  buildNetworkFn = NAMED_NETWORKS[selectedNetwork];
   if (!buildNetworkFn) {
-    console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(GRAPH_NETWORKS).join(", ")}, --generated`);
+    console.error(`Unknown network: ${selectedNetwork}. Available: ${Object.keys(NAMED_NETWORKS).join(", ")}, --generated`);
     process.exit(1);
   }
 }
@@ -240,7 +233,7 @@ function runCmd(raw) {
     resetGame(() => buildNetworkFn(), seedArg ?? undefined);
     const s = getState();
     const nodeCount = Object.keys(s.nodes).length;
-    const networkName = generatedArg ? `generated (${threatArg}/${wealthArg}/${complexityArg}/${depthArg})` : pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? "corporate-foothold");
+    const networkName = generatedArg ? `generated (${threatArg}/${wealthArg}/${complexityArg}/${depthArg})` : pieceArg ? `piece:${pieceArg}` : graphFileArg ? `file:${graphFileArg}` : (networkArg ?? DEFAULT_NETWORK);
     out(`[SYS] Initialized. Seed: "${s.seed}". Network: ${nodeCount} nodes (${networkName}).`);
     return;
   }

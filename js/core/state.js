@@ -8,7 +8,7 @@ export {
   // Graph traversal utilities
   revealNeighbors, accessNeighbors,
   // Alert constants
-  ALERT_ORDER,
+  ALERT_ORDER, nextAlertLevel,
   // End run
   endRun,
   // Visibility

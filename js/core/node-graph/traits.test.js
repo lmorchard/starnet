@@ -2,6 +2,8 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { registerTrait, getTrait, resolveTraits, clearTraits } from "./traits.js";
+import { NodeGraph } from "./runtime.js";
+import { mockCtx } from "./ctx.js";
 
 // traits.js self-registers built-in traits at import time.
 // Save them before tests clear the registry.
@@ -353,5 +355,34 @@ describe("Built-in traits", () => {
     assert.equal(t.triggers[0].id, "volatile-arm");
     assert.equal(t.operators.length, 1);
     assert.equal(t.operators[0].action, "volatile");
+  });
+});
+
+describe("security trait: owned-cancel-trace behavior", () => {
+  beforeEach(() => { restoreBuiltIns(); });
+
+  it("re-fires cancelTrace while the monitor stays owned (not one-shot)", () => {
+    // Reproduces the bug where owning the security monitor BEFORE a trace starts
+    // spends the one-shot trigger, so a later trace is never auto-cancelled.
+    const ctx = mockCtx();
+    const graph = new NodeGraph({
+      nodes: [{
+        id: "mon", type: "security-monitor", traits: ["security"],
+        attributes: { accessLevel: "owned" },
+      }],
+      edges: [],
+    }, ctx);
+
+    // First evaluation: trigger fires once (no trace active yet — cancelTrace is idempotent).
+    graph.tick(0);
+    const afterFirst = ctx.calls.cancelTrace?.length ?? 0;
+
+    // A trace starts later while the monitor is still owned. The trigger must fire
+    // AGAIN to cancel it. A one-shot trigger would already be spent and stay silent.
+    graph.tick(0);
+    const afterSecond = ctx.calls.cancelTrace?.length ?? 0;
+
+    assert.ok(afterSecond > afterFirst,
+      `owned-cancel-trace must re-fire while owned (got ${afterFirst} then ${afterSecond})`);
   });
 });

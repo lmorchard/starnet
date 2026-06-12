@@ -112,7 +112,9 @@ const DUMP_ACTION = {
   ],
   effects: [
     { effect: "set-attr", attr: "reading", value: true },
-    { effect: "set-attr", attr: "_ta_read_progress", value: 0 },
+    // Must match the dump timed-action operator's progress attr (_ta_dump_progress,
+    // derived from action:"dump"), not a phantom _ta_read_progress.
+    { effect: "set-attr", attr: "_ta_dump_progress", value: 0 },
   ],
 };
 
@@ -132,7 +134,9 @@ const FETCH_ACTION = {
   ],
   effects: [
     { effect: "set-attr", attr: "looting", value: true },
-    { effect: "set-attr", attr: "_ta_loot_progress", value: 0 },
+    // Must match the fetch timed-action operator's progress attr (_ta_fetch_progress,
+    // derived from action:"fetch"), not a phantom _ta_loot_progress.
+    { effect: "set-attr", attr: "_ta_fetch_progress", value: 0 },
   ],
 };
 
