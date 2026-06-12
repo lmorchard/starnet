@@ -102,7 +102,7 @@ function buildEl() {
   const panel = document.createElement("div");
   panel.id = "fps-meter";
   Object.assign(panel.style, {
-    position: "fixed", top: "8px", right: "8px", zIndex: "9999",
+    position: "fixed", top: "8px", left: "8px", zIndex: "9999",
     padding: "6px 8px", font: "11px / 1.3 monospace", color: "#39ff14",
     background: "rgba(10,10,15,0.72)", border: "1px solid rgba(57,255,20,0.4)",
     pointerEvents: "none", letterSpacing: "0.5px",
