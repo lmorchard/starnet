@@ -10,10 +10,8 @@ import {
   flashNode,
   updateNodeStyle,
   onViewport,
-  setReticleOverlay,
 } from "./graph.js";
-import { mountOverlays } from "./overlays/index.js";
-import { mountReticle } from "./overlays/selection-reticle.js";
+import { initializeGraphOverlays } from "./overlays/index.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
 import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
@@ -141,15 +139,11 @@ cy.fit(undefined, 40);
 cy.userZoomingEnabled(true);
 cy.userPanningEnabled(true);
 
-// Mount overlay animations from the registry and re-anchor them on pan/zoom.
+// Mount the registry overlays + selection reticle and wire them to re-anchor on
+// pan/zoom — shared with the game via initializeGraphOverlays (#167). The layer
+// element is kept for the preview-only ICE-presence demo node mounted below.
 const overlayLayer = document.getElementById("overlay-layer");
-const overlays = mountOverlays(overlayLayer);
-onViewport(() => overlays.byKey.forEach((o) => o.reposition()));
-
-// Selection reticle (selection-driven; toggled below via syncSelection).
-const reticle = mountReticle(overlayLayer);
-setReticleOverlay(reticle);
-onViewport(() => reticle.reposition());
+const { overlays } = initializeGraphOverlays(overlayLayer);
 
 // ── Animation helpers ────────────────────────────────────────
 
