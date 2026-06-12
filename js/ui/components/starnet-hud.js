@@ -3,6 +3,7 @@
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
+import { alertLampDataUri, connStatusDataUri } from "../indicator-glyphs.js";
 
 class StarnetHud extends StarnetElement {
   static properties = {
@@ -46,21 +47,17 @@ class StarnetHud extends StarnetElement {
       this.alert === "green"  ? "var(--green)" :
       this.alert === "yellow" ? "var(--yellow)" :
                                  "var(--red)";
-    const dotClass = "alert-dot" + (this.alert !== "green" ? ` ${this.alert}` : "");
-    const connDotClass = "hud-conn-dot" +
-      (this.connectionStatus === "detecting" ? " detecting" :
-       this.connectionStatus === "active"    ? " active" : "");
 
     return html`
       <span class="hud-title">★ STARNET</span>
 
       <div id="hud-connection">
-        <span class="${connDotClass}" id="conn-dot"></span>
+        <img class="hud-lamp" id="conn-dot" alt="link ${this.connectionStatus}" src=${connStatusDataUri(this.connectionStatus)}>
         <span class="hud-value ${this.connectionStatus}" id="conn-status">${this.connectionLabel}</span>
       </div>
 
       <div class="hud-alert">
-        <div class="${dotClass}" id="alert-dot"></div>
+        <img class="hud-lamp" id="alert-dot" alt="alert ${this.alert}" src=${alertLampDataUri(this.alert)}>
         <span class="hud-label">ALERT:</span>
         <span class="hud-value" id="alert-level" style="color:${alertColor}">${this.alert.toUpperCase()}</span>
       </div>

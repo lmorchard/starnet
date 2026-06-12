@@ -61,7 +61,7 @@ every ICE movement that crosses into your territory appears here.
 **Console** — Type commands directly. Tab-complete node names. Full command reference
 at the end of this manual.
 
-**HUD** — Top bar shows global alert level, your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**, drawn as vector-CRT vital traces that sweep left-to-right with a fading phosphor trail. HEALTH is a green ECG/heartbeat (PQRST) complex — as health falls the beat speeds up and grows erratic; it flatlines at zero. DECK INTEGRITY is a violet double square-pulse — as deck integrity falls the pulses develop deepening ringing, dropouts and timing/amplitude glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover either trace to see the exact value as a percentage.
+**HUD** — Top bar shows global alert level (as a vector lamp whose shape encodes the level: hexagon = safe, point-up triangle = warning, inverted triangle = danger/trace), your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**, drawn as vector-CRT vital traces that sweep left-to-right with a fading phosphor trail. HEALTH is a green ECG/heartbeat (PQRST) complex — as health falls the beat speeds up and grows erratic; it flatlines at zero. DECK INTEGRITY is a violet double square-pulse — as deck integrity falls the pulses develop deepening ringing, dropouts and timing/amplitude glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover either trace to see the exact value as a percentage.
 
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
@@ -247,11 +247,11 @@ improves your odds significantly.
 
 **Exploit resolution:**
 
-- Base success chance scales with **card quality** (the pip meter) vs **node grade**
+- Base success chance scales with **card quality** (the tick-meter) vs **node grade**
 - A **matching vulnerability** boosts your odds considerably
 - Success: node access level rises (locked → compromised, compromised → owned).
   A high-quality card can skip the middle step, jumping a locked node straight to
-  owned — more likely the better the card's quality pip
+  owned — more likely the better the card's quality meter
 - Success also **counts as a probe** — the node's vulnerabilities are revealed, so a
   blind gamble that lands shows you what you're working with (no need to probe after)
 - Failure: local alert rises; IDS nodes forward the alert event upstream
@@ -304,11 +304,11 @@ Your hand contains five exploit cards, randomly generated at the start of each r
 | Uncommon  | 2 vuln types | 5             | Medium–High   |
 | Rare      | 3 vuln types | 8             | High–Very High|
 
-**Quality** is shown as a pip meter (█░░░░ to █████). Higher quality means better
-base success chances, especially on unprobed or high-grade nodes. The pip meter is
-also **color-coded** along a ramp — dim red (low) → amber → bright green/white
-(high) — so a card's strength reads at a glance. The pip count carries the same
-information without relying on color.
+**Quality** is shown as a stroked tick-meter (a vertical tick ladder). Higher quality
+means better base success chances, especially on unprobed or high-grade nodes. The
+meter is also **color-coded** along a ramp — red (low) → amber → green (high) — so a
+card's strength reads at a glance. The tick count carries the same information without
+relying on color.
 
 **Vulnerability glyphs** — Each vulnerability type has its own **glyph**, shown on
 both the exploit card (next to each vuln it targets) and on the node panel (next to
@@ -466,11 +466,12 @@ IDS node  →  (alert event)  →  Security Monitor  →  Global Alert
 An IDS node that detects an exploit failure on a connected node fires an alert event
 upstream to its security monitor. The security monitor raises the global alert.
 
-**Global alert levels:**
+**Global alert levels** (lamp shape: hexagon → point-up triangle → inverted triangle → inverted triangle):
 
 - **GREEN** — Quiet. No active detection.
 - **YELLOW** — Elevated. Security systems are watching.
 - **RED** — Hot. Full intrusion detection active.
+- **TRACE** — Countdown running. Jack out or cancel the trace before it hits zero.
 
 ### The TRACE Countdown
 

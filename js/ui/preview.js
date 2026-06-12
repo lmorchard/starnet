@@ -15,7 +15,7 @@ import {
 import { mountOverlays } from "./overlays/index.js";
 import { mountReticle } from "./overlays/selection-reticle.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
-import { mountCardGallery, mountVulnSwatches } from "./preview-cards.js";
+import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
 import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation.js";
@@ -330,6 +330,10 @@ mountCardGallery(document.getElementById("card-gallery"));
 // ── Vuln glyph swatches ──────────────────────────────────────
 
 mountVulnSwatches(document.getElementById("vuln-swatches"));
+
+// ── Indicator glyphs swatches ────────────────────────────────
+
+mountIndicatorSwatches(document.getElementById("indicator-swatches"));
 
 // ── Graph degradation overlay — driven by dummy health/deck sliders ──────────
 

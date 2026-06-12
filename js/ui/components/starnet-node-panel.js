@@ -5,6 +5,7 @@ import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
 import { isObscured } from "../../core/state.js";
 import { vulnGlyphDataUri } from "../vuln-glyphs.js";
+import { alertLampDataUri } from "../indicator-glyphs.js";
 
 class StarnetNodePanel extends StarnetElement {
   static properties = {
@@ -74,7 +75,7 @@ class StarnetNodePanel extends StarnetElement {
         </div>
         <div class="nd-row">
           <span class="nd-key">ALERT</span>
-          <span class="nd-val" style="color:${alertColor}">● ${alertState.toUpperCase()}</span>
+          <span class="nd-val" style="color:${alertColor}"><img class="nd-lamp" alt="" src=${alertLampDataUri(alertState)}> ${alertState.toUpperCase()}</span>
         </div>
         <div class="nd-divider">──────────────────</div>
         ${this._renderVulns(node, visibleVulns)}

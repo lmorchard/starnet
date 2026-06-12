@@ -212,6 +212,12 @@ html, body {
 .mission-status-complete { font-size: 0.7rem; color: var(--green); text-shadow: var(--glow-sm) var(--green); }
 .mission-status-failed   { font-size: 0.7rem; color: var(--red); }
 
+.mission-mark {
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+}
+
 #sidebar-node {
   flex: 1 1 50%;
   overflow-y: auto;
@@ -257,33 +263,10 @@ html, body {
   gap: 0.4rem;
 }
 
-#hud .alert-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: var(--glow-md) var(--green);
-}
-
-#hud .alert-dot.yellow {
-  background: var(--yellow);
-  box-shadow: var(--glow-md) var(--yellow);
-  animation: pulse 1s ease-in-out infinite;
-  will-change: opacity;
-}
-
-#hud .alert-dot.red {
-  background: var(--red);
-  box-shadow: 0 0 10px var(--red);
-  animation: pulse 0.5s ease-in-out infinite;
-  will-change: opacity;
-}
-
-#hud .alert-dot.trace {
-  background: var(--red);
-  box-shadow: var(--glow-lg) var(--red);
-  animation: pulse 0.3s ease-in-out infinite;
-  will-change: opacity;
+#hud .hud-lamp {
+  width: 13px;
+  height: 13px;
+  vertical-align: middle;
 }
 
 /* LAN connection status indicator */
@@ -293,24 +276,6 @@ html, body {
   gap: 0.4rem;
 }
 
-#hud .hud-conn-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-dim);
-}
-
-#hud .hud-conn-dot.active {
-  background: var(--magenta);
-  box-shadow: var(--glow-md) var(--magenta);
-}
-
-#hud .hud-conn-dot.detecting {
-  background: var(--yellow);
-  box-shadow: var(--glow-md) var(--yellow);
-  animation: pulse 0.6s ease-in-out infinite;
-  will-change: opacity;
-}
 
 #hud #conn-status {
   color: var(--text-dim);
@@ -693,6 +658,12 @@ html, body {
   flex-shrink: 0;
 }
 
+.nd-lamp {
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+}
+
 .nd-vuln.patched .vuln-name { text-decoration: line-through; color: var(--text-dim); }
 
 .vuln-name  { color: var(--green); }
@@ -809,18 +780,9 @@ html, body {
   font-size: 0.7rem;
 }
 
-.ec-pips { letter-spacing: 0.05em; }   /* color comes from the .qN ramp below */
+.ec-meter { width: 42px; height: 14px; vertical-align: middle; }
 .ec-uses { color: var(--green); }
 .ec-uses.worn { color: #e08a1e; }       /* amber tint signals worn; cracks/desat carry the rest */
-
-/* Quality color ramp — dim-red (low) → amber → bright-green/white (high).
-   Color is the dramatic signal; the pip count stays the color-blind-safe
-   redundant channel. */
-.ec-pips.q0 { color: #c0392b; }
-.ec-pips.q1 { color: #e08a1e; }
-.ec-pips.q2 { color: #c9d11e; }
-.ec-pips.q3 { color: var(--green); }
-.ec-pips.q4 { color: #b8ffce; text-shadow: var(--glow-sm) var(--green-dim); }
 
 .ec-vulns {
   display: flex;
@@ -1599,13 +1561,7 @@ html, body {
   letter-spacing: 0.14em;
   color: #6b7a90;
 }
-.vital-pips {
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-}
-.vital-pips.ok   { color: var(--green); }
-.vital-pips.warn { color: #c9d11e; }
-.vital-pips.crit { color: #ff5a4d; }
+.vital-meter { width: 42px; height: 14px; vertical-align: middle; }
 
 /* Preview harness — waveform demo layouts */
 #waveform-demo.layout-inline {

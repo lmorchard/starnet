@@ -13,6 +13,7 @@
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
 import { ecgPoints, pulsePoints, sampleY } from "../waveform.js";
+import { tickMeterDataUri } from "../indicator-glyphs.js";
 
 const STEP = 2;  // px between trail samples
 const NB = 12;   // glow age-bands per frame
@@ -68,16 +69,12 @@ class StarnetWaveform extends StarnetElement {
     `;
   }
 
-  /** Label + depleting 5-pip meter (ramps green→yellow→red), mirroring the card pips. */
+  /** Label + depleting tick-ladder meter (ramps green→yellow→red), mirroring the card pips. */
   _meterHeader(frac) {
-    const PIPS = 5;
-    const filled = frac <= 0 ? 0 : Math.max(1, Math.round(frac * PIPS));
-    const pips = "█".repeat(filled) + "░".repeat(PIPS - filled);
-    const tier = frac > 0.6 ? "ok" : frac > 0.3 ? "warn" : "crit";
     return html`
       <div class="vital-head">
         <span class="vital-label">${this.label}</span>
-        <span class="vital-pips ${tier}">${pips}</span>
+        <img class="vital-meter" alt="" src=${tickMeterDataUri(frac)}>
       </div>
     `;
   }
