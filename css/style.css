@@ -219,13 +219,18 @@ html, body {
 }
 
 #sidebar-node {
-  flex: 1 1 50%;
+  flex: 1 1 auto;
   overflow-y: auto;
   min-height: 0;
 }
 
+/* The hand sizes to its cards but is capped so a full deck can't crowd out the
+   node panel (the vital-sign stack already claims the top of the sidebar). Past
+   the cap it scrolls internally rather than pushing the middle status area
+   into a scroll. */
 #hand-strip {
-  flex: 0 0 50%;
+  flex: 0 0 auto;
+  max-height: 33%;
   overflow-y: auto;
   border-top: 1px solid var(--border);
   background: var(--bg-panel);
