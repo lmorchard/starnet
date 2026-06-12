@@ -78,6 +78,59 @@ describe("ecgPoints", () => {
   });
 });
 
+describe("ecgPoints — health-degradation cascade", () => {
+  // Farthest the trace strays below the baseline (downward, larger y).
+  const maxBelow = (pts) => Math.max(0, ...pts.map((p) => p.y - MID));
+  // A horizontal segment (two consecutive equal-y vertices) sitting clearly above
+  // baseline — the signature of an elevated ST segment.
+  const hasFlatAboveBaseline = (pts) =>
+    pts.some(
+      (p, i) =>
+        i > 0 &&
+        p.x > pts[i - 1].x &&
+        Math.abs(p.y - pts[i - 1].y) < 0.01 &&
+        MID - p.y > 0.5,
+    );
+
+  test("ventricular fibrillation below 7%: no organized R spike, but not flatline", () => {
+    const vf = ecgPoints({ frac: 0.05, width: W, height: H });
+    assert.ok(vf.length > 2, "VF should not collapse to the 2-point flatline");
+    const dev = maxDev(vf);
+    assert.ok(dev > 0, "VF trace should oscillate, not sit flat");
+    assert.ok(dev < H * 0.3, `VF should have no R-height spike, maxDev=${dev}`);
+  });
+
+  test("organized R spike returns just above the 7% fibrillation threshold", () => {
+    assert.ok(maxDev(ecgPoints({ frac: 0.05, width: W, height: H })) < H * 0.3);
+    assert.ok(maxDev(ecgPoints({ frac: 0.08, width: W, height: H })) > H * 0.3);
+  });
+
+  test("ST elevation: damaged trace lifts a flat segment above baseline; healthy does not", () => {
+    assert.equal(hasFlatAboveBaseline(ecgPoints({ frac: 1, width: W, height: H })), false);
+    for (const frac of [0.66, 0.4, 0.2]) {
+      assert.ok(
+        hasFlatAboveBaseline(ecgPoints({ frac, width: W, height: H })),
+        `expected elevated ST segment at frac=${frac}`,
+      );
+    }
+  });
+
+  test("ectopy/T-inversion deepens below-baseline excursion as health falls", () => {
+    const healthy = maxBelow(ecgPoints({ frac: 1, width: W, height: H }));
+    const damaged = maxBelow(ecgPoints({ frac: 0.2, width: W, height: H }));
+    assert.ok(damaged > healthy, `damaged ${damaged} should dip below baseline further than healthy ${healthy}`);
+  });
+
+  test("deterministic across the cascade", () => {
+    for (const frac of [0.05, 0.1, 0.3, 0.6]) {
+      assert.deepEqual(
+        ecgPoints({ frac, width: W, height: H }),
+        ecgPoints({ frac, width: W, height: H }),
+      );
+    }
+  });
+});
+
 describe("pulsePoints", () => {
   test("frac 0 → flat 2-point baseline at mid", () => {
     const pts = pulsePoints({ frac: 0, width: W, height: H });

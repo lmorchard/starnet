@@ -54,6 +54,14 @@ export function hash01(n) {
  * Beat count rises with damage (4 healthy → 7 near-dead) and beat spacing/amplitude
  * gain jitter as health falls.
  *
+ * As health drops, the trace decays through a clinically-ordered cascade of ECG
+ * abnormalities (severity = 1 - frac), layered onto the PQRST(+U): ST-segment
+ * elevation, T-wave flattening → inversion, QRS widening, then per-beat premature
+ * ventricular contractions (onset ~35% damage) and dropped beats (onset ~55%). Below
+ * 7% health the organized complex dissolves into ventricular fibrillation — a chaotic
+ * oscillation — before the frac<=0 flatline (asystole). All deterministic: per-beat
+ * rolls use hash01(seed); the fibrillation wave is a synthesized sum-of-sines.
+ *
  * @param {{ frac: number, width: number, height: number }} opts
  *   frac — health 0..1 (0 = flat line)
  * @returns {Array<Point>} vertices in ascending x within [0,width]×[0,height]
@@ -62,6 +70,22 @@ export function ecgPoints({ frac, width, height }) {
   const f = clamp01(frac);
   const W = width, H = height, mid = H / 2;
   if (f <= 0) return [{ x: 0, y: mid }, { x: W, y: mid }];
+
+  // Ventricular fibrillation (<7% health): the discrete complex collapses into a
+  // disorganized chaotic oscillation whose amplitude scales as it nears the f<=0
+  // flatline. A deterministic sum-of-sines — a synthesized waveform, not RNG.
+  if (f < 0.07) {
+    const t0 = H * 0.04, b0 = H * 0.96, sevVF = (0.07 - f) / 0.07, amp = H * 0.3 * sevVF;
+    const n = Math.max(8, Math.round(W / 5));
+    /** @type {Array<Point>} */
+    const vf = [{ x: 0, y: mid }];
+    for (let i = 1; i < n; i++) {
+      const y = mid + amp * 0.5 * (Math.sin(i * 1.7) + Math.sin(i * 0.6 + 1.3) + Math.abs(Math.sin(i * 2.9)) - 0.5);
+      vf.push({ x: (W * i) / n, y: Math.max(t0, Math.min(b0, y)) });
+    }
+    vf.push({ x: W, y: mid });
+    return vf;
+  }
 
   // Period is height-relative, so each beat keeps the same aspect at any strip width;
   // a wider strip shows MORE beats rather than stretching a fixed few. Damage shortens
@@ -75,6 +99,13 @@ export function ecgPoints({ frac, width, height }) {
   const P = H * 0.13, Q = H * 0.08, S = H * 0.2, T = H * 0.22, U = H * 0.07;
   const erratic = 1 - f;
 
+  // Degradation cascade, driven by severity (erratic). Layered onto the PQRST(+U).
+  const stDrift = H * 0.16 * Math.pow(erratic, 1.3);          // ST-segment elevation (injury)
+  const tAmp = lerp(T, -T * 0.85, clamp01((erratic - 0.15) / 0.85)); // T: upright → inverted
+  const pvcP = clamp01((erratic - 0.35) / 0.65) * 0.3;       // per-beat PVC chance
+  const dropP = clamp01((erratic - 0.55) / 0.45) * 0.3;      // per-beat dropped-beat chance
+  const qOff = 0.025 * erratic, sOff = 0.03 * erratic;       // QRS widening (Q earlier, S later)
+
   /** @type {Array<Point>} */
   const pts = [{ x: 0, y: mid }];
   for (let k = 0; k < beats; k++) {
@@ -82,26 +113,47 @@ export function ecgPoints({ frac, width, height }) {
     const jit = lerp(0, period * 0.12, erratic) * (hash01(k * 7.3 + 1.1) - 0.5) * 2;
     const bx = k * period + period * 0.1 + jit;
     const X = (fr) => bx + cw * fr;
+    const pvc = hash01(k * 4.1 + 0.7) < pvcP;
+    const dropped = !pvc && hash01(k * 5.7 + 2.2) < dropP;
     pts.push({ x: X(0.00), y: mid });
-    pts.push({ x: X(0.06), y: mid });
-    pts.push({ x: X(0.10), y: mid - P * 0.7 });     // P wave
-    pts.push({ x: X(0.13), y: mid - P });
-    pts.push({ x: X(0.16), y: mid - P * 0.7 });
-    pts.push({ x: X(0.20), y: mid });
-    pts.push({ x: X(0.28), y: mid });               // PR segment
-    pts.push({ x: X(0.31), y: cl(mid + Q) });       // Q
-    pts.push({ x: X(0.34), y: cl(mid - spike) });   // R
-    pts.push({ x: X(0.37), y: cl(mid + S) });       // S
-    pts.push({ x: X(0.41), y: mid });               // J point
-    pts.push({ x: X(0.52), y: mid });               // ST segment
-    pts.push({ x: X(0.58), y: mid - T * 0.5 });     // T wave
-    pts.push({ x: X(0.66), y: mid - T });
-    pts.push({ x: X(0.74), y: mid - T * 0.5 });
-    pts.push({ x: X(0.80), y: mid });
-    pts.push({ x: X(0.86), y: mid - U * 0.7 });     // U wave
-    pts.push({ x: X(0.89), y: mid - U });
-    pts.push({ x: X(0.92), y: mid - U * 0.7 });
-    pts.push({ x: X(0.96), y: mid });
+    if (dropped) {
+      // Atrium fires (P wave) but the ventricle never responds — no QRS/T this beat.
+      pts.push({ x: X(0.10), y: mid - P * 0.7 });
+      pts.push({ x: X(0.13), y: mid - P });
+      pts.push({ x: X(0.16), y: mid - P * 0.7 });
+      pts.push({ x: X(0.20), y: mid });
+      pts.push({ x: X(0.96), y: mid });
+    } else if (pvc) {
+      // Premature ventricular contraction: early, no preceding P, broad bizarre QRS,
+      // deep wide S, then a compensatory pause.
+      pts.push({ x: X(0.16), y: mid });
+      pts.push({ x: X(0.22), y: cl(mid + S * 0.5) });
+      pts.push({ x: X(0.30), y: cl(mid - spike * 0.9) });
+      pts.push({ x: X(0.40), y: cl(mid - spike * 0.85) });
+      pts.push({ x: X(0.50), y: cl(mid + S * 1.4) });
+      pts.push({ x: X(0.60), y: mid });
+      pts.push({ x: X(0.96), y: mid });
+    } else {
+      pts.push({ x: X(0.06), y: mid });
+      pts.push({ x: X(0.10), y: mid - P * 0.7 });               // P wave
+      pts.push({ x: X(0.13), y: mid - P });
+      pts.push({ x: X(0.16), y: mid - P * 0.7 });
+      pts.push({ x: X(0.20), y: mid });
+      pts.push({ x: X(0.28), y: mid });                         // PR segment
+      pts.push({ x: X(0.31 - qOff), y: cl(mid + Q) });          // Q (widens with damage)
+      pts.push({ x: X(0.34), y: cl(mid - spike) });             // R
+      pts.push({ x: X(0.37 + sOff), y: cl(mid + S) });          // S (widens with damage)
+      pts.push({ x: X(0.41), y: cl(mid - stDrift) });           // J point (ST elevation)
+      pts.push({ x: X(0.52), y: cl(mid - stDrift) });           // ST segment
+      pts.push({ x: X(0.58), y: cl(mid - tAmp * 0.5) });        // T wave (flattens → inverts)
+      pts.push({ x: X(0.66), y: cl(mid - tAmp) });
+      pts.push({ x: X(0.74), y: cl(mid - tAmp * 0.5) });
+      pts.push({ x: X(0.80), y: mid });
+      pts.push({ x: X(0.86), y: mid - U * 0.7 });               // U wave
+      pts.push({ x: X(0.89), y: mid - U });
+      pts.push({ x: X(0.92), y: mid - U * 0.7 });
+      pts.push({ x: X(0.96), y: mid });
+    }
   }
   pts.push({ x: W, y: mid });
   return pts;
