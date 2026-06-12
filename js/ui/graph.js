@@ -264,6 +264,15 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   cy.on("pan zoom", onPanZoom);
   onPanZoom();
 
+  // Keep the zoom-out floor pinned to "all nodes visible" as the graph grows
+  // (nodes/edges added on reveal, layout settles) or the container resizes.
+  cy.on("add remove layoutstop", updateZoomFloor);
+  if (typeof ResizeObserver !== "undefined") {
+    const ro = new ResizeObserver(() => { cy.resize(); updateZoomFloor(); });
+    ro.observe(graphContainer);
+  }
+  updateZoomFloor();
+
   _trackUserViewportInteractions();
 
   return cy;
@@ -908,6 +917,40 @@ function drawIceTrace(fromId, toId, nodeStates) {
 }
 
 const MAX_FIT_ZOOM = 1.5;
+
+// Zoom-out floor: never let the user zoom out past the level where all visible
+// nodes just fill the viewport — a quick pinch/scroll-out lands on a tight
+// overview of the whole graph instead of flinging it off into empty void.
+// Recomputed by updateZoomFloor() as the graph grows or the container resizes.
+// Deliberately uncapped (beyond maxZoom): a sparse starting LAN has a high
+// fit-all zoom, and clamping it lower just reintroduces the empty-space problem.
+const ZOOM_FLOOR_PADDING = 50;
+
+/**
+ * Pin the minimum zoom (most zoomed-out level) to the "fit everything" zoom so
+ * zooming out stops once all visible nodes are on screen. The floor tracks the
+ * graph's bounding box, clamped only by maxZoom so it stays a valid value.
+ */
+function updateZoomFloor() {
+  if (!cy) return;
+  const nodes = cy.nodes();
+  if (nodes.length === 0) return;
+  const bb = nodes.boundingBox();
+  if (bb.w === 0 || bb.h === 0) return;
+  const w = cy.width();
+  const h = cy.height();
+  if (w === 0 || h === 0) return;
+  // Zoom that fits the bounding box (with padding) inside the viewport — the
+  // same math Cytoscape's fit() uses. Computed directly rather than via
+  // cy.getFitViewport(), which crops its result by the current minZoom and
+  // would feed back on us (once raised, the floor could never drop again).
+  const fitZoom = Math.min(
+    (w - 2 * ZOOM_FLOOR_PADDING) / bb.w,
+    (h - 2 * ZOOM_FLOOR_PADDING) / bb.h
+  );
+  if (!(fitZoom > 0)) return;
+  cy.minZoom(Math.min(fitZoom, cy.maxZoom()));
+}
 
 const LAYOUTS = {
   cola: (animate) => ({
