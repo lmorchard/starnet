@@ -1,14 +1,14 @@
 // @ts-check
 // Graph-panel degradation effects — high-level wiring over two independent effects:
-//  - Health plasma (js/ui/health-plasma.js): a transparent WebGL plasma over the graph
+//  - Health plasma (./health-plasma.js): a transparent WebGL plasma over the graph
 //    whose density/heartbeat scale with health damage, plus a CSS haze filter on #cy.
-//  - Deck perturbation (js/ui/deck-perturbation.js): chaos in the REAL Cytoscape graph
+//  - Deck perturbation (./deck-perturbation.js): chaos in the REAL Cytoscape graph
 //    via a lightweight particle system, scaling with deck damage.
 // This module owns the shared per-frame rAF loop, the latest params pulled from game state,
 // and the #cy haze filter; it drives the two effects each frame. Split per issue #166.
 
-import { degradationParams, buildGraphFilterString } from "./graph-degradation-params.js";
-import { getCy } from "./graph.js";
+import { degradationParams, buildGraphFilterString } from "./params.js";
+import { getCy } from "../graph.js";
 import { initHealthPlasma, drawHealthPlasma, stopHealthPlasma } from "./health-plasma.js";
 import {
   initDeckPerturbation, applyDeckPerturbation, restoreDeck, discardDeck,

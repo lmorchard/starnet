@@ -7,9 +7,9 @@
 // so save/load is unaffected. Restored cleanly on heal/stop. Split out of graph-degradation.js
 // per issue #166.
 
-import { getCy } from "./graph.js";
-import { ALL_GLYPH_TYPES, nodeFaceDataUri } from "./node-glyphs.js";
-import { ParticlePool } from "./particle-pool.js";
+import { getCy } from "../graph.js";
+import { ALL_GLYPH_TYPES, nodeFaceDataUri } from "../node-glyphs.js";
+import { ParticlePool } from "../particle-pool.js";
 
 let containerEl = null;        // #graph-container, for grid-backdrop glitches
 let gridGlitchActive = false;  // guard so overlapping grid glitches don't clear early
@@ -21,7 +21,7 @@ let deckTickLast = 0;      // throttle for the position/style writes
 // tick while alive (shakes re-jitter); `restore` undoes it exactly, on expiry or heal. Style/
 // structural glitches are apply-on-spawn + restore (no update). The shared ParticlePool owns the
 // age/cull lifecycle (see js/ui/particle-pool.js).
-/** @typedef {import("./particle-pool.js").Particle} Particle */
+/** @typedef {import("../particle-pool.js").Particle} Particle */
 const pool = new ParticlePool(); // live glitch particles — every type shares one pool
 let phantomSeq = 0;        // unique-id counter for hallucinated phantom nodes
 

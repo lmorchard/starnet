@@ -18,7 +18,7 @@ import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
 import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
-import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation.js";
+import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation/index.js";
 
 /** Typed element lookup for the harness — returns `any` so input `.value`,
  *  custom-element props (.frac/.kind/.w), etc. need no per-site casts.

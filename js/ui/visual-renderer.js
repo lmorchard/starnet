@@ -17,7 +17,7 @@ import { initializeGraphOverlays } from "./overlays/index.js";
 import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
-import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation.js";
+import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation/index.js";
 
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise

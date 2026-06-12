@@ -1,7 +1,7 @@
 // @ts-check
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { degradationParams, buildGraphFilterString, HEALTH_THRESHOLD, HEALTH_PEAK_SEVERITY } from "./graph-degradation-params.js";
+import { degradationParams, buildGraphFilterString, HEALTH_THRESHOLD, HEALTH_PEAK_SEVERITY } from "./params.js";
 
 const st = (h, d) => ({ player: { health: { current: h, max: 100 }, deckIntegrity: { current: d, max: 100 } } });
 
