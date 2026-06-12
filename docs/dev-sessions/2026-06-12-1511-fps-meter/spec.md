@@ -50,7 +50,8 @@ spacing.
 - `js/core/cheats.js` — add `cheat fps` to the help listing.
 - `js/core/console-commands/commands.js` — add `fps` to `CHEAT_SUBS` (tab-completion).
 - `preview.html` / `js/ui/preview.js` — a toggle control demo.
-- `MANUAL.md` — add `cheat fps` to the cheat reference.
+- `MANUAL.md` — **not** updated: cheats are dev-only and not part of the
+  player-facing manual, so `cheat fps` is intentionally undocumented there.
 
 ## Verification
 

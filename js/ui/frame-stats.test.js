@@ -67,4 +67,18 @@ describe("frameSparkline", () => {
     assert.equal(pts[2].y, 0, "over-scale clamps to top");
     assert.ok(pts.every((p) => p.y >= 0 && p.y <= H), "within bounds");
   });
+
+  test("a non-positive or non-finite maxMs falls back to a sane scale (finite, in-bounds coords)", () => {
+    for (const bad of [0, -10, NaN, Infinity]) {
+      const pts = frameSparkline([16, 33, 8], W, H, bad);
+      assert.ok(
+        pts.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
+        `non-finite coords for maxMs=${bad}`,
+      );
+      assert.ok(
+        pts.every((p) => p.y >= 0 && p.y <= H),
+        `out-of-bounds y for maxMs=${bad}`,
+      );
+    }
+  });
 });

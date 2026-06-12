@@ -49,13 +49,17 @@ export class FrameStats {
  * @param {number} [maxMs] full-scale frame time (top of the chart)
  * @returns {Array<{x:number,y:number}>}
  */
-export function frameSparkline(dts, width, height, maxMs = 50) {
+const DEFAULT_MAX_MS = 50;
+export function frameSparkline(dts, width, height, maxMs = DEFAULT_MAX_MS) {
   const n = dts.length;
   if (n === 0) return [];
+  // Guard the divisor: a non-finite or non-positive maxMs would yield NaN/Infinity
+  // coordinates and a broken polyline, so fall back to the default full-scale.
+  const scale = Number.isFinite(maxMs) && maxMs > 0 ? maxMs : DEFAULT_MAX_MS;
   return dts.map((dt, i) => {
     const x = n === 1 ? width : (i / (n - 1)) * width;
-    const c = Math.max(0, Math.min(maxMs, Number.isFinite(dt) ? dt : 0));
-    const y = height - (c / maxMs) * height;
+    const c = Math.max(0, Math.min(scale, Number.isFinite(dt) ? dt : 0));
+    const y = height - (c / scale) * height;
     return { x: +x.toFixed(2), y: +y.toFixed(2) };
   });
 }
