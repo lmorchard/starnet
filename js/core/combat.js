@@ -98,9 +98,12 @@ export const PATCH_LAG = {
  */
 
 /**
- * Resolve an exploit attempt against a node.
+ * Resolve an exploit attempt against a node — the pure combat roll only.
  *
- * Returns a result object describing what happened.
+ * Returns a result object describing what happened (success, flavor, rolls).
+ * @param {ExploitCard} exploit
+ * @param {NodeState} node
+ * @returns {ExploitResult}
  */
 export function resolveExploit(exploit, node) {
   const knownVulns = node.vulnerabilities.filter((v) => !v.patched && !v.hidden);
@@ -213,8 +216,129 @@ function pickFailFlavor(exploit, disclosed, matchingVulns) {
 // ── Launch action ─────────────────────────────────────────
 
 /**
- * Launch an exploit card against a node.
- * Resolves combat, applies card decay, mutates access/alert state, and emits events.
+ * Resolve an exploit launch into a complete, side-effect-free PLAN: the combat
+ * roll (resolveExploit) plus the decided access-level transition, alert raise, and
+ * staged-vuln surfacing. Consumes RNG — success, flavor/disclosure, and (on a
+ * successful exploit FROM "locked") the skip-to-owned roll — but performs NO state
+ * mutation or event emission; applyCombatResult does that. Pure given the RNG
+ * stream + node reads, so the resolution logic is unit-testable without side
+ * effects (#168).
+ *
+ * The skip roll moves ahead of applyCardDecay's partial-burn roll, but the two are
+ * on mutually exclusive paths (success vs detected failure), so the RNG.COMBAT
+ * sequence per path is unchanged (see the roll-consumption note above).
+ * @param {ExploitCard} exploit
+ * @param {NodeState} node
+ * @returns {ExploitResult}
+ */
+export function resolveCombat(exploit, node) {
+  const result = resolveExploit(exploit, node);
+
+  if (result.success) {
+    result.levelChanged = false;
+    result.prevAccess = node.accessLevel;
+
+    if (node.accessLevel === "locked") {
+      // High-quality/rare exploits can skip compromised → owned in one shot
+      const skipRoll = random(RNG.COMBAT);
+      if (skipRoll <= skipToOwnedChance(exploit)) {
+        result.nextAccess = "owned";
+        result.skippedToOwned = true;
+        result.revealNeighbors = true;
+      } else {
+        result.nextAccess = "compromised";
+        result.revealNeighbors = (node.gateAccess ?? "probed") !== "owned";
+      }
+      result.levelChanged = true;
+    } else if (node.accessLevel === "compromised") {
+      result.nextAccess = "owned";
+      result.revealNeighbors = true;
+      result.levelChanged = true;
+    }
+
+    // Staged vulnerabilities the used exploit's target types unlock — surfaced on apply.
+    const usedTypes = exploit.targetVulnTypes;
+    result.vulnsToSurface = [];
+    node.vulnerabilities.forEach((v, idx) => {
+      if (v.hidden && v.unlockedBy && usedTypes.includes(v.unlockedBy)) {
+        result.vulnsToSurface.push(idx);
+      }
+    });
+  } else {
+    result.prevAlert = node.alertState;
+    result.nextAlert = nextAlertLevel(node.alertState);
+  }
+
+  return result;
+}
+
+/**
+ * Apply a resolved combat plan to game state: mutate access / alert / probed /
+ * disturbance, surface staged vulns, and emit ACTION_RESOLVED / NODE_ACCESSED /
+ * NODE_ALERT_RAISED / EXPLOIT_* events. All RNG was consumed in resolveCombat;
+ * applyCardDecay (which sets result.partialBurn) must run before this.
+ * @param {string} nodeId
+ * @param {ExploitCard} exploit
+ * @param {ExploitResult} result
+ */
+export function applyCombatResult(nodeId, exploit, result) {
+  const node = getState().nodes[nodeId];
+  const detail = { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
+    successChance: result.successChance, matchingVulns: result.matchingVulns };
+
+  if (result.success) {
+    if (result.nextAccess) {
+      setNodeAccessLevel(nodeId, result.nextAccess);
+      setNodeAlertState(nodeId, "green");
+      // Transitions FROM locked also reveal the node itself.
+      if (result.prevAccess === "locked") setNodeVisible(nodeId, "accessible");
+      if (result.revealNeighbors) revealNeighbors(nodeId);
+    }
+
+    // A successful exploit means you're inside — treat the node as probed (reveals vulns
+    // and engages the picker's match filter), so a blind gamble that lands also counts
+    // as a probe. Idempotent if the node was already probed.
+    setNodeProbed(nodeId);
+
+    // A clean exploit: clear the disturbance so ICE doesn't chase a ghost signal.
+    setLastDisturbedNode(null);
+
+    emitEvent(E.ACTION_RESOLVED, { action: A.XPLOIT, nodeId, label: node.label, success: true, detail });
+
+    if (result.levelChanged) {
+      emitEvent(E.NODE_ACCESSED, { nodeId, label: node.label, prev: result.prevAccess, next: node.accessLevel });
+    }
+
+    // Reveal staged vulnerabilities unlocked by the exploit's target types
+    (result.vulnsToSurface ?? []).forEach((idx) => {
+      setNodeVulnHidden(nodeId, idx, false);
+      emitEvent(E.EXPLOIT_SURFACE, { nodeId, label: node.label });
+    });
+  } else {
+    // Raise node alert on failure
+    if (result.nextAlert !== result.prevAlert) {
+      setNodeAlertState(nodeId, /** @type {import('./types.js').NodeAlertLevel} */ (result.nextAlert));
+    }
+
+    setLastDisturbedNode(nodeId);
+
+    emitEvent(E.ACTION_RESOLVED, { action: A.XPLOIT, nodeId, label: node.label, success: false, detail });
+
+    if (result.nextAlert !== result.prevAlert) {
+      emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: result.prevAlert, next: result.nextAlert });
+    }
+
+    if (result.disclosed && !result.partialBurn) {
+      emitEvent(E.EXPLOIT_DISCLOSED, { exploitName: exploit.name });
+    } else if (result.partialBurn) {
+      emitEvent(E.EXPLOIT_PARTIAL_BURN, { exploitName: exploit.name, usesRemaining: exploit.usesRemaining });
+    }
+  }
+}
+
+/**
+ * Launch an exploit card against a node. Orchestrates the pure resolution
+ * (resolveCombat) → card decay → state mutation + events (applyCombatResult).
  * @returns {ExploitResult|null}
  */
 export function launchExploit(nodeId, exploitId) {
@@ -228,90 +352,9 @@ export function launchExploit(nodeId, exploitId) {
     return null;
   }
 
-  const result = resolveExploit(exploit, node);
+  const result = resolveCombat(exploit, node);
   applyCardDecay(exploit, result);
-
-  if (result.success) {
-    result.levelChanged = false;
-    const prevAccess = node.accessLevel;
-
-    if (node.accessLevel === "locked") {
-      // High-quality/rare exploits can skip compromised → owned in one shot
-      const skipChance = skipToOwnedChance(exploit);
-      const skipRoll = random(RNG.COMBAT);
-      if (skipRoll <= skipChance) {
-        setNodeAccessLevel(nodeId, "owned");
-        setNodeAlertState(nodeId, "green");
-        setNodeVisible(nodeId, "accessible");
-        revealNeighbors(nodeId);
-        result.levelChanged = true;
-        result.skippedToOwned = true;
-      } else {
-        setNodeAccessLevel(nodeId, "compromised");
-        setNodeAlertState(nodeId, "green");
-        setNodeVisible(nodeId, "accessible");
-        if ((node.gateAccess ?? "probed") !== "owned") revealNeighbors(nodeId);
-        result.levelChanged = true;
-      }
-    } else if (node.accessLevel === "compromised") {
-      setNodeAccessLevel(nodeId, "owned");
-      setNodeAlertState(nodeId, "green");
-      revealNeighbors(nodeId);
-      result.levelChanged = true;
-    }
-
-    // A successful exploit means you're inside — treat the node as probed (reveals vulns
-    // and engages the picker's match filter), so a blind gamble that lands also counts
-    // as a probe. Idempotent if the node was already probed.
-    setNodeProbed(nodeId);
-
-    // A clean exploit: clear the disturbance so ICE doesn't chase a ghost signal.
-    setLastDisturbedNode(null);
-
-    emitEvent(E.ACTION_RESOLVED, {
-      action: A.XPLOIT, nodeId, label: node.label, success: true,
-      detail: { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
-        successChance: result.successChance, matchingVulns: result.matchingVulns },
-    });
-
-    if (result.levelChanged) {
-      emitEvent(E.NODE_ACCESSED, { nodeId, label: node.label, prev: prevAccess, next: node.accessLevel });
-    }
-
-    // Reveal staged vulnerabilities unlocked by the exploit's target types
-    const usedTypes = exploit.targetVulnTypes;
-    node.vulnerabilities.forEach((v, idx) => {
-      if (v.hidden && v.unlockedBy && usedTypes.includes(v.unlockedBy)) {
-        setNodeVulnHidden(nodeId, idx, false);
-        emitEvent(E.EXPLOIT_SURFACE, { nodeId, label: node.label });
-      }
-    });
-  } else {
-    // Raise node alert on failure
-    const prevAlert = node.alertState;
-    const raised = nextAlertLevel(node.alertState);
-    if (raised !== prevAlert) {
-      setNodeAlertState(nodeId, raised);
-    }
-
-    setLastDisturbedNode(nodeId);
-
-    emitEvent(E.ACTION_RESOLVED, {
-      action: A.XPLOIT, nodeId, label: node.label, success: false,
-      detail: { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
-        successChance: result.successChance, matchingVulns: result.matchingVulns },
-    });
-
-    if (node.alertState !== prevAlert) {
-      emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: node.alertState });
-    }
-
-    if (result.disclosed && !result.partialBurn) {
-      emitEvent(E.EXPLOIT_DISCLOSED, { exploitName: exploit.name });
-    } else if (result.partialBurn) {
-      emitEvent(E.EXPLOIT_PARTIAL_BURN, { exploitName: exploit.name, usesRemaining: exploit.usesRemaining });
-    }
-  }
+  applyCombatResult(nodeId, exploit, result);
 
   return result;
 }
