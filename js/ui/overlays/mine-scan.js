@@ -14,6 +14,9 @@ class MineScanOverlay extends NodeOverlay {
     this._fx = 2.5;
     this._fy = 3.5;
     this._phase = Math.PI / 2;
+    // Continuous Lissajous roam + reticle spin — render at display rate, not the
+    // ~10fps game tick, so it doesn't lurch in-game (smooth in the 60fps preview).
+    this.enableProgressSmoothing(120);
   }
 
   sync(nodeId, progress) {
@@ -43,7 +46,7 @@ class MineScanOverlay extends NodeOverlay {
     const size = r * 2;
     this._place(svg, pos, r);
 
-    const p = this.progress;
+    const p = this.displayProgress;
     // Lissajous roam in overlay coords [0..size], center at r. Amplitude eases
     // to 0 as p→1 so the crosshair settles onto center (lock-on).
     const amp = r * 0.62 * (1 - p * p);
