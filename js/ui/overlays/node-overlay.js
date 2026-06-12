@@ -34,6 +34,12 @@ export class NodeOverlay extends StarnetElement {
     this._displayProgress = 0;
     this._raf = null;
     this._lastFrame = 0;
+    // Time mode (opt-in via startTimeLoop): a managed per-frame loop for
+    // time-driven effects (spawn cadence, flicker), so subclasses don't hand-roll
+    // setTimeout/setInterval that leak on disconnect. Separate from the smoothing
+    // loop above; an overlay may run both.
+    this._timeRaf = null;
+    this._timeLast = 0;
   }
 
   /**
@@ -79,6 +85,44 @@ export class NodeOverlay extends StarnetElement {
     this._lastFrame = 0;
   }
 
+  /**
+   * Start the managed time loop: calls `_timeFrame(now, dtMs)` every frame until
+   * stopped. Idempotent. Auto-stopped by clear() and disconnectedCallback(), so a
+   * subclass never needs to hand-roll (or leak) a setTimeout/setInterval.
+   */
+  startTimeLoop() {
+    if (this._timeRaf !== null) return;
+    this._timeLast = 0;
+    this._timeRaf = requestAnimationFrame((t) => this._timeFrameLoop(t));
+  }
+
+  /** Stop the managed time loop. */
+  stopTimeLoop() {
+    if (this._timeRaf !== null) {
+      cancelAnimationFrame(this._timeRaf);
+      this._timeRaf = null;
+    }
+    this._timeLast = 0;
+  }
+
+  _timeFrameLoop(now) {
+    const dt = this._timeLast ? now - this._timeLast : 16;
+    this._timeLast = now;
+    this._timeFrame(now, dt);
+    // _timeFrame may have stopped the loop (e.g. lost its anchor); only reschedule
+    // if it's still meant to be running.
+    if (this._timeRaf !== null) {
+      this._timeRaf = requestAnimationFrame((t) => this._timeFrameLoop(t));
+    }
+  }
+
+  /**
+   * Subclass hook: per-frame work for time-driven effects (spawn cadence, flicker).
+   * @param {number} now    high-res timestamp (ms)
+   * @param {number} dtMs   ms since the previous frame
+   */
+  _timeFrame(now, dtMs) {} // eslint-disable-line no-unused-vars
+
   firstUpdated() {
     this._ready = true;
     this._render();
@@ -86,9 +130,10 @@ export class NodeOverlay extends StarnetElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    // Stop the smoothing rAF if the element is removed without an explicit clear(),
-    // so it can't keep firing against a detached element.
+    // Stop both managed loops if the element is removed without an explicit clear(),
+    // so neither keeps firing against a detached element.
     this._stopSmoothing();
+    this.stopTimeLoop();
   }
 
   /**
@@ -162,6 +207,7 @@ export class NodeOverlay extends StarnetElement {
 
   clear() {
     this._stopSmoothing();
+    this.stopTimeLoop();
     this.nodeId = null;
     this.progress = 0;
     this._displayProgress = 0;
