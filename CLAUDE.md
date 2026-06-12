@@ -410,6 +410,31 @@ effect at a time — not as a sweeping refactor. Geometry lives in pure, testabl
 modules (`js/ui/node-glyphs.js`, `js/ui/ice-glyphs.js`) consumed by both `graph.js`
 and `preview.js`.
 
+### Vector UI vocabulary — strokes, not fills or bitmap chrome
+
+The display is a vector beam: it draws **outlines and strokes**, never filled regions
+or raster textures. This governs HUD/UI chrome, not just the graph.
+
+- **No fills.** Glyphs and indicators are stroke-only, lit by a phosphene glow
+  (CSS `filter: drop-shadow`, or SVG drop-shadow). A solid filled shape reads as raster,
+  not vector. Stroke + glow, not fill.
+- **No bitmap / textmode idioms.** Banned because they clash with the beam: filled
+  circles (`border-radius: 50%` "lamps"), block/dither meters (`█` / `░`), ordered-dither
+  shading, solid filled glyphs. If you reach for one, reach for stroked geometry instead.
+- **Indicators encode state in SHAPE, not color alone** (colorblind redundancy). The
+  canonical status lamp escalates by *form*: **hexagon (green, safe) → point-up triangle
+  (yellow, warning) → inverted triangle (red, danger)**, all stroked — legible with no
+  color perception (hexagon vs triangle, then up vs down), and it borrows the universal
+  warning-triangle iconography. Apply the same shape-channel thinking to any new indicator.
+- **Magnitude meters** are stroked **tick ladders** or outlined segment bars — count is
+  the colorblind-safe channel, with the green→amber→red ramp layered on top. Never `█/░`
+  pips.
+- Same discipline as the glyphs: indicator geometry lives in a pure, testable module and
+  is consumed by both the live UI and `preview.js`.
+
+When in doubt: would an oscilloscope or a vector arcade cabinet draw it that way? If it
+needs a fill, a circle, or a dither, it's the wrong primitive.
+
 ## What's In Scope (Current Prototype)
 
 - Single static LAN dungeon, hand-crafted
