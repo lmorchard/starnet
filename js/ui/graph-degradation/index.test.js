@@ -13,7 +13,7 @@ globalThis.document = {
 globalThis.requestAnimationFrame = () => 0;
 globalThis.cancelAnimationFrame = () => {};
 
-const { updateFromState, stopGraphDegradation } = await import("./graph-degradation.js");
+const { updateFromState, stopGraphDegradation } = await import("./index.js");
 
 const degraded = { player: { health: { current: 10, max: 100 }, deckIntegrity: { current: 100, max: 100 } } };
 
