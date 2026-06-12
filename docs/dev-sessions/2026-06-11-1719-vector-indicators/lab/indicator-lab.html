@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Indicator Lab — vector status lamps + meters</title>
+<style>
+  :root { --bg:#0a0a0f; --panel:#06060a; --green:#39ff7a; --amber:#c9d11e; --red:#ff5a4d;
+          --violet:#b06cff; --dim:#2a3a55; --fg:#9fb3c8; --border:#20283a; }
+  html,body { margin:0; background:var(--bg); color:var(--fg);
+              font:13px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+  .wrap { max-width:880px; margin:24px auto; padding:0 16px; }
+  h1 { font-size:14px; color:#cfe; letter-spacing:.08em; }
+  h2 { font-size:12px; color:#8aa; letter-spacing:.14em; margin:26px 0 8px; border-bottom:1px solid var(--border); padding-bottom:4px; }
+  p.note { color:#6b7a90; }
+  table { border-collapse:collapse; width:100%; }
+  td,th { padding:7px 10px; text-align:left; vertical-align:middle; border-bottom:1px solid #141a26; }
+  th { color:#6b7a90; font-weight:400; font-size:11px; letter-spacing:.1em; }
+  td.name { color:#8aa; width:200px; }
+  td.cur { color:#5a6678; }     /* "current" rows, de-emphasised */
+  .cell { display:flex; align-items:center; gap:6px; }
+  svg { display:block; }
+  /* current round lamp (the thing we're replacing) */
+  .round { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .pips { letter-spacing:.06em; font-size:13px; }
+  .controls { display:flex; align-items:center; gap:12px; margin:10px 0; }
+  input[type=range]{ width:280px; accent-color:var(--violet); }
+  output { color:#cfe; min-width:42px; }
+  .ramp { display:flex; gap:14px; align-items:center; }
+  .ramp .step { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .ramp .step small { color:#566; font-size:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>★ INDICATOR LAB — vector-appropriate status lamps &amp; meters</h1>
+  <p class="note">Stroke-only SVG candidates to replace the round filled "lamps" and the
+     █/░ block pips. Glow = phosphene. "Current" rows show what we'd be replacing.</p>
+
+  <h2>STATUS LAMPS &nbsp;—&nbsp; alert dot · connection dot · node-panel ●</h2>
+  <table id="lamps">
+    <thead><tr><th>style</th><th>GREEN</th><th>YELLOW</th><th>RED</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>MAGNITUDE METERS &nbsp;—&nbsp; health · card quality</h2>
+  <div class="controls">
+    <label>VALUE</label>
+    <input id="val" type="range" min="0" max="100" value="100">
+    <output id="valv">100%</output>
+  </div>
+  <table id="meters">
+    <thead><tr><th>style</th><th>at VALUE</th><th>ramp&nbsp;&nbsp;100 · 60 · 30 · 0</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const C = { green:'#39ff7a', amber:'#c9d11e', red:'#ff5a4d', dim:'#2a3a55' };
+const tier = v => v > 0.6 ? C.green : v > 0.3 ? C.amber : C.red;
+const svg = (w,h,body,glow,blur=2.5) =>
+  `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="filter:drop-shadow(0 0 ${blur}px ${glow})">${body}</svg>`;
+
+// ── status lamps (size 16) — color passed in ─────────────────────────────────
+const L = 16, m = L/2;
+const lamps = {
+  "diamond — filled":  c => svg(L,L,`<polygon points="${m},1.5 ${L-1.5},${m} ${m},${L-1.5} 1.5,${m}" fill="${c}" stroke="${c}" stroke-width="1" stroke-linejoin="round"/>`, c, 3),
+  "diamond — stroked": c => svg(L,L,`<polygon points="${m},2 ${L-2},${m} ${m},${L-2} 2,${m}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linejoin="round"/>`, c, 3),
+  "square — stroked":  c => svg(L,L,`<rect x="3" y="3" width="10" height="10" fill="none" stroke="${c}" stroke-width="1.8"/>`, c, 3),
+  "chevron":           c => svg(L,L,`<polyline points="2.5,11.5 ${m},4.5 13.5,11.5" fill="none" stroke="${c}" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"/>`, c, 3),
+  "hexagon — ring":    c => lampHex(c),
+  "triangle — stroked":c => lampTri(c),
+};
+function lampHex(c){ const r=6.4, pts=[]; for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3; pts.push(`${(m+r*Math.cos(a)).toFixed(1)},${(m+r*Math.sin(a)).toFixed(1)}`);} return svg(L,L,`<polygon points="${pts.join(' ')}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/>`, c, 3); }
+function lampSq(c){ return svg(L,L,`<rect x="3" y="3" width="10" height="10" fill="none" stroke="${c}" stroke-width="1.8"/>`, c, 3); }
+function lampTri(c){ return svg(L,L,`<polygon points="${m},2.5 13.5,13.5 2.5,13.5" fill="none" stroke="${c}" stroke-width="1.8" stroke-linejoin="round"/>`, c, 3); }
+function lampTriDown(c){ return svg(L,L,`<polygon points="2.5,2.5 13.5,2.5 ${m},13.5" fill="none" stroke="${c}" stroke-width="1.8" stroke-linejoin="round"/>`, c, 3); }
+
+// ── meters (90×18) — value 0..1, tier color ───────────────────────────────────
+const MW=92, MH=18;
+function meterTicks(v){ const c=tier(v),N=7,gap=MW/(N+1),on=Math.round(v*N); let s='';
+  for(let i=0;i<N;i++){const x=(gap*(i+1)).toFixed(1),lit=i<on; s+=`<line x1="${x}" y1="${lit?3:10}" x2="${x}" y2="15" stroke="${lit?c:C.dim}" stroke-width="${lit?2:1.4}"/>`;}
+  return svg(MW,MH,s,c,2); }
+function meterSegBar(v){ const c=tier(v),N=5,cw=MW/N,on=Math.round(v*N); let s='';
+  for(let i=0;i<N;i++){const x=(i*cw+2).toFixed(1),w=(cw-4).toFixed(1),lit=i<on;
+    s+=`<rect x="${x}" y="4" width="${w}" height="10" fill="${lit?c:'none'}" fill-opacity="${lit?0.22:0}" stroke="${lit?c:C.dim}" stroke-width="1.5"/>`;}
+  return svg(MW,MH,s,c,2); }
+function meterPolygon(v){ const c=tier(v),N=8,W=22,cx=W/2,cy=MH/2,r=7,on=Math.round(v*N); const p=[];
+  for(let i=0;i<N;i++){const a=-Math.PI/2+i*2*Math.PI/N; p.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
+  let s=''; for(let i=0;i<N;i++){const a=p[i],b=p[(i+1)%N],lit=i<on;
+    s+=`<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="${lit?c:C.dim}" stroke-width="${lit?1.8:1}" stroke-opacity="${lit?1:0.5}"/>`;}
+  return svg(W,MH,s,c,2); }
+function meterGauge(v){ const c=tier(v),x0=4,x1=MW-4,y=9,fx=(x0+(x1-x0)*v).toFixed(1); let s='';
+  s+=`<line x1="${x0}" y1="3" x2="${x0}" y2="15" stroke="${c}" stroke-width="1.5"/>`;
+  s+=`<line x1="${x1}" y1="3" x2="${x1}" y2="15" stroke="${C.dim}" stroke-width="1.5"/>`;
+  s+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${C.dim}" stroke-width="1"/>`;
+  for(let q=1;q<4;q++){const x=(x0+(x1-x0)*q/4).toFixed(1); s+=`<line x1="${x}" y1="6" x2="${x}" y2="12" stroke="${C.dim}" stroke-width="1"/>`;}
+  s+=`<line x1="${x0}" y1="${y}" x2="${fx}" y2="${y}" stroke="${c}" stroke-width="3"/>`;
+  return svg(MW,MH,s,c,2); }
+function meterPipsCurrent(v){ const c=tier(v),N=5,f=v<=0?0:Math.max(1,Math.round(v*N));
+  return `<span class="pips" style="color:${c}">${'█'.repeat(f)}${'░'.repeat(N-f)}</span>`; }
+
+const meters = {
+  "tick ladder":          meterTicks,
+  "segment bar — stroked":meterSegBar,
+  "depleting polygon":    meterPolygon,
+  "bar gauge":            meterGauge,
+  "CURRENT — block pips": meterPipsCurrent,
+};
+
+// ── build lamps table ────────────────────────────────────────────────────────
+const lampBody = document.querySelector("#lamps tbody");
+// current round lamp row first (the thing to replace)
+function roundRow(){
+  const tr=document.createElement("tr");
+  tr.innerHTML = `<td class="name cur">CURRENT — round dot</td>` +
+    [C.green,C.amber,C.red].map(c=>`<td><span class="round" style="background:${c};box-shadow:0 0 4px ${c}"></span></td>`).join("");
+  lampBody.appendChild(tr);
+}
+roundRow();
+// ★ chosen scheme — shape encodes alert state (colorblind-safe), all stroked
+{
+  const tr=document.createElement("tr");
+  tr.style.background="#0e1626";
+  tr.innerHTML = `<td class="name" style="color:#cfe">★ CHOSEN — shape = state</td>`
+    + `<td><div class="cell">${lampHex(C.green)}<small style="color:#566">hexagon · safe</small></div></td>`
+    + `<td><div class="cell">${lampTri(C.amber)}<small style="color:#566">△ warning</small></div></td>`
+    + `<td><div class="cell">${lampTriDown(C.red)}<small style="color:#566">▽ danger</small></div></td>`;
+  lampBody.appendChild(tr);
+}
+for (const [name, fn] of Object.entries(lamps)) {
+  const tr=document.createElement("tr");
+  tr.innerHTML = `<td class="name">${name}</td>` +
+    [C.green,C.amber,C.red].map(c=>`<td>${fn(c)}</td>`).join("");
+  lampBody.appendChild(tr);
+}
+
+// ── build meters table ───────────────────────────────────────────────────────
+const meterBody = document.querySelector("#meters tbody");
+const valEl = document.getElementById("val"), valOut = document.getElementById("valv");
+const rows = [];
+for (const [name, fn] of Object.entries(meters)) {
+  const tr=document.createElement("tr");
+  const isCur = name.startsWith("CURRENT");
+  tr.innerHTML = `<td class="name ${isCur?'cur':''}">${name}</td><td class="live"></td>` +
+    `<td><div class="ramp">${[1,0.6,0.3,0].map(v=>`<span class="step">${fn(v)}<small>${Math.round(v*100)}</small></span>`).join("")}</div></td>`;
+  meterBody.appendChild(tr);
+  rows.push({ fn, live: tr.querySelector(".live") });
+}
+function renderLive(){
+  const v = +valEl.value/100;
+  valOut.textContent = valEl.value + "%";
+  rows.forEach(r => { r.live.innerHTML = r.fn(v); });
+}
+valEl.addEventListener("input", renderLive);
+renderLive();
+</script>
+</body>
+</html>

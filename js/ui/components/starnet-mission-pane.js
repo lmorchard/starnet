@@ -3,6 +3,7 @@
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
+import { missionMarkDataUri } from "../indicator-glyphs.js";
 
 class StarnetMissionPane extends StarnetElement {
   static properties = {
@@ -19,22 +20,22 @@ class StarnetMissionPane extends StarnetElement {
   render() {
     if (!this.mission) return nothing;
 
-    let statusClass, statusText;
+    let statusClass, statusContent;
     if (this.mission.complete) {
       statusClass = "mission-status-complete";
-      statusText = "STATUS: ██ COMPLETE";
+      statusContent = html`STATUS: <img class="mission-mark" alt="" src=${missionMarkDataUri("complete")}> COMPLETE`;
     } else if (this.phase === "ended") {
       statusClass = "mission-status-failed";
-      statusText = "STATUS: ░░ FAILED";
+      statusContent = html`STATUS: <img class="mission-mark" alt="" src=${missionMarkDataUri("failed")}> FAILED`;
     } else {
       statusClass = "mission-status-active";
-      statusText = "STATUS: ▶ ACTIVE";
+      statusContent = html`STATUS: ▶ ACTIVE`;
     }
 
     return html`
       <div class="mission-label">// MISSION</div>
       <div class="mission-target">⬡ ${this.mission.targetName}</div>
-      <div class="${statusClass}">${statusText}</div>`;
+      <div class="${statusClass}">${statusContent}</div>`;
   }
 }
 

@@ -8,6 +8,12 @@
 /** @typedef {import('../core/types.js').ExploitCard} ExploitCard */
 
 import { ALL_VULN_GLYPH_IDS, vulnGlyphDataUri } from "./vuln-glyphs.js";
+import {
+  alertLampDataUri,
+  connStatusDataUri,
+  tickMeterDataUri,
+  missionMarkDataUri,
+} from "./indicator-glyphs.js";
 
 const RARITIES = /** @type {const} */ (["common", "uncommon", "rare"]);
 const WEARS = /** @type {const} */ (["fresh", "worn", "disclosed"]);
@@ -91,6 +97,60 @@ export function mountVulnSwatches(container) {
     label.textContent = id;
     cell.append(img, label);
     container.appendChild(cell);
+  }
+}
+
+/**
+ * Mount the indicator-glyph swatch sheet: alert lamps (green/yellow/red),
+ * connection status (passive/active/detecting), tick meters (100/60/30/0 %),
+ * and mission marks (complete/failed). Each glyph is labeled.
+ * @param {HTMLElement} container
+ */
+export function mountIndicatorSwatches(container) {
+  /** @param {string} src @param {string} label @returns {HTMLElement} */
+  function cell(src, label) {
+    const el = document.createElement("div");
+    el.className = "vuln-swatch";
+    const img = document.createElement("img");
+    img.src = src;
+    img.width = 32;
+    img.height = 32;
+    img.alt = label;
+    const span = document.createElement("span");
+    span.textContent = label;
+    el.append(img, span);
+    return el;
+  }
+
+  /** @param {string} title */
+  function row(title) {
+    const h = document.createElement("h3");
+    h.textContent = title;
+    container.appendChild(h);
+  }
+
+  // Alert lamps
+  row("Alert lamp");
+  for (const level of ["green", "yellow", "red"]) {
+    container.appendChild(cell(alertLampDataUri(level), level));
+  }
+
+  // Connection status
+  row("Conn status");
+  for (const status of ["passive", "active", "detecting"]) {
+    container.appendChild(cell(connStatusDataUri(status), status));
+  }
+
+  // Tick meters at four sample fractions
+  row("Tick meter");
+  for (const frac of [1, 0.6, 0.3, 0]) {
+    container.appendChild(cell(tickMeterDataUri(frac), `${Math.round(frac * 100)}%`));
+  }
+
+  // Mission marks
+  row("Mission mark");
+  for (const state of ["complete", "failed"]) {
+    container.appendChild(cell(missionMarkDataUri(state), state));
   }
 }
 
