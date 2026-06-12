@@ -1459,3 +1459,61 @@ describe("EXEC dispatch echo", () => {
     assert.equal(getState().nodes["ids-1"].forwardingEnabled, false, "script ran");
   });
 });
+
+// ── Exploit card id uniqueness ────────────────────────────────────────────────
+// Regression: card ids are minted `${vuln}-${counter}`, but the counter resets per
+// session while profile cards persist across sessions — so a carried card and a
+// freshly-minted one can share an id. The exploit pipeline keys off `id` and takes
+// the first match, so the second card silently no-ops (the reported "SnmpWalker X
+// does nothing" bug — first match was a disclosed/0-uses card).
+
+describe("Exploit cards: duplicate id reconciliation", () => {
+  const DUP_ID = "stale-firmware-1";
+  const makeDupHand = () => ([
+    // Mirrors the reported save: same id, first is dead, second is the one the
+    // player tries to play.
+    { id: DUP_ID, name: "AuthBrute Prime", rarity: "common", quality: 0.22, targetVulnTypes: ["stale-firmware"], decayState: "disclosed", usesRemaining: 0, instanceId: "inv-0" },
+    { id: DUP_ID, name: "SnmpWalker X",    rarity: "common", quality: 0.47, targetVulnTypes: ["stale-firmware"], decayState: "fresh",     usesRemaining: 3, instanceId: "inv-6" },
+  ]);
+
+  function buildDupHandLAN() {
+    return {
+      graphDef: {
+        nodes: [
+          createGateway("gateway", { attributes: { visibility: "accessible" } }),
+          createRouter("router-a"),
+        ],
+        edges: [["gateway", "router-a"]],
+        triggers: [],
+      },
+      meta: { startNode: "gateway", startCash: 0, moneyCost: "C", ice: null, startHandCards: makeDupHand() },
+    };
+  }
+
+  beforeEach(() => {
+    clearAll();
+    initGame(buildDupHandLAN, "itest-dupid");
+  });
+
+  it("gives each hand card a unique id at game init", () => {
+    const ids = getState().player.hand.map((c) => c.id);
+    assert.equal(new Set(ids).size, ids.length, `hand ids must be unique, got: ${ids.join(", ")}`);
+  });
+
+  it("lets the live duplicate-id card execute instead of no-opping on the dead one", () => {
+    const snmp = getState().player.hand.find((c) => c.name === "SnmpWalker X");
+    assert.ok(snmp, "SnmpWalker X present in hand");
+    // The GUI/console dispatch the clicked card's own id; with a collision this
+    // resolves to the first (disclosed) card and returns early.
+    getState().nodeGraph._ctx.startExploit("gateway", snmp.id);
+    assert.equal(getState().nodes["gateway"].exploiting, true, "the fresh card's exploit should start");
+  });
+
+  it("reconciles duplicate ids when loading a serialized save", () => {
+    const snap = serializeState();
+    snap.player.hand = makeDupHand(); // simulate a corrupt save like the reported one
+    deserializeState(snap);
+    const ids = getState().player.hand.map((c) => c.id);
+    assert.equal(new Set(ids).size, ids.length, `loaded hand ids must be unique, got: ${ids.join(", ")}`);
+  });
+});

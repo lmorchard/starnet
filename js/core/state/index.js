@@ -25,7 +25,7 @@
 
 import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt, random } from "../rng.js";
 import { pickIceTypeId, getType } from "../ice/index.js";
-import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter } from "../exploits.js";
+import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter, reconcileHandIds } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
 import { emitEvent, E } from "../events.js";
@@ -176,6 +176,11 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     lastDisturbedNodeId: null,
     mission: null,
   };
+
+  // Guarantee per-card-unique ids: carried profile cards may bring ids that
+  // collide with freshly-generated ones (the counter resets per session). The
+  // exploit pipeline keys off `id`, so duplicates make cards un-selectable.
+  reconcileHandIds(state.player.hand);
 
   // Register graph sync on the node setter module
   setNodeGraph(graph);
@@ -346,6 +351,10 @@ export function deserializeState(snapshot, opts = {}) {
   if (_rng) deserializeRng(_rng);
   else initRng(gameState.seed ?? undefined);
   if (exploitId != null) setExploitIdCounter(exploitId);
+
+  // Heal saves whose hand carries colliding card ids (see initGame). Runs after
+  // the counter is restored so re-mints continue above the snapshot's id space.
+  if (state?.player?.hand) reconcileHandIds(state.player.hand);
 
   // Restore NodeGraph from snapshot
   if (_nodeGraph) {
