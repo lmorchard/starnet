@@ -14,7 +14,7 @@ import { initGraphBridge } from "../core/graph-bridge.js";
 import { initDynamicActions } from "../core/console-commands/dynamic-actions.js";
 import { initRng } from "../core/rng.js";
 import { toCytoscapeFormat } from "./run-control.js";
-import { openHub, initHub } from "./hub.js";
+import { openHub, initHub, quickStartRun } from "./hub.js";
 import { initProfileRunCommit } from "./profile-store.js";
 import "./hub-commands.js";
 
@@ -140,8 +140,13 @@ function init() {
   on("starnet:action:run-again", returnToHub);
   document.getElementById("end-screen")?.addEventListener("run-again", returnToHub);
 
-  // Boot into the hub — the player launches the first run from there.
-  openHub();
+  // Boot. An explicit ?network= deep-link is a fast-start request — skip the overworld
+  // hub and jack straight into that network with a canned starter loadout. Otherwise (or
+  // if the fast-start can't prepare a loadout) boot into the hub.
+  const wantsFastStart = new URLSearchParams(location.search).has("network");
+  if (!(wantsFastStart && quickStartRun(buildNetworkFn()))) {
+    openHub();
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
