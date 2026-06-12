@@ -15,43 +15,14 @@ import { setLastDisturbedNode } from "./state/ice.js";
 import { applyCardDecay as applyCardDecayState } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
 import { A } from "./action-ids.js";
+import {
+  GRADE_MODIFIER, MATCH_BONUS, SUCCESS_CAP, DISCLOSURE_CHANCE,
+  SKIP_TO_OWNED_FLOOR, SKIP_TO_OWNED_QUALITY_SCALE, PATCH_LAG,
+} from "./balance.js";
 
-// Success chance modifier by node security grade
-export const GRADE_MODIFIER = {
-  S: 0.05,
-  A: 0.15,
-  B: 0.30,
-  C: 0.50,
-  D: 0.70,
-  F: 0.90,
-};
-
-/** Flat bonus when exploit targets a known vulnerability on the node. */
-export const MATCH_BONUS = 0.4;
-
-/** Hard cap on exploit success probability. */
-export const SUCCESS_CAP = 0.95;
-
-// Disclosure chance on failure by grade (higher grade = more likely to detect and disclose)
-const DISCLOSURE_CHANCE = {
-  S: 0.85,
-  A: 0.70,
-  B: 0.50,
-  C: 0.30,
-  D: 0.15,
-  F: 0.05,
-};
-
-// Skip-to-owned floor and quality scaling. The chance a successful exploit
-// jumps locked → owned in one shot is driven by card QUALITY, not rarity:
-//   0.08 + quality * 0.55
-// This lifts the floor across the board (a fresh common skips ~19–38% of the
-// time, up from the old ~2–6%) while still rewarding the best cards most —
-// rare cards skip more only because they carry higher quality, not because of
-// a separate multiplier. Tops out near 0.60 for a best-in-class rare (q≈0.95);
-// never approaches certainty.
-const SKIP_TO_OWNED_FLOOR = 0.08;
-const SKIP_TO_OWNED_QUALITY_SCALE = 0.55;
+// Re-export combat-balance constants so existing `import … from "./combat.js"`
+// sites keep working; the values now live in balance.js (#169).
+export { GRADE_MODIFIER, MATCH_BONUS, SUCCESS_CAP, PATCH_LAG };
 
 /**
  * Chance that a successful exploit jumps from locked directly to owned,
@@ -62,16 +33,6 @@ const SKIP_TO_OWNED_QUALITY_SCALE = 0.55;
 export function skipToOwnedChance(exploit) {
   return SKIP_TO_OWNED_FLOOR + exploit.quality * SKIP_TO_OWNED_QUALITY_SCALE;
 }
-
-// Patch lag in turns by grade (how quickly vulns get patched after disclosure)
-export const PATCH_LAG = {
-  S: 1,
-  A: 2,
-  B: 3,
-  C: 4,
-  D: 6,
-  F: 8,
-};
 
 /**
  * RNG.COMBAT roll consumption per launchExploit() code path.
