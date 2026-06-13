@@ -21,7 +21,7 @@
     <!-- HUD -->
     <starnet-hud id="hud"></starnet-hud>
 
-    <!-- Main area: graph column + sidebar -->
+    <!-- Main area: graph column (full width) -->
     <main id="main">
       <div id="graph-column">
         <div id="graph-container">
@@ -39,34 +39,32 @@
           </starnet-action-choices>
           <starnet-store id="darknet-store"></starnet-store>
           <starnet-level-select id="level-select"></starnet-level-select>
-        </div>
-        <div class="splitter splitter--row" data-resize="logH" title="Drag to resize — double-click to reset"></div>
-        <div id="log-pane">
-          <starnet-log id="log-entries"></starnet-log>
-          <div id="console-row">
-            <span class="console-prompt">&gt;</span>
-            <input id="console-input" type="text" autocomplete="off" spellcheck="false" placeholder="enter command..." />
+          <!-- Vital-sign traces: floated upper-right over the graph.
+               Driven by visual-renderer.syncVitals via #vital-ecg / #vital-deck ids. -->
+          <div id="vital-stack">
+            <starnet-waveform id="vital-ecg" class="vital-strip" autosize
+              kind="ecg" color="var(--green)" label="HEALTH"
+              h="44" speed="100" trail="0.72" bloom="14" meter></starnet-waveform>
+            <starnet-waveform id="vital-deck" class="vital-strip" autosize
+              kind="pulse" color="var(--violet)" label="DECK"
+              h="44" speed="100" trail="0.72" bloom="14" meter></starnet-waveform>
+            <!-- Uplink control: VISIT WAN normally, JACK OUT under alert/trace.
+                 Driven by visual-renderer.syncHud. -->
+            <starnet-uplink id="uplink-btn"></starnet-uplink>
           </div>
         </div>
-      </div>
-      <div class="splitter splitter--col" data-resize="sidebarW" title="Drag to resize — double-click to reset"></div>
-
-      <aside id="sidebar">
-        <!-- Vital-sign traces: a stacked pair at the top of the sidebar. Canvas traces
-             driven by visual-renderer.syncVitals (health / deck integrity). -->
-        <div id="vital-stack">
-          <starnet-waveform id="vital-ecg" class="vital-strip" autosize
-            kind="ecg" color="var(--green)" label="HEALTH"
-            h="44" speed="100" trail="0.72" bloom="14" meter></starnet-waveform>
-          <starnet-waveform id="vital-deck" class="vital-strip" autosize
-            kind="pulse" color="var(--violet)" label="DECK"
-            h="44" speed="100" trail="0.72" bloom="14" meter></starnet-waveform>
+        <div class="splitter splitter--row" data-resize="logH" title="Drag to resize — double-click to reset"></div>
+        <div id="bottom-row">
+          <div id="log-pane">
+            <starnet-log id="log-entries"></starnet-log>
+            <div id="console-row">
+              <span class="console-prompt">&gt;</span>
+              <input id="console-input" type="text" autocomplete="off" spellcheck="false" placeholder="enter command..." />
+            </div>
+          </div>
+          <starnet-hand id="hand-strip"></starnet-hand>
         </div>
-        <starnet-mission-pane id="sidebar-mission"></starnet-mission-pane>
-        <starnet-node-panel id="sidebar-node"></starnet-node-panel>
-        <div class="splitter splitter--row" data-resize="handH" title="Drag to resize — double-click to reset"></div>
-        <starnet-hand id="hand-strip"></starnet-hand>
-      </aside>
+      </div>
     </main>
 
     <starnet-end-screen id="end-screen"></starnet-end-screen>
@@ -75,13 +73,12 @@
   </div>
 
   <script type="module" src="js/ui/components/starnet-log.js"></script>
-  <script type="module" src="js/ui/components/starnet-mission-pane.js"></script>
   <script type="module" src="js/ui/components/starnet-ice-timers.js"></script>
   <script type="module" src="js/ui/components/starnet-waveform.js"></script>
+  <script type="module" src="js/ui/components/starnet-uplink.js"></script>
   <script type="module" src="js/ui/components/starnet-hud.js"></script>
   <script type="module" src="js/ui/components/starnet-context-menu.js"></script>
   <script type="module" src="js/ui/components/starnet-action-choices.js"></script>
-  <script type="module" src="js/ui/components/starnet-node-panel.js"></script>
   <script type="module" src="js/ui/components/starnet-hand.js"></script>
   <script type="module" src="js/ui/components/starnet-end-screen.js"></script>
   <script type="module" src="js/ui/components/starnet-store.js"></script>

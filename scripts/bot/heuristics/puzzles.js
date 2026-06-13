@@ -18,6 +18,7 @@ const KNOWN_ACTIONS = new Set([
   A.TARGET, A.UNTARGET, A.JACKOUT, A.CORRUPT, A.CANCEL_TRACE,
   A.ABORT, A.KICK, A.ACCESS_DARKNET,
   A.MINE, // handled by mineStrategy (card-blocked fallback) — not a proactive puzzle action
+  A.DISCONNECT, // player-facing jack-out alias on WAN; bot already jacks via A.JACKOUT evasion heuristic
 ]);
 
 /** Track "nodeId:actionId" pairs we've already proposed to avoid loops */

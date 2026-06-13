@@ -182,6 +182,7 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     ice: null,
     lastDisturbedNodeId: null,
     mission: null,
+    ui: { menuOpen: false, handCollapsed: false },
   };
   const state = ctx.state;   // local alias so the rest of initGame reads unchanged
 
@@ -376,6 +377,10 @@ export function deserializeState(snapshot, opts = {}) {
   const ctx = createRunContext();
   setActiveRun(ctx);
   ctx.state = gameState;
+  // Heal saves that predate state.ui (the persisted UI toggles). Reads are
+  // ?.-guarded, but the toggle setters write s.ui.x — without this they'd throw
+  // on the first hamburger/hand toggle after loading an older save.
+  if (!ctx.state.ui) ctx.state.ui = { menuOpen: false, handCollapsed: false };
   deserializeTimers(_timers);   // writes into ctx.timers
   if (_rng) deserializeRng(_rng);
   else initRng(gameState.seed ?? undefined);

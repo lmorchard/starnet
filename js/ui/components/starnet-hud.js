@@ -1,9 +1,9 @@
 // <starnet-hud> — Header bar component.
-// Shows alert level, wallet, trace countdown, connection status, and action buttons.
+// Shows alert level, wallet, trace countdown, connection status, mission, and action buttons.
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
-import { alertLampDataUri, connStatusDataUri } from "../indicator-glyphs.js";
+import { alertLampDataUri, connStatusDataUri, missionMarkDataUri } from "../indicator-glyphs.js";
 
 class StarnetHud extends StarnetElement {
   static properties = {
@@ -15,6 +15,8 @@ class StarnetHud extends StarnetElement {
     isCheating: { type: Boolean },
     phase: { type: String },
     paused: { type: Boolean },
+    mission: { type: Object },
+    menuOpen: { type: Boolean },
   };
 
   constructor() {
@@ -27,6 +29,8 @@ class StarnetHud extends StarnetElement {
     this.isCheating = false;
     this.phase = "";
     this.paused = false;
+    this.mission = null;
+    this.menuOpen = false;
   }
 
   _emit(action, detail = {}) {
@@ -40,6 +44,29 @@ class StarnetHud extends StarnetElement {
     if (!file) return;
     this._emit("load", { file });
     e.target.value = "";
+  }
+
+  _renderMission() {
+    if (!this.mission) return nothing;
+
+    let statusClass, statusContent;
+    if (this.mission.complete) {
+      statusClass = "mission-status-complete";
+      statusContent = html`<img class="mission-mark" alt="complete" src=${missionMarkDataUri("complete")}> COMPLETE`;
+    } else if (this.phase === "ended") {
+      statusClass = "mission-status-failed";
+      statusContent = html`<img class="mission-mark" alt="failed" src=${missionMarkDataUri("failed")}> FAILED`;
+    } else {
+      statusClass = "mission-status-active";
+      statusContent = html`▶ ACTIVE`;
+    }
+
+    return html`
+      <div id="hud-mission">
+        <span class="hud-mission-target">⬡ ${this.mission.targetName}</span>
+        <span class="hud-mission-status ${statusClass}">${statusContent}</span>
+      </div>
+    `;
   }
 
   render() {
@@ -69,23 +96,35 @@ class StarnetHud extends StarnetElement {
         <span id="trace-countdown" class="hud-value trace-countdown">TRACE: ${this.traceSeconds}s</span>
       ` : nothing}
 
-      <button id="new-run-btn" title="Start a new run with custom parameters"
-              @click=${() => this._emit("new-run")}>[ NEW RUN ]</button>
-      <button id="pause-btn" class="${this.paused ? "active" : ""}"
-              @click=${() => this._emit("pause")}>${this.paused ? "[ RESUME ]" : "[ PAUSE ]"}</button>
-      <button id="save-btn" title="Save game state to file"
-              @click=${() => this._emit("save")}>[ SAVE ]</button>
-      <label id="load-btn" title="Load game state from file">[ LOAD ]
-        <input id="load-file-input" type="file" accept=".json" style="display:none"
-               @change=${this._onLoadFile} />
-      </label>
-      <button id="jack-out-btn" ?disabled=${this.phase !== "playing"}
-              @click=${() => this._emit("jackout")}>[ JACK OUT ]</button>
+      ${this._renderMission()}
 
-      ${this.isCheating ? html`
-        <span id="cheat-label" class="hud-cheat-label">// CHEAT</span>
-      ` : nothing}
+      <div class="hud-menu-wrap">
+        <button id="hud-menu-btn" class=${this.menuOpen ? "active" : ""} title="Toggle controls"
+                @click=${() => this._emit("toggle-menu")}>[ ☰ ]</button>
+
+        <div id="hud-menu" class=${this.menuOpen ? "open" : "closed"}>
+          <button id="new-run-btn" title="Start a new run with custom parameters"
+                  @click=${() => this._emit("new-run")}>[ NEW RUN ]</button>
+          <button id="pause-btn" class="${this.paused ? "active" : ""}"
+                  @click=${() => this._emit("pause")}>${this.paused ? "[ RESUME ]" : "[ PAUSE ]"}</button>
+          <button id="save-btn" title="Save game state to file"
+                  @click=${() => this._emit("save")}>[ SAVE ]</button>
+          <label id="load-btn" title="Load game state from file">[ LOAD ]
+            <input id="load-file-input" type="file" accept=".json" style="display:none"
+                   @change=${this._onLoadFile} />
+          </label>
+        </div>
+      </div>
     `;
+  }
+
+  // // CHEAT indicator — hidden for now (not rendered). Preserved intact for a
+  // planned status bar under the terminal; `isCheating` is still fed by the
+  // renderer. Re-add `${this._renderCheatLabel()}` to render() to restore it.
+  _renderCheatLabel() {
+    return this.isCheating
+      ? html`<span id="cheat-label" class="hud-cheat-label">// CHEAT</span>`
+      : nothing;
   }
 }
 

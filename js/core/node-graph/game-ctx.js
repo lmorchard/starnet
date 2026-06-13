@@ -197,6 +197,7 @@ export function buildGameCtx(opts = {}) {
       pauseTimers();
       openStore(getState());
     },
+    jackOut: () => endRun("success"),
 
     // ── Resolve methods (called by timed-action operator on completion) ──
 

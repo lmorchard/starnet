@@ -14,6 +14,7 @@ class StarnetHand extends StarnetElement {
     execProgress: { type: Number },
     isSelecting: { type: Boolean },
     selectedNodeId: { type: String },
+    collapsed: { type: Boolean, reflect: true },
   };
 
   constructor() {
@@ -24,6 +25,7 @@ class StarnetHand extends StarnetElement {
     this.execProgress = 0;
     this.isSelecting = false;
     this.selectedNodeId = "";
+    this.collapsed = false;
   }
 
   _onCardClick(card, index) {
@@ -40,6 +42,10 @@ class StarnetHand extends StarnetElement {
     }));
   }
 
+  _toggleCollapsed() {
+    this.dispatchEvent(new CustomEvent("starnet:toggle-hand", { bubbles: true }));
+  }
+
   render() {
     const executing = !!this.executingCardId;
     const handClass = ["nd-hand",
@@ -48,11 +54,15 @@ class StarnetHand extends StarnetElement {
     ].filter(Boolean).join(" ");
 
     return html`
-      <div class="${handClass}">
+      <div class="hand-header">
+        <button class="hand-toggle" title="Collapse / expand hand"
+                @click=${() => this._toggleCollapsed()}>${this.collapsed ? "▸" : "▾"} HAND</button>
+      </div>
+      ${this.collapsed ? nothing : html`<div class="${handClass}">
         ${this.cards.length === 0
           ? html`<span class="nd-dim">No exploits in hand.</span>`
           : this.cards.map((c, i) => this._renderCard(c, i + 1))}
-      </div>`;
+      </div>`}`;
   }
 
   _renderCard(card, index) {

@@ -309,7 +309,7 @@ registerTrait("gate", {
 registerTrait("darknet", {
   attributes: { ...LIE_LOW_ATTRS },
   operators: [LIE_LOW_OPERATOR],
-  actions: [ACTION_TEMPLATES.ACCESS_DARKNET, ACTION_TEMPLATES.LIE_LOW],
+  actions: [ACTION_TEMPLATES.ACCESS_DARKNET, ACTION_TEMPLATES.LIE_LOW, ACTION_TEMPLATES.DISCONNECT],
 });
 
 // ── New traits (stress-test the system) ─────────────────────
