@@ -29,6 +29,7 @@ import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setEx
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
 import { emitEvent, E } from "../events.js";
+import { createRunContext, getActiveRun, setActiveRun, requireActiveRun } from "../run-context.js";
 
 import { setNodeVisible, setNodeSigAlias, setNodeGraph, isSyncingToGraph } from "./node.js";
 import { setIceActive } from "./ice.js";
@@ -40,9 +41,8 @@ import { buildGameCtx } from "../node-graph/game-ctx.js";
 
 // ── State + version counter ──────────────────────────────
 
-/** @type {GameState|null} */
-let state = null;
-
+// The per-run GameState lives on the active RunContext (see run-context.js).
+// `version` is a render-gating counter, not run state, so it stays module-level.
 let version = 0;
 
 /**
@@ -52,9 +52,10 @@ let version = 0;
  * @returns {GameState}
  */
 export function mutate(fn) {
-  fn(/** @type {GameState} */ (state));
+  const state = /** @type {GameState} */ (requireActiveRun("mutate").state);
+  fn(state);
   version++;
-  return /** @type {GameState} */ (state);
+  return state;
 }
 
 /** Returns the current monotonic version counter. */
@@ -78,16 +79,21 @@ export function getVersion() {
 export function initGame(buildNetworkFn, seedString, opts = {}) {
   initRng(seedString);
 
+  // A new run is a brand-new context — fresh timers, fresh state. The previous
+  // run's context (and any of its timers) is dropped here, so nothing leaks in.
+  const ctx = createRunContext();
+  setActiveRun(ctx);
+
   const { graphDef, meta } = buildNetworkFn();
 
   // Build game ctx with late-bound graph reference
-  const ctx = buildGameCtx({ openDarknetsStore: opts.openDarknetsStore });
+  const gameCtx = buildGameCtx({ openDarknetsStore: opts.openDarknetsStore });
 
   // Build the onEvent bridge: graph → state.nodes sync + game event bus
   const onEvent = (type, payload) => {
     if (type === "node-state-changed") {
       // Sync graph attribute changes to state.nodes (skip if change came from a setter)
-      if (!isSyncingToGraph() && state?.nodes[payload.nodeId]) {
+      if (!isSyncingToGraph() && getState()?.nodes?.[payload.nodeId]) {
         mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
       }
       emitEvent(E.NODE_STATE_CHANGED, payload);
@@ -101,8 +107,9 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
   };
 
   // Construct the NodeGraph
-  const graph = new NodeGraph(graphDef, ctx, onEvent);
-  ctx._graph = graph;
+  const graph = new NodeGraph(graphDef, gameCtx, onEvent);
+  gameCtx._graph = graph;
+  ctx.nodeGraph = graph;   // register the run's graph on the run context
 
   // Run init lifecycle — operators react to { type: 'init' } messages
   graph.init();
@@ -146,8 +153,8 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     if (adjacency[b]) adjacency[b].push(a);
   }
 
-  // Create the state object
-  state = {
+  // Create the state object (owned by the active run context)
+  ctx.state = {
     seed: getSeed(),
     spec: meta.spec ?? null,
     moneyCost: meta.moneyCost ?? "F",
@@ -176,6 +183,7 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     lastDisturbedNodeId: null,
     mission: null,
   };
+  const state = ctx.state;   // local alias so the rest of initGame reads unchanged
 
   // Guarantee per-card-unique ids: carried profile cards may bring ids that
   // collide with freshly-generated ones (the counter resets per session). The
@@ -254,13 +262,14 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
 
 /** @returns {GameState} */
 export function getState() {
-  return /** @type {GameState} */ (state);
+  return /** @type {GameState} */ (getActiveRun()?.state ?? null);
 }
 
 // ── Graph traversal utilities ────────────────────────────
 // Used by combat.js, cheats.js — reveal/access neighbor nodes.
 
 export function revealNeighbors(nodeId) {
+  const state = getState();
   (state.adjacency[nodeId] || []).forEach((neighborId) => {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "hidden" && !neighbor.concealed) {
@@ -275,6 +284,7 @@ export function revealNeighbors(nodeId) {
 }
 
 export function accessNeighbors(nodeId) {
+  const state = getState();
   (state.adjacency[nodeId] || []).forEach((neighborId) => {
     const neighbor = state.nodes[neighborId];
     if (neighbor && neighbor.visibility === "revealed") {
@@ -304,6 +314,7 @@ export function nextAlertLevel(level) {
 // ── End run ──────────────────────────────────────────────
 
 export function endRun(outcome) {
+  const state = getState();
   clearAllTimers();
   setPhase("ended");
   setRunOutcome(outcome);
@@ -337,6 +348,7 @@ export function isIceVisible(ice, nodes, selectedNodeId = null) {
  * @returns {boolean}
  */
 export function buyExploit(card, price) {
+  const state = getState();
   if (state.player.cash < price) return false;
   addCash(-price);
   addCardToHand(card);
@@ -346,34 +358,39 @@ export function buyExploit(card, price) {
 // ── Serialization ─────────────────────────────────────────
 
 export function serializeState() {
-  const { nodeGraph, ...rest } = /** @type {any} */ (state);
+  const state = /** @type {any} */ (requireActiveRun("serializeState").state);
+  const { nodeGraph, ...rest } = state;
   return {
     ...rest,
-    _timers: serializeTimers(),
-    _rng: serializeRng(),
-    _exploitIdCounter,
+    _timers: serializeTimers(),       // active context's timer set
+    _rng: serializeRng(),             // shared service (overworld + run)
+    _exploitIdCounter,                // shared service (overworld + run)
     _nodeGraph: nodeGraph ? nodeGraph.snapshot() : null,
   };
 }
 
 export function deserializeState(snapshot, opts = {}) {
   const { _timers, _rng, _exploitIdCounter: exploitId, _nodeGraph, ...gameState } = snapshot;
-  state = gameState;
-  deserializeTimers(_timers);
+
+  // A restored run is also a fresh context swapped in — same as initGame.
+  const ctx = createRunContext();
+  setActiveRun(ctx);
+  ctx.state = gameState;
+  deserializeTimers(_timers);   // writes into ctx.timers
   if (_rng) deserializeRng(_rng);
   else initRng(gameState.seed ?? undefined);
   if (exploitId != null) setExploitIdCounter(exploitId);
 
   // Heal saves whose hand carries colliding card ids (see initGame). Runs after
   // the counter is restored so re-mints continue above the snapshot's id space.
-  if (state?.player?.hand) reconcileHandIds(state.player.hand);
+  if (ctx.state?.player?.hand) reconcileHandIds(ctx.state.player.hand);
 
   // Restore NodeGraph from snapshot
   if (_nodeGraph) {
-    const ctx = buildGameCtx(opts);
+    const gameCtx = buildGameCtx(opts);
     const onEvent = (type, payload) => {
       if (type === "node-state-changed") {
-        if (!isSyncingToGraph() && state?.nodes[payload.nodeId]) {
+        if (!isSyncingToGraph() && getState()?.nodes?.[payload.nodeId]) {
           mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
         }
         emitEvent(E.NODE_STATE_CHANGED, payload);
@@ -383,9 +400,10 @@ export function deserializeState(snapshot, opts = {}) {
         emitEvent(E.QUALITY_CHANGED, payload);
       }
     };
-    const graph = NodeGraph.fromSnapshot(_nodeGraph, ctx, onEvent);
-    ctx._graph = graph;
-    state.nodeGraph = graph;
+    const graph = NodeGraph.fromSnapshot(_nodeGraph, gameCtx, onEvent);
+    gameCtx._graph = graph;
+    ctx.state.nodeGraph = graph;
+    ctx.nodeGraph = graph;
     setNodeGraph(graph);
     setGraphForTick(graph);
   }
