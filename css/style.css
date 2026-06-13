@@ -99,14 +99,21 @@ html, body {
   background-size: 40px 40px;
 }
 
-#log-pane {
+#bottom-row {
+  display: flex;
   flex: 0 0 var(--log-h, 260px);
+  min-height: 0;
+  border-top: 1px solid var(--border);
+}
+
+#log-pane {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   background: var(--bg-panel);
-  border-top: 1px solid var(--border);
   overflow: hidden;
   min-height: 0;
+  min-width: 0;
 }
 
 #log-header {
@@ -188,14 +195,6 @@ html, body {
   cursor: pointer;
 }
 
-#sidebar {
-  flex: 0 0 var(--sidebar-w, 400px);
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-panel);
-  border-left: 1px solid var(--border);
-  overflow: hidden;
-}
 
 /* ── Resize splitters ───────────────────────────────────────
    Thin flex-participating bars between resizable panes. Stroke-only, no fill:
@@ -242,13 +241,6 @@ html, body {
   height: 1px; transform: translateY(-0.5px);
 }
 
-#sidebar-mission {
-  flex: 0 0 auto;
-  border-bottom: 1px solid var(--border);
-  padding: 0.5rem 1rem;
-  background: #0a0a12;
-}
-
 .mission-label {
   font-size: 0.65rem;
   color: var(--text-dim);
@@ -273,21 +265,45 @@ html, body {
   vertical-align: middle;
 }
 
-#sidebar-node {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-/* Height owned by the --hand-h var + the resizer's clamp (see resizers.js); the
-   clamp's max (~60% of the sidebar) preserves the "don't crowd the node panel"
-   intent that the old max-height: 33% served. */
+/* Exploit hand panel — fixed-width right column in the bottom row. */
 #hand-strip {
-  flex: 0 0 var(--hand-h, 200px);
+  flex: 0 0 var(--hand-w, 340px);
+  min-width: 0;
   overflow-y: auto;
-  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
   background: var(--bg-panel);
   padding: 0.4rem 0.75rem;
+}
+
+/* Collapsed: shrink to just the toggle button width. */
+#hand-strip[collapsed] {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+/* Hand header — toggle button row */
+.hand-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.hand-toggle {
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  text-shadow: var(--glow-sm) var(--cyan);
+  white-space: nowrap;
+}
+
+.hand-toggle:hover {
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: var(--glow-sm) rgba(0, 255, 255, 0.4);
 }
 
 /* ── HUD ────────────────────────────────────────────────── */
@@ -380,30 +396,77 @@ html, body {
   box-shadow: var(--glow-lg) rgba(0, 255, 255, 0.7);
 }
 
-#jack-out-btn {
+/* Hamburger menu button — same chrome as the other HUD buttons */
+#hud-menu-btn {
   background: transparent;
-  border: 1px solid var(--red);
-  color: var(--red);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
   font-family: var(--font-mono);
   font-size: 0.8rem;
   white-space: nowrap;
   letter-spacing: 0.1em;
   padding: 0.3rem 0.8rem;
   cursor: pointer;
-  text-shadow: var(--glow-md) var(--red);
-  box-shadow: var(--glow-md) rgba(255, 32, 32, 0.3);
+  text-shadow: var(--glow-md) var(--cyan);
+  box-shadow: var(--glow-md) rgba(0, 255, 255, 0.3);
   transition: background 0.15s, box-shadow 0.15s;
 }
 
-#jack-out-btn:hover {
-  background: rgba(255, 32, 32, 0.15);
-  box-shadow: var(--glow-lg) rgba(255, 32, 32, 0.6);
+#hud-menu-btn:hover,
+#hud-menu-btn.active {
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: var(--glow-lg) rgba(0, 255, 255, 0.5);
 }
 
-#jack-out-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+/* Controls dropdown — the ☰ button summons a floating panel of buttons below it
+   rather than expanding them inline into the header. */
+.hud-menu-wrap {
+  position: relative;
+  display: inline-flex;
 }
+#hud-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 20;            /* above the header chrome + graph */
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--cyan);
+  box-shadow: var(--glow-lg) rgba(0, 255, 255, 0.25);
+}
+#hud-menu.closed { display: none; }
+/* Buttons fill the dropdown width and left-align for a tidy menu column. */
+#hud-menu > button,
+#hud-menu > label {
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Compact mission block in the header */
+#hud-mission {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+#hud-mission .hud-mission-target {
+  color: var(--yellow);
+  font-size: 0.8rem;
+  text-shadow: var(--glow-sm) var(--yellow);
+}
+
+#hud-mission .hud-mission-status {
+  font-size: 0.75rem;
+}
+
+#hud-mission .mission-status-active   { color: var(--yellow); }
+#hud-mission .mission-status-complete { color: var(--green); text-shadow: var(--glow-sm) var(--green); }
+#hud-mission .mission-status-failed   { color: var(--red); }
 
 /* ── Sidebar ────────────────────────────────────────────── */
 
@@ -422,39 +485,11 @@ html, body {
 
 /* ── Node Detail Panel ──────────────────────────────────── */
 
-.node-detail {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .nd-header {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   margin-bottom: 0.5rem;
-  position: relative;
-}
-
-.untarget-btn {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  font-family: inherit;
-  font-size: 0.65rem;
-  letter-spacing: 0.05em;
-  padding: 0.1rem 0.3rem;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.untarget-btn:hover {
-  color: var(--cyan);
-  border-color: var(--cyan);
 }
 
 .nd-type {
@@ -544,7 +579,10 @@ html, body {
 /* ── Node Context Menu ───────────────────────────────────── */
 
 #node-context-menu {
-  min-width: 180px;
+  /* Fixed width — the inspector is a panel, not a content-hugging menu. A stable
+     width stops the popup from jittering as node content (vuln names, values,
+     action descs) changes between states. */
+  width: 350px;
   background: var(--bg-panel);
   border: 1px solid var(--magenta);
   display: flex;
@@ -590,6 +628,87 @@ html, body {
   color: var(--text-dim);
   margin-top: 0.1rem;
   letter-spacing: 0.05em;
+}
+
+/* ── Node inspector regions ──────────────────────────────────
+   The popup stacks discrete sections (identity / actions / timers /
+   vulnerabilities / contents). A magenta rule sits between every adjacent
+   pair (echoing the popup's magenta outline); vertical padding gives each
+   section breathing room. */
+#node-context-menu .insp-section {
+  padding: 0.3rem 0;
+}
+#node-context-menu .insp-section + .insp-section {
+  border-top: 1px solid var(--magenta);
+}
+
+/* Identity + footer text rows share the action-row left inset (0.6rem);
+   the full-width action buttons carry their own padding instead. */
+#node-context-menu .insp-header,
+#node-context-menu .ice-timers,
+#node-context-menu .nd-vulns,
+#node-context-menu .nd-macguffins,
+#node-context-menu .nd-section-label,
+#node-context-menu .nd-dim {
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+}
+#node-context-menu .insp-actions { padding-top: 0.35rem; padding-bottom: 0.35rem; }
+
+/* Compact identity — top row pairs the (small) type with the grade/access/alert
+   meta line (GRADE B · OWNED · ▲ RED), pushed to the right; the label (often a
+   long id) gets its own line below. */
+#node-context-menu .insp-typerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+#node-context-menu .nd-type { font-size: 0.52rem; }
+#node-context-menu .nd-label {
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 0.1rem;
+}
+#node-context-menu .insp-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+#node-context-menu .insp-meta .im-key { color: var(--text-dim); }
+#node-context-menu .insp-meta .im-sep { color: var(--border); }
+#node-context-menu .insp-meta .im-val { color: var(--green); }
+#node-context-menu .nd-section-label { margin-bottom: 0.3rem; }
+#node-context-menu .nd-vuln { font-size: 0.68rem; }
+
+/* Busy indicator that replaces the action buttons while a timed action runs. */
+#node-context-menu .insp-inprogress {
+  display: flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  color: var(--magenta);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+#node-context-menu .insp-hint { font-size: 0.7rem; }
+
+/* Stroked tick ladder — count of lit ticks is the progress channel. */
+#node-context-menu .insp-ladder {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 0.5rem;
+  align-items: center;
+}
+#node-context-menu .insp-ladder .tick {
+  width: 0;
+  height: 0.7em;
+  border-left: 2px solid var(--border);
+}
+#node-context-menu .insp-ladder .tick.on {
+  border-left-color: var(--magenta);
 }
 
 
@@ -1586,15 +1705,17 @@ html, body {
   display: block;
 }
 
-/* Vital-sign traces — stacked pair at the top of the sidebar. */
+/* Vital-sign traces — floated upper-right over the graph. */
 #vital-stack {
-  flex: 0 0 auto;
-  border-bottom: 1px solid var(--border);
-  padding: 0.5rem 1rem;
-  background: #0a0a12;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 220px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  pointer-events: none;
 }
 .vital-strip {
   display: block;
@@ -1602,6 +1723,41 @@ html, body {
   line-height: 0;
   background: #06060a;
   border: 1px solid var(--border);
+}
+
+/* Uplink control beneath the vitals. #vital-stack is pointer-events:none (so the
+   waveforms never block graph interaction) — re-enable events on the button. */
+#vital-stack starnet-uplink { pointer-events: auto; }
+.uplink-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.6rem;
+  margin-top: 2px;
+  cursor: pointer;
+  text-shadow: var(--glow-sm) var(--cyan);
+  box-shadow: var(--glow-sm) rgba(0, 255, 255, 0.25);
+  transition: background 0.15s, box-shadow 0.15s, color 0.15s, border-color 0.15s;
+}
+.uplink-btn:hover {
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: var(--glow-md) rgba(0, 255, 255, 0.45);
+}
+/* JACK OUT mode — red escape hatch, pulses to pull the eye during a trace. */
+.uplink-btn.uplink-danger {
+  border-color: var(--red);
+  color: var(--red);
+  text-shadow: var(--glow-md) var(--red);
+  box-shadow: var(--glow-md) rgba(255, 32, 32, 0.5);
+  animation: uplink-pulse 1s steps(2, end) infinite;
+}
+.uplink-btn.uplink-danger:hover { background: rgba(255, 32, 32, 0.12); }
+@keyframes uplink-pulse {
+  50% { box-shadow: var(--glow-lg) rgba(255, 32, 32, 0.85); }
 }
 .vital-strip .hud-waveform {
   display: block;

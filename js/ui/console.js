@@ -8,7 +8,7 @@
 //   2. Override the "cheat" command with browser-specific sub-commands
 //      (relayout, restore) that need graph.js / DOM access.
 
-import { getState } from "../core/state.js";
+import { getState, toggleMenuOpen, toggleHandCollapsed } from "../core/state.js";
 import { addLogEntry } from "../core/log.js";
 import { emitEvent, on, E } from "../core/events.js";
 import { registerCommand, getCommand, tabComplete } from "../core/console-commands/index.js";
@@ -54,6 +54,36 @@ registerCommand({
     }
 
     coreCheat.execute(args);
+  },
+});
+
+// ── Menu toggle command ───────────────────────────────────────────────────────
+// GUI/console symmetry: `menu` toggles the header controls panel identically
+// to clicking the hamburger button.
+
+registerCommand({
+  verb: "menu",
+  execute() {
+    if (!getState()) { addLogEntry("menu: no active run.", "error"); return; }
+    const open = toggleMenuOpen();
+    const hudEl = /** @type {any} */ (document.getElementById("hud"));
+    if (hudEl) hudEl.menuOpen = open;
+    addLogEntry(`Controls panel ${open ? "open" : "closed"}.`, "meta");
+  },
+});
+
+// ── Hand collapse toggle command ──────────────────────────────────────────────
+// GUI/console symmetry: `hand` toggles the exploit hand panel identically
+// to clicking the collapse button.
+
+registerCommand({
+  verb: "hand",
+  execute() {
+    if (!getState()) { addLogEntry("hand: no active run.", "error"); return; }
+    const c = toggleHandCollapsed();
+    const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
+    if (handEl) handEl.collapsed = c;
+    addLogEntry(`Exploit hand ${c ? "collapsed" : "expanded"}.`, "meta");
   },
 });
 

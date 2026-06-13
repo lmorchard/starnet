@@ -9,6 +9,7 @@
 
 import { on, E } from "../core/events.js";
 import { A } from "../core/action-ids.js";
+import { TIMED_ACTIONS, getTimedActionAttrNames } from "../core/node-graph/timed-actions.js";
 import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
 import { isScriptAction } from "../core/actions/scripts.js";
@@ -18,6 +19,7 @@ import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
 import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation/index.js";
+import { computeInspectorPosition } from "./inspector-position.js";
 
 // Debounce handle for NODE_REVEALED viewport fit.
 // Multiple simultaneous reveals (e.g. exploiting a hub node) would otherwise
@@ -190,28 +192,43 @@ function _positionContextMenu(nodeId) {
   if (!node || node.length === 0) return;
 
   const pos = node.renderedPosition();
-  const r   = node.renderedWidth() / 2;
-  const gap = 20;
-
-  // Measure menu — valid because it's in the DOM (even at opacity 0)
-  const mw = menu.offsetWidth;
-  const mh = menu.offsetHeight;
-
-  // Container bounds (node positions are relative to the cy canvas)
   const container = cy.container();
-  const cw = container.offsetWidth;
-  const ch = container.offsetHeight;
+  const { left, top } = computeInspectorPosition({
+    node: { x: pos.x, y: pos.y, r: node.renderedWidth() / 2 },
+    popup: { w: menu.offsetWidth, h: menu.offsetHeight },
+    container: { w: container.offsetWidth, h: container.offsetHeight },
+  });
 
-  // Horizontal: prefer right of node, flip left if clipped
-  const onRight = pos.x + r + gap + mw <= cw;
-  const x = onRight ? pos.x + r + gap : pos.x - r - gap - mw;
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  // Always left-align: the inspector is a panel with structured rows, so the
+  // right-justify that suited a bare left-side action menu reads wrong here.
+  menu.style.textAlign = "left";
+}
 
-  // Vertical: center on node, clamp to container
-  const y = Math.max(4, Math.min(pos.y - mh / 2, ch - mh - 4));
+// Human label for the action band's busy indicator, keyed by timed-action id.
+const IN_PROGRESS_LABELS = {
+  probe: "PROBING",
+  xploit: "EXECUTING",
+  dump: "READING",
+  fetch: "EXTRACTING",
+  mine: "MINING",
+  "lie-low": "LYING LOW",
+  reboot: "REBOOTING",
+};
 
-  menu.style.left      = `${x}px`;
-  menu.style.top       = `${y}px`;
-  menu.style.textAlign = onRight ? "left" : "right";
+// If a timed action is running on this node, return its label + 0..1 progress so
+// the inspector can show a busy indicator instead of (then-empty) action buttons.
+function inProgressFor(node) {
+  const busy = TIMED_ACTIONS.find((t) => /** @type {any} */ (node)[t.activeAttr]);
+  if (!busy) return { label: "", progress: 0 };
+  const { progressAttr, durationAttr } = getTimedActionAttrNames(busy.action);
+  const dur = /** @type {any} */ (node)[durationAttr];
+  const prog = /** @type {any} */ (node)[progressAttr];
+  return {
+    label: IN_PROGRESS_LABELS[busy.action] || busy.action.toUpperCase(),
+    progress: dur > 0 ? Math.min(1, (prog || 0) / dur) : 0,
+  };
 }
 
 function syncContextMenu(node, state) {
@@ -225,7 +242,11 @@ function syncContextMenu(node, state) {
       && a.id !== A.UNTARGET && a.id !== A.ABORT
       && !isScriptAction(a.id)); // scripts are reached via the EXEC ▸ entry
 
-  if (!actions.length) {
+  // Keep the inspector up during a timed action even though no actions are
+  // available — the action band shows a busy indicator instead.
+  const busy = inProgressFor(node);
+
+  if (!actions.length && !busy.label) {
     clearContextMenu();
     return;
   }
@@ -243,6 +264,10 @@ function syncContextMenu(node, state) {
     }
     return { id: a.id, label: a.label, desc: a.desc(node, state), hasFollowup: true };
   });
+  menu.node = { ...node };           // header + footer source (fresh ref for Lit)
+  menu.timers = getVisibleTimers();  // initial timer snapshot for the footer
+  menu.inProgressLabel = busy.label;
+  menu.inProgressProgress = busy.progress;
   menu.nodeId = node.id;
   menu.visible = true;
 
@@ -270,26 +295,38 @@ function clearContextMenu() {
 // ── Action choice picker ──────────────────────────────────
 
 function _positionActionChoices(nodeId) {
-  const panel = document.getElementById("action-choices");
+  const panel = /** @type {any} */ (document.getElementById("action-choices"));
   if (!panel || !nodeId) return;
   const cy = getCy();
   if (!cy) return;
-  const cyNode = cy.getElementById(nodeId);
-  if (!cyNode || cyNode.length === 0) return;
 
-  const pos = cyNode.renderedPosition();
-  const r = cyNode.renderedWidth() / 2;
-  const gap = 20;
-  const pw = panel.offsetWidth;
-  const ph = panel.offsetHeight;
   const container = cy.container();
   const cw = container.offsetWidth;
   const ch = container.offsetHeight;
+  const pw = panel.offsetWidth;
+  const ph = panel.offsetHeight;
 
+  // Cascade off the inspector's top-left by a small offset so the picker reads as
+  // a child of the inspector showing for this same node.
+  const menu = /** @type {any} */ (document.getElementById("node-context-menu"));
+  if (menu && contextMenuNodeId === nodeId) {
+    const OFFSET = 16;
+    const left = Math.max(4, Math.min(menu.offsetLeft + OFFSET, cw - pw - 4));
+    const top  = Math.max(4, Math.min(menu.offsetTop + OFFSET, ch - ph - 4));
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+    return;
+  }
+
+  // Fallback: node-anchored (no inspector visible for this node).
+  const cyNode = cy.getElementById(nodeId);
+  if (!cyNode || cyNode.length === 0) return;
+  const pos = cyNode.renderedPosition();
+  const r = cyNode.renderedWidth() / 2;
+  const gap = 20;
   const onRight = pos.x + r + gap + pw <= cw;
   const x = onRight ? pos.x + r + gap : pos.x - r - gap - pw;
   const y = Math.max(4, Math.min(pos.y - ph / 2, ch - ph - 4));
-
   panel.style.left = `${x}px`;
   panel.style.top = `${y}px`;
 }
@@ -303,8 +340,8 @@ function openActionChoices(nodeId, actionId) {
   const choices = action.followup.choices(node, state);
   if (choices.length === 0) return;
 
-  clearContextMenu();
-
+  // Keep the inspector visible underneath — the picker (higher z-index) overlaps
+  // it and dismisses itself once a choice is made (or on cancel/ESC).
   const panel = /** @type {any} */ (document.getElementById("action-choices"));
   if (!panel) return;
   choicesNodeId = nodeId;
@@ -359,6 +396,20 @@ function syncVitals(state) {
   if (deckEl) deckEl.frac = d.max > 0 ? d.current / d.max : 0;
 }
 
+// ── Uplink control (floats under the vitals) ──────────────
+// VISIT WAN normally (selects the WAN node); JACK OUT when alert is elevated or
+// a trace is counting down — the escape hatch, surfaced exactly when needed.
+function syncUplink(state) {
+  const el = /** @type {any} */ (document.getElementById("uplink-btn"));
+  if (!el) return;
+  const playing = state.phase === "playing";
+  const danger = state.globalAlert !== "green" || state.traceSecondsRemaining !== null;
+  const wan = Object.values(state.nodes).find((n) => /** @type {any} */ (n).type === "wan");
+  el.wanNodeId = wan?.id || "";
+  el.mode = danger ? "jackout" : "visit";
+  el.visible = playing && (danger || !!wan);
+}
+
 // ── HUD sync ──────────────────────────────────────────────
 
 function syncHud(state) {
@@ -369,6 +420,7 @@ function syncHud(state) {
     hudEl.traceSeconds = state.traceSecondsRemaining;
     hudEl.isCheating = state.isCheating;
     hudEl.phase = state.phase;
+    hudEl.menuOpen = state.ui?.menuOpen ?? false;
 
     // Connection status
     const detecting = getVisibleTimers().some((t) => t.label === "ICE DETECTION");
@@ -385,29 +437,23 @@ function syncHud(state) {
   }
 
   syncMissionPane(state);
+  syncUplink(state);
 
   // End screen
   if (state.phase === "ended") {
     closeActionChoices();
-    /** @type {any} */ (document.getElementById("sidebar-node")).node = null;
-    /** @type {any} */ (document.getElementById("sidebar-node")).selectedNodeId = "";
     const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
-    handEl.cards = [];
-    handEl.executingCardId = null;
-    handEl.execProgress = 0;
-    handEl.isSelecting = false;
-    handEl.selectedNode = null;
-    handEl.selectedNodeId = "";
+    if (handEl) {
+      handEl.cards = [];
+      handEl.executingCardId = null;
+      handEl.execProgress = 0;
+      handEl.isSelecting = false;
+      handEl.selectedNode = null;
+      handEl.selectedNodeId = "";
+    }
     renderEndScreen(state);
     return;
   }
-
-  // Sidebar node panel
-  const nodePanelEl = /** @type {any} */ (document.getElementById("sidebar-node"));
-  nodePanelEl.selectedNodeId = state.selectedNodeId || "";
-  // Shallow-copy: state mutates nodes in place, so the reference doesn't change.
-  // Lit needs a new reference to trigger re-render.
-  nodePanelEl.node = state.selectedNodeId ? { ...state.nodes[state.selectedNodeId] } : null;
 
   syncHandPane(state);
 }
@@ -415,10 +461,9 @@ function syncHud(state) {
 // ── Mission pane ──────────────────────────────────────────
 
 function syncMissionPane(state) {
-  const el = document.getElementById("sidebar-mission");
-  if (!el) return;
-  /** @type {any} */ (el).mission = state.mission ? { ...state.mission } : null;
-  /** @type {any} */ (el).phase = state.phase;
+  const hudEl = /** @type {any} */ (document.getElementById("hud"));
+  if (!hudEl) return;
+  hudEl.mission = state.mission ? { ...state.mission } : null;
 }
 
 
@@ -447,16 +492,20 @@ function syncHandPane(state) {
   handEl.executingCardId = exploitingId;
   handEl.isSelecting = isSelecting;
   handEl.selectedNodeId = state.selectedNodeId || "";
+  handEl.collapsed = state.ui?.handCollapsed ?? false;
 }
 
 // ── ICE timers ────────────────────────────────────────────
 
-// Updates the <starnet-node-panel> timers property.
+// Updates the inspector popup timers property.
 // Called on TIMERS_UPDATED ticks.
 function syncIceTimers() {
-  const panel = /** @type {any} */ (document.getElementById("sidebar-node"));
-  if (!panel) return;
-  panel.timers = getVisibleTimers();
+  const menu = /** @type {any} */ (document.getElementById("node-context-menu"));
+  if (!menu || !menu.visible) return;
+  // Timer rows appearing/disappearing changes the popup height — reposition after
+  // the footer re-renders so the header+actions stay anchored.
+  menu.timers = getVisibleTimers();
+  menu.updateComplete.then(() => _positionContextMenu(contextMenuNodeId));
 }
 
 // ── End screen ────────────────────────────────────────────
