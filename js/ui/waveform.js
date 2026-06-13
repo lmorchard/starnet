@@ -33,6 +33,31 @@ function clamp01(v) {
   return Math.max(0, Math.min(1, n));
 }
 
+/**
+ * Truncate an ascending-in-x polyline at x = W, interpolating the y at the crossing.
+ * A trailing vertex past the right edge is replaced by the exact point where the last
+ * segment meets x = W, so an over-filled final beat reads as an incomplete pulse cut at
+ * the edge rather than running out of bounds.
+ * @param {Array<Point>} pts vertices in ascending x
+ * @param {number} W
+ * @returns {Array<Point>}
+ */
+function clipRightX(pts, W) {
+  /** @type {Array<Point>} */
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    if (p.x <= W) {
+      out.push(p);
+      continue;
+    }
+    const prev = pts[i - 1];
+    if (prev && prev.x < W) out.push({ x: W, y: lerp(prev.y, p.y, (W - prev.x) / (p.x - prev.x)) });
+    break;
+  }
+  return out;
+}
+
 // ── public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -91,7 +116,11 @@ export function ecgPoints({ frac, width, height }) {
   // a wider strip shows MORE beats rather than stretching a fixed few. Damage shortens
   // the period (faster heart rate). Tuned to match the lab proportions.
   const period = H * lerp(1.15, 2.0, f);
-  const beats = Math.max(1, Math.floor(W / period));
+  // ceil (not floor): draw the final beat even when only part of it fits, so a wide
+  // strip ends on an incomplete pulse clipped at the edge rather than dropping the beat
+  // and flatlining for up to a full period of leftover width. clipRightX trims the
+  // overhang back to W below.
+  const beats = Math.max(1, Math.ceil(W / period));
   const cw = Math.min(period * 0.72, period - 2); // complex width; rest is flat diastole
   const top = H * 0.04, bot = H * 0.96;            // headroom so glow doesn't clip
   const cl = (y) => Math.max(top, Math.min(bot, y));
@@ -155,8 +184,10 @@ export function ecgPoints({ frac, width, height }) {
       pts.push({ x: X(0.96), y: mid });
     }
   }
-  pts.push({ x: W, y: mid });
-  return pts;
+  // If the last beat ended before the edge, extend flat diastole to W; if it overran the
+  // edge, clipRightX trims it back to an incomplete pulse cut at W.
+  if (pts[pts.length - 1].x < W) pts.push({ x: W, y: mid });
+  return clipRightX(pts, W);
 }
 
 /**
