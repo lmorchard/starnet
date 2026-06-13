@@ -29,31 +29,43 @@ And when they find you, the clock starts.
 ## THE INTERFACE
 
 ```
-┌──────────────────────────────────────┬────────────────────────┐
-│                                      │  MISSION / NODE INFO   │
-│           NETWORK GRAPH              │  ACTIONS               │
-│                                      ├────────────────────────┤
-│                                      │  EXPLOIT HAND          │
-├──────────────────────────────────────┤                        │
-│  LOG                                 │                        │
-│  > CONSOLE INPUT                     │                        │
-└──────────────────────────────────────┴────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  HUD: ALERT · WALLET · MISSION · [ ☰ ]                       │
+├──────────────────────────────────────────────────────────────┤
+│                                                  ┌─────────┐ │
+│                  NETWORK GRAPH                   │ HEALTH  │ │
+│                                                  │  DECK   │ │
+│         [ node inspector popup ]                 │VISIT WAN│ │
+│                                                  └─────────┘ │
+├────────────────────────────────────┬─────────────────────────┤
+│  LOG                               │  EXPLOIT HAND  [ ▾ ]   │
+│  > CONSOLE INPUT                   │                         │
+└────────────────────────────────────┴─────────────────────────┘
 ```
 
-**Network Graph** — The LAN rendered as a node graph. Your accessible nodes glow cyan.
-Nodes you've detected but not yet identified appear as unlabelled signal contacts tagged
-`sig-1`, `sig-2`, … — their real identity (id, type, grade) stays hidden until you probe
-them. ICE appears as a red diamond when it moves onto a node you control.
+**Network Graph** — The LAN rendered as a node graph filling the full window width. Your
+accessible nodes glow cyan. Nodes you've detected but not yet identified appear as
+unlabelled signal contacts tagged `sig-1`, `sig-2`, … — their real identity (id, type,
+grade) stays hidden until you probe them. ICE appears as a red diamond when it moves onto
+a node you control.
 
-**Node Info Panel** — Details for your targeted node: type, grade, access level, alert
-state, vulnerabilities (after probing), and available actions.
+**Node Inspector** — Selecting a node opens an anchored popup beside it on the graph. The
+inspector has three regions: a header (type, GRADE · ACCESS · alert lamp, then the node
+label), action buttons in the middle, and a footer showing ICE/action timers, CONTENTS,
+and VULNERABILITIES. While a timed action runs on the node, the action buttons are
+replaced by a busy indicator (e.g. `▶ EXECUTING`) with a progress tick-ladder; the
+inspector stays visible. Submenu pickers (XPLOIT cards, EXEC scripts) cascade off the
+inspector. Unidentified nodes show the same header with `[???]` / the `sig-N` alias in
+place of the real type and label.
 
-**Exploit Hand** — Your five exploit cards. When a node is targeted, matching cards
-highlight in cyan. There are two ways to play one: choose **XPLOIT** from the node's
-action menu to open a card picker anchored on the node (the guided path — see the
-*Exploit* step in *The Core Loop* below), or click a card directly in the hand strip (the override path — plays
-any usable card, even a long shot). Both do the same thing; the hand is also your
-at-a-glance inventory.
+**Exploit Hand** — Your five exploit cards, in a strip along the bottom of the screen
+beside the terminal. When a node is targeted, matching cards highlight in cyan. There are
+two ways to play one: choose **XPLOIT** from the node inspector to open a card picker
+anchored on the node (the guided path — see the *Exploit* step in *The Core Loop* below),
+or click a card directly in the hand strip (the override path — plays any usable card,
+even a long shot). Both do the same thing; the hand is also your at-a-glance inventory.
+The hand has a collapse toggle (`[ ▾ HAND ]`); use the `hand` console command to toggle
+it from the keyboard.
 
 **Log** — The full event record of your run. Every system event, every exploit roll,
 every ICE movement that crosses into your territory appears here.
@@ -61,13 +73,31 @@ every ICE movement that crosses into your territory appears here.
 **Console** — Type commands directly. Tab-complete node names. Full command reference
 at the end of this manual.
 
-**HUD** — Top bar shows global alert level (as a vector lamp whose shape encodes the level: hexagon = safe, point-up triangle = warning, inverted triangle = danger/trace), your current cash balance, and your two resource meters: **HEALTH** and **DECK INTEGRITY**, drawn as vector-CRT vital traces that sweep left-to-right with a fading phosphor trail. HEALTH is a green ECG/heartbeat (PQRST) complex — as health falls the beat speeds up and decays through escalating ECG abnormalities (ST/T-wave changes, then premature and skipped beats), breaking into a chaotic fibrillation flutter near death before flatlining at zero. DECK INTEGRITY is a violet symmetric CPU-clock pulse — as deck integrity falls its edges develop deepening ringing, overshoot and timing/amplitude glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover either trace to see the exact value as a percentage.
+**HUD** — Top bar shows global alert level (as a vector lamp whose shape encodes the
+level: hexagon = safe, point-up triangle = warning, inverted triangle = danger/trace),
+your current cash balance, the active **mission** target and status, and a hamburger
+button `[ ☰ ]` that opens a dropdown panel with NEW RUN / PAUSE / SAVE / LOAD. Use the
+`menu` console command to toggle the panel from the keyboard.
 
-**Resizing the layout** — Three borders are drag-resizable: the sidebar's left
-edge (its width), the border above the log/console (graph vs. log height), and
-the border above the exploit hand (hand vs. node-info height). Grab a border and
-drag; **double-click a border to reset that split** to its default. Your chosen
-sizes persist across reloads. The header bar is fixed.
+**Vital traces** — HEALTH and DECK INTEGRITY float as an inset in the upper-right corner
+over the graph, drawn as vector-CRT vital traces that sweep left-to-right with a fading
+phosphor trail. HEALTH is a green ECG/heartbeat (PQRST) complex — as health falls the
+beat speeds up and decays through escalating ECG abnormalities (ST/T-wave changes, then
+premature and skipped beats), breaking into a chaotic fibrillation flutter near death
+before flatlining at zero. DECK INTEGRITY is a violet symmetric CPU-clock pulse — as
+deck integrity falls its edges develop deepening ringing, overshoot and timing/amplitude
+glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover
+either trace to see the exact value as a percentage.
+
+**Uplink control** — Floating beneath the vital traces (upper-right). Normally shows
+`[ VISIT WAN ]`, which selects the WAN node (useful shortcut to reach the darknet broker,
+lie-low, or disconnect). When the global alert is elevated (not green) or a trace is
+counting down, it switches to a pulsing `[ JACK OUT ]` for instant disconnect.
+
+**Resizing the layout** — Two borders are drag-resizable: the border above the log/console
+(graph vs. log height) and the border between the log and the exploit hand (log vs. hand
+width). Grab a border and drag; **double-click a border to reset that split** to its
+default. Your chosen sizes persist across reloads. The header bar is fixed.
 
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
@@ -296,6 +326,17 @@ target, if found, is flagged as collected.
 
 End the run and collect your score. Do this before the trace countdown hits zero.
 
+Three paths to the same outcome:
+
+- **`jackout` console command** — instant, works any time.
+- **`[ JACK OUT ]` uplink control** — the button floated in the upper-right corner of
+  the graph. It appears in place of `[ VISIT WAN ]` whenever the global alert is elevated
+  (not green) or a trace is counting down; at green alert it shows `[ VISIT WAN ]` instead
+  (which selects the WAN node rather than ending the run).
+- **`exec disconnect`** — the in-fiction path. Target the WAN node and choose DISCONNECT
+  from the EXEC submenu in the node inspector (or type `exec disconnect`). Severs the uplink
+  and ends the run.
+
 ---
 
 ## EXPLOIT CARDS
@@ -367,9 +408,9 @@ point. A darknet broker operates through it, selling exploit cards mid-run.
 
 ### Accessing the Store
 
-Select the WAN node and run `exec access-darknet` (or choose it from the EXEC submenu /
-sidebar button). **The LAN pauses while you shop** — ICE stops moving, timers freeze. You
-can browse without the clock running.
+Select the WAN node and run `exec access-darknet` (or choose it from the EXEC submenu in
+the node inspector). **The LAN pauses while you shop** — ICE stops moving, timers freeze.
+You can browse without the clock running.
 
 ```
 > target wan
@@ -490,7 +531,7 @@ it: hack carefully, corrupt the IDS to go dark, or own the monitor to cancel a t
 ### The TRACE Countdown
 
 When either sensor reaches its threshold, a **TRACE countdown** begins (30–90 seconds
-depending on network threat grade). The countdown shows in the HUD and sidebar. If it reaches
+depending on network threat grade). The countdown shows in the HUD. If it reaches
 zero, your tether is traced back to your home node — run over, score lost.
 
 To stop it: **jack out** before zero, or **own the security monitor** and run
@@ -508,8 +549,7 @@ In addition to the trace, you have two resource pools that start each run at 100
   Depleting DECK INTEGRITY to zero ends the run — outcome: **bricked** (end screen: "DECK FRIED").
   Fiction: the deck's OS is corrupted past recovery.
 
-Both are shown in the HUD as animated vector-CRT vital traces that sweep left-to-right with a fading phosphor trail: HEALTH as a green ECG/heartbeat (PQRST) complex (the beat speeds up and decays through escalating ECG abnormalities as it falls — ST/T-wave changes, then premature and skipped beats — breaking into a chaotic fibrillation flutter near death before flatlining at zero), DECK INTEGRITY as a violet symmetric CPU-clock pulse (its edges develop ringing, overshoot and timing/amplitude glitches as it falls, at roughly constant amplitude; flatlines at zero). Hover either trace to see the exact percentage. They also appear in
-`status` and `status full`. Damage events are logged with the offending node, e.g.
+Both are shown as animated vector-CRT vital traces floating in the upper-right corner over the graph (see **Vital traces** in *The Interface*). They also appear in `status` and `status full`. Damage events are logged with the offending node, e.g.
 `[ICE] gateway neural feedback: −20 HEALTH (80 left)` or `[ICE] router-2 deck corruption: −20 DECK (80 left)`.
 
 These are **parallel loss conditions** alongside the trace. A successful jack-out ends in
@@ -611,7 +651,7 @@ then pull back.
 ### Detection
 
 If ICE **dwells on your currently targeted node** long enough, a detection countdown begins.
-The sidebar shows the timer: `⚠ ICE DETECTION: Xs`. When it hits zero, ICE locks your signal
+The node inspector shows the timer: `⚠ ICE DETECTION: Xs`. When it hits zero, ICE locks your signal
 and the global alert escalates by one level. Each ICE dwells and detects independently — if
 two ICE sit on your targeted node, each runs its own countdown, so you can be detected twice.
 
@@ -668,10 +708,11 @@ Counters are the same regardless of ICE type: untarget, eject, or reboot.
 ## MISSION
 
 Each run has an optional mission: retrieve a specific **macguffin** from somewhere in the
-network. The mission target is named in the sidebar at the start of the run.
+network. The mission target and its status (ACTIVE / COMPLETE / FAILED) are shown in the
+HUD top bar.
 
 You won't know which node holds the target until you `dump` it. Once you fetch the mission
-target, the sidebar marks the mission complete. Mission completion is tracked separately
+target, the HUD marks the mission complete. Mission completion is tracked separately
 from your cash score.
 
 ---
@@ -697,7 +738,8 @@ Actions depend on the selected node's type and access level:
 | `kick`         | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
 | `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown (run via `exec`) |
-| `jackout`      | Any time during run                            | End run, collect score |
+| `disconnect`   | WAN node is targeted                           | Severs the uplink and ends the run (in-fiction jack-out path; run via `exec` or the node inspector) |
+| `jackout`      | Any time during run                            | End run, collect score (console shortcut; identical outcome to `disconnect`) |
 
 ---
 
@@ -716,10 +758,13 @@ xploit <#|name>        Use exploit card by number or name on targeted node.
 dump [node]            Dump contents of targeted/specified node.
 fetch [node]           Extract macguffins from owned node.
 mine [node]            Data-mine owned node for an exploit card (timed; diminishing returns).
-exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, …). No arg lists scripts.
+exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, disconnect, …). No arg lists scripts.
 kick                   Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
 jackout                End run.
+
+menu                   Toggle the header controls panel (NEW RUN / PAUSE / SAVE / LOAD).
+hand                   Toggle collapse of the exploit hand strip.
 
 darknet                List darknet broker catalog (requires WAN targeted).
 buy <index>            Purchase exploit card from broker (requires WAN targeted).

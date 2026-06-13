@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Node Inspector — Variants</title>
+<style>
+  :root{
+    --bg:#0a0a0f; --bg-panel:#0d0d14; --bg-panel2:#111120;
+    --cyan:#00ffff; --cyan-dim:#004444; --green:#00ff41; --green-dim:#003311;
+    --magenta:#ff00ff; --yellow:#ffff00; --red:#ff2020; --violet:#b06cff;
+    --text:#00ff41; --text-dim:#336633; --border:#0a3a3a;
+    --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--mono); padding:24px 28px 60px;
+    background-image:repeating-linear-gradient(0deg,rgba(0,255,65,.03) 0 1px,transparent 1px 3px);
+  }
+  h1{font-size:18px; letter-spacing:.12em; color:var(--cyan); margin:0 0 4px}
+  .sub{color:var(--text-dim); font-size:12px; margin:0 0 22px; max-width:880px; line-height:1.5}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:1100px}
+  .variant{
+    border:1px solid var(--border); background:var(--bg-panel);
+    padding:0; cursor:pointer; transition:border-color .12s, box-shadow .12s;
+    display:flex; flex-direction:column;
+  }
+  .variant:hover{border-color:var(--cyan)}
+  .variant.selected{border-color:var(--magenta); box-shadow:0 0 0 1px var(--magenta),0 0 18px rgba(255,0,255,.25)}
+  .v-cap{
+    display:flex; align-items:baseline; gap:8px; padding:9px 12px;
+    border-bottom:1px solid var(--border);
+  }
+  .v-key{color:var(--magenta); font-size:13px; letter-spacing:.1em}
+  .v-name{color:var(--cyan); font-size:12px}
+  .v-note{color:var(--text-dim); font-size:10.5px; margin-left:auto}
+  /* faux graph scene */
+  .scene{position:relative; height:300px; overflow:hidden;
+    background:radial-gradient(circle at 30% 40%,rgba(0,255,255,.04),transparent 60%)}
+  .edge{position:absolute; height:1px; background:var(--cyan-dim); transform-origin:left center}
+  .node{position:absolute; width:34px; height:34px; border:1px solid var(--cyan);
+    transform:translate(-50%,-50%) rotate(45deg); background:var(--bg-panel2)}
+  .node.sel{border-color:var(--magenta); box-shadow:0 0 12px rgba(255,0,255,.5)}
+  .node.dim{opacity:.45}
+  .node-lbl{position:absolute; transform:translate(-50%,-50%);
+    font-size:9px; color:var(--text-dim); letter-spacing:.05em}
+  /* the anchored popup */
+  .pop{position:absolute; min-width:172px; background:var(--bg-panel);
+    border:1px solid var(--magenta); box-shadow:0 0 14px rgba(255,0,255,.3);
+    font-size:11px}
+  . insp{}
+  .insp-hd{padding:6px 9px 5px; border-bottom:1px solid var(--magenta)}
+  .insp-l1{display:flex; gap:6px; align-items:baseline}
+  .insp-type{color:var(--magenta); letter-spacing:.08em; font-size:10.5px}
+  .insp-name{color:var(--cyan); font-size:11px}
+  .insp-l2{display:flex; gap:8px; align-items:center; margin-top:3px; font-size:9.5px; color:var(--text-dim)}
+  .insp-l2 b{color:var(--green); font-weight:400}
+  .insp-l2 .gB{color:var(--yellow)}
+  .lamp{display:inline-block; vertical-align:middle}
+  .sect{padding:5px 9px; border-bottom:1px solid var(--border)}
+  .sect-lbl{color:var(--text-dim); font-size:8.5px; letter-spacing:.14em; margin-bottom:3px}
+  .vuln{display:flex; align-items:center; gap:5px; margin:2px 0; font-size:10px; color:var(--green)}
+  .vuln .rar{margin-left:auto; color:var(--text-dim); font-size:8.5px}
+  .mg{display:flex; gap:6px; font-size:10px; margin:2px 0}
+  .mg .nm{color:var(--green)} .mg .val{margin-left:auto; color:var(--yellow)}
+  .mg.mission .nm{color:var(--violet)}
+  .ice{display:flex; align-items:center; gap:6px; font-size:9.5px; color:var(--text-dim); margin:2px 0}
+  .ice .tk{letter-spacing:2px; color:var(--red)}
+  .act{display:block; width:100%; text-align:left; background:transparent; border:none;
+    border-bottom:1px solid var(--border); color:var(--green); font-family:var(--mono);
+    font-size:11px; letter-spacing:.06em; padding:5px 9px}
+  .act:last-child{border-bottom:none}
+  .act .d{display:block; color:var(--text-dim); font-size:8.5px; margin-top:1px; letter-spacing:.04em}
+  .act .arrow{color:var(--cyan)}
+  /* mini sidebar for the "current" variant */
+  .sidebar{position:absolute; top:8px; right:8px; bottom:8px; width:118px;
+    border:1px solid var(--border); background:var(--bg-panel2); padding:6px 7px; font-size:9px}
+  .sidebar .sb-hd{color:var(--cyan); font-size:9.5px; margin-bottom:4px}
+  .sidebar .sb-row{display:flex; justify-content:space-between; color:var(--text-dim); margin:1px 0}
+  .sidebar .sb-row b{color:var(--green); font-weight:400}
+  .sidebar .sb-div{border-top:1px solid var(--border); margin:5px 0}
+  .pulse-ring{position:absolute; width:60px; height:60px; border:1px solid var(--magenta);
+    border-radius:50%; transform:translate(-50%,-50%); opacity:.25}
+  .legend{margin-top:8px; padding:7px 12px; color:var(--text-dim); font-size:10px; line-height:1.5;
+    border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<h1>NODE INSPECTOR — fold sidebar detail into the anchored menu?</h1>
+<p class="sub">The magenta popup is anchored to the selected node. Today it shows <em>actions only</em>; the node's
+info lives in the right sidebar (variant 1). The other three fold progressively more of that detail into the popup.
+Click the one whose balance feels right — or tell me what to change. Watch how tall the popup grows and how much graph it eats.</p>
+
+<div class="grid">
+
+  <!-- ===== 1. CURRENT ===== -->
+  <div class="variant" data-choice="current" onclick="toggleSelect(this)">
+    <div class="v-cap"><span class="v-key">1</span><span class="v-name">CURRENT</span>
+      <span class="v-note">actions in popup · info in sidebar</span></div>
+    <div class="scene">
+      <div class="edge" style="left:90px;top:150px;width:70px;transform:rotate(-22deg)"></div>
+      <div class="edge" style="left:90px;top:150px;width:80px;transform:rotate(28deg)"></div>
+      <div class="node dim" style="left:160px;top:122px"></div>
+      <div class="node dim" style="left:172px;top:188px"></div>
+      <div class="node sel" style="left:90px;top:150px"></div>
+      <div class="node-lbl" style="left:90px;top:178px">mainframe-03</div>
+      <div class="pop" style="left:120px;top:96px">
+        <button class="act">[ PROBE ]<span class="d">reveal vulnerabilities</span></button>
+        <button class="act">[ XPLOIT <span class="arrow">▶</span> ]<span class="d">3 cards match</span></button>
+        <button class="act">[ DUMP ]<span class="d">reveal contents</span></button>
+        <button class="act">[ FETCH ]<span class="d">extract valuables</span></button>
+      </div>
+      <div class="sidebar">
+        <div class="sb-hd">[SERVER] mainframe-03</div>
+        <div class="sb-row"><span>GRADE</span><b style="color:var(--yellow)">B</b></div>
+        <div class="sb-row"><span>ACCESS</span><b>OWNED</b></div>
+        <div class="sb-row"><span>ALERT</span><b style="color:var(--yellow)">YELLOW</b></div>
+        <div class="sb-div"></div>
+        <div style="color:var(--text-dim)">VULNERABILITIES</div>
+        <div class="sb-row"><b>BufferOverflow</b></div>
+        <div class="sb-row"><b>AuthBypass</b></div>
+        <div class="sb-div"></div>
+        <div style="color:var(--text-dim)">CONTENTS</div>
+        <div class="sb-row"><b style="color:var(--violet)">★ ICE-Core</b><span style="color:var(--yellow)">¥8k</span></div>
+        <div class="sb-div"></div>
+        <div style="color:var(--text-dim)">ICE-1 ATTN <span style="color:var(--red)">▮▮▯ 4s</span></div>
+      </div>
+    </div>
+    <div class="legend">Popup compact. But your eyes ping-pong: node on the left, its stats on the far right.</div>
+  </div>
+
+  <!-- ===== 2. IDENTITY HEADER ONLY ===== -->
+  <div class="variant" data-choice="header" onclick="toggleSelect(this)">
+    <div class="v-cap"><span class="v-key">2</span><span class="v-name">IDENTITY HEADER</span>
+      <span class="v-note">slims sidebar, keeps it</span></div>
+    <div class="scene">
+      <div class="edge" style="left:90px;top:150px;width:70px;transform:rotate(-22deg)"></div>
+      <div class="edge" style="left:90px;top:150px;width:80px;transform:rotate(28deg)"></div>
+      <div class="node dim" style="left:160px;top:122px"></div>
+      <div class="node dim" style="left:172px;top:188px"></div>
+      <div class="node sel" style="left:90px;top:150px"></div>
+      <div class="pop" style="left:120px;top:92px">
+        <div class="insp-hd">
+          <div class="insp-l1"><span class="insp-type">[SERVER]</span><span class="insp-name">mainframe-03</span></div>
+          <div class="insp-l2">GRADE <b class="gB">B</b><span>·</span> <b>OWNED</b> <span>·</span>
+            <svg class="lamp" width="11" height="10" viewBox="0 0 11 10"><polygon points="5.5,1 10,9 1,9" fill="none" stroke="#ffff00" stroke-width="1"/></svg>
+            <b style="color:var(--yellow)">YELLOW</b></div>
+        </div>
+        <button class="act">[ PROBE ]<span class="d">reveal vulnerabilities</span></button>
+        <button class="act">[ XPLOIT <span class="arrow">▶</span> ]<span class="d">3 cards match</span></button>
+        <button class="act">[ DUMP ]<span class="d">reveal contents</span></button>
+        <button class="act">[ FETCH ]<span class="d">extract valuables</span></button>
+      </div>
+      <div class="sidebar" style="top:8px;bottom:auto;height:auto">
+        <div style="color:var(--text-dim)">VULNERABILITIES</div>
+        <div class="sb-row"><b>BufferOverflow</b></div>
+        <div class="sb-row"><b>AuthBypass</b></div>
+        <div class="sb-div"></div>
+        <div style="color:var(--text-dim)">CONTENTS</div>
+        <div class="sb-row"><b style="color:var(--violet)">★ ICE-Core</b><span style="color:var(--yellow)">¥8k</span></div>
+        <div class="sb-div"></div>
+        <div style="color:var(--text-dim)">ICE-1 ATTN <span style="color:var(--red)">▮▮▯ 4s</span></div>
+      </div>
+    </div>
+    <div class="legend">Who/what/how-alarmed sits with the actions. Vulns, loot, ICE still in a (now shorter) sidebar.</div>
+  </div>
+
+  <!-- ===== 3. IDENTITY + VULNS ===== -->
+  <div class="variant" data-choice="vulns" onclick="toggleSelect(this)">
+    <div class="v-cap"><span class="v-key">3</span><span class="v-name">+ VULNERABILITIES</span>
+      <span class="v-note">what you need to pick a card</span></div>
+    <div class="scene">
+      <div class="edge" style="left:90px;top:160px;width:70px;transform:rotate(-26deg)"></div>
+      <div class="edge" style="left:90px;top:160px;width:80px;transform:rotate(22deg)"></div>
+      <div class="node dim" style="left:160px;top:128px"></div>
+      <div class="node dim" style="left:172px;top:196px"></div>
+      <div class="node sel" style="left:90px;top:160px"></div>
+      <div class="pop" style="left:120px;top:78px">
+        <div class="insp-hd">
+          <div class="insp-l1"><span class="insp-type">[SERVER]</span><span class="insp-name">mainframe-03</span></div>
+          <div class="insp-l2">GRADE <b class="gB">B</b><span>·</span> <b>OWNED</b> <span>·</span>
+            <svg class="lamp" width="11" height="10" viewBox="0 0 11 10"><polygon points="5.5,1 10,9 1,9" fill="none" stroke="#ffff00" stroke-width="1"/></svg>
+            <b style="color:var(--yellow)">YELLOW</b></div>
+        </div>
+        <div class="sect">
+          <div class="sect-lbl">VULNERABILITIES</div>
+          <div class="vuln">
+            <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 10,5.5 5.5,10 1,5.5" fill="none" stroke="#00ffff" stroke-width="1"/></svg>
+            BufferOverflow <span class="rar">[UNCOMMON]</span></div>
+          <div class="vuln">
+            <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 10,9 1,9" fill="none" stroke="#00ffff" stroke-width="1"/></svg>
+            AuthBypass <span class="rar">[COMMON]</span></div>
+        </div>
+        <button class="act">[ PROBE ]<span class="d">reveal vulnerabilities</span></button>
+        <button class="act">[ XPLOIT <span class="arrow">▶</span> ]<span class="d">3 cards match</span></button>
+        <button class="act">[ DUMP ]<span class="d">reveal contents</span></button>
+        <button class="act">[ FETCH ]<span class="d">extract valuables</span></button>
+      </div>
+      <div class="sidebar" style="top:8px;bottom:auto;height:auto">
+        <div style="color:var(--text-dim)">CONTENTS</div>
+        <div class="sb-row"><b style="color:var(--violet)">★ ICE-Core</b><span style="color:var(--yellow)">¥8k</span></div>
+        <div class="sb-div"></div>
+        <div style="color:var(--text-dim)">ICE-1 ATTN <span style="color:var(--red)">▮▮▯ 4s</span></div>
+      </div>
+    </div>
+    <div class="legend">Vulns sit right next to XPLOIT — the one place you actually cross-reference them. Loot + ICE stay docked.</div>
+  </div>
+
+  <!-- ===== 4. FULL INSPECTOR ===== -->
+  <div class="variant" data-choice="full" onclick="toggleSelect(this)">
+    <div class="v-cap"><span class="v-key">4</span><span class="v-name">FULL INSPECTOR</span>
+      <span class="v-note">no sidebar panel at all</span></div>
+    <div class="scene">
+      <div class="edge" style="left:78px;top:170px;width:70px;transform:rotate(-30deg)"></div>
+      <div class="edge" style="left:78px;top:170px;width:80px;transform:rotate(18deg)"></div>
+      <div class="node dim" style="left:150px;top:132px"></div>
+      <div class="node dim" style="left:162px;top:206px"></div>
+      <div class="node sel" style="left:78px;top:170px"></div>
+      <div class="pop" style="left:108px;top:30px">
+        <div class="insp-hd">
+          <div class="insp-l1"><span class="insp-type">[SERVER]</span><span class="insp-name">mainframe-03</span></div>
+          <div class="insp-l2">GRADE <b class="gB">B</b><span>·</span> <b>OWNED</b> <span>·</span>
+            <svg class="lamp" width="11" height="10" viewBox="0 0 11 10"><polygon points="5.5,1 10,9 1,9" fill="none" stroke="#ffff00" stroke-width="1"/></svg>
+            <b style="color:var(--yellow)">YELLOW</b></div>
+        </div>
+        <div class="sect">
+          <div class="sect-lbl">VULNERABILITIES</div>
+          <div class="vuln">
+            <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 10,5.5 5.5,10 1,5.5" fill="none" stroke="#00ffff" stroke-width="1"/></svg>
+            BufferOverflow <span class="rar">[UNCOMMON]</span></div>
+          <div class="vuln">
+            <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 10,9 1,9" fill="none" stroke="#00ffff" stroke-width="1"/></svg>
+            AuthBypass <span class="rar">[COMMON]</span></div>
+        </div>
+        <div class="sect">
+          <div class="sect-lbl">CONTENTS</div>
+          <div class="mg mission"><span class="nm">★ ICE-Core</span><span class="val">¥8,000</span></div>
+          <div class="mg"><span class="nm">CredCache</span><span class="val">¥1,200</span></div>
+        </div>
+        <div class="sect">
+          <div class="sect-lbl">ICE</div>
+          <div class="ice">ICE-1 ATTENTION <span class="tk">▮▮▯</span> 4s</div>
+        </div>
+        <button class="act">[ PROBE ]<span class="d">reveal vulnerabilities</span></button>
+        <button class="act">[ XPLOIT <span class="arrow">▶</span> ]<span class="d">3 cards match</span></button>
+        <button class="act">[ DUMP ]<span class="d">reveal contents</span></button>
+        <button class="act">[ FETCH ]<span class="d">extract valuables</span></button>
+      </div>
+    </div>
+    <div class="legend">Everything in one place — but the popup is now a tall slab that crowds the graph and the flip/clamp logic.</div>
+  </div>
+
+</div>
+
+<p class="legend" style="max-width:1100px;border:none;margin-top:18px">
+  Freed sidebar space (variants 2–4) could go to a taller graph, a longer log, or a roomier card hand — open question if we shrink/kill the panel.
+</p>
+</body>
+</html>
