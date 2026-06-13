@@ -841,6 +841,12 @@ html, body {
   vertical-align: middle;
 }
 
+.access-glyph {
+  width: 12px;
+  height: 14px;
+  vertical-align: middle;
+}
+
 .nd-vuln.patched .vuln-name { text-decoration: line-through; color: var(--text-dim); }
 
 .vuln-name  { color: var(--green); }

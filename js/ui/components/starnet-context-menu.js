@@ -13,7 +13,7 @@ import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
 import { isObscured } from "../../core/state.js";
 import { vulnGlyphDataUri } from "../vuln-glyphs.js";
-import { alertLampDataUri } from "../indicator-glyphs.js";
+import { alertLampDataUri, accessGlyphDataUri } from "../indicator-glyphs.js";
 
 class StarnetContextMenu extends StarnetElement {
   static properties = {
@@ -121,7 +121,7 @@ class StarnetContextMenu extends StarnetElement {
             <span class="im-key">GRADE</span>
             <span class="im-val grade-${obscured ? "" : (node.grade || "")}">${grade}</span>
             <span class="im-sep">·</span>
-            <span class="im-val">${(node.accessLevel || "—").toUpperCase()}</span>
+            <span class="im-val"><img class="access-glyph" alt="" src=${accessGlyphDataUri(node.accessLevel)}> ${(node.accessLevel || "—").toUpperCase()}</span>
             <span class="im-sep">·</span>
             <span class="im-val" style="color:${alertColor}"><img class="nd-lamp" alt="" src=${alertLampDataUri(alertState)}> ${alertState.toUpperCase()}</span>
           </div>
