@@ -4,8 +4,8 @@
    vector CRT aesthetic. The Light .woff covers the whole 400–700 range so a
    `font-weight: bold` request maps to the same file (no faux-bold synthesis). */
 @font-face {
-  font-family: "Hershey Futura Duplex";
-  src: url("fonts/hershey/Hershey-Noailles-Futura-Duplex-Light.woff") format("woff");
+  font-family: "Hershey Futura Simplex";
+  src: url("fonts/hershey/Hershey-Noailles-Futura-Simplex-Bold.woff") format("woff");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -32,8 +32,8 @@
   --text:       #00ff41;
   --text-dim:   #336633;
   --border:     #0a3a3a;
-  --font-mono:     "Hershey Futura Duplex", "Courier New", "Lucida Console", monospace;
-  --font-display:  "Hershey Futura Duplex", "Courier New", monospace;
+  --font-mono:     "Hershey Futura Simplex", "Courier New", "Lucida Console", monospace;
+  --font-display:  "Hershey Futura Simplex", "Courier New", monospace;
 
   /* Glow scale — keep chrome bloom consistent with the graph's vector bloom. */
   --glow-sm: 0 0 4px;
@@ -50,7 +50,7 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 20px;
+  font-size: 22px;
 }
 
 /* ── Layout ────────────────────────────────────────────── */
