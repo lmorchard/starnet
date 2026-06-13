@@ -30,13 +30,13 @@ And when they find you, the clock starts.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  HUD: ALERT · WALLET · MISSION · [ ☰ ]                       │
-├──────────────────────────────────────────────────────────────┤
 │                                                  ┌─────────┐ │
 │                  NETWORK GRAPH                   │ HEALTH  │ │
 │                                                  │  DECK   │ │
 │         [ node inspector popup ]                 │VISIT WAN│ │
 │                                                  └─────────┘ │
+├──────────────────────────────────────────────────────────────┤
+│  STATUS: LINK · ALERT · WALLET · MISSION              [ ☰ ]  │
 ├────────────────────────────────────┬─────────────────────────┤
 │  LOG                               │  EXPLOIT HAND  [ ▾ ]   │
 │  > CONSOLE INPUT                   │                         │
@@ -73,10 +73,11 @@ every ICE movement that crosses into your territory appears here.
 **Console** — Type commands directly. Tab-complete node names. Full command reference
 at the end of this manual.
 
-**HUD** — Top bar shows global alert level (as a vector lamp whose shape encodes the
-level: hexagon = safe, point-up triangle = warning, inverted triangle = danger/trace),
-your current cash balance, the active **mission** target and status, and a hamburger
-button `[ ☰ ]` that opens a dropdown panel with NEW RUN / PAUSE / SAVE / LOAD. Use the
+**Status bar** — A full-width strip directly above the terminal showing the connection
+status, the global alert level (as a vector lamp whose shape encodes the level: hexagon =
+safe, point-up triangle = warning, inverted triangle = danger/trace), your current cash
+balance, the active **mission** target and status, and — at its right end — a hamburger
+button `[ ☰ ]` that opens a dropdown panel (NEW RUN / PAUSE / SAVE / LOAD) upward. Use the
 `menu` console command to toggle the panel from the keyboard.
 
 **Vital traces** — HEALTH and DECK INTEGRITY float as an inset in the upper-right corner
@@ -97,7 +98,7 @@ counting down, it switches to a pulsing `[ JACK OUT ]` for instant disconnect.
 **Resizing the layout** — Two borders are drag-resizable: the border above the log/console
 (graph vs. log height) and the border between the log and the exploit hand (log vs. hand
 width). Grab a border and drag; **double-click a border to reset that split** to its
-default. Your chosen sizes persist across reloads. The header bar is fixed.
+default. Your chosen sizes persist across reloads. The status bar is fixed.
 
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
@@ -709,10 +710,10 @@ Counters are the same regardless of ICE type: untarget, eject, or reboot.
 
 Each run has an optional mission: retrieve a specific **macguffin** from somewhere in the
 network. The mission target and its status (ACTIVE / COMPLETE / FAILED) are shown in the
-HUD top bar.
+status bar.
 
 You won't know which node holds the target until you `dump` it. Once you fetch the mission
-target, the HUD marks the mission complete. Mission completion is tracked separately
+target, the status bar marks the mission complete. Mission completion is tracked separately
 from your cash score.
 
 ---
@@ -763,7 +764,7 @@ kick                   Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
 jackout                End run.
 
-menu                   Toggle the header controls panel (NEW RUN / PAUSE / SAVE / LOAD).
+menu                   Toggle the status-bar controls panel (NEW RUN / PAUSE / SAVE / LOAD).
 hand                   Toggle collapse of the exploit hand strip.
 
 darknet                List darknet broker catalog (requires WAN targeted).

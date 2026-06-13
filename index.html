@@ -18,9 +18,6 @@
 <body>
   <div id="app">
 
-    <!-- HUD -->
-    <starnet-hud id="hud"></starnet-hud>
-
     <!-- Main area: graph column (full width) -->
     <main id="main">
       <div id="graph-column">
@@ -54,6 +51,9 @@
           </div>
         </div>
         <div class="splitter splitter--row" data-resize="logH" title="Drag to resize — double-click to reset"></div>
+        <!-- Status bar: full-width strip above the terminal + hand strip.
+             Driven by visual-renderer.syncHud (alert, wallet, trace, connection, mission). -->
+        <starnet-hud id="hud"></starnet-hud>
         <div id="bottom-row">
           <div id="log-pane">
             <starnet-log id="log-entries"></starnet-log>

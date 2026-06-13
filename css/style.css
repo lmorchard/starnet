@@ -62,15 +62,17 @@ html, body {
   height: 100vh;
 }
 
+/* Status bar — a full-width strip below the graph splitter, above the terminal
+   + hand strip. (Formerly the top header; the title is gone and the graph now
+   reclaims that band.) */
 #hud {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 1rem;
   background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-  z-index: 10;
+  border-top: 1px solid var(--border);
 }
 
 #main {
@@ -308,17 +310,6 @@ html, body {
 
 /* ── HUD ────────────────────────────────────────────────── */
 
-#hud .hud-title {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: bold;
-  white-space: nowrap;
-  color: var(--cyan);
-  letter-spacing: 0.15em;
-  text-shadow: var(--glow-md) var(--cyan);
-  margin-right: auto;
-}
-
 #hud .hud-label {
   color: var(--text-dim);
   font-size: 0.75rem;
@@ -423,10 +414,11 @@ html, body {
 .hud-menu-wrap {
   position: relative;
   display: inline-flex;
+  margin-left: auto;   /* push the ☰ menu to the far right; status items stay left */
 }
 #hud-menu {
   position: absolute;
-  top: calc(100% + 0.4rem);
+  bottom: calc(100% + 0.4rem);   /* opens upward — the bar sits at the bottom of the screen */
   right: 0;
   z-index: 20;            /* above the header chrome + graph */
   display: flex;
