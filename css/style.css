@@ -670,7 +670,6 @@ html, body {
   font-size: 0.62rem;
   letter-spacing: 0.06em;
 }
-#node-context-menu .insp-meta .im-key { color: var(--text-dim); }
 #node-context-menu .insp-meta .im-sep { color: var(--border); }
 #node-context-menu .insp-meta .im-val { color: var(--green); }
 #node-context-menu .nd-section-label { margin-bottom: 0.3rem; }

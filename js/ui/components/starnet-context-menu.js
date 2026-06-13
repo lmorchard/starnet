@@ -118,7 +118,6 @@ class StarnetContextMenu extends StarnetElement {
         <div class="insp-typerow">
           <span class="nd-type">[${type}]</span>
           <div class="insp-meta">
-            <span class="im-key">GRADE</span>
             <span class="im-val grade-${obscured ? "" : (node.grade || "")}">${grade}</span>
             <span class="im-sep">·</span>
             <span class="im-val"><img class="access-glyph" alt="" src=${accessGlyphDataUri(node.accessLevel)}> ${(node.accessLevel || "—").toUpperCase()}</span>
