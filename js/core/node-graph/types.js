@@ -274,6 +274,7 @@
  * @property {(nodeId: string) => void} rebootNode
  * @property {(nodeId: string) => void} reconfigureNode
  * @property {() => void} openDarknetsStore
+ * @property {() => void} jackOut
  * @property {(nodeId: string) => void} [resolveProbe]
  * @property {(nodeId: string) => void} [resolveExploit]
  * @property {(nodeId: string) => void} [resolveRead]

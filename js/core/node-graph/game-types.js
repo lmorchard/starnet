@@ -240,6 +240,17 @@ const ACCESS_DARKNET_ACTION = {
 };
 
 /** @type {ActionDef} */
+const DISCONNECT_ACTION = {
+  id: A.DISCONNECT,
+  label: "DISCONNECT",
+  desc: "Sever the uplink — jack out and end the run.",
+  requires: [],
+  effects: [
+    { effect: "ctx-call", method: "jackOut", args: [] },
+  ],
+};
+
+/** @type {ActionDef} */
 const SCRUB_LOGS_ACTION = {
   id: A.SCRUB_LOGS,
   label: "SCRUB LOGS",
@@ -458,7 +469,7 @@ export function createWAN(id, config = {}) {
       ...config.attributes,
     },
     operators: [LIE_LOW_OPERATOR],
-    actions: [ACCESS_DARKNET_ACTION, LIE_LOW_ACTION],
+    actions: [ACCESS_DARKNET_ACTION, LIE_LOW_ACTION, DISCONNECT_ACTION],
   };
 }
 
@@ -479,5 +490,6 @@ export const ACTION_TEMPLATES = {
   ACCESS_DARKNET: ACCESS_DARKNET_ACTION,
   SCRUB_LOGS: SCRUB_LOGS_ACTION,
   LIE_LOW: LIE_LOW_ACTION,
+  DISCONNECT: DISCONNECT_ACTION,
 };
 

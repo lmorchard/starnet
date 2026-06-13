@@ -1020,3 +1020,24 @@ describe("entryPoint: WAN offers in-run darknet access", () => {
     assert.equal(ctx.calls.openDarknetsStore?.length, 1);
   });
 });
+
+describe("entryPoint: WAN offers DISCONNECT exec script", () => {
+  it("disconnect is available on the WAN node", () => {
+    const inst = instantiate(entryPoint, "entry");
+    const graph = new NodeGraph(inst, mockCtx());
+    const available = graph.getAvailableActions("entry/wan").map((a) => a.id);
+    assert.ok(available.includes("disconnect"));
+  });
+
+  it("disconnect is a script action (groups under EXEC, not top-level)", () => {
+    assert.ok(isScriptAction("disconnect"));
+  });
+
+  it("executing disconnect triggers jack-out", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(entryPoint, "entry");
+    const graph = new NodeGraph(inst, ctx);
+    graph.executeAction("entry/wan", "disconnect");
+    assert.equal(ctx.calls.jackOut?.length, 1);
+  });
+});

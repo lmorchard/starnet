@@ -32,4 +32,5 @@ export const A = Object.freeze({
   ACCESS_DARKNET: "access-darknet",
   SCRUB_LOGS: "scrub-logs",
   LIE_LOW: "lie-low",
+  DISCONNECT: "disconnect",
 });
