@@ -1,4 +1,4 @@
-// <starnet-hud> — Header bar component.
+// <starnet-hud> — Status bar component (sits above the terminal).
 // Shows alert level, wallet, trace countdown, connection status, mission, and action buttons.
 
 import { html, nothing } from "lit";
@@ -76,8 +76,6 @@ class StarnetHud extends StarnetElement {
                                  "var(--red)";
 
     return html`
-      <span class="hud-title">★ STARNET</span>
-
       <div id="hud-connection">
         <img class="hud-lamp" id="conn-dot" alt="link ${this.connectionStatus}" src=${connStatusDataUri(this.connectionStatus)}>
         <span class="hud-value ${this.connectionStatus}" id="conn-status">${this.connectionLabel}</span>
@@ -97,6 +95,8 @@ class StarnetHud extends StarnetElement {
       ` : nothing}
 
       ${this._renderMission()}
+
+      ${this._renderCheatLabel()}
 
       <div class="hud-menu-wrap">
         <button id="hud-menu-btn" class=${this.menuOpen ? "active" : ""} title="Toggle controls"
@@ -118,9 +118,8 @@ class StarnetHud extends StarnetElement {
     `;
   }
 
-  // // CHEAT indicator — hidden for now (not rendered). Preserved intact for a
-  // planned status bar under the terminal; `isCheating` is still fed by the
-  // renderer. Re-add `${this._renderCheatLabel()}` to render() to restore it.
+  // // CHEAT indicator — shown in the status bar when cheats are active.
+  // `isCheating` is fed by the renderer.
   _renderCheatLabel() {
     return this.isCheating
       ? html`<span id="cheat-label" class="hud-cheat-label">// CHEAT</span>`
