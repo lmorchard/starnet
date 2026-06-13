@@ -194,8 +194,8 @@ describe("action availability", () => {
     assert.ok(!actions.some(a => a.id === "xploit"));
   });
 
-  it("exploit still available on compromised node", () => {
-    const gw = createGateway("gw", { attributes: { visibility: "accessible", accessLevel: "compromised" } });
+  it("exploit still available on open node", () => {
+    const gw = createGateway("gw", { attributes: { visibility: "accessible", accessLevel: "open" } });
     const graph = new NodeGraph({ nodes: [gw], edges: [] });
     const actions = graph.getAvailableActions("gw");
     assert.ok(actions.some(a => a.id === "xploit"));
@@ -208,9 +208,9 @@ describe("action availability", () => {
     assert.ok(!actions.some(a => a.id === "xploit"));
   });
 
-  it("dump available on compromised unread fileserver", () => {
+  it("dump available on open unread fileserver", () => {
     const fs = createFileserver("fs", {
-      attributes: { visibility: "accessible", accessLevel: "compromised" },
+      attributes: { visibility: "accessible", accessLevel: "open" },
     });
     const graph = new NodeGraph({ nodes: [fs], edges: [] });
     const actions = graph.getAvailableActions("fs");
@@ -235,9 +235,9 @@ describe("action availability", () => {
     assert.ok(!actions.some(a => a.id === "fetch"));
   });
 
-  it("corrupt available on compromised IDS with forwarding enabled", () => {
+  it("corrupt available on open IDS with forwarding enabled", () => {
     const ids = createIDS("ids-1", {
-      attributes: { visibility: "accessible", accessLevel: "compromised" },
+      attributes: { visibility: "accessible", accessLevel: "open" },
     });
     const graph = new NodeGraph({ nodes: [ids], edges: [] });
     const actions = graph.getAvailableActions("ids-1");

@@ -49,7 +49,7 @@ export function setNodeVisible(nodeId, visibility) {
   syncToGraph(nodeId, "visibility", visibility);
 }
 
-/** Sets node.accessLevel ('locked' | 'compromised' | 'owned'). */
+/** Sets node.accessLevel ('locked' | 'open' | 'owned'). */
 export function setNodeAccessLevel(nodeId, level) {
   mutate((s) => {
     const node = s.nodes[nodeId];
@@ -70,12 +70,12 @@ export function setNodeProbed(nodeId) {
 /**
  * True when a node's identity (id, label, type, grade) should stay hidden behind
  * its sig-N alias. A node is obscured while it has a signal alias, is still `locked`,
- * and has not yet been probed. Once you're inside a node (compromised or owned) you
+ * and has not yet been probed. Once you're inside a node (open or owned) you
  * know what it is — "own it = know it" — so any non-locked node reveals, even without
  * a probe. This matters for owned-by-default bait like the honey-pot (accessLevel:
  * "owned", probed: false), which PROBE can never touch (PROBE requires `locked`);
  * without the access-level clause it would stay a permanent sig-N mystery.
- * A successful blind exploit also sets `probed`, so the normal locked→compromised
+ * A successful blind exploit also sets `probed`, so the normal locked→open
  * path reveals too. `sigAlias` is assigned only on hidden→revealed, so foothold nodes
  * (no alias) are never obscured. Read-only predicate; consulted by the graph, console,
  * and sidebar.

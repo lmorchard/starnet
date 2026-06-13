@@ -1185,7 +1185,7 @@ export const serverBank = {
       id: "hub",
       type: "router",
       traits: ["graded", "hackable", "rebootable", "gate"],
-      attributes: { accessLevel: "locked", gateAccess: "compromised" },
+      attributes: { accessLevel: "locked", gateAccess: "open" },
       operators: [{ name: "relay" }],
       actions: [],
     },
@@ -1298,7 +1298,7 @@ export const largeServerBank = {
   id: "large-server-bank",
   description: "Cluster of five lootable fileservers connected to a hub. Rich harvest.",
   nodes: [
-    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "compromised" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "open" }, operators: [{ name: "relay" }], actions: [] },
     { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
@@ -1494,7 +1494,7 @@ export const dataCenter = {
   id: "data-center",
   description: "Hub connected to six fileservers. Major loot haul for deep runs.",
   nodes: [
-    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "compromised" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "open" }, operators: [{ name: "relay" }], actions: [] },
     { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
@@ -1894,18 +1894,18 @@ export const entryPoint = {
 
 /**
  * Single router — spine node with multiple outbound ports for branching.
- * Compromise to reveal the network beyond.
+ * Open it to reveal the network beyond.
  * @type {SetPieceDef}
  */
 export const singleRouter = {
   id: "single-router",
-  description: "Router node: compromise to reveal connected segments.",
+  description: "Router node: open it to reveal connected segments.",
   nodes: [
     {
       id: "router",
       type: "router",
       traits: ["graded", "hackable", "rebootable", "gate"],
-      attributes: { accessLevel: "locked", gateAccess: "compromised" },
+      attributes: { accessLevel: "locked", gateAccess: "open" },
       operators: [{ name: "relay" }],
       actions: [],
     },
@@ -2026,7 +2026,7 @@ export const workstationArray = {
       id: "hub",
       type: "router",
       traits: ["graded", "hackable", "rebootable", "gate"],
-      attributes: { accessLevel: "locked", gateAccess: "compromised" },
+      attributes: { accessLevel: "locked", gateAccess: "open" },
       operators: [{ name: "relay" }],
       actions: [],
     },
@@ -2195,7 +2195,7 @@ export const backboneRouter = {
       id: "router",
       type: "router",
       traits: ["graded", "hackable", "rebootable", "gate"],
-      attributes: { accessLevel: "locked", gateAccess: "compromised" },
+      attributes: { accessLevel: "locked", gateAccess: "open" },
       operators: [{ name: "relay" }],
       actions: [],
     },
@@ -2254,7 +2254,7 @@ export const backboneHub = {
       id: "hub",
       type: "router",
       traits: ["graded", "hackable", "rebootable", "gate"],
-      attributes: { accessLevel: "locked", gateAccess: "compromised" },
+      attributes: { accessLevel: "locked", gateAccess: "open" },
       operators: [{ name: "relay" }],
       actions: [],
     },

@@ -310,7 +310,7 @@ ensures the forced piece is reachable.
 **More set pieces.** The careless-user piece demonstrates the concept but one piece is a
 thin library. Candidates: honeypot (appears to be a juicy target but triggers silent
 alert), network tap (hidden router branch, suggests a second party is already inside),
-air-gap bridge (isolated subnet accessible only through a specific compromised node).
+air-gap bridge (isolated subnet accessible only through a specific open node).
 
 **Biome blending.** The layer-processor is strictly sequential, but nothing prevents a
 layer from referencing roles defined in a "mixin" bundle. A corporate network with a

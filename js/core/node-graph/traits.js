@@ -346,7 +346,7 @@ registerTrait("encrypted", {
     desc: "Scan encrypted node contents (requires decryption key).",
     requires: [
       { type: "any-of", conditions: [
-        { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+        { type: "node-attr", attr: "accessLevel", eq: "open" },
         { type: "node-attr", attr: "accessLevel", eq: "owned" },
       ]},
       { type: "node-attr", attr: "read", eq: false },

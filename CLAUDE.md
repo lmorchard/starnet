@@ -135,8 +135,8 @@ Rules:
 1. Player starts at gateway node (accessible); neighbors revealed as `???`
 2. **Probe** a node → reveals vulnerabilities, raises local alert
 3. **Xploit** → pick a card → resolve success/failure vs node grade + vuln match
-4. On success: node access level rises (locked → compromised → owned)
-5. **Dump** a compromised/owned node → reveals macguffins
+4. On success: node access level rises (locked → open → owned)
+5. **Dump** an open/owned node → reveals macguffins
 6. **Fetch** from an owned node → collects macguffins, adds cash to wallet
 7. **Corrupt** an IDS node → disables alert event forwarding to security monitor
 8. Global alert rises as detection nodes fire events to security monitors
@@ -166,7 +166,7 @@ alarms). There is no node-`alertState`-counting global recompute — that legacy
 retired in #173. (Node `alertState` is now purely the per-node visual alert glow.)
 
 **Cooldown (grid-only, below-trace; #174).** The grid can be pushed back down via `coolGrid` in
-`alert.js`: `scrubLogs(monitorId)` (a `scrub-logs` action on a compromised monitor — resets that
+`alert.js`: `scrubLogs(monitorId)` (a `scrub-logs` action on an open monitor — resets that
 monitor's `alertCount`, eases the level one step) and `lieLow(wanNodeId)` (a timed `lie-low` action
 on every WAN node via the shared `LIE_LOW_OPERATOR`/`LIE_LOW_ATTRS` — fully calms the grid to green,
 limited to a couple of uses/run via `lieLowUsesRemaining`/`lieLowExhausted`). Both no-op at trace and

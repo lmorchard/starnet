@@ -206,3 +206,60 @@ export function missionMarkSvg(state) {
 export function missionMarkDataUri(state) {
   return dataUri(missionMarkSvg(state));
 }
+
+// ── accessGlyphSvg ────────────────────────────────────────────────────────────
+// Three stacked point-up chevrons; lit-from-the-bottom count encodes the access
+// tier (colorblind-safe: count is the primary channel). Lit chevrons take the
+// current level's hue — the glance-legible bright sibling of the node fence ramp
+// in node-glyphs.js (which is intentionally dimmed so the node border stays
+// brightest). Deliberately NOT the alert green/amber/red ramp, so it never reads
+// as alert state even sitting beside the alert lamp.
+
+/** Bright header hues, by access level. @type {Record<string, string>} */
+const ACCESS = {
+  locked: "#45c4c4", // bright teal
+  open:   "#36a6e0", // bright azure
+  owned:  "#2ad17a", // bright green-teal (kept teal-ward to stay clear of alert green)
+};
+
+/** Lit-chevron count, by access level. @type {Record<string, number>} */
+const ACCESS_LIT = { locked: 1, open: 2, owned: 3 };
+
+/** Chevron polylines (viewBox 0 0 16 18), ordered bottom → top. */
+const CHEVRONS = [
+  "3,16.5 8,13 13,16.5",
+  "3,11.5 8,8 13,11.5",
+  "3,6.5 8,3 13,6.5",
+];
+
+/**
+ * Access-level indicator: 3 stacked chevrons, lit from the bottom up by tier.
+ *   locked → 1 lit · open → 2 lit · owned → 3 lit · anything else → 0 lit.
+ * Lit chevrons use the level hue (stroke 1.8 + glow); unreached use DIM (stroke 1.4).
+ *
+ * @param {string} accessLevel
+ * @returns {string} standalone SVG markup
+ */
+export function accessGlyphSvg(accessLevel) {
+  const lit = ACCESS_LIT[accessLevel] ?? 0;
+  const color = ACCESS[accessLevel] ?? DIM;
+  let body = "";
+  for (let i = 0; i < CHEVRONS.length; i++) {
+    const isLit = i < lit;
+    body += `<polyline points="${CHEVRONS[i]}"`
+          + ` stroke="${isLit ? color : DIM}"`
+          + ` stroke-width="${isLit ? 1.8 : 1.4}"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 18" fill="none" stroke-linecap="round" stroke-linejoin="round">`
+    + `<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="1.4" flood-color="${color}"/></filter></defs>`
+    + `<g filter="url(#g)">${body}</g></svg>`;
+}
+
+/**
+ * Access glyph as an `<img src>`-ready data URI.
+ * @param {string} accessLevel
+ * @returns {string}
+ */
+export function accessGlyphDataUri(accessLevel) {
+  return dataUri(accessGlyphSvg(accessLevel));
+}

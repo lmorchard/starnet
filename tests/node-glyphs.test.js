@@ -64,8 +64,8 @@ test("gallery type list (ALL_GLYPH_TYPES) includes every mapped type for the pre
 });
 
 test("fenceYs density increases with access level", () => {
-  assert.ok(fenceYs("locked").length < fenceYs("compromised").length);
-  assert.ok(fenceYs("compromised").length < fenceYs("owned").length);
+  assert.ok(fenceYs("locked").length < fenceYs("open").length);
+  assert.ok(fenceYs("open").length < fenceYs("owned").length);
 });
 
 test("fenceYs is empty for an unknown access level", () => {
@@ -88,7 +88,7 @@ test("nodeFaceSvg for an unknown access level draws the glyph but no fence group
 });
 
 test("nodeFaceDataUri returns an encoded svg data uri (no raw #)", () => {
-  const uri = nodeFaceDataUri("mine", "compromised");
+  const uri = nodeFaceDataUri("mine", "open");
   assert.ok(uri.startsWith("data:image/svg+xml,"));
   assert.ok(!uri.slice("data:image/svg+xml,".length).includes("#"), "hex # must be percent-encoded");
 });

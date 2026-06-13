@@ -113,7 +113,7 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 |-------------------|-------------------|--------------|---------------------------------------------------|
 | **WAN**           | Globe             | Probe        | The network boundary — your tether to the outside. Access the darknet broker here. |
 | **Gateway**       | Portal arch       | Probe        | Entry point. Your foothold into the LAN.          |
-| **Router**        | Four-way arrows   | Compromised  | Routes traffic. Bridges to deeper nodes. Must compromise to see connections. |
+| **Router**        | Four-way arrows   | Open         | Routes traffic. Bridges to deeper nodes. Must open it to see connections. |
 | **Firewall**      | Brick wall        | Owned        | High-security chokepoint. Must fully own to reveal what's beyond. |
 | **Workstation**   | Monitor           | Probe        | User machines. Often soft targets with loose data.|
 | **File Server**   | Rack stack        | Probe        | Where documents live. Usually where your mission target is. |
@@ -125,10 +125,10 @@ Every node is drawn as a 12-sided container holding a small glyph of the device
 it represents, rendered as a glowing vector outline. The glyph (and its color)
 tells you *what kind* of node it is; the container's border plus a fence-hatch
 pattern inside it tell you its *state* — the hatching gets denser as a node goes
-from locked to compromised to owned, and the border color/pulse shows alert.
+from locked to open to owned, and the border color/pulse shows alert.
 
 The **Gate** column shows when a node reveals its connections to neighboring nodes.
-"Probe" means probing the node is enough to see what's connected. "Compromised" or
+"Probe" means probing the node is enough to see what's connected. "Open" or
 "Owned" means you must reach that access level before the node reveals what's beyond it.
 Security infrastructure and chokepoints gate their connections — you can't just scan
 them to map the network.
@@ -160,17 +160,17 @@ specific macguffin, it won't be sitting in a trap node.
 Every node starts **locked**. To use a node you must work through its access levels:
 
 ```
-LOCKED  →  COMPROMISED  →  OWNED
+LOCKED  →  OPEN  →  OWNED
 ```
 
 **Locked** — No access. You can probe it to reveal vulnerabilities.
 
-**Compromised** — Partial access. You can read contents and attempt to escalate.
+**Open** — Partial access. You can read contents and attempt to escalate.
 An IDS at this level can be corrupted to stop forwarding alerts.
 
 **Owned** — Full control. You can fetch macguffins, reboot the node, or kick ICE.
 
-A clean exploit on a **locked** node usually lands you at *compromised*, but a
+A clean exploit on a **locked** node usually lands you at *open*, but a
 high-quality card can punch straight through to **owned** in a single shot,
 skipping the middle step. The better the card, the more often this happens.
 
@@ -285,7 +285,7 @@ improves your odds significantly.
 
 - Base success chance scales with **card quality** (the tick-meter) vs **node grade**
 - A **matching vulnerability** boosts your odds considerably
-- Success: node access level rises (locked → compromised, compromised → owned).
+- Success: node access level rises (locked → open, open → owned).
   A high-quality card can skip the middle step, jumping a locked node straight to
   owned — more likely the better the card's quality meter
 - Success also **counts as a probe** — the node's vulnerabilities are revealed, so a
@@ -298,7 +298,7 @@ improves your odds significantly.
 > dump
 ```
 
-On a compromised or owned node, `dump` extracts data from the node's filesystem —
+On an open or owned node, `dump` extracts data from the node's filesystem —
 data packages, files, anything of value. This takes time, scaled by node grade.
 The node's 12 facets light up in random order as data is extracted. You can cancel
 with `abort`, and navigating away cancels automatically.
@@ -570,7 +570,7 @@ which stays perfectly legible.
 
 ### Subverting the IDS
 
-If you can compromise and then **corrupt** an IDS node:
+If you can open and then **corrupt** an IDS node:
 
 ```
 > exec corrupt
@@ -586,7 +586,7 @@ worth the detour, especially on an ICE-less LAN where the grid is your only cloc
 The security grid climbs, but — below trace — you can also push it back down. Two relief levers
 (both **grid only**: they don't touch ICE, which keeps hunting):
 
-- **Scrub logs** (`exec scrub-logs`) — on a **compromised** security-monitor. Wipes that monitor's
+- **Scrub logs** (`exec scrub-logs`) — on an **open** security-monitor. Wipes that monitor's
   accumulated alerts and eases the global alert one level. Cheap and repeatable.
 - **Lie low** (`exec lie-low`) — at the **WAN node**. You go quiet and *wait* (a timed action — ICE
   keeps moving while you sit). A clock face spins on the WAN node, its edges lighting up as the wait
@@ -626,7 +626,7 @@ your exploit resolves, it will start routing. Cancelling mid-run leaves that sig
 ### ICE Movement
 
 ICE moves every few seconds, traversing the network graph. You can only see ICE when it
-enters a node you **control** (compromised or owned) — it's invisible in the dark territory
+enters a node you **control** (open or owned) — it's invisible in the dark territory
 of unowned nodes. When it moves onto a node you control, a red diamond appears on the graph
 and the log reports its arrival. When a LAN has multiple ICE, each moves on its own
 cadence (set by its grade) and a node you control can be visited by more than one at a time.
@@ -727,14 +727,14 @@ Actions depend on the selected node's type and access level:
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
 | `abort`           | Timed action in progress on targeted node      | Aborts the current action (probe, xploit, dump, or fetch) |
 | `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies. Not offered at all on an already-owned node. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
-| `dump`         | Node is compromised or owned, unread           | Timed scan — reveals macguffins |
+| `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
-| `exec <script>` | A compromised/owned node exposes node scripts | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
-| `corrupt`      | IDS node is compromised or owned               | Severs event forwarding to security monitor (run via `exec`) |
-| `scrub-logs`   | Security-monitor, compromised or owned         | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
+| `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
+| `corrupt`      | IDS node is open or owned                      | Severs event forwarding to security monitor (run via `exec`) |
+| `scrub-logs`   | Security-monitor, open or owned                | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
 | `lie-low`      | WAN node, uses remaining this run              | Timed wait that calms the whole grid to green (below trace); limited per run (run via `exec`) |
-| `spoof`        | Security-monitor node, compromised or owned    | Recalibrates security monitor (run via `exec`) |
+| `spoof`        | Security-monitor node, open or owned           | Recalibrates security monitor (run via `exec`) |
 | `kick`         | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
 | `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown (run via `exec`) |
@@ -802,12 +802,12 @@ vulnerability can mean the difference between a 30% and a 65% success chance.
 
 **Firewalls hide what's behind them.** You won't see any connections beyond a
 firewall, IDS, or security monitor until you own it. Routers require at least
-compromised access. Plan your route — sometimes the soft path through a workstation
+open access. Plan your route — sometimes the soft path through a workstation
 reveals more of the network than hammering on a hardened chokepoint.
 
 **Watch the IDS chain.** Before you start hammering on nodes deep in the network,
 find the IDS nodes and figure out which security monitor they feed. If you can
-compromise and corrupt the IDS first, you can work quietly behind it.
+open and corrupt the IDS first, you can work quietly behind it.
 
 **ICE is predictable once you understand its grade.** A grade-C ICE is drawn to
 disturbances — it will come to where the action is. If you're making noise in one

@@ -72,7 +72,7 @@ Three atom types, all living in the registry at `js/core/ice/`:
   `cancel-action`, `accelerate`, `broadcast-alert-adjacent`, ...
 
 Effect atoms receive a selector when they need to pick a target. Selector
-grammar: `self-host`, `player-selected`, `random-owned`, `random-compromised`,
+grammar: `self-host`, `player-selected`, `random-owned`, `random-open`,
 `random-revealed`, `adjacent-to-self`, `farthest-from-player`, `stash-tagged`.
 
 ### Catalog
@@ -112,7 +112,7 @@ The graph uses two distinct markers:
 - **Attention cursor** (red diamond) — roaming ICE's current patrol location.
   Follows the ICE as it moves.
 
-Counter-play: `scan-for-ice` action on owned/compromised nodes reveals ICE
+Counter-play: `scan-for-ice` action on owned/open nodes reveals ICE
 without triggering it. Reveals typeId, focus, and pattern; does not reveal
 effects.
 
@@ -165,7 +165,7 @@ with per-ICE actions. Verbs:
 | Verb | Availability | Effect |
 |---|---|---|
 | `uninstall-ice` | Owned host | Removes the instance entirely |
-| `disable-ice` | Compromised host, type-gated | Disables for a short timer (type declares `canTempDisable`) |
+| `disable-ice` | Open host, type-gated | Disables for a short timer (type declares `canTempDisable`) |
 | `swap-pattern` | Owned host, type-gated | Swap behavior pattern from an allowed set |
 | `reprogram-effects` | Owned host, type-gated | Swap effect atoms from an allowed set |
 

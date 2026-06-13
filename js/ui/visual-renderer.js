@@ -518,7 +518,7 @@ function renderEndScreen(state) {
   endEl.cash = state.player.cash;
   endEl.hasMission = !!state.mission;
   endEl.missionComplete = state.mission?.complete ?? false;
-  endEl.nodesCompromised = Object.values(state.nodes).filter(
+  endEl.nodesAccessed = Object.values(state.nodes).filter(
     (n) => n.accessLevel !== "locked"
   ).length;
   endEl.nodesOwned = Object.values(state.nodes).filter(

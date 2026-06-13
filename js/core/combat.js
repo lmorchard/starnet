@@ -26,7 +26,7 @@ export { GRADE_MODIFIER, MATCH_BONUS, SUCCESS_CAP, PATCH_LAG };
 
 /**
  * Chance that a successful exploit jumps from locked directly to owned,
- * skipping the compromised step. Driven by exploit quality.
+ * skipping the open step. Driven by exploit quality.
  * @param {ExploitCard} exploit
  * @returns {number} probability 0-1
  */
@@ -52,7 +52,7 @@ export function skipToOwnedChance(exploit) {
  *     4. partial-burn roll                             (detected failure, uses > 1)
  *
  * So "force a successful exploit from a locked node" needs THREE forced rolls:
- *   success (low), flavor pick (any), skip-to-owned (high → stay at "compromised").
+ *   success (low), flavor pick (any), skip-to-owned (high → stay at "open").
  * Forcing only the first two leaves the skip roll seeded — see issue #109.
  * Tests MUST pass an explicit seed to initGame() so any unforced roll is at least
  * deterministic rather than Math.random()-derived.
@@ -200,18 +200,18 @@ export function resolveCombat(exploit, node) {
     result.prevAccess = node.accessLevel;
 
     if (node.accessLevel === "locked") {
-      // High-quality/rare exploits can skip compromised → owned in one shot
+      // High-quality/rare exploits can skip open → owned in one shot
       const skipRoll = random(RNG.COMBAT);
       if (skipRoll <= skipToOwnedChance(exploit)) {
         result.nextAccess = "owned";
         result.skippedToOwned = true;
         result.revealNeighbors = true;
       } else {
-        result.nextAccess = "compromised";
+        result.nextAccess = "open";
         result.revealNeighbors = (node.gateAccess ?? "probed") !== "owned";
       }
       result.levelChanged = true;
-    } else if (node.accessLevel === "compromised") {
+    } else if (node.accessLevel === "open") {
       result.nextAccess = "owned";
       result.revealNeighbors = true;
       result.levelChanged = true;
