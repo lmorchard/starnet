@@ -6,6 +6,7 @@ import { CONTAINER_POLYGON_POINTS, nodeFaceDataUri } from "./node-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
 import { ringPoints } from "./overlays/facet.js";
 import { findPath } from "./graph-path.js";
+import { viewportMatchesFit } from "./viewport-fit.js";
 
 // Still playing with what might be the best default here
 // const DEFAULT_LAYOUT_ALGO = "breadthfirst";
@@ -773,9 +774,16 @@ export function syncSelection(nodeId, forceRefit = false) {
       const hop2 = neighborhood.neighborhood(visible);
       neighborhood = neighborhood.add(hop2);
       if (neighborhood.length > 0) {
+        // Skip the fit when the viewport is already framing this neighborhood: an
+        // imperceptible animation would still emit pan/zoom and flash the bloom off
+        // (it's suspended during viewport motion) just as the action menu appears.
+        // Real reframes still animate — and still suspend bloom — as before.
+        const FIT_PADDING = 50;
+        const target = cy.getFitViewport(neighborhood, FIT_PADDING);
+        if (viewportMatchesFit({ zoom: cy.zoom(), pan: cy.pan() }, target)) return;
         cy.stop();
         cy.animate({
-          fit: { eles: neighborhood, padding: 50 },
+          fit: { eles: neighborhood, padding: FIT_PADDING },
           duration: 400,
           easing: "ease-in-out-cubic",
         });
