@@ -21,7 +21,7 @@ import { initGraphBridge } from "../../js/core/graph-bridge.js";
 import { initDynamicActions } from "../../js/core/console-commands/dynamic-actions.js";
 import { initLog } from "../../js/core/log.js";
 import { on, off, emitEvent, E, clearHandlers } from "../../js/core/events.js";
-import { tick, TIMER, clearAll as clearAllTimers } from "../../js/core/timers.js";
+import { tick, TIMER } from "../../js/core/timers.js";
 
 /** @type {import('../../js/core/types.js').ActionContext | null} */
 let _ctx = null;
@@ -80,9 +80,10 @@ export function wireRunHandlers() {
  * @returns {import('../../js/core/types.js').GameState}
  */
 export function resetGame(buildNetworkFn, seed) {
-  // Full reset: wipe all listeners and pending timers from any prior run.
+  // Full reset: wipe all listeners from any prior run. Pending timers need no
+  // explicit clear — initGame swaps in a fresh RunContext (empty timer set), so
+  // the prior run's timers are dropped wholesale.
   clearHandlers();
-  clearAllTimers();
 
   // Re-wire everything before building the game so init-time events are seen.
   wireRunHandlers();

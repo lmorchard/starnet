@@ -5,6 +5,7 @@
 
 import { emitEvent, E } from "./events.js";
 import { getVersion, getState } from "./state/index.js";
+import { getActiveRun, requireActiveRun } from "./run-context.js";
 
 export const TICK_MS = 100; // ms per tick; browser master interval uses this
 
@@ -16,52 +17,53 @@ export const TIMER = {
   // Probe, exploit, read, loot, reboot timers removed — timed-action operator handles these
 };
 
-let currentTick = 0;
-let nextId = 1;
+// Per-run timer state (currentTick, nextId, entries Map) lives on the active
+// RunContext — see run-context.js. A fresh context starts with an empty timer
+// set, so a new run can never inherit the previous run's timers.
+// _pauseCount is session pause state (tab-hidden / user pause), not per-run.
 let _pauseCount = 0;
 
-/** @type {import('./node-graph/runtime.js').NodeGraph | null} */
-let _graphRef = null;
-
-/** Register NodeGraph for tick advancement. */
-export function setGraphForTick(graph) { _graphRef = graph; }
+/** Register NodeGraph for tick advancement (on the active run context). */
+export function setGraphForTick(graph) {
+  const ctx = getActiveRun();
+  if (ctx) ctx.nodeGraph = graph;
+}
 
 export function pauseTimers()  { _pauseCount++; }
 export function resumeTimers() { if (_pauseCount > 0) _pauseCount--; }
 export function isPaused()     { return _pauseCount > 0; }
 
-// timerId → { id, type, payload, fireAt, intervalTicks, visible, label, startedAt, durationTicks }
-const timers = new Map();
-
 export function scheduleEvent(type, delayMs, payload = {}, visibility = null) {
-  const id = nextId++;
+  const t = requireActiveRun("scheduleEvent").timers;
+  const id = t.nextId++;
   const durationTicks = Math.max(1, Math.round(delayMs / TICK_MS));
-  timers.set(id, {
+  t.entries.set(id, {
     id,
     type,
     payload,
-    fireAt: currentTick + durationTicks,
+    fireAt: t.currentTick + durationTicks,
     intervalTicks: null,
     visible: !!visibility,
     label: visibility?.label ?? null,
-    startedAt: currentTick,
+    startedAt: t.currentTick,
     durationTicks,
   });
   return id;
 }
 
 export function scheduleRepeating(type, intervalMs, payload = {}) {
-  const id = nextId++;
+  const t = requireActiveRun("scheduleRepeating").timers;
+  const id = t.nextId++;
   const intervalTicks = Math.max(1, Math.round(intervalMs / TICK_MS));
-  timers.set(id, {
+  t.entries.set(id, {
     id,
     type,
     payload,
-    fireAt: currentTick + intervalTicks,
+    fireAt: t.currentTick + intervalTicks,
     intervalTicks,
     visible: false,
     label: null,
-    startedAt: currentTick,
+    startedAt: t.currentTick,
     durationTicks: intervalTicks,
   });
   return id;
@@ -69,23 +71,26 @@ export function scheduleRepeating(type, intervalMs, payload = {}) {
 
 export function tick(n = 1) {
   if (_pauseCount > 0) return;
+  const ctx = getActiveRun();
+  if (!ctx) return;
+  const t = ctx.timers;
   const versionBefore = getVersion();
-  currentTick += n;
-  for (const [id, entry] of timers) {
+  t.currentTick += n;
+  for (const [id, entry] of t.entries) {
     // Repeating timers fire once per elapsed interval; one-shots fire once.
-    while (currentTick >= entry.fireAt) {
+    while (t.currentTick >= entry.fireAt) {
       emitEvent(entry.type, { ...entry.payload, timerId: id });
       if (entry.intervalTicks !== null) {
         entry.fireAt += entry.intervalTicks;
       } else {
-        timers.delete(id);
+        t.entries.delete(id);
         break;
       }
     }
   }
   // Advance NodeGraph internal clock (operators: clock, delay, watchdog, debounce)
-  if (_graphRef) {
-    for (let i = 0; i < n; i++) _graphRef.tick(1);
+  if (ctx.nodeGraph) {
+    for (let i = 0; i < n; i++) ctx.nodeGraph.tick(1);
   }
 
   // Emit STATE_CHANGED once at the end of the tick cycle if any state mutation occurred.
@@ -95,37 +100,45 @@ export function tick(n = 1) {
 }
 
 export function cancelEvent(id) {
-  timers.delete(id);
+  getActiveRun()?.timers.entries.delete(id);
 }
 
 export function cancelAllByType(type) {
-  for (const [id, entry] of timers) {
-    if (entry.type === type) timers.delete(id);
+  const t = getActiveRun()?.timers;
+  if (!t) return;
+  for (const [id, entry] of t.entries) {
+    if (entry.type === type) t.entries.delete(id);
   }
 }
 
 export function clearAll() {
-  timers.clear();
-  currentTick = 0;
+  const ctx = getActiveRun();
+  if (!ctx) return;
+  ctx.timers.entries.clear();
+  ctx.timers.currentTick = 0;
 }
 
 export function getVisibleTimers() {
-  return [...timers.values()]
-    .filter((t) => t.visible)
-    .map((t) => ({
-      label: t.label,
-      remaining: Math.max(0, Math.ceil((t.fireAt - currentTick) * TICK_MS / 1000)),
-      progress: Math.min(1, (currentTick - t.startedAt) / t.durationTicks),
+  const t = getActiveRun()?.timers;
+  if (!t) return [];
+  return [...t.entries.values()]
+    .filter((entry) => entry.visible)
+    .map((entry) => ({
+      label: entry.label,
+      remaining: Math.max(0, Math.ceil((entry.fireAt - t.currentTick) * TICK_MS / 1000)),
+      progress: Math.min(1, (t.currentTick - entry.startedAt) / entry.durationTicks),
     }));
 }
 
 export function serializeTimers() {
-  return { currentTick, nextId, entries: [...timers.values()] };
+  const t = requireActiveRun("serializeTimers").timers;
+  return { currentTick: t.currentTick, nextId: t.nextId, entries: [...t.entries.values()] };
 }
 
 export function deserializeTimers({ currentTick: ct, nextId: ni, entries }) {
-  currentTick = ct;
-  nextId = ni;
-  timers.clear();
-  for (const entry of entries) timers.set(entry.id, entry);
+  const t = requireActiveRun("deserializeTimers").timers;
+  t.currentTick = ct;
+  t.nextId = ni;
+  t.entries.clear();
+  for (const entry of entries) t.entries.set(entry.id, entry);
 }
