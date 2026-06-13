@@ -1,4 +1,4 @@
-.PHONY: all serve lint test check bundle-vendor census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint test check bundle-vendor census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js
@@ -15,6 +15,9 @@ dist/lit.js: js/lit-vendor.js node_modules
 # Start local dev server (open http://localhost:3000)
 serve:
 	npx serve .
+
+# Build vendor bundles, then start the dev server
+dev: bundle-vendor serve
 
 # Run JSDoc/TypeScript type checker (no build step, annotations only)
 # Discovers all js/**/*.js automatically; excludes:
