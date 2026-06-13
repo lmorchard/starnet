@@ -13,6 +13,7 @@ import {
   connStatusDataUri,
   tickMeterDataUri,
   missionMarkDataUri,
+  accessGlyphDataUri,
 } from "./indicator-glyphs.js";
 
 const RARITIES = /** @type {const} */ (["common", "uncommon", "rare"]);
@@ -151,6 +152,12 @@ export function mountIndicatorSwatches(container) {
   row("Mission mark");
   for (const state of ["complete", "failed"]) {
     container.appendChild(cell(missionMarkDataUri(state), state));
+  }
+
+  // Access level — 3-chevron tier badge (lit bottom-up by tier)
+  row("Access level");
+  for (const level of ["locked", "open", "owned"]) {
+    container.appendChild(cell(accessGlyphDataUri(level), level));
   }
 }
 
