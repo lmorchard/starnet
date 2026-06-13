@@ -39,5 +39,5 @@ export {
 } from "./state/player.js";
 
 export {
-  setSelectedNode, setPhase, setRunOutcome,
+  setSelectedNode, setPhase, setRunOutcome, toggleMenuOpen, toggleHandCollapsed,
 } from "./state/game.js";
