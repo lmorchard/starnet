@@ -10,6 +10,8 @@ import {
   tickMeterDataUri,
   missionMarkSvg,
   missionMarkDataUri,
+  accessGlyphSvg,
+  accessGlyphDataUri,
 } from "./indicator-glyphs.js";
 
 /** Count non-overlapping occurrences of a substring in a string. */
@@ -246,6 +248,68 @@ describe("indicator-glyphs — stroke-only SVG", () => {
     });
     test("identical args → identical string for missionMarkSvg", () => {
       assert.equal(missionMarkSvg("complete"), missionMarkSvg("complete"));
+    });
+  });
+
+  // ── accessGlyphSvg ────────────────────────────────────────────────────────────
+
+  describe("accessGlyphSvg", () => {
+    /** lit chevrons render at stroke-width 1.8; dim at 1.4. */
+    const litCount = (svg) => countOccurrences(svg, `stroke-width="1.8"`);
+
+    test("always renders exactly 3 chevron polylines", () => {
+      for (const lvl of ["locked", "open", "owned", "—", "nonsense"]) {
+        assert.equal(countOccurrences(accessGlyphSvg(lvl), "<polyline"), 3,
+          `expected 3 polylines for "${lvl}"`);
+      }
+    });
+
+    test("locked → 1 lit chevron", () => {
+      assert.equal(litCount(accessGlyphSvg("locked")), 1);
+    });
+    test("open → 2 lit chevrons", () => {
+      assert.equal(litCount(accessGlyphSvg("open")), 2);
+    });
+    test("owned → 3 lit chevrons", () => {
+      assert.equal(litCount(accessGlyphSvg("owned")), 3);
+    });
+    test("unknown / obscured (—) → 0 lit chevrons", () => {
+      assert.equal(litCount(accessGlyphSvg("—")), 0);
+      assert.equal(litCount(accessGlyphSvg("nonsense")), 0);
+    });
+
+    test("locked lit hue is teal #45c4c4", () => {
+      assert.ok(accessGlyphSvg("locked").includes("#45c4c4"));
+    });
+    test("open lit hue is azure #36a6e0", () => {
+      assert.ok(accessGlyphSvg("open").includes("#36a6e0"));
+    });
+    test("owned lit hue is green-teal #2ad17a", () => {
+      assert.ok(accessGlyphSvg("owned").includes("#2ad17a"));
+    });
+
+    test("unreached chevrons use the dim color #2a3a55", () => {
+      // locked has 2 dim chevrons, open has 1.
+      assert.ok(accessGlyphSvg("locked").includes("#2a3a55"));
+      assert.ok(accessGlyphSvg("open").includes("#2a3a55"));
+    });
+    test("owned has no dim chevrons (no #2a3a55)", () => {
+      assert.ok(!accessGlyphSvg("owned").includes("#2a3a55"));
+    });
+
+    test("stroke-only: top-level fill=none, no shape fill in body", () => {
+      const svg = accessGlyphSvg("open");
+      assert.ok(svg.includes(`fill="none"`));
+      const body = svg.slice(svg.indexOf(">") + 1);
+      assert.ok(!body.includes(`fill="#`), `body has a shape fill: ${body}`);
+    });
+
+    test("deterministic: identical args → identical string", () => {
+      assert.equal(accessGlyphSvg("open"), accessGlyphSvg("open"));
+    });
+
+    test("accessGlyphDataUri starts with data:image/svg+xml,", () => {
+      assert.ok(accessGlyphDataUri("owned").startsWith("data:image/svg+xml,"));
     });
   });
 
