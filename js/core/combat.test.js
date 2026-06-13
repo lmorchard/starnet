@@ -69,12 +69,12 @@ function matchingExploit() {
 }
 
 describe("resolveCombat (pure resolution)", () => {
-  test("decides the locked→compromised plan without mutating the node or emitting", () => {
+  test("decides the locked→open plan without mutating the node or emitting", () => {
     initRng("combat-test-1");
     // From-locked success consumes three RNG.COMBAT rolls: success, flavor, skip.
     _forceNext(RNG.COMBAT, 0);     // success
     _forceNext(RNG.COMBAT, 0);     // flavor pick
-    _forceNext(RNG.COMBAT, 0.99);  // skip-to-owned bypass → stay at compromised
+    _forceNext(RNG.COMBAT, 0.99);  // skip-to-owned bypass → stay at open
 
     const node = lockedNode();
     const before = { accessLevel: node.accessLevel, alertState: node.alertState };
@@ -92,7 +92,7 @@ describe("resolveCombat (pure resolution)", () => {
     // Plan is fully decided…
     assert.equal(result.success, true);
     assert.equal(result.prevAccess, "locked");
-    assert.equal(result.nextAccess, "compromised");
+    assert.equal(result.nextAccess, "open");
     assert.equal(result.levelChanged, true);
     assert.equal(result.revealNeighbors, true); // gateAccess "probed" !== "owned"
     assert.ok(Array.isArray(result.vulnsToSurface));

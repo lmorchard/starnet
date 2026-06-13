@@ -115,7 +115,7 @@ const DUMP_ACTION = {
   requires: [
     {
       type: "any-of", conditions: [
-        { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+        { type: "node-attr", attr: "accessLevel", eq: "open" },
         { type: "node-attr", attr: "accessLevel", eq: "owned" },
       ],
     },
@@ -203,7 +203,7 @@ const RECONFIGURE_ACTION = {
   requires: [
     {
       type: "any-of", conditions: [
-        { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+        { type: "node-attr", attr: "accessLevel", eq: "open" },
         { type: "node-attr", attr: "accessLevel", eq: "owned" },
       ],
     },
@@ -257,7 +257,7 @@ const SCRUB_LOGS_ACTION = {
   desc: "Wipe this monitor's accumulated alert logs, easing the global alert one level.",
   requires: [{
     type: "any-of", conditions: [
-      { type: "node-attr", attr: "accessLevel", eq: "compromised" },
+      { type: "node-attr", attr: "accessLevel", eq: "open" },
       { type: "node-attr", attr: "accessLevel", eq: "owned" },
     ],
   }],
@@ -344,7 +344,7 @@ export function createRouter(id, config = {}) {
     attributes: {
       label: config.label || id,
       grade: config.grade || "D",
-      gateAccess: "compromised",
+      gateAccess: "open",
       ...config.attributes,
     },
   };

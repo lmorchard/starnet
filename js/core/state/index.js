@@ -338,7 +338,7 @@ export function isIceVisible(ice, nodes, selectedNodeId = null) {
   if (!ice?.active) return false;
   if (selectedNodeId && ice.attentionNodeId === selectedNodeId) return true;
   const atAccess = nodes[ice.attentionNodeId]?.accessLevel;
-  return atAccess === "compromised" || atAccess === "owned";
+  return atAccess === "open" || atAccess === "owned";
 }
 
 // ── Store / card acquisition ──────────────────────────────

@@ -11,7 +11,7 @@ class StarnetEndScreen extends StarnetElement {
     cash: { type: Number },
     missionComplete: { type: Boolean },
     hasMission: { type: Boolean },
-    nodesCompromised: { type: Number },
+    nodesAccessed: { type: Number },
     nodesOwned: { type: Number },
     macguffinsLooted: { type: Number },
     isCheating: { type: Boolean },
@@ -24,7 +24,7 @@ class StarnetEndScreen extends StarnetElement {
     this.cash = 0;
     this.missionComplete = false;
     this.hasMission = false;
-    this.nodesCompromised = 0;
+    this.nodesAccessed = 0;
     this.nodesOwned = 0;
     this.macguffinsLooted = 0;
     this.isCheating = false;
@@ -75,8 +75,8 @@ class StarnetEndScreen extends StarnetElement {
           </div>
         ` : nothing}
         <div class="end-row">
-          <span class="end-key">NODES COMPROMISED</span>
-          <span class="end-val">${this.nodesCompromised}</span>
+          <span class="end-key">NODES ACCESSED</span>
+          <span class="end-val">${this.nodesAccessed}</span>
         </div>
         <div class="end-row">
           <span class="end-key">NODES OWNED</span>

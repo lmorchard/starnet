@@ -125,7 +125,7 @@ dumb bot hits 0% at A/A without upgrades, but the mechanical levers (deck
 speed, stealth) would directly address the exploit-duration vs ICE-dwell race.
 
 ### Adversarial / ICE
-- **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → compromised → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
+- **Defender ICE** — instead of detecting and triggering alert, this ICE variant reverses access levels (owned → open → locked) as it dwells on a node; creates territory-holding pressure that complements the existing detection model. Would need new ICE behavior type, reverse-access state mutation, and visual feedback distinct from current ICE presence indicator.
 - **ICE reaches into the deck — burns exploits mid-run** — an ICE variant that, on detection/dwell, doesn't just raise alert but attacks the player's *loadout*: it disables or "burns" an exploit card mid-run (the graduated, in-run cousin of capture-burns-loadout). Extends the existing failure-driven `disclose` mechanic in `combat.js`, but ICE-driven rather than player-failure-driven. Pairs with the persistent exploit inventory (see `docs/dev-sessions/2026-06-10-1516-overworld-meta-state/`): once cards are durable inventory instances with stable ids, burning a specific card has lasting cost. Fits the multi-instance / variant-ICE direction in `docs/ICE.md`. _Raised 2026-06-10; future iteration, depends on the meta-state inventory landing first._
 - **Bot player: eject and reboot** — the bot currently never uses eject (push
   ICE to adjacent node) or reboot (force ICE to resident, node goes offline).
@@ -134,13 +134,13 @@ speed, stealth) would directly address the exploit-duration vs ICE-dwell race.
   (requires planning about which node and when) and may be too complex for
   the dumb bot. Both require tracking ICE position (`iceCurrentNode`).
 - **`cheat ice-move <node>`** — cheat command to teleport ICE directly to a node for testing detection scenarios without waiting for ticks
-- **ICE path tracing via traffic analysis daemon** — ICE movements currently invisible until dwell fires; a "traffic analysis daemon" installed on a compromised node could reveal ICE movement logs as events _(part of the log-verbosity-as-mechanic idea below)_
+- **ICE path tracing via traffic analysis daemon** — ICE movements currently invisible until dwell fires; a "traffic analysis daemon" installed on an open node could reveal ICE movement logs as events _(part of the log-verbosity-as-mechanic idea below)_
 - **ICE status readout on owned-node crossings** — when ICE moves through a node you own, the log reports its path but not its behavioral state. A brief status tag (e.g. `[PATROLLING]`, `[ALERTED]`, `[HUNTING]`) in the movement log entry would let the player read ICE intent at a glance — useful for deciding whether to deselect and go dark or commit to an action. Status maps naturally to the existing grade-behavior tiers: D/F = patrolling, B/C with a disturbance target = alerted, A/S or B/C chasing player = hunting.
 
 ### Information Asymmetry (Log Verbosity as Game Mechanic)
 From session-5 design discussion — reframe log verbosity as something the player *earns*:
-- **Traffic analysis daemon** — installed on a compromised node; reveals ICE movements through visible territory in the log
-- **Alert propagation logs** — requires subverting/compromising an IDS; once owned, you see alert events as they propagate to monitors
+- **Traffic analysis daemon** — installed on an open node; reveals ICE movements through visible territory in the log
+- **Alert propagation logs** — requires subverting/opening an IDS; once owned, you see alert events as they propagate to monitors
 - **Deep network telemetry** — high-tier readable nodes contain network maps, revealing hidden nodes or edges without traversal
 - This reframes information asymmetry as diegetic and earned, not a UI toggle
 
@@ -395,7 +395,7 @@ Locked nodes that are accessible show background fill `#080810`, nearly identica
 container background `#0a0a0f`. On most monitors these are visually indistinguishable.
 Consider increasing the fill lightness for locked/accessible nodes to make their presence
 more readable on the graph — without losing the "dark and unowned" feel relative to
-compromised/owned nodes.
+open/owned nodes.
 
 ### Effects (out of scope, recurring)
 - Screenshake on jack-out

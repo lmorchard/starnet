@@ -650,7 +650,7 @@ export function updateNodeStyle(nodeId, nodeState) {
 
   if (nodeState.visibility === "accessible") {
     // Access level
-    node.removeClass("compromised owned");
+    node.removeClass("open owned");
     if (nodeState.accessLevel !== "locked") {
       node.addClass(nodeState.accessLevel);
     }
@@ -916,15 +916,15 @@ function flashIcePath(fromId, toId) {
   if (!path) return;
 
   // Flash each hop's edge in sequence; skip edges not in player-controlled
-  // territory. Requires at least one endpoint compromised/owned (not just visible).
+  // territory. Requires at least one endpoint open/owned (not just visible).
   for (let hop = 1; hop < path.length; hop++) {
     const delay = (hop - 1) * 100;
     edgesBetween(path[hop - 1], path[hop]).forEach((edge) => {
       if (edge.hasClass("hidden")) return;
       const src = cy.getElementById(edge.data("source"));
       const tgt = cy.getElementById(edge.data("target"));
-      const srcControlled = src.hasClass("compromised") || src.hasClass("owned");
-      const tgtControlled = tgt.hasClass("compromised") || tgt.hasClass("owned");
+      const srcControlled = src.hasClass("open") || src.hasClass("owned");
+      const tgtControlled = tgt.hasClass("open") || tgt.hasClass("owned");
       if (!srcControlled && !tgtControlled) return;
       setTimeout(() => {
         edge.animate(

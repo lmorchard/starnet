@@ -184,7 +184,7 @@ function coolGrid(monitorIds, mode) {
 }
 
 /**
- * Scrub one compromised monitor's logs: reset its accumulated alertCount and ease the global
+ * Scrub one open monitor's logs: reset its accumulated alertCount and ease the global
  * alert one level. Below-trace only. (Player relief lever — see #174.)
  * @param {string} monitorId
  */

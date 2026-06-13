@@ -320,10 +320,10 @@ describe("Action availability: corrupt on ids", () => {
     initGame(() => buildAlertLAN(), "itest-7");
   });
 
-  it("available when compromised and forwarding enabled", () => {
+  it("available when open and forwarding enabled", () => {
     const s = getState();
     const graph = s.nodeGraph;
-    graph.setNodeAttr("ids-1", "accessLevel", "compromised");
+    graph.setNodeAttr("ids-1", "accessLevel", "open");
     graph.setNodeAttr("ids-1", "forwardingEnabled", true);
     const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
     assert.ok(actionIds.includes("corrupt"));
@@ -332,7 +332,7 @@ describe("Action availability: corrupt on ids", () => {
   it("not available when forwardingEnabled is false", () => {
     const s = getState();
     const graph = s.nodeGraph;
-    graph.setNodeAttr("ids-1", "accessLevel", "compromised");
+    graph.setNodeAttr("ids-1", "accessLevel", "open");
     graph.setNodeAttr("ids-1", "forwardingEnabled", false);
     const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
     assert.ok(!actionIds.includes("corrupt"));
@@ -657,10 +657,10 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     assert.equal(isIceVisible(firstIce(), s.nodes, s.selectedNodeId), true);
   });
 
-  it("ICE IS visible on a compromised node regardless of selection", () => {
+  it("ICE IS visible on a open node regardless of selection", () => {
     const s = getState();
     teleportIce("gateway");
-    s.nodes["gateway"].accessLevel = "compromised";
+    s.nodes["gateway"].accessLevel = "open";
     s.selectedNodeId = null;
     assert.equal(isIceVisible(firstIce(), s.nodes, s.selectedNodeId), true);
   });
@@ -774,14 +774,14 @@ describe("Exploit success: neighbor visibility", () => {
     // RNG.COMBAT is consumed three times on a from-locked success:
     //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
     // Force the third > skipChance so the access level lands on
-    // 'compromised', not 'owned'.
+    // 'open', not 'owned'.
     _forceNext(RNG.COMBAT, 0);    // success
     _forceNext(RNG.COMBAT, 0);    // flavor pick
     _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
     launchExploit("gateway", s.player.hand[0].id);
 
-    assert.equal(gateway.accessLevel, "compromised",
-      "Gateway should be compromised after successful exploit");
+    assert.equal(gateway.accessLevel, "open",
+      "Gateway should be open after successful exploit");
 
     // Neighbors should be "revealed" (showing as ???), NOT "accessible"
     for (const nid of neighbors) {
@@ -801,9 +801,9 @@ describe("Exploit success: neighbor visibility", () => {
     _forceNext(RNG.COMBAT, 0.99);
     launchExploit("gateway", s.player.hand[0].id);
 
-    assert.equal(gateway.accessLevel, "compromised");
+    assert.equal(gateway.accessLevel, "open");
     assert.equal(gateway.probed, true,
-      "a successful exploit should count as a probe (compromised ⇒ probed)");
+      "a successful exploit should count as a probe (open ⇒ probed)");
   });
 });
 
@@ -829,7 +829,7 @@ function buildFirewallGateLAN({ startCash = 0 } = {}) {
 }
 
 /**
- * LAN with a router (gateAccess: "compromised") between gateway and a fileserver.
+ * LAN with a router (gateAccess: "open") between gateway and a fileserver.
  * gateway → router → fileserver
  */
 function buildRouterGateLAN({ startCash = 0 } = {}) {
@@ -861,36 +861,36 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
         "fileserver behind firewall should start hidden");
     });
 
-    it("compromising the firewall does NOT reveal nodes behind it", () => {
+    it("opening the firewall does NOT reveal nodes behind it", () => {
       const s = getState();
       // RNG.COMBAT is consumed three times on a from-locked success:
       //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
       // Force the third > skipChance so the access level lands on
-      // 'compromised', not 'owned'.
+      // 'open', not 'owned'.
       _forceNext(RNG.COMBAT, 0);    // success
       _forceNext(RNG.COMBAT, 0);    // flavor pick
       _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
       launchExploit("firewall-1", s.player.hand[0].id);
 
-      assert.equal(s.nodes["firewall-1"].accessLevel, "compromised",
-        "firewall should be compromised after first successful exploit");
+      assert.equal(s.nodes["firewall-1"].accessLevel, "open",
+        "firewall should be open after first successful exploit");
       assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
-        "fileserver behind owned-gated firewall must remain hidden when firewall is only compromised");
+        "fileserver behind owned-gated firewall must remain hidden when firewall is only open");
     });
 
     it("owning the firewall DOES reveal nodes behind it", () => {
       const s = getState();
 
-      // First exploit: locked → compromised (block skip-to-owned with third roll)
+      // First exploit: locked → open (block skip-to-owned with third roll)
       _forceNext(RNG.COMBAT, 0);    // success
       _forceNext(RNG.COMBAT, 0);    // flavor pick
       _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
       launchExploit("firewall-1", s.player.hand[0].id);
-      assert.equal(s.nodes["firewall-1"].accessLevel, "compromised");
+      assert.equal(s.nodes["firewall-1"].accessLevel, "open");
       assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
-        "precondition: still hidden after compromised");
+        "precondition: still hidden after open");
 
-      // Second exploit: compromised → owned (no skip roll on this transition)
+      // Second exploit: open → owned (no skip roll on this transition)
       _forceNext(RNG.COMBAT, 0);    // success
       _forceNext(RNG.COMBAT, 0);    // flavor pick
       launchExploit("firewall-1", s.player.hand[1].id);
@@ -901,7 +901,7 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
     });
   });
 
-  describe("router gate (gateAccess: 'compromised')", () => {
+  describe("router gate (gateAccess: 'open')", () => {
     beforeEach(() => {
       clearAll();
       initGame(() => buildRouterGateLAN(), "itest-22");
@@ -913,22 +913,22 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
         "fileserver behind router should start hidden");
     });
 
-    it("compromising the router reveals nodes behind it", () => {
+    it("opening the router reveals nodes behind it", () => {
       const s = getState();
 
       // RNG.COMBAT is consumed three times on a from-locked success:
       //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
       // Force the third > skipChance so the access level lands on
-      // 'compromised', not 'owned'.
+      // 'open', not 'owned'.
       _forceNext(RNG.COMBAT, 0);    // success
       _forceNext(RNG.COMBAT, 0);    // flavor pick
       _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
       launchExploit("router-gate", s.player.hand[0].id);
 
-      assert.equal(s.nodes["router-gate"].accessLevel, "compromised",
-        "router should be compromised after first successful exploit");
+      assert.equal(s.nodes["router-gate"].accessLevel, "open",
+        "router should be open after first successful exploit");
       assert.equal(s.nodes["behind-router"].visibility, "revealed",
-        "fileserver behind compromised-gated router should be revealed on compromise");
+        "fileserver behind open-gated router should be revealed on open");
     });
   });
 
@@ -1285,7 +1285,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
   const ORDER = ["green", "yellow", "red", "trace"];
   const sendAlert = (graph) => graph.sendMessage("sp/ids", { type: "alert", payload: {} });
 
-  it("scrubbing a compromised monitor resets its alertCount and eases the global alert one level", () => {
+  it("scrubbing a open monitor resets its alertCount and eases the global alert one level", () => {
     initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "scrub-1");
     const graph = getState().nodeGraph;
     sendAlert(graph); sendAlert(graph); sendAlert(graph); // 3 alerts (grade C): climbs to red
@@ -1293,7 +1293,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
     assert.notEqual(before, "green", "grid should have climbed");
     assert.ok(graph.getNodeState("sp/monitor").alertCount > 0, "monitor should have accumulated");
 
-    graph.setNodeAttr("sp/monitor", "accessLevel", "compromised");
+    graph.setNodeAttr("sp/monitor", "accessLevel", "open");
     graph.executeAction("sp/monitor", "scrub-logs");
 
     assert.equal(graph.getNodeState("sp/monitor").alertCount, 0, "scrub resets the monitor's count");
@@ -1308,7 +1308,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
     assert.equal(getState().globalAlert, "trace", "should be at trace");
     const countAtTrace = graph.getNodeState("sp/monitor").alertCount;
 
-    graph.setNodeAttr("sp/monitor", "accessLevel", "compromised");
+    graph.setNodeAttr("sp/monitor", "accessLevel", "open");
     graph.executeAction("sp/monitor", "scrub-logs");
 
     assert.equal(getState().globalAlert, "trace", "scrub must not cool an active trace");
@@ -1541,7 +1541,7 @@ describe("status ice: enumerates all active ICE instances", () => {
   it("lists one line per active instance when there are multiple", () => {
     const s = getState();
     // Make both instances visible: ice-1's attention node is selected; ice-2's
-    // attention node is owned (isIceVisible passes for owned/compromised nodes).
+    // attention node is owned (isIceVisible passes for owned/open nodes).
     s.selectedNodeId = "gateway";
     s.nodes["gateway"].accessLevel = "owned";
     s.nodes["router-a"].accessLevel = "owned";

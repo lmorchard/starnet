@@ -6,7 +6,7 @@
 // ── String union types ────────────────────────────────────
 
 /** @typedef {"hidden"|"revealed"|"accessible"} Visibility */
-/** @typedef {"locked"|"compromised"|"owned"} AccessLevel */
+/** @typedef {"locked"|"open"|"owned"} AccessLevel */
 /** @typedef {"green"|"yellow"|"red"} NodeAlertLevel */
 /** @typedef {"green"|"yellow"|"red"|"trace"} GlobalAlertLevel */
 /** @typedef {"fresh"|"worn"|"disclosed"} DecayState */
@@ -298,7 +298,7 @@
  *   lootConfig?:    { count: number[] },
  *   combatConfig?:  CombatConfig,
  *   vulnConfig?:    VulnConfig,
- *   gateAccess?:    "probed"|"compromised"|"owned",
+ *   gateAccess?:    "probed"|"open"|"owned",
  *   gradeOverrides?: Partial<Record<Grade, GradeOverride>>,
  * }} NodeTypeDef
  */

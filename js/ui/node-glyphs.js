@@ -111,7 +111,7 @@ const FACE_POLYGON_POINTS = (() => {
  */
 const FENCE = {
   locked:      { gap: 11,  color: "#246060" },
-  compromised: { gap: 7,   color: "#1c6a85" },
+  open: { gap: 7,   color: "#1c6a85" },
   owned:       { gap: 4.5, color: "#1c8a4a" },
 };
 const FENCE_OPACITY = 0.42;

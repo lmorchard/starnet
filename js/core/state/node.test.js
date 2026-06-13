@@ -26,8 +26,8 @@ describe("state/node — node mutations", () => {
 
   it("setNodeAccessLevel changes accessLevel and bumps version", () => {
     const v = getVersion();
-    setNodeAccessLevel("gateway", "compromised");
-    assert.equal(getState().nodes["gateway"].accessLevel, "compromised");
+    setNodeAccessLevel("gateway", "open");
+    assert.equal(getState().nodes["gateway"].accessLevel, "open");
     assert.equal(getVersion(), v + 1);
   });
 
@@ -133,9 +133,9 @@ describe("state/node — isObscured", () => {
     );
   });
 
-  it("compromised-but-unprobed node is NOT obscured (you're inside it)", () => {
+  it("open-but-unprobed node is NOT obscured (you're inside it)", () => {
     assert.equal(
-      isObscured({ sigAlias: "sig-1", accessLevel: "compromised", probed: false }),
+      isObscured({ sigAlias: "sig-1", accessLevel: "open", probed: false }),
       false
     );
   });

@@ -73,11 +73,11 @@ const ALERT_NODES = [
   { id: "alert-reboot",  label: "REBOOT",   type: "router", grade: "C", x: 750, y: 720 },
 ];
 
-// Access-state demo nodes — show fence density across locked/compromised/owned
+// Access-state demo nodes — show fence density across locked/open/owned
 // so the vector-CRT fence treatment can be tuned in isolation.
 const ACCESS_NODES = [
   { id: "acc-locked",      label: "LOCKED",      type: "fileserver", grade: "C", x: 150, y: 850 },
-  { id: "acc-compromised", label: "COMPROMISED", type: "fileserver", grade: "C", x: 380, y: 850 },
+  { id: "acc-open", label: "OPEN", type: "fileserver", grade: "C", x: 380, y: 850 },
   { id: "acc-owned",       label: "OWNED",       type: "fileserver", grade: "C", x: 610, y: 850 },
 ];
 
@@ -138,7 +138,7 @@ updateNodeStyle("alert-reboot", { visibility: "accessible", accessLevel: "owned"
 
 // Access-state demo overrides (the generic loop above set every node to "owned")
 updateNodeStyle("acc-locked",      { visibility: "accessible", accessLevel: "locked",      alertState: "green", rebooting: false });
-updateNodeStyle("acc-compromised", { visibility: "accessible", accessLevel: "compromised", alertState: "green", rebooting: false });
+updateNodeStyle("acc-open", { visibility: "accessible", accessLevel: "open", alertState: "green", rebooting: false });
 updateNodeStyle("acc-owned",       { visibility: "accessible", accessLevel: "owned",       alertState: "green", rebooting: false });
 
 // Fit the view to show all nodes
