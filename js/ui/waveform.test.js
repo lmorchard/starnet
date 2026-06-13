@@ -55,6 +55,26 @@ describe("ecgPoints", () => {
     }
   });
 
+  test("wide strip renders a partial final beat, not a near-full-period flatline", () => {
+    // Regression: ecgPoints used Math.floor(W/period) for the beat count, so any
+    // leftover width up to almost a whole period was filled with flat baseline. At
+    // sidebar widths where that remainder approached a full period, the trace dropped
+    // the final beat and flatlined for nearly a beat-width at the right edge. A partial
+    // beat clipped at the edge should fill that space instead.
+    const period = H * 2.0; // lerp(1.15, 2.0, 1) — frac=1 is the slowest heart, longest period
+    // Width with a large floor() remainder (~0.85 period) — worst case for the old bug.
+    const width = Math.round(2 * period + 0.85 * period);
+    const pts = ecgPoints({ frac: 1, width, height: H });
+    const feature = (p) => Math.abs(p.y - MID) > H * 0.05;
+    const lastFeatureX = pts.filter(feature).reduce((mx, p) => Math.max(mx, p.x), 0);
+    const trailingFlat = width - lastFeatureX;
+    assert.ok(
+      trailingFlat < period,
+      `trailing flat gap ${trailingFlat.toFixed(1)}px should be < one period ${period.toFixed(1)}px ` +
+        `(expected a partial beat near the edge, not a flatline)`,
+    );
+  });
+
   test("beat count increases with damage", () => {
     // R peaks sit well above the midline (small y); P/T/U humps stay below the threshold.
     const peaks = (pts) => pts.filter((p) => MID - p.y > H * 0.25).length;
