@@ -153,9 +153,17 @@ html, body {
   color: var(--cyan-dim);
 }
 
-/* Vector CRT bloom — colored phosphor halo on the graph + overlay layers.
-   Single SVG <filter> def injected by graph.js (#starnet-bloom). */
-#cy, #overlay-layer {
+/* Vector CRT bloom — colored phosphor halo. Single SVG <filter> def injected by
+   graph.js (#starnet-bloom). Applied to the canvas and to each overlay
+   *individually* — not to the #overlay-layer container — so a per-frame overlay
+   animation (e.g. the mine scan) re-rasterizes only its own node-sized box
+   instead of forcing a full-viewport filter pass over the whole layer. Overlays
+   don't overlap, so the look is unchanged. (#cy's bloom is suspended during
+   pan/zoom in graph.js for the same per-frame-cost reason.) */
+#cy {
+  filter: url(#starnet-bloom);
+}
+#overlay-layer > * {
   filter: url(#starnet-bloom);
 }
 

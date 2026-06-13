@@ -149,6 +149,17 @@ const BLOOM_WIDE = 5;
 const BLOOM_TIGHT = 2;
 let bloomIntensity = 1;
 
+// The full-canvas `filter: url(#starnet-bloom)` on #cy re-rasterizes every pan/zoom
+// frame — the dominant viewport cost. We drop it for the duration of a gesture and
+// restore it this many ms after motion settles (the glow is least noticeable while
+// the view is actively moving). On restore the halo is ramped back in over
+// BLOOM_RAMP_MS rather than popped, so edges don't blink. See
+// _suspendBloomDuringViewport / _rampBloomIn.
+const BLOOM_RESTORE_DELAY_MS = 150;
+const BLOOM_RAMP_MS = 180;
+let _bloomRestoreTimer = null;
+let _bloomRampRaf = null;
+
 /**
  * Inject the shared SVG bloom <filter> into the DOM once. All entrypoints call
  * initGraph(), so this covers index / preview / playground without per-file edits.
@@ -195,6 +206,55 @@ export function getBloomIntensity() {
 }
 
 /**
+ * Suspend the #cy bloom while the viewport is actively moving, then ramp it back
+ * once motion settles. The full-canvas CSS filter re-rasterizes every pan/zoom
+ * frame, which is the dominant viewport cost; dropping it during the gesture (an
+ * inline `filter:none` override) keeps pan/zoom smooth. One style write per
+ * gesture start, not per frame. Restore is handled by _rampBloomIn.
+ */
+function _suspendBloomDuringViewport() {
+  const cyEl = document.getElementById("cy");
+  if (!cyEl) return;
+  if (_bloomRestoreTimer === null) {
+    // First frame of a gesture: drop the bloom. Cancel any in-flight ramp so it
+    // stops mutating the (now-hidden) filter.
+    if (_bloomRampRaf !== null) { cancelAnimationFrame(_bloomRampRaf); _bloomRampRaf = null; }
+    cyEl.style.filter = "none";
+  } else {
+    clearTimeout(_bloomRestoreTimer); // still moving — push the restore out
+  }
+  _bloomRestoreTimer = setTimeout(() => {
+    _bloomRestoreTimer = null;
+    _rampBloomIn();
+  }, BLOOM_RESTORE_DELAY_MS);
+}
+
+/**
+ * Restore the #cy bloom by growing the halo from nothing to full over
+ * BLOOM_RAMP_MS, so edges fade their glow back in instead of popping. Re-enables
+ * the stylesheet filter, then drives bloomIntensity 0 → 1 via rAF. The per-frame
+ * re-raster cost only runs during this brief fade, after motion has already
+ * stopped, so it doesn't touch the pan/zoom budget.
+ *
+ * NOTE: this ramps toward intensity 1 (the default). When deck-damage degradation
+ * eventually owns bloomIntensity from game state, ramp toward that target instead.
+ */
+function _rampBloomIn() {
+  const cyEl = document.getElementById("cy");
+  if (!cyEl) return;
+  cyEl.style.filter = "";             // clear inline override → stylesheet bloom (url) returns
+  if (_bloomRampRaf !== null) cancelAnimationFrame(_bloomRampRaf);
+  const start = performance.now();
+  setBloomIntensity(0);
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / BLOOM_RAMP_MS);
+    setBloomIntensity(t);
+    _bloomRampRaf = t < 1 ? requestAnimationFrame(step) : null;
+  };
+  _bloomRampRaf = requestAnimationFrame(step);
+}
+
+/**
  * @param {GraphNetworkConfig} networkData
  * @param {(nodeId: string) => void} [onNodeClick]
  * @param {() => void} [onBackgroundTap]
@@ -220,6 +280,15 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     userPanningEnabled: true,
     boxSelectionEnabled: false,
     wheelSensitivity: 1.0,
+    // Viewport rendering hint (pan/zoom perf): pixelRatio caps canvas density
+    // below retina 2x to cut fill cost everywhere. Tuned by feel against the dev
+    // FPS meter — adjust if at-rest crispness suffers. See the bloom suspend/ramp
+    // below for the matching glow work.
+    // (textureOnViewport and motionBlur were both tried and removed: textureOnViewport
+    // blanks regions panned into outside its cached texture; motionBlur had no
+    // perceptible effect and isn't free. The bloom suspend already covers most of
+    // the pan/zoom cost on its own.)
+    pixelRatio: 1.5,
     // Clamp so that it's not easy to lose the graph in the void on zoom
     minZoom: 0.5,
     maxZoom: 3.0,
@@ -269,6 +338,7 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
     _repositionIceOverlay();
   };
   cy.on("pan zoom", onPanZoom);
+  cy.on("pan zoom", _suspendBloomDuringViewport);
   onPanZoom();
 
   // Keep the zoom-out floor pinned to "all nodes visible" as the graph grows
