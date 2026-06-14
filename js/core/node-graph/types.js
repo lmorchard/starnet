@@ -50,6 +50,7 @@
  * @property {number} [onProgressInterval] - timed-action: fraction at which to fire progress effects
  * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
  * @property {string} [enabledAttr]     - if set, operator is skipped when this node attribute is false
+ * @property {boolean} [armable]      - watchdog: stay dormant until the first non-tick message arms it
  */
 
 /**

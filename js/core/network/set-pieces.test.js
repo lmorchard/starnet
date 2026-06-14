@@ -29,6 +29,24 @@ describe("instantiate: edges are prefixed", () => {
   });
 });
 
+describe("instantiate: compound conditions are prefixed recursively", () => {
+  it("rewrites quality names and nodeIds nested inside a 'not'", () => {
+    // cascade-shutdown's cascade-failed trigger gates on
+    //   not(quality-gte relays-subverted >= 3)
+    // — the quality name inside the `not` must be prefixed or the gate reads a
+    // different (always-zero) quality. Regression for the rewriteCondition gap.
+    const inst = instantiate(cascadeShutdown, "cs1");
+    const failed = inst.triggers.find((t) => t.id === "cs1/cascade-failed");
+    assert.ok(failed);
+    const when = /** @type {any} */ (failed.when);
+    assert.equal(when.type, "all-of");
+    const notCond = when.conditions.find((c) => c.type === "not");
+    assert.ok(notCond, "expected a 'not' condition in the gate");
+    assert.equal(notCond.condition.type, "quality-gte");
+    assert.equal(notCond.condition.name, "cs1/relays-subverted");
+  });
+});
+
 describe("instantiate: trigger IDs and nodeIds are prefixed", () => {
   it("prefixes trigger IDs", () => {
     // combinationLock still has graph-level triggers (vault-reveal)
@@ -588,6 +606,52 @@ describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
     graph.tick(5); // watchdog period elapses without further messages (grade D)
 
     assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+});
+
+describe("cascade-shutdown: watchdog stays dormant until the player engages", () => {
+  it("does not fire a trace before any relay is subverted, however long the player explores", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(cascadeShutdown, "cs1");
+    const graph = new NodeGraph(inst, ctx);
+
+    // Player has not touched the cluster yet — just time passing since jack-in.
+    graph.tick(30); // far past the watchdog period
+
+    assert.equal(ctx.calls.startTrace, undefined);
+  });
+
+  it("first subvert arms the watchdog — the countdown only starts once the player commits", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(cascadeShutdown, "cs1");
+    const graph = new NodeGraph(inst, ctx);
+
+    graph._nodes.get("cs1/relay-a").attributes.accessLevel = "owned";
+    graph.executeAction("cs1/relay-a", "subvert"); // arms the watchdog
+    graph.tick(6); // the now-armed watchdog expires (grade D period 5)
+
+    assert.equal(ctx.calls.startTrace?.length, 1);
+  });
+
+  it("subverting all three completes the puzzle with no trace, even if time passes after", () => {
+    const ctx = mockCtx();
+    const inst = instantiate(cascadeShutdown, "cs1");
+    const graph = new NodeGraph(inst, ctx);
+
+    for (const r of ["cs1/relay-a", "cs1/relay-b", "cs1/relay-c"]) {
+      graph._nodes.get(r).attributes.accessLevel = "owned";
+    }
+    graph.executeAction("cs1/relay-a", "subvert");
+    graph.executeAction("cs1/relay-b", "subvert");
+    graph.executeAction("cs1/relay-c", "subvert");
+
+    assert.equal(ctx.calls.giveReward?.length, 1);
+
+    // The watchdog was reset by the final subvert; in the buggy version it would
+    // latch here and fire a trace even though the puzzle is already solved.
+    graph.tick(30);
+
+    assert.equal(ctx.calls.startTrace, undefined);
   });
 });
 
