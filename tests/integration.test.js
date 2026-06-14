@@ -8,7 +8,7 @@
 //   - Direct state mutation is used sparingly to set up conditions
 //     (same pattern as cheats.js: mutate field + emit NODE_ACCESSED).
 //
-// Each test group constructs a minimal LAN fixture using game-types.js factories.
+// Each test group constructs a minimal LAN fixture using node-factories.js factories.
 // This avoids coupling tests to the full network topology.
 //
 // SEED CONVENTION: every initGame() call passes an explicit seed string ("itest-N").
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import {
   createGateway, createRouter, createIDS, createSecurityMonitor,
   createFileserver, createFirewall, createWAN,
-} from "../js/core/node-graph/game-types.js";
+} from "../js/core/node-graph/node-factories.js";
 import { buildSetPieceMiniNetwork } from "../js/core/node-graph/mini-network.js";
 import { initGame, getState, isIceVisible, buyExploit } from "../js/core/state.js";
 import { navigateTo, navigateAway } from "../js/core/navigation.js";

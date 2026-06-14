@@ -8,14 +8,14 @@ import assert from "node:assert/strict";
 
 import { TIMED_ACTIONS, ABORTABLE_FLAGS, getTimedActionAttrNames } from "./timed-actions.js";
 import { getTrait } from "./traits.js";
-import { LIE_LOW_OPERATOR } from "./game-types.js";
+import { LIE_LOW_OPERATOR } from "./action-templates.js";
 
 // Importing traits.js registers the built-in traits at module load.
 const TRAITS_WITH_TIMED_ACTIONS = ["hackable", "lootable", "rebootable"];
 
 /**
  * Every (action, activeAttr) from a timed-action operator the game defines —
- * across the built-in traits plus the standalone LIE_LOW_OPERATOR in game-types.js
+ * across the built-in traits plus the standalone LIE_LOW_OPERATOR in action-templates.js
  * (lie-low is a WAN action, not a trait). This is the set the registry must mirror.
  */
 function definedTimedActions() {

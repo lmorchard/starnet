@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 
 import {
   createGateway, createRouter,
-} from "../js/core/node-graph/game-types.js";
+} from "../js/core/node-graph/node-factories.js";
 import { initGame, getState } from "../js/core/state.js";
 import { startIce, handleIceTick, handleIceDetect, ejectIce } from "../js/core/ice.js";
 import { handleTraceTick } from "../js/core/alert.js";

@@ -7,7 +7,7 @@
 
 import { instantiate } from "../network/set-pieces.js";
 import { SET_PIECES } from "../../../data/biomes/corporate-pieces.js";
-import { createGateway, createWAN } from "./game-types.js";
+import { createGateway, createWAN } from "./node-factories.js";
 
 /**
  * Wrap a raw NodeGraphDef in a mini-network with gateway + WAN.

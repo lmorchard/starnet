@@ -6,7 +6,7 @@ import { getStoreCatalog } from "./exploits.js";
 import { initGame, getState } from "./state.js";
 import { initRng } from "./rng.js";
 import { createProfile } from "./profile/index.js";
-import { createGateway, createRouter } from "./node-graph/game-types.js";
+import { createGateway, createRouter } from "./node-graph/node-factories.js";
 
 function buildStoreLAN() {
   return {

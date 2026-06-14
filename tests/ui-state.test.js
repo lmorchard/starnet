@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { createGateway, createRouter } from "../js/core/node-graph/game-types.js";
+import { createGateway, createRouter } from "../js/core/node-graph/node-factories.js";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
 import { toggleMenuOpen, toggleHandCollapsed } from "../js/core/state/game.js";
 

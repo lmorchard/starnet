@@ -5,9 +5,9 @@
 // (operators.js): it sets an `activeAttr` true, ticks a `_ta_<action>_progress`
 // attribute toward `_ta_<action>_duration`, then fires its onComplete. The action
 // id, the (irregular) activeAttr flag, and whether ABORT can cancel it were
-// previously enumerated independently across traits.js, game-types.js, and
+// previously enumerated independently across traits.js, action-templates.js, and
 // game-ctx.js — adding one meant touching all three by hand. They derive from this
-// registry now: game-types builds ABORT/NOT_BUSY from ABORTABLE_FLAGS, game-ctx and
+// registry now: action-templates builds ABORT/NOT_BUSY from ABORTABLE_FLAGS, game-ctx and
 // runtime build attribute names via getTimedActionAttrNames, and a test
 // (timed-actions.test.js) asserts the traits.js operator configs still match.
 
@@ -31,7 +31,7 @@ export const TIMED_ACTIONS = [
 
 /**
  * activeAttr flags for the ABORTABLE timed actions. ABORT shows when any is true;
- * NOT_BUSY (game-types.js) requires all of them — plus `rebooting` — false.
+ * NOT_BUSY (action-templates.js) requires all of them — plus `rebooting` — false.
  * @type {string[]}
  */
 export const ABORTABLE_FLAGS = TIMED_ACTIONS.filter((t) => t.abortable).map((t) => t.activeAttr);

@@ -143,7 +143,7 @@ export function clearTraits() {
 
 // ── Built-in trait definitions ──────────────────────────────────
 
-import { ACTION_TEMPLATES, LIE_LOW_ATTRS, LIE_LOW_OPERATOR } from "./game-types.js";
+import { ACTION_TEMPLATES, LIE_LOW_ATTRS, LIE_LOW_OPERATOR } from "./action-templates.js";
 
 registerTrait("graded", {
   attributes: { grade: "D" },
@@ -305,7 +305,7 @@ registerTrait("gate", {
 });
 
 // WAN-boundary darknet broker: access-darknet opens the in-run store; lie-low is the
-// time-costly, per-run-limited grid cooldown (same wiring as the createWAN factory).
+// time-costly, per-run-limited grid cooldown. The createWAN factory applies this trait.
 registerTrait("darknet", {
   attributes: { ...LIE_LOW_ATTRS },
   operators: [LIE_LOW_OPERATOR],
