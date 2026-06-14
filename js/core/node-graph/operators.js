@@ -309,11 +309,20 @@ registerOperator("flag", (config, _attrs, message, _ctx) => {
  * When period ticks pass without a message, emits a "set" message downstream.
  * Useful for deadman-switch patterns: heartbeat suppresses alarm,
  * silence arms it.
+ *
+ * config.armable (optional): when true, the watchdog stays dormant — ignoring
+ * ticks — until its first non-tick message arms it. Use this when nothing feeds
+ * the watchdog before the player engages (e.g. cascade-shutdown, where the first
+ * subvert starts the countdown); without it the watchdog free-runs from network
+ * init and fires before the player can reach the cluster.
  */
 registerOperator("watchdog", (config, attrs, message, _ctx) => {
   if (!message) return {};
   const period = resolveGradedTiming(config, attrs, "period");
+  const armable = config.armable === true;
   if (message.type === "tick") {
+    // Dormant until armed when armable — the countdown hasn't started yet.
+    if (armable && !attrs._watchdog_armed) return {};
     const ticks = (attrs._watchdog_ticks ?? 0) + 1;
     if (ticks >= period) {
       return {
@@ -323,7 +332,8 @@ registerOperator("watchdog", (config, attrs, message, _ctx) => {
     }
     return { attributes: { _watchdog_ticks: ticks } };
   }
-  // Any non-tick message resets the watchdog timer
+  // Any non-tick message resets the timer (and arms an armable watchdog).
+  if (armable) return { attributes: { _watchdog_ticks: 0, _watchdog_armed: true } };
   return { attributes: { _watchdog_ticks: 0 } };
 });
 

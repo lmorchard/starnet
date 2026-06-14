@@ -830,7 +830,10 @@ export const cascadeShutdown = {
       type: "watchdog-daemon",
       traits: ["graded", "hackable", "rebootable"],
       attributes: {},
-      operators: [{ name: "watchdog", period: 4, periodTable: { S: 2, A: 3, B: 3, C: 4, D: 5, F: 6 } }],
+      // armable: dormant until the first subvert-ping arrives (see watchdog
+      // operator). The countdown starts when the player commits to the heist,
+      // not at network init — otherwise it traces before they can reach a relay.
+      operators: [{ name: "watchdog", period: 4, periodTable: { S: 2, A: 3, B: 3, C: 4, D: 5, F: 6 }, armable: true }],
       actions: [],
     },
     {
@@ -859,7 +862,16 @@ export const cascadeShutdown = {
     },
     {
       id: "cascade-failed",
-      when: { type: "node-attr", nodeId: "alarm-latch", attr: "latched", eq: true },
+      // Fire only if the alarm latches BEFORE all three relays are subverted.
+      // Once the puzzle is solved the network is silenced, so a late watchdog
+      // expiry (the final subvert reset it) must not still trace the player.
+      when: {
+        type: "all-of",
+        conditions: [
+          { type: "node-attr", nodeId: "alarm-latch", attr: "latched", eq: true },
+          { type: "not", condition: { type: "quality-gte", name: "relays-subverted", value: 3 } },
+        ],
+      },
       then: [
         { effect: "ctx-call", method: "startTrace", args: [] },
         { effect: "ctx-call", method: "log", args: ["ALARM: Cascade shutdown detected — trace initiated"] },
@@ -869,7 +881,7 @@ export const cascadeShutdown = {
   externalPorts: ["relay-a", "relay-b", "relay-c"],
   tags: ["pressure", "puzzle"],
   cost: "A",
-  minDepth: 3,  // watchdog starts immediately — don't place near entry
+  minDepth: 3,  // keep the timed puzzle off the doorstep; the watchdog now arms on first subvert
   ports: [
     { nodeId: "relay-a", direction: "inbound", wantsTags: [], required: true },
     { nodeId: "relay-b", direction: "lateral", wantsTags: [], required: true },

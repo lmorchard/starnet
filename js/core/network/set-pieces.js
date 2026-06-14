@@ -155,6 +155,8 @@ function rewriteCondition(cond, prefix) {
     case "all-of":
     case "any-of":
       return { ...cond, conditions: cond.conditions.map((c) => rewriteCondition(c, prefix)) };
+    case "not":
+      return { ...cond, condition: rewriteCondition(cond.condition, prefix) };
     default:
       return cond;
   }
