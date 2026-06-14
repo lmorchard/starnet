@@ -87,6 +87,21 @@ function bootstrapProfile() {
 let activeRun = null;
 
 /**
+ * Prepare an ephemeral fast-start launch: a freshly generated starter hand that is
+ * neither drawn from nor committed back to the profile. Clears any active run so the
+ * RUN_ENDED commit subscriber no-ops — fast-start sessions are throwaway tests and must
+ * not deposit cash, keep cards, or burn a loadout. Always succeeds (no bank/inventory
+ * dependency), so the player lands in a playable LAN regardless of profile state.
+ * @param {number} maxCards - cap the dealt hand to the normal loadout size
+ * @returns {{ startHandCards: import('../core/types.js').ExploitCard[], startCash: number }}
+ */
+export function prepareFastStartLaunch(maxCards) {
+  activeRun = null; // a fast-start run does not commit back to the profile
+  const hand = generateStartingHand().slice(0, maxCards);
+  return { startHandCards: buildRunHand(hand), startCash: 0 };
+}
+
+/**
  * Prepare a run launch from the profile: withdraw the carried cash, clone the
  * chosen loadout, and record the carried set so the run can be committed when it
  * ends. Returns the meta additions (startHandCards + startCash) for the caller to

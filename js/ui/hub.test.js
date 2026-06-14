@@ -15,9 +15,11 @@ globalThis.localStorage = globalThis.localStorage ?? {
 };
 
 const { quickStartRun } = await import("./hub.js");
+const { initProfileRunCommit } = await import("./profile-store.js");
 const { getState } = await import("../core/state.js");
 const { buildNetwork } = await import("../../data/networks/generated.js");
 const { initRng } = await import("../core/rng.js");
+const { emitEvent, E } = await import("../core/events.js");
 
 const PROFILE_KEY = "starnet:profile"; // mirror profile-store.js
 
@@ -33,16 +35,37 @@ describe("quickStartRun — canned hub start (fast-start / deep-link)", () => {
     assert.ok(Object.keys(getState().nodes).length > 0, "the run's network should be loaded");
   });
 
-  test("equips a default starter loadout so the run is playable (non-empty hand)", () => {
+  test("always deals a fresh, playable starter hand (no profile needed)", () => {
     quickStartRun(buildNetwork({ seed: "qs-2" }));
     assert.ok(getState().player.hand.length > 0,
-      "fast-start must deal a starter hand, not launch with an empty loadout");
+      "fast-start must always deal a fresh starter hand, never launch empty-handed");
   });
 
-  test("returns false (caller falls back to the hub) when the loadout can't be prepared", () => {
-    // Corrupt profile: negative bank makes withdraw(_, 0) fail → prepareLaunch returns null.
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ version: 1, bank: -1, inventory: [], _instanceSeq: 0 }));
-    assert.equal(quickStartRun(buildNetwork({ seed: "qs-3" })), false,
-      "a failed launch prep must report false rather than start an unplayable run");
+  test("ignores the profile inventory and does not mutate it", () => {
+    // Give the profile a single distinctive card. Fast-start should deal a FRESH full
+    // starter hand (not the 1-card inventory) and must not draw from or write to the
+    // profile — the inventory is unchanged afterward.
+    const oneCard = { version: 1, bank: 1000, _instanceSeq: 1,
+      inventory: [{ instanceId: "inv-0", name: "Solo Relic", rarity: "common", targetVulnTypes: [] }] };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(oneCard));
+    quickStartRun(buildNetwork({ seed: "qs-3" }));
+    assert.ok(getState().player.hand.length > 1,
+      "the dealt hand must be a fresh starter set, not the single inventory card");
+    const after = JSON.parse(localStorage.getItem(PROFILE_KEY));
+    assert.equal(after.inventory.length, 1, "fast-start must not mutate the profile inventory");
+    assert.equal(after.inventory[0].instanceId, "inv-0");
+  });
+
+  test("a fast-start run does not commit back to the profile on RUN_ENDED", () => {
+    // Throwaway test session: ending a fast-start run must not deposit cash or keep/burn
+    // cards. prepareFastStartLaunch clears activeRun, so the commit subscriber no-ops.
+    initProfileRunCommit();
+    const before = { version: 1, bank: 1000, _instanceSeq: 1,
+      inventory: [{ instanceId: "inv-0", name: "Solo Relic", rarity: "common", targetVulnTypes: [] }] };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(before));
+    quickStartRun(buildNetwork({ seed: "qs-4" }));
+    emitEvent(E.RUN_ENDED, { outcome: "success" });
+    const after = JSON.parse(localStorage.getItem(PROFILE_KEY));
+    assert.deepEqual(after, before, "a fast-start run must leave the profile untouched");
   });
 });
