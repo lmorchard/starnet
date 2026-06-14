@@ -149,6 +149,12 @@ function rewriteCondition(cond, prefix) {
   switch (cond.type) {
     case "node-attr":
       return cond.nodeId ? { ...cond, nodeId: pfx(cond.nodeId, prefix) } : cond;
+    case "quality-from-attr":
+      // Prefix an explicit nodeId (mirrors node-attr). The quality NAME is read
+      // at runtime from the named attribute's value — it can't be prefixed here,
+      // and shouldn't be: those are dynamic/global key qualities (see the
+      // `encrypted` trait), not per-instance set-piece qualities.
+      return cond.nodeId ? { ...cond, nodeId: pfx(cond.nodeId, prefix) } : cond;
     case "quality-gte":
     case "quality-eq":
       return { ...cond, name: pfx(cond.name, prefix) };
