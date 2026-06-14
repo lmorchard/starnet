@@ -1,15 +1,18 @@
 // @ts-check
 /**
- * Game node type factories — produce trait-based NodeDef objects for each game
- * node type. Factories are optional sugar; the canonical authoring surface is
- * raw NodeDefs with traits lists.
+ * Action templates — the declarative ActionDef objects for the game's verbs
+ * (probe, xploit, dump, fetch, mine, reboot, corrupt, …) plus the shared
+ * timed-action wiring (NOT_BUSY) and the lie-low operator/attrs bundle.
  *
- * Traits provide operators, actions, and default attributes. Factories just
- * select the right trait list and apply config overrides.
+ * These are the *action half* of each mechanic; the matching timed-action
+ * *operators* live on the traits in `traits.js`, which is the sole consumer of
+ * this module (it pairs each operator with its template). Node-type factories
+ * select traits and never touch templates directly — see `node-factories.js`.
  */
 
 /** @typedef {import('./types.js').ActionDef} ActionDef */
-/** @typedef {import('./types.js').NodeDef} NodeDef */
+/** @typedef {import('./types.js').Condition} Condition */
+/** @typedef {import('./types.js').OperatorConfig} OperatorConfig */
 
 import { A } from "../action-ids.js";
 import { getExploitChoices, getExploitEmptyReason } from "../exploits.js";
@@ -281,9 +284,10 @@ const LIE_LOW_ACTION = {
   ],
 };
 
-// Lie-low wiring shared by every WAN node — the createWAN factory and the `darknet` trait.
-// Attributes track the per-run uses; the timed-action operator is the "time cost" wait that
-// fires ctx.lieLow on completion. (Tunable: LIE_LOW_USES, LIE_LOW_TICKS.)
+// Lie-low wiring shared by every WAN node — the `darknet` trait (and, through it,
+// the createWAN factory). Attributes track the per-run uses; the timed-action
+// operator is the "time cost" wait that fires ctx.lieLow on completion.
+// (Tunable: LIE_LOW_USES, LIE_LOW_TICKS.)
 const LIE_LOW_USES = 2;
 const LIE_LOW_TICKS = 50; // ~5s wait; flat across grades (the wait isn't grade-scaled)
 export const LIE_LOW_ATTRS = {
@@ -291,7 +295,7 @@ export const LIE_LOW_ATTRS = {
   lieLowUsesRemaining: LIE_LOW_USES,
   lieLowExhausted: false,
 };
-/** @type {import('./types.js').OperatorConfig} */
+/** @type {OperatorConfig} */
 export const LIE_LOW_OPERATOR = {
   name: "timed-action",
   action: "lie-low", // matches A.LIE_LOW so ACTION_FEEDBACK.action correlates across start/cancel
@@ -300,181 +304,7 @@ export const LIE_LOW_OPERATOR = {
   onComplete: [{ effect: "ctx-call", method: "lieLow", args: ["$nodeId"] }],
 };
 
-
-// ── Node type factories (optional sugar) ─────────────────────
-
-/**
- * @typedef {Object} NodeConfig
- * @property {string} [label]
- * @property {string} [grade]
- * @property {Record<string, any>} [attributes]
- */
-
-/**
- * Gateway — entry point.
- * @param {string} id
- * @param {NodeConfig} [config]
- * @returns {NodeDef}
- */
-export function createGateway(id, config = {}) {
-  return {
-    id,
-    type: "gateway",
-    traits: ["graded", "hackable", "rebootable", "gate"],
-    attributes: {
-      label: config.label || id,
-      grade: config.grade || "D",
-      gateAccess: "probed",
-      ...config.attributes,
-    },
-  };
-}
-
-/**
- * Router — relay operator (broadcasts non-tick messages).
- * @param {string} id
- * @param {NodeConfig} [config]
- * @returns {NodeDef}
- */
-export function createRouter(id, config = {}) {
-  return {
-    id,
-    type: "router",
-    traits: ["graded", "hackable", "rebootable", "relay", "gate"],
-    attributes: {
-      label: config.label || id,
-      grade: config.grade || "D",
-      gateAccess: "open",
-      ...config.attributes,
-    },
-  };
-}
-
-/**
- * IDS — alert relay + reconfigure action.
- * @param {string} id
- * @param {NodeConfig} [config]
- * @returns {NodeDef}
- */
-export function createIDS(id, config = {}) {
-  return {
-    id,
-    type: "ids",
-    traits: ["graded", "hackable", "rebootable", "detectable", "gate"],
-    attributes: {
-      label: config.label || id,
-      grade: config.grade || "C",
-      gateAccess: "owned",
-      ...config.attributes,
-    },
-  };
-}
-
-/**
- * Security Monitor — aggregates alerts, cancel-trace action.
- * @param {string} id
- * @param {NodeConfig} [config]
- * @returns {NodeDef}
- */
-export function createSecurityMonitor(id, config = {}) {
-  return {
-    id,
-    type: "security-monitor",
-    traits: ["graded", "hackable", "rebootable", "security", "gate"],
-    attributes: {
-      label: config.label || id,
-      grade: config.grade || "B",
-      gateAccess: "owned",
-      ...config.attributes,
-    },
-  };
-}
-
-/**
- * Fileserver — lootable node with macguffins.
- * @param {string} id
- * @param {NodeConfig & { lootCount?: [number, number] }} [config]
- * @returns {NodeDef}
- */
-export function createFileserver(id, config = {}) {
-  return {
-    id,
-    type: "fileserver",
-    traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
-    attributes: {
-      label: config.label || id,
-      grade: config.grade || "D",
-      lootCount: config.lootCount || [1, 2],
-      ...config.attributes,
-    },
-  };
-}
-
-/**
- * Cryptovault — hardened lootable, quality-gated access possible.
- * @param {string} id
- * @param {NodeConfig & { lootCount?: [number, number] }} [config]
- * @returns {NodeDef}
- */
-export function createCryptovault(id, config = {}) {
-  return {
-    id,
-    type: "cryptovault",
-    traits: ["graded", "hackable", "rebootable", "lootable", "gate"],
-    attributes: {
-      label: config.label || id,
-      grade: config.grade || "B",
-      lootCount: config.lootCount || [1, 3],
-      ...config.attributes,
-    },
-  };
-}
-
-/**
- * Firewall — high-grade barrier, no relay behavior.
- * @param {string} id
- * @param {NodeConfig} [config]
- * @returns {NodeDef}
- */
-export function createFirewall(id, config = {}) {
-  return {
-    id,
-    type: "firewall",
-    traits: ["graded", "hackable", "rebootable", "gate"],
-    attributes: {
-      label: config.label || id,
-      grade: config.grade || "A",
-      gateAccess: "owned",
-      ...config.attributes,
-    },
-  };
-}
-
-/**
- * WAN — darknet store access. Starts accessible, no hack required.
- * @param {string} id
- * @param {NodeConfig} [config]
- * @returns {NodeDef}
- */
-export function createWAN(id, config = {}) {
-  return {
-    id,
-    type: "wan",
-    attributes: {
-      label: config.label || id,
-      grade: "F",
-      visibility: "accessible",
-      accessLevel: "owned",
-      ...LIE_LOW_ATTRS,
-      ...config.attributes,
-    },
-    operators: [LIE_LOW_OPERATOR],
-    actions: [ACCESS_DARKNET_ACTION, LIE_LOW_ACTION, DISCONNECT_ACTION],
-  };
-}
-
-
-// ── Export action templates for testing ───────────────────────
+// ── Template registry ─────────────────────────────────────────
 
 export const ACTION_TEMPLATES = {
   PROBE: PROBE_ACTION,
@@ -492,4 +322,3 @@ export const ACTION_TEMPLATES = {
   LIE_LOW: LIE_LOW_ACTION,
   DISCONNECT: DISCONNECT_ACTION,
 };
-

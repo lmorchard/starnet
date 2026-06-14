@@ -12,7 +12,7 @@ import { SET_PIECES } from "../biomes/corporate-pieces.js";
 import {
   createGateway, createRouter, createFirewall, createCryptovault,
   createWAN,
-} from "../../js/core/node-graph/game-types.js";
+} from "../../js/core/node-graph/node-factories.js";
 import { disguiseTrapNodes } from "../../js/core/network/disguise.js";
 import { makeSeededRng } from "../../js/core/rng.js";
 

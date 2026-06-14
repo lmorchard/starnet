@@ -11,7 +11,7 @@ import { instantiate } from "../../js/core/network/set-pieces.js";
 import { SET_PIECES } from "../biomes/corporate-pieces.js";
 import {
   createGateway, createRouter, createWAN,
-} from "../../js/core/node-graph/game-types.js";
+} from "../../js/core/node-graph/node-factories.js";
 
 /**
  * @returns {{ graphDef: import('../../js/core/node-graph/runtime.js').NodeGraphDef, meta: object }}

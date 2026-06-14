@@ -6,8 +6,7 @@ import { resolveTraits } from "./traits.js";
 import {
   createGateway, createRouter, createIDS, createSecurityMonitor,
   createFileserver, createCryptovault, createFirewall, createWAN,
-  ACTION_TEMPLATES,
-} from "./game-types.js";
+} from "./node-factories.js";
 
 // Helper: resolve factory output to get full attributes/operators/actions
 function resolve(def) { return resolveTraits(def); }
@@ -68,9 +67,9 @@ describe("traits assignment", () => {
     }
   });
 
-  it("WAN has no traits (special case)", () => {
+  it("WAN uses the darknet trait", () => {
     const wan = createWAN("wan-1");
-    assert.ok(!wan.traits || wan.traits.length === 0);
+    assert.deepStrictEqual(wan.traits, ["darknet"]);
   });
 
 
@@ -154,7 +153,8 @@ describe("operators", () => {
   });
 
   it("wan has the lie-low timed-action operator (#174) and the darknet + lie-low actions", () => {
-    const def = createWAN("test");
+    // Supplied by the darknet trait, so resolve before inspecting operators/actions/attrs.
+    const def = resolve(createWAN("test"));
     assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "lie-low"),
       "WAN carries the lie-low timed-action");
     assert.ok(def.actions.some(a => a.id === "access-darknet"));
@@ -331,25 +331,6 @@ describe("action execution", () => {
     const graph = new NodeGraph({ nodes: [wan], edges: [] }, ctx);
     graph.executeAction("wan-1", "access-darknet");
     assert.equal(ctx.calls.openDarknetsStore?.length, 1);
-  });
-});
-
-// ── Action templates ─────────────────────────────────────────
-
-describe("action templates", () => {
-  it("all templates have id, label, requires, and effects", () => {
-    for (const [name, template] of Object.entries(ACTION_TEMPLATES)) {
-      assert.ok(template.id, `${name} missing id`);
-      assert.ok(template.label, `${name} missing label`);
-      assert.ok(Array.isArray(template.requires), `${name} requires not an array`);
-      assert.ok(Array.isArray(template.effects), `${name} effects not an array`);
-    }
-  });
-
-  it("all templates have desc field", () => {
-    for (const [name, template] of Object.entries(ACTION_TEMPLATES)) {
-      assert.ok(template.desc, `${name} missing desc`);
-    }
   });
 });
 
