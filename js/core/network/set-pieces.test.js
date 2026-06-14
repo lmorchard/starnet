@@ -47,6 +47,34 @@ describe("instantiate: compound conditions are prefixed recursively", () => {
   });
 });
 
+describe("instantiate: quality-from-attr nodeId is prefixed", () => {
+  it("prefixes an explicit nodeId, leaving the dynamic quality name alone", () => {
+    // quality-from-attr reads its quality NAME at runtime from an attribute, so
+    // only an explicit nodeId can be rewritten at instantiate time (mirrors
+    // node-attr). Without this it would point at an unprefixed node.
+    const def = {
+      nodes: [{
+        id: "vault",
+        type: "test",
+        traits: [],
+        attributes: {},
+        operators: [],
+        actions: [{
+          id: "open",
+          requires: [{ type: "quality-from-attr", nodeId: "keyholder", attr: "keyName", gte: 1 }],
+          effects: [],
+        }],
+      }],
+      externalPorts: ["vault"],
+    };
+    const inst = instantiate(/** @type {any} */ (def), "t1");
+    const cond = /** @type {any} */ (inst.nodes[0].actions[0].requires[0]);
+    assert.equal(cond.type, "quality-from-attr");
+    assert.equal(cond.nodeId, "t1/keyholder");
+    assert.equal(cond.attr, "keyName"); // attribute name unchanged
+  });
+});
+
 describe("instantiate: trigger IDs and nodeIds are prefixed", () => {
   it("prefixes trigger IDs", () => {
     // combinationLock still has graph-level triggers (vault-reveal)
