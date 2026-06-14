@@ -5,7 +5,7 @@
 // same log output (the GUI/console symmetry principle). The pure profile model is
 // in js/core/profile; the run-start path is run-control.js.
 
-import { loadProfile, saveProfile, prepareLaunch } from "./profile-store.js";
+import { loadProfile, saveProfile, prepareLaunch, prepareFastStartLaunch } from "./profile-store.js";
 import { generateTargets, removeDisclosedCards } from "../core/profile/index.js";
 import { buyFromStoreToProfile } from "../core/store-logic.js";
 import { getStoreCatalog } from "../core/exploits.js";
@@ -63,26 +63,17 @@ function showHub() {
 }
 
 /**
- * Canned "hub start" for fast-start scenarios (e.g. a `?network=` deep-link): bootstrap/load
- * the profile, auto-equip a default starter loadout (the profile's inventory, up to
- * MAX_LOADOUT), and launch directly into the given prebuilt network — skipping the overworld
- * hub UI entirely. Carries no cash. Reuses the same prepareLaunch → startRun path the hub uses,
- * so the run is committed back to the profile on RUN_ENDED like any other.
+ * Canned "hub start" for fast-start scenarios (e.g. a `?network=` deep-link): deal a fresh
+ * generated starter hand and launch directly into the given prebuilt network, skipping the
+ * overworld hub entirely. Fast-start is a throwaway test session — the hand is ephemeral
+ * (not drawn from the profile) and the run does NOT commit back (no cash, no kept/burned
+ * cards), so it always lands in a playable LAN regardless of profile state.
  * @param {{ graphDef: any, meta: any }} networkResult
- * @returns {boolean} true if a run was launched; false if launch prep failed (caller should
- *   fall back to the hub rather than leave the player in an unplayable/empty run).
+ * @returns {boolean} always true (a run is always launched); the boolean preserves the
+ *   caller's `quickStartRun(...) || openHub()` contract.
  */
 export function quickStartRun(networkResult) {
-  const p = loadProfile(); // bootstraps a fresh profile (starter inventory) if absent
-  const loadoutIds = p.inventory.slice(0, MAX_LOADOUT).map((c) => c.instanceId);
-  // prepareLaunch returns null only if the launch can't be prepared (e.g. a corrupt profile
-  // with a negative bank). Don't launch a loadout-less, unplayable run — bail and let the
-  // caller open the hub. (mirrors launchTarget's null handling.)
-  const launchMeta = prepareLaunch({ loadoutInstanceIds: loadoutIds, withdrawAmount: 0 });
-  if (!launchMeta) {
-    log("[HUB] Fast-start could not prepare a loadout — opening the hub instead.", "error");
-    return false;
-  }
+  const launchMeta = prepareFastStartLaunch(MAX_LOADOUT);
   log(`[HUB] Fast-start (overworld hub skipped) — ${networkResult.meta?.name ?? "network"}.`, "success");
   startRun({ graphDef: networkResult.graphDef, meta: { ...networkResult.meta, ...launchMeta } });
   return true;
