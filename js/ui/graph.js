@@ -158,6 +158,13 @@ let bloomIntensity = 1;
 // _suspendBloomDuringViewport / _rampBloomIn.
 const BLOOM_RESTORE_DELAY_MS = 150;
 const BLOOM_RAMP_MS = 180;
+
+// Throttle interval for container resizes (e.g. dragging a layout splitter).
+// cy.resize() clears and repaints every canvas layer, so firing it on every
+// ResizeObserver frame strobes the graph. Throttling to a few times a second
+// turns that into the occasional single redraw while keeping the canvas roughly
+// tracking the container. A trailing call guarantees the final size is correct.
+const RESIZE_THROTTLE_MS = 250;
 let _bloomRestoreTimer = null;
 let _bloomRampRaf = null;
 
@@ -346,7 +353,29 @@ export function initGraph(networkData, onNodeClick, onBackgroundTap) {
   // (nodes/edges added on reveal, layout settles) or the container resizes.
   cy.on("add remove layoutstop", updateZoomFloor);
   if (typeof ResizeObserver !== "undefined") {
-    const ro = new ResizeObserver(() => { cy.resize(); updateZoomFloor(); });
+    // cy.resize() clears and repaints every canvas layer, so firing it on every
+    // ResizeObserver frame while a splitter is dragged strobes the graph. Throttle
+    // to RESIZE_THROTTLE_MS: resize on the leading edge so the canvas starts
+    // tracking immediately, then at most once per interval, with a trailing call
+    // so the final container size is always matched once the drag settles.
+    let lastResize = 0;
+    let trailingTimer = null;
+    const doResize = () => { cy.resize(); updateZoomFloor(); };
+    const ro = new ResizeObserver(() => {
+      const now = performance.now();
+      const sinceLast = now - lastResize;
+      if (sinceLast >= RESIZE_THROTTLE_MS) {
+        lastResize = now;
+        if (trailingTimer !== null) { clearTimeout(trailingTimer); trailingTimer = null; }
+        doResize();
+      } else if (trailingTimer === null) {
+        trailingTimer = setTimeout(() => {
+          trailingTimer = null;
+          lastResize = performance.now();
+          doResize();
+        }, RESIZE_THROTTLE_MS - sinceLast);
+      }
+    });
     ro.observe(graphContainer);
   }
   updateZoomFloor();
