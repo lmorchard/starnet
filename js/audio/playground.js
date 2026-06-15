@@ -2,16 +2,20 @@
 import { createAudioEngine } from "./engine.js";
 import { LAYER_KEYS } from "./scores/corporate.js";
 import { ALL_SCORES } from "./scores/index.js";
+import { HUB_AMBIENT } from "./scores/hub.js";
+
+// Hub is included so the drone+pad wander can be ear-checked here too (it isn't in ALL_SCORES).
+const SCORES = [...ALL_SCORES, HUB_AMBIENT];
 
 const engine = createAudioEngine();
-engine.setScore(ALL_SCORES[0]);
+engine.setScore(SCORES[0]);
 /** @type {any} */ (window)._audio = engine;  // diagnostics handle
 
 const status = document.getElementById("status");
 
 // Score selector — switch among all scores; restart if currently playing.
 const scoreSel = document.getElementById("score");
-ALL_SCORES.forEach((s, i) => {
+SCORES.forEach((s, i) => {
   const opt = document.createElement("option");
   opt.value = String(i);
   opt.textContent = s.name ?? s.biome ?? `score ${i}`;
@@ -19,7 +23,7 @@ ALL_SCORES.forEach((s, i) => {
 });
 scoreSel.onchange = async () => {
   // setScore rebuilds the live graph if already playing; await the rebuilt start.
-  await engine.setScore(ALL_SCORES[+scoreSel.value]);
+  await engine.setScore(SCORES[+scoreSel.value]);
   status.textContent = engine.isStarted() ? "playing" : "stopped";
 };
 
@@ -27,6 +31,16 @@ scoreSel.onchange = async () => {
 const secToggle = document.getElementById("sections");
 secToggle.onchange = () => engine.setSectionsEnabled(secToggle.checked);
 engine.setSectionsEnabled(secToggle.checked);
+
+// Wander-now — force an immediate drone (+ hub pad) chord shift, with a readout.
+const wanderBtn = document.getElementById("wander");
+const wanderVal = document.getElementById("wanderVal");
+wanderBtn.onclick = () => {
+  const r = engine.forceWander();
+  wanderVal.textContent = r
+    ? `step ${r.step} — ` + Object.entries(r.layers).map(([k, n]) => `${k}: ${n.join("+")}`).join("  ")
+    : "drone: (this score doesn't wander — press PLAY first)";
+};
 
 document.getElementById("play").onclick = async () => {
   try { await engine.start(); status.textContent = "playing"; }

@@ -59,11 +59,12 @@ const urgencyArp = [
 export const CORPORATE_VAST = Object.freeze({
   biome: "corporate",
   name: "Corporate — Vast",
+  root: "A", mode: "aeolian",  // drone harmonic wander (#239)
   bpm: 72,
   masterFilter: { cutoffLo: 500, cutoffHi: 9000, qLo: 0.7, qHi: 3.5 },
   layers: [
     // base — always-on low pad
-    { key: "drone", axis: "base", baseGain: 0.6, progressBoost: 0.2,
+    { key: "drone", axis: "base", baseGain: 0.6, progressBoost: 0.2, wander: true,
       sustain: ["A2","E3","A3"], synth: { type: "fatsawtooth", count: 3, spread: 20, attack: 4.0, release: 5.0, volume: -16 } },
     // progress (blossom — sparse percussion first, then melody and pads layer in)
     { key: "basePerc", axis: "progress", lo: 0.0, hi: 0.05, pattern: basePerc,

@@ -60,10 +60,11 @@ const urgencyArp = [
 export const CORPORATE_NOIR = Object.freeze({
   biome: "corporate",
   name: "Corporate — Noir",
+  root: "D", mode: "dorian",  // drone harmonic wander (#239)
   bpm: 84,
   masterFilter: { cutoffLo: 500, cutoffHi: 7000, qLo: 0.7, qHi: 3.5 },
   layers: [
-    { key: "drone",        axis: "base",     baseGain: 0.5, progressBoost: 0.2,
+    { key: "drone",        axis: "base",     baseGain: 0.5, progressBoost: 0.2, wander: true,
       sustain: ["D3","A3"], synth: { type: "fatsawtooth", count: 3, spread: 14, attack: 2.5, release: 4, volume: -17 } },
     { key: "basePerc",     axis: "progress", lo: 0.0,  hi: 0.05, pattern: basePerc,
       synth: { kind: "drums", volume: -7 } },
