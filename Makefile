@@ -19,8 +19,8 @@ dist/tone.js: js/tone-vendor.js node_modules
 serve:
 	npx serve .
 
-# Build vendor bundles, then start the dev server
-dev: bundle-vendor serve
+# Install deps, build vendor bundles (if stale), then start the dev server
+dev: all serve
 
 # Run JSDoc/TypeScript type checker (no build step, annotations only)
 # Discovers all js/**/*.js automatically; excludes:

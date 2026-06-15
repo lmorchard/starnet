@@ -78,4 +78,5 @@ export const E = Object.freeze({
 
   // Audio (music on/off changed — keeps HUD + console in sync)
   MUSIC_CHANGED:        "audio:music-changed",
+  SFX_CHANGED:          "audio:sfx-changed",
 });

@@ -18,6 +18,7 @@ class StarnetHud extends StarnetElement {
     mission: { type: Object },
     menuOpen: { type: Boolean },
     musicEnabled: { type: Boolean },
+    sfxEnabled: { type: Boolean },
   };
 
   constructor() {
@@ -33,6 +34,7 @@ class StarnetHud extends StarnetElement {
     this.mission = null;
     this.menuOpen = false;
     this.musicEnabled = true;
+    this.sfxEnabled = true;
   }
 
   _emit(action, detail = {}) {
@@ -111,6 +113,8 @@ class StarnetHud extends StarnetElement {
                   @click=${() => this._emit("pause")}>${this.paused ? "[ RESUME ]" : "[ PAUSE ]"}</button>
           <button id="music-btn" title="Toggle music"
                   @click=${() => this._emit("toggle-music")}>${this.musicEnabled ? "[ MUSIC: ON ]" : "[ MUSIC: OFF ]"}</button>
+          <button id="sfx-btn" title="Toggle sound effects"
+                  @click=${() => this._emit("toggle-sfx")}>${this.sfxEnabled ? "[ SFX: ON ]" : "[ SFX: OFF ]"}</button>
           <button id="save-btn" title="Save game state to file"
                   @click=${() => this._emit("save")}>[ SAVE ]</button>
           <label id="load-btn" title="Load game state from file">[ LOAD ]
