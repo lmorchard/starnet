@@ -397,8 +397,9 @@ function syncVitals(state) {
 }
 
 // ── Uplink control (floats under the vitals) ──────────────
-// VISIT WAN normally (selects the WAN node); JACK OUT when alert is elevated or
-// a trace is counting down — the escape hatch, surfaced exactly when needed.
+// VISIT WAN whenever a WAN node exists (selects it); JACK OUT stacks underneath
+// when alert is elevated or a trace is counting down — the escape hatch is
+// surfaced exactly when needed without hiding the quick hop to the WAN.
 function syncUplink(state) {
   const el = /** @type {any} */ (document.getElementById("uplink-btn"));
   if (!el) return;
@@ -406,7 +407,7 @@ function syncUplink(state) {
   const danger = state.globalAlert !== "green" || state.traceSecondsRemaining !== null;
   const wan = Object.values(state.nodes).find((n) => /** @type {any} */ (n).type === "wan");
   el.wanNodeId = wan?.id || "";
-  el.mode = danger ? "jackout" : "visit";
+  el.danger = danger;
   el.visible = playing && (danger || !!wan);
 }
 
