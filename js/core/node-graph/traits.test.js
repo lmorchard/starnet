@@ -358,12 +358,13 @@ describe("Built-in traits", () => {
   });
 });
 
-describe("security trait: owned-cancel-trace behavior", () => {
+describe("security trait: cancelling a trace is explicit (no auto-cancel trigger)", () => {
   beforeEach(() => { restoreBuiltIns(); });
 
-  it("re-fires cancelTrace while the monitor stays owned (not one-shot)", () => {
-    // Reproduces the bug where owning the security monitor BEFORE a trace starts
-    // spends the one-shot trigger, so a later trace is never auto-cancelled.
+  it("never calls cancelTrace from a trigger while the monitor is owned", () => {
+    // Cancelling a trace is player-driven only — via the cancel-trace action. Owning
+    // the monitor must NOT auto-cancel (an earlier repeating trigger did, which spammed
+    // the log every evaluation cycle while owned). Ticking while owned calls nothing.
     const ctx = mockCtx();
     const graph = new NodeGraph({
       nodes: [{
@@ -373,16 +374,16 @@ describe("security trait: owned-cancel-trace behavior", () => {
       edges: [],
     }, ctx);
 
-    // First evaluation: trigger fires once (no trace active yet — cancelTrace is idempotent).
     graph.tick(0);
-    const afterFirst = ctx.calls.cancelTrace?.length ?? 0;
-
-    // A trace starts later while the monitor is still owned. The trigger must fire
-    // AGAIN to cancel it. A one-shot trigger would already be spent and stay silent.
     graph.tick(0);
-    const afterSecond = ctx.calls.cancelTrace?.length ?? 0;
+    assert.equal(ctx.calls.cancelTrace?.length ?? 0, 0,
+      "owning the monitor must not auto-cancel the trace");
+  });
 
-    assert.ok(afterSecond > afterFirst,
-      `owned-cancel-trace must re-fire while owned (got ${afterFirst} then ${afterSecond})`);
+  it("the security trait exposes the cancel-trace action", () => {
+    const t = getTrait("security");
+    const actionIds = t.actions.map((a) => a.id);
+    assert.ok(actionIds.includes("cancel-trace"),
+      "cancel-trace must remain the explicit, player-driven cancel path");
   });
 });

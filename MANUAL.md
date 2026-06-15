@@ -120,7 +120,7 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 | **File Server**   | Rack stack        | Probe        | Where documents live. Usually where your mission target is. |
 | **Cryptovault**   | Safe + dial       | Probe        | High-value encrypted storage. Hardest targets.    |
 | **IDS**           | Camera eye        | Owned        | Intrusion Detection System. Must own to see connections. Can be subverted. |
-| **Security Mon.** | Scope + crosshair | Owned        | Aggregates IDS alerts. Must own to see connections. Can cancel trace. |
+| **Security Mon.** | Scope + crosshair | Owned        | Aggregates IDS alerts. Must own to see connections. Own it, then run `cancel-trace` to abort a trace. |
 
 Every node is drawn as a 12-sided container holding a small glyph of the device
 it represents, rendered as a glowing vector outline. The glyph (and its color)
@@ -520,7 +520,7 @@ exploit failure  →  IDS  →  (relay, unless corrupted)  →  Security Monitor
 trace after a grade-scaled number of detections (see ICE, below).
 
 A LAN with no ICE is more static and forgiving — the grid is the only clock, and you control
-it: hack carefully, corrupt the IDS to go dark, or own the monitor to cancel a trace.
+it: hack carefully, corrupt the IDS to go dark, or own the monitor and run `cancel-trace`.
 
 **Global alert levels** (lamp shape: hexagon → point-up triangle → inverted triangle → inverted triangle):
 
@@ -819,7 +819,8 @@ ready.
 the high-grade nodes. A disclosed card is deadweight.
 
 **The security monitor is the kill switch.** If you can own the security monitor,
-you can cancel the trace and work at your own pace. It's usually the hardest node
+you can run `cancel-trace` to abort the countdown and work at your own pace (owning
+alone doesn't stop it — you have to issue the command). It's usually the hardest node
 on the board — but worth it if you're going for a deep run.
 
 **If your hand doesn't match, resupply.** Two options: detour to the WAN node and
