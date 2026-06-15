@@ -258,6 +258,127 @@ bump from recent `ICE_DETECTED` and a term for low health/deck. Smoothed, **fast
   so a fade-in still lands on the grid — smoothness without bar-queue complexity (bar-quantized
   entrances deferred).
 
+## Event SFX subsystem (shipped, #229)
+
+A synthesized **sound-effects layer**, independent of the music: discrete one-shot cues fired on
+game events **plus a sustained drone per timed action in progress**, in a **"cold machine
+telemetry"** palette (dry, low-register, technical — detuned/minor intervals over major triads,
+danger in low FM growl; reverb is opt-in per cue, default dry). It mirrors the music subsystem's
+split (pure data + pure mapping + a thin Tone boundary + a browser-only subscriber) and runs on its
+**own always-available bus** — SFX work with music off, and in the hub.
+
+**Modules (`js/audio/`):**
+
+- **`sfx/defs.js`** — *pure data, `@ts-check`.* `CUES` map (`cueId → { kind, ...params, volume }`)
+  grouped by family + `CUE_IDS`. Unit-tested (`tests/sfx-defs.test.js`): every cue's `kind` is a
+  known primitive with its required params.
+- **`sfx/cues.js`** — *pure, `@ts-check`.* `resolveCue(type, payload) → cueId | null` — the
+  event→cue mapping. Unit-tested (`tests/sfx-cues.test.js`): key cases + exhaustiveness (every
+  resolvable cue exists in `CUES`). **State-reflective cues** read fields off the payload: access
+  by `next` level (`access.open`/`access.owned`), mine by `detail.rarity`, fetch by `detail.total`
+  tier (`fetch`/`fetch.big`), `EXPLOIT_PARTIAL_BURN`→`burn`, `NODE_ALERT_RAISED`→`node.alert`.
+  Cues that need state beyond the payload — `NODE_REVEALED` (node grade + burst cascade), and the
+  per-event pitch tweaks (`alert.up`/`node.alert`/`burn` detune) — are applied renderer-side.
+  Encoding vocabulary: more hits/notes + ascending pitch = more control/value/rarity; lower +
+  dissonant = loss/wear. The `chord` primitive's `hits`/`hitGap` give the "double/triple hit".
+- **`sfx/drones.js`** — *pure data, `@ts-check`.* `DRONES` (one sustained-voice spec per timed
+  action — probe/xploit/dump/fetch/mine/lie-low/reboot) + `DRONE_IDS` + `resolveDrone(action)`.
+  Each drone echoes its action's on-graph animation (scanning pulse, grinding tighten, draining
+  noise, lock-on beat, etc.). Spec values sweep with progress via `{from,to}` ranges on
+  cutoff/detune/gain. Unit-tested (`tests/sfx-drones.test.js`).
+- **`sfx/engine.js`** — *`@ts-nocheck`, the only Web Audio boundary for SFX.* `createSfx()` →
+  `{ unlock, setEnabled, isEnabled, play, startDrone, getMasterInput }`. Owns its own master `Gain`
+  → opt-in reverb → destination. `play(spec)` synthesizes a one-shot from five **primitives** —
+  `blip` / `sweep` / `chord` / `noise` / `fm` — scheduled at `ctx.currentTime + 0.02` (not
+  `Tone.now()`, to dodge the music's lookahead) and **disposed after it finishes**.
+  `startDrone(spec) → { setProgress(p), stop() }` builds a **held** voice
+  (osc/noise/fm/dual source → filter → amp gain → fade gain), fades in, re-shapes on progress
+  0→1, and fades out + disposes on stop. Both paths dispose after use, so SFX add no long-lived
+  AudioParam accumulation (the bug that caused the music engine's over-time stutter). One-shot
+  voice cap drops cues over the limit; drones are bounded by concurrent timed actions.
+- **`sfx/renderer.js`** — *browser-only, `@ts-check`.* `initSfxRenderer()` subscribes to the routed
+  events, resolves each to a cue, and plays it; pitches `alert.up` up at red; diffs
+  `player.health` / `deckIntegrity` on `STATE_CHANGED` for `hurt.*` (no damage event exists);
+  dedupes identical cues within 50ms; arms the AudioContext on first gesture. Drives the drones from
+  `ACTION_FEEDBACK` (`start` → `startDrone` keyed by `nodeId:action`; `progress` → `setProgress`;
+  `complete`/`cancel` → `stop`); stops all drones on `RUN_STARTED`/`RUN_ENDED` and when SFX is
+  disabled. Owns the persisted `starnet:sfx-enabled` pref and emits `SFX_CHANGED`.
+- **`sfx/commands.js`** — *browser-only.* `sfx` console command (`status | on | off | list |
+  test <cue>`), mirroring `music-commands.js`.
+- **HUD:** an `SFX: ON/OFF` menu button beside the music toggle; `SFX_CHANGED` keeps button +
+  console in sync (GUI/console symmetry).
+- **Wiring:** `initSfxRenderer()` + `sfx-commands` import live in `js/ui/main.js` only. Headless
+  entry points (`scripts/`) never import any of it.
+- **Harness:** `preview/sfx.html` + `js/audio/sfx/playground.js` — a button per one-shot cue, and a
+  toggle + progress slider per drone to audition/tune the sustained voices.
+
+**Not in v1:** music ducking under SFX; sample/vocal one-shots (item 3 above); positional audio;
+per-cue volume UI beyond the master SFX toggle. Starter cue specs are ear-tunable (rough drafts).
+
+## Testing, verifying & debugging the audio code
+
+Hard-won notes from building the music + SFX engines. Audio bugs are easy to misdiagnose because
+the obvious analysis tool (offline render) does not reproduce a whole class of them.
+
+### What you can test without a browser
+
+The audio subsystem deliberately splits **pure logic** (no Tone, no DOM) from the **Tone boundary**.
+Everything pure is unit-tested with `node --test`, no browser:
+
+- `mixer.js` (`computeMix`), `signals.js` (progress/threat derivation) — music.
+- `sfx/defs.js` (cue catalog well-formed), `sfx/cues.js` (`resolveCue` mapping + exhaustiveness),
+  `sfx/drones.js` (drone specs + `resolveDrone`).
+- Any future `harmony.js` (scale/chord math) — same pattern.
+
+If you can express the thing as data → data, put it in a pure module and unit-test it there. The
+Tone files (`engine.js`, `sfx/engine.js`) are `@ts-nocheck` glue that should hold as little logic as possible.
+
+### The offline-vs-realtime trap (read this before debugging an onset/envelope bug)
+
+`Tone.Offline()` renders deterministically and is great for **synthesis content** — relative
+levels, strike counts, cue mapping, "does this cue make sound." **BUT it pre-resolves signals
+before rendering, so it CANNOT reproduce realtime startup transients.**
+
+The canonical example (the drone/one-shot "onset volume spike" bug): setting level via Tone's
+`source.volume` (a *dB-mapped signal*) blasts at 0 dB for ~100–200 ms in **realtime** before the
+signal settles — a hard attack→decay→sustain on every voice. Offline showed perfectly clean
+fade-ins and sent me down a wrong root cause (LFO timing) for a whole fix cycle. **Lesson: for any
+onset / envelope / transient / "it sounds different live" bug, measure REALTIME, not offline.**
+
+Corollary rule already baked into `sfx/engine.js`: **never use `.volume` for levels — use a linear `Gain`
+(`dbToGain`)**, which has no startup transient.
+
+### How to measure realtime audio (headless)
+
+There is no Web Audio in Node, and the repo has no standing browser-test harness — these were
+throwaway Playwright scripts against `make serve` (port 3000). Pattern that works:
+
+1. Launch headless Chromium with `--autoplay-policy=no-user-gesture-required` (and `--mute-audio`)
+   so the AudioContext actually runs without a real gesture/device. The in-app gesture-arm will NOT
+   fire on a synthetic click, so also `await Tone.start()` then `await ctx.resume()` in the page.
+2. Tap the output: `analyser = ctx.createAnalyser(); Tone.getDestination().output.connect(analyser)`.
+3. Sample `getFloatTimeDomainData` each rAF; reduce to **RMS per ~20 ms window**, not peak.
+   Per-window *peak* aliases against the oscillator period and fakes a ~1.2–1.7× overshoot on steady
+   tones — use RMS for loudness/envelope shape. (Peak at fine 5 ms resolution is fine for *counting
+   discrete strikes*, e.g. verifying a 3-hit chord.)
+4. To compare a fix: render the same cue/drone before vs after and compare onset-window RMS vs
+   steady-state RMS. ~1.0 = no spike.
+
+`import { createSfx } from "/js/audio/sfx/engine.js"` and drive it directly, or `initSfxRenderer()` +
+`emitEvent(E.*)` to exercise the event→cue path end to end.
+
+### Ear-tuning
+
+Synth params are rough drafts tuned by ear in the **preview harnesses** (`preview/audio.html` for
+music layers, `preview/sfx.html` for cues + drones). Numbers in the score/cue/drone data are feel,
+not spec — change them freely and listen.
+
+### Don't regress the headless paths
+
+The SFX renderer/engine are browser-only. Confirm headless game entry points never import them:
+`grep -rn "audio/sfx" scripts/` must be empty. (`engine.js`/`audio-renderer.js` likewise — music is
+wired only in `js/ui/main.js`.)
+
 ## Prototypes
 
 - `audio-tone.html` — Tone.js, 4-part song, per-track mutes, tempo, global tension sweep
@@ -269,8 +390,8 @@ bump from recent `ICE_DETECTED` and a term for low health/deck. Smoothed, **fast
 1. **More instrument variety across scores** — teach the engine more synth voices (FM/bell,
    metal, pluck, AM) so scores can vary timbre *while keeping the cohesive "voice font"* (Les:
    the current shared palette fits together well — widen it, don't fragment it).
-2. **Event SFX** — one-shots on probe/xploit/dump/fetch and run start/end. Hooks exist
-   (`E.ACTION_FEEDBACK`, `E.ACTION_RESOLVED`); engine exposes `getMasterInput()` for routing.
+2. ~~**Event SFX** — one-shots on probe/xploit/dump/fetch and run start/end.~~ **Shipped (#229).**
+   See "Event SFX subsystem" below.
 3. **Vocal/texture one-shots** — BoC-style fragments; triggering model + original samples.
 4. **Aged-media / lo-fi processing flavor** — vinyl crackle, tape wobble, band-limited EQ.
 5. **Other biomes** — alien/ancient (BoC/weirder); the per-biome score pool already supports it.

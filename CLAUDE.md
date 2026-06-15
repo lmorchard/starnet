@@ -197,6 +197,16 @@ why. Derive the branch name from the session slug where possible.
 The only commits that may land directly on `main` are pure documentation changes (like
 this one) that don't touch game logic.
 
+### Squash before merge
+
+**Prefer squashing a PR's commits into one clean commit once review comments are
+addressed, before merging.** The incremental "fix review comment" / "address feedback"
+commits are useful while iterating, but they're noise in `main`'s history. After the
+review is settled and the branch is green, collapse the branch into a single commit
+(`git reset --soft $(git merge-base origin/main HEAD)` then recommit, or GitHub's
+"Squash and merge") with a message that describes the change as shipped, not the path
+it took to get there.
+
 ### Git commit messages
 
 **Use single-quoted `-m` strings for commit messages**, not `$(cat <<EOF ...)`
@@ -480,6 +490,8 @@ needs a fill, a circle, or a dither, it's the wrong primitive.
 - Headless playtest harness + automated bot + census for balance testing
 - Reactive procedural music (Tone.js): two-axis (progress/threat) layered scores, 8 selectable
   Corporate variants, section-breakdown automation; see `docs/audio-direction.md`
+- Synthesized event SFX (Tone.js): one-shot cues on game events, own always-available bus +
+  on/off toggle, independent of music; see `docs/audio-direction.md`
 
 ## Out of Scope (Future)
 
@@ -487,8 +499,8 @@ needs a fill, a circle, or a dither, it's the wrong primitive.
 - Sprites, daemons, machine elves
 - Full player progression / persistent meta-loop between runs (overworld is early)
 - Wider world (galaxy, planets, cities)
-- Audio: sound effects + vocal-texture one-shots (music has shipped; SFX deferred — see
-  the fast-follows in `docs/audio-direction.md`)
+- Audio: vocal-texture / sample one-shots (music + event SFX have shipped; sample-based one-shots
+  deferred — see the fast-follows in `docs/audio-direction.md`)
 
 ## Backlog
 

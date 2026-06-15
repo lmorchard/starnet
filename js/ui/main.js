@@ -9,6 +9,7 @@ import { handleTraceTick } from "../core/alert.js";
 import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initAudioRenderer, toggleMusic, isMusicEnabled } from "../audio/audio-renderer.js";
+import { initSfxRenderer, isSfxEnabled, toggleSfx } from "../audio/sfx/renderer.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
 import { openDarknetsStore } from "./store.js";
 import { initGraphBridge } from "../core/graph-bridge.js";
@@ -20,6 +21,7 @@ import { initProfileRunCommit } from "./profile-store.js";
 import { initResizers } from "./resizers.js";
 import "./hub-commands.js";
 import "../audio/music-commands.js";
+import "../audio/sfx/commands.js";
 
 import { NAMED_NETWORKS, DEFAULT_NETWORK, buildGenerated } from "../../data/networks/index.js";
 
@@ -70,6 +72,7 @@ function init() {
   initResizers();  // apply saved layout + wire the resize splitters
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
   const audioEngine = initAudioRenderer();   // browser-only reactive audio; silent until a run starts
+  initSfxRenderer();
   initGraphBridge();
   initDynamicActions();
   initProfileRunCommit();  // wire RUN_ENDED → commit results back to the profile
@@ -116,8 +119,10 @@ function init() {
   let _userPaused = false;
   const hudEl = /** @type {any} */ (document.getElementById("hud"));
   hudEl.musicEnabled = isMusicEnabled();  // reflect the persisted music preference
+  hudEl.sfxEnabled = isSfxEnabled();
   // Keep the menu button in sync however music is toggled (button OR `music` console command).
   on(E.MUSIC_CHANGED, ({ enabled }) => { hudEl.musicEnabled = enabled; });
+  on(E.SFX_CHANGED, ({ enabled }) => { hudEl.sfxEnabled = enabled; });
   hudEl.addEventListener("hud-action", (e) => {
     const { action, file } = e.detail;
     switch (action) {
@@ -142,6 +147,9 @@ function init() {
       }
       case "toggle-music":
         toggleMusic();  // emits MUSIC_CHANGED → the handler above updates the button
+        break;
+      case "toggle-sfx":
+        toggleSfx();  // emits SFX_CHANGED → the handler above updates the button
         break;
     }
   });

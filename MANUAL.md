@@ -817,6 +817,39 @@ from layers rather than a fixed loop.
 sessions. (Audio starts on your first click or keypress — browsers require a gesture before
 playing sound.)
 
+### Sound effects
+
+Separate from the music, a layer of **synthesized sound effects** punctuates what's happening —
+short cyberpunk-terminal cues organized into families you can read by ear:
+
+- **info** — soft blips for probing, navigating, and revealing nodes.
+- **success** — bright rising tones when an exploit lands or a node opens up.
+- **reward** — chimes and quick arpeggios for fetching loot, mining a card, and completing a run.
+- **failure** — dark buzzes and thuds for failed exploits, traps, and damage taken.
+- **danger** — harsh rising alarms as the alert climbs, ICE locks on, or a trace begins.
+- **relief** — settled descending tones when the alert cools or a trace is cancelled.
+
+Many cues are **state-reflective** — they encode what happened, not just that something did:
+gaining access plays a rising 2-hit chord for **open** and a fuller 3-hit for **owned**; mined
+cards escalate by rarity (common → uncommon → rare); a big-value loot haul gets a richer cue than
+a small one; and **revealing nodes is a "discovery rush"** — a single reveal is a bright blip, but
+unlocking a cluster of neighbors cascades into a quick rising run.
+
+Every **timed action** (probe, xploit, dump, fetch, mine, lie-low, reboot) also gets its own
+**sustained drone** that plays while the action is in progress and evolves as it advances —
+echoing the action's on-graph animation (a scanning pulse for probe, a grinding tighten for xploit,
+a lock-on beat that settles for mine, and so on). The drone stops when the action completes or is
+cancelled, and the usual one-shot fires at the end.
+
+SFX are **independent of the music** — they have their own on/off and run on their own audio bus,
+so you can have effects with the music off, and they play in the hub as well as in a run.
+
+**SFX commands** (console): `sfx` shows on/off status, `sfx list` lists every cue,
+`sfx test <cue>` auditions one, `sfx on|off` toggles them.
+
+**SFX: On / Off** lives in the hamburger menu (`[ ☰ ]`) next to the music toggle. The choice is
+remembered between sessions.
+
 ---
 
 ## TIPS
