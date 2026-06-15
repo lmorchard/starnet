@@ -275,6 +275,20 @@ describe("Lifecycle: monitor — owning security-monitor cancels active trace", 
     s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
     assert.equal(getState().traceSecondsRemaining, null);
   });
+
+  it("does not re-emit ALERT_TRACE_CANCELLED while the monitor stays owned", () => {
+    // Regression: the security trait's owned-cancel-trace trigger is repeating and
+    // calls ctx.cancelTrace() every evaluation cycle while the monitor is owned.
+    // cancelTraceCountdown must be event-idempotent — once the trace is cancelled,
+    // subsequent ticks must not re-emit and spam the log.
+    const s = getState();
+    s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned"); // cancels the trace (emits once)
+    const fired = withEvents(E.ALERT_TRACE_CANCELLED, () => {
+      s.nodeGraph.tick(5);
+      s.nodeGraph.tick(5);
+    });
+    assert.equal(fired.length, 0, "no re-emit once the trace is already cancelled");
+  });
 });
 
 // ── Trace ↔ global alert consistency (#114 WS3) ───────────────────────────────
