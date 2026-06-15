@@ -796,6 +796,29 @@ help                   Command listing
 
 ---
 
+## AUDIO
+
+The soundtrack is **reactive** — it reads your run and scores it in real time, built up
+from layers rather than a fixed loop.
+
+- **Progress = reward.** As you penetrate deeper and own more of the LAN, the music
+  *unfolds* — percussion, bass, lead, and a celebratory arp layer in as you go.
+- **Threat = warning.** As the alert level climbs, ICE locks on, or your health/deck takes
+  damage, urgency layers and a filter sweep cut in — fast to rise, slow to ease back down.
+- **Variety.** Each run picks one of several scores (different moods/keys/tempos), and the
+  arrangement periodically shifts into breakdowns so a long run never sits still.
+- **The hub has its own calm ambient theme**, separate from the LAN scores. The run's music
+  **fades out** when you jack out, and the hub ambience drifts back in.
+
+**Music commands** (console): `music` shows what's playing, `music list` lists the scores,
+`music next` switches randomly, `music <name>` picks one (e.g. `music neon`), `music on|off`.
+
+**Music: On / Off** lives in the hamburger menu (`[ ☰ ]`). The choice is remembered between
+sessions. (Audio starts on your first click or keypress — browsers require a gesture before
+playing sound.)
+
+---
+
 ## TIPS
 
 **Probe before you exploit.** Without probing, you're attacking blind. A matched

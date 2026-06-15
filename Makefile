@@ -1,7 +1,7 @@
 .PHONY: all serve dev lint test check bundle-vendor census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
-all: node_modules dist/vendor.js dist/lit.js
+all: node_modules dist/vendor.js dist/lit.js dist/tone.js
 
 node_modules: package.json
 	npm install
@@ -11,6 +11,9 @@ dist/vendor.js: js/vendor.js node_modules
 
 dist/lit.js: js/lit-vendor.js node_modules
 	npx esbuild js/lit-vendor.js --bundle --outfile=dist/lit.js --format=esm --platform=browser --minify
+
+dist/tone.js: js/tone-vendor.js node_modules
+	npx esbuild js/tone-vendor.js --bundle --outfile=dist/tone.js --format=esm --platform=browser --minify
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -26,7 +29,7 @@ dev: bundle-vendor serve
 #   fixtures/             (test fixture data)
 lint:
 	npx tsc --noEmit --allowJs --checkJs --target ES2020 --moduleResolution bundler --module ES2020 \
-		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'vendor.js' ! -name 'lit-vendor.js')
+		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'vendor.js' ! -name 'lit-vendor.js' ! -name 'tone-vendor.js')
 
 # Run unit + integration tests
 test:
@@ -35,10 +38,11 @@ test:
 # Full check: lint + test
 check: lint test
 
-# Bundle vendor dependencies (Cytoscape + layout extensions, Lit)
+# Bundle vendor dependencies (Cytoscape + layout extensions, Lit, Tone)
 bundle-vendor:
 	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 	npx esbuild js/lit-vendor.js --bundle --outfile=dist/lit.js --format=esm --platform=browser --minify
+	npx esbuild js/tone-vendor.js --bundle --outfile=dist/tone.js --format=esm --platform=browser --minify
 
 # Shared grade defaults for bot/census/generate targets
 THREAT ?= C
