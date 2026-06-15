@@ -3,11 +3,13 @@
 import * as Tone from "/dist/tone.js";
 import { computeMix } from "./mixer.js";
 import { makeSeededRng, getSeed } from "../core/rng.js";
+import { transposeDiatonic, consonantSteps, pickNextStep } from "./harmony.js";
 
 const GRID = "8n";          // default step grid
 const RAMP_UP = 0.3;        // threat fast attack (s)
 const RAMP_DOWN = 1.5;      // threat slow release (s)
 const RAMP_PROGRESS = 1.0;  // progress crossfade (s)
+const DRONE_BARS_DEFAULT = 4; // bars between drone wander steps (if score opts in without specifying)
 
 export function createAudioEngine() {
   let started = false;
@@ -25,6 +27,15 @@ export function createAudioEngine() {
   let sectionRng = null;
   let sectionTimerId = null;
   let maskable = new Set();     // progress-axis layer keys eligible for masking
+
+  // Drone harmonic wander — periodically planes the sustained "wander" layers (drone, +hub pad)
+  // to another diatonic degree so the harmonic bed evolves over a run instead of holding one
+  // chord. Seeded per run (independent of gameplay RNG), bar-quantized, no immediate repeat.
+  let droneRng = null;
+  let droneTimerId = null;
+  let droneStep = 0;            // current diatonic-step offset in effect
+  let droneSteps = null;        // allowed offsets for this score (from consonantSteps)
+  const retiring = new Set();   // { id, synth } — old wander synths fading out, disposed after their tail
 
   // Param-event recycling. Web Audio never prunes past automation events, so a sequenced
   // synth's frequency timeline grows unbounded as it plays (worst on the fast arps) →
@@ -61,13 +72,24 @@ export function createAudioEngine() {
     const grid = spec.grid || GRID;
 
     if (spec.sustain) {
-      // continuously sustained chord, gain-controlled
-      const s = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: spec.synth.type || "fatsawtooth", count: spec.synth.count, spread: spec.synth.spread },
-        envelope: { attack: spec.synth.attack ?? 1, decay: 0.3, sustain: 1, release: spec.synth.release ?? 2 },
-      }).connect(gain);
-      if (spec.synth.volume != null) s.volume.value = spec.synth.volume;
-      layers[spec.key] = { gain, sustainSynth: s, sustain: spec.sustain };
+      // continuously sustained chord, gain-controlled. A factory so a wander layer can mint a
+      // FRESH synth per chord change — each instance is triggered exactly once (attack, then one
+      // release), so it never accumulates the unbounded param automation that Web Audio can't
+      // prune (the same compounding-crackle hazard the sequenced-layer recycler exists for).
+      const makeSynth = () => {
+        const s = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: spec.synth.type || "fatsawtooth", count: spec.synth.count, spread: spec.synth.spread },
+          envelope: { attack: spec.synth.attack ?? 1, decay: 0.3, sustain: 1, release: spec.synth.release ?? 2 },
+        }).connect(gain);
+        if (spec.synth.volume != null) s.volume.value = spec.synth.volume;
+        return s;
+      };
+      // wander layers remember their home chord so each plane is relative to home (no drift)
+      layers[spec.key] = {
+        gain, sustainSynth: makeSynth(), sustain: spec.sustain,
+        wander: !!spec.wander, wanderHome: spec.sustain, currentNotes: spec.sustain,
+        makeSynth, releaseSec: spec.synth.release ?? 2,
+      };
       return;
     }
 
@@ -156,6 +178,38 @@ export function createAudioEngine() {
     applyMix(false);
   }
 
+  // Dispose a retired wander synth once its release tail has gone silent (click-free) — keeps the
+  // count of live synths bounded so nothing accumulates over a run.
+  function retireSynth(synth, releaseSec) {
+    const rec = { synth };
+    rec.id = setTimeout(() => {
+      try { synth.releaseAll?.(); synth.dispose(); } catch { /* already gone */ }
+      retiring.delete(rec);
+    }, (releaseSec + 1.5) * 1000);
+    retiring.add(rec);
+  }
+
+  // Plane the wander layers to the next diatonic degree. Each layer mints a FRESH synth that
+  // attacks the new chord while the outgoing synth releases the old — the slow attack/release
+  // envelopes overlap on the shared gain into a gapless morph. Recreating (vs. retriggering one
+  // synth) means each instance is triggered exactly once, so no synth accumulates unbounded
+  // param automation — the compounding-crackle hazard Web Audio's un-prunable timelines create.
+  function wanderDrone() {
+    if (!droneSteps || !score?.root || !score?.mode) return;
+    droneStep = pickNextStep(droneRng, droneStep, droneSteps);
+    for (const layer of Object.values(layers)) {
+      if (!layer.wander || !layer.sustainSynth) continue;
+      const next = transposeDiatonic(layer.wanderHome, score.root, score.mode, droneStep);
+      const old = layer.sustainSynth;
+      old.triggerRelease(layer.currentNotes);
+      const fresh = layer.makeSynth();
+      fresh.triggerAttack(next);
+      layer.sustainSynth = fresh;
+      layer.currentNotes = next;
+      retireSynth(old, layer.releaseSec ?? 2);
+    }
+  }
+
   // Recreate a sequenced layer's synth + sequence, clearing its accumulated param
   // automation. The new gain is set instantly to the layer's current target (≈0 for a
   // silent recycle → no click; no rampTo event added). Sustained layers don't accumulate
@@ -200,6 +254,10 @@ export function createAudioEngine() {
     appliedCutoff = -1; appliedQ = -1;
     if (sectionTimerId != null) { Tone.Transport.clear(sectionTimerId); sectionTimerId = null; }
     sectionActive = null; sectionIdx = 0; sectionRng = null; maskable = new Set();
+    if (droneTimerId != null) { Tone.Transport.clear(droneTimerId); droneTimerId = null; }
+    droneRng = null; droneStep = 0; droneSteps = null;
+    for (const rec of retiring) { clearTimeout(rec.id); try { rec.synth.dispose(); } catch { /* already gone */ } }
+    retiring.clear();
     for (const key of Object.keys(layers)) {
       const layer = layers[key];
       layer.seq?.dispose?.();
@@ -259,6 +317,16 @@ export function createAudioEngine() {
       } else {
         sectionActive = null;
       }
+      // drone harmonic wander: opt-in via score.root/mode + at least one `wander` sustained layer
+      const wanderLayers = Object.values(layers).filter((l) => l.wander && l.sustainSynth);
+      const droneHome = layers.drone?.wanderHome ?? wanderLayers[0]?.wanderHome;
+      if (score.root && score.mode && droneHome && wanderLayers.length) {
+        droneSteps = consonantSteps(droneHome, score.root, score.mode);
+        droneStep = 0;
+        droneRng = makeSeededRng((getSeed() || "audio") + ":drone");
+        const dBars = score.droneBars || DRONE_BARS_DEFAULT;
+        droneTimerId = Tone.Transport.scheduleRepeat(() => wanderDrone(), `${dBars}m`, `${dBars}m`);
+      }
       applyMix(true);
       Tone.Transport.start();
       recycleTimer = setInterval(recycleTick, RECYCLE_CHECK_MS);  // prune accumulated synth params
@@ -294,6 +362,19 @@ export function createAudioEngine() {
     setMuted(key, isMuted) { muted[key] = isMuted; if (started) applyMix(false); },
     setSectionsEnabled(on) { sectionsEnabled = !!on; if (started) applyMix(false); },
     isStarted() { return started; },
+
+    /**
+     * Force an immediate drone wander (ear-check aid — skips the bar wait). No-op if the
+     * active score doesn't wander.
+     * @returns {{ step: number, layers: Record<string, string[]> } | null}
+     */
+    forceWander() {
+      if (!started || !droneSteps) return null;
+      wanderDrone();
+      const out = {};
+      for (const [key, l] of Object.entries(layers)) if (l.wander) out[key] = l.currentNotes;
+      return { step: droneStep, layers: out };
+    },
 
     /** Resume the AudioContext (needs a user gesture) WITHOUT starting playback. */
     async unlock() { await Tone.start(); },

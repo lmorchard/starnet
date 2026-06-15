@@ -70,11 +70,12 @@ const urgencyArp = [
 export const CORPORATE_HAZE = Object.freeze({
   biome: "corporate",
   name: "Corporate — Haze",
+  root: "G", mode: "ionian",  // drone harmonic wander (#239)
   bpm: 84,
   masterFilter: { cutoffLo: 500, cutoffHi: 8000, qLo: 0.7, qHi: 3.0 },
   layers: [
     // base
-    { key: "drone", axis: "base", baseGain: 0.5, progressBoost: 0.15,
+    { key: "drone", axis: "base", baseGain: 0.5, progressBoost: 0.15, wander: true,
       sustain: ["G2", "D3"], synth: { type: "fatsawtooth", count: 3, spread: 20, attack: 3, release: 4, volume: -17 } },
     // progress (blossom — warm, hazy, nostalgic)
     { key: "basePerc", axis: "progress", lo: 0.0, hi: 0.05, pattern: basePerc,

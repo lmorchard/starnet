@@ -234,7 +234,7 @@ stays rhythmically aligned as layers fade in. Progress layers *blossom*; threat 
 
 | Layer | Role / character | Driven by | Anchor |
 |---|---|---|---|
-| **Drone** | wandering detuned pad, always present | baseline + slight ↑ progress | EVE / BoC |
+| **Drone** | wandering detuned pad, always present; harmonically wanders (see below) | baseline + slight ↑ progress | EVE / BoC |
 | **Base perc** | sparse kick + hat, minimal pulse | progress > 0 (early) | Mr. Robot |
 | **Double-time perc** | busier hats/snare | progress ~0.3→0.7 | Mr. Robot |
 | **Bass** | square/sub bassline | progress ~0.2→0.5 | — |
@@ -249,6 +249,28 @@ counts so the music starts unfolding before nodes are fully owned.
 **Threat scalar** = `globalAlert` (green/yellow/red/trace → 0/.33/.66/1) blended with a transient
 bump from recent `ICE_DETECTED` and a term for low health/deck. Smoothed, **fast attack (~0.3s)
 / slow release (~1.5s)** — adrenaline spike, gradual calm-down.
+
+### Drone harmonic wander (#239)
+
+The always-present `drone` no longer holds one chord all run — it **planes to neighbouring
+diatonic degrees** every few bars (`DRONE_BARS_DEFAULT`, currently 4; overridable per score via
+`droneBars`) so the harmonic bed evolves. Algorithmic, not hand-authored:
+
+- **`js/audio/harmony.js`** (pure, Tone-free, unit-tested) — `transposeDiatonic(notes, root, mode,
+  steps)` shifts a chord by `steps` scale degrees within the score's key; `consonantSteps(drone,
+  root, mode)` returns the offsets that keep the drone's perfect fifth perfect (the excluded one
+  is mode-specific — a fixed list is wrong outside aeolian); `pickNextStep(rng, current, steps)`
+  picks the next offset, no immediate repeat.
+- **Score data** — each wandering score declares `root` + `mode`; sustained layers opt in with
+  `wander: true`. Home chord = step 0.
+- **Engine** — an independent seeded RNG (`getSeed()+":drone"`, never gameplay RNG) drives a
+  bar-quantized `Transport.scheduleRepeat`, mirroring the section automation. Each wander layer
+  crossfades on its own `PolySynth` (`triggerRelease` old + `triggerAttack` new) — the slow
+  attack/release envelopes overlap into a gapless morph.
+- **Scope** — only the base `drone` in run scores. The **hub** wanders its `drone` **and** `pad`
+  together (cycling Am7 → Cmaj7 → Dm7 → Em7 → Fmaj7 → G7); the high shimmer stays a static anchor.
+  The threat `tensionDrone` is untouched. Ear-check the cadence/feel via the **WANDER NOW** button
+  in `preview/audio.html` (the hub is selectable there too).
 
 ### Transitions
 

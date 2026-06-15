@@ -36,7 +36,7 @@ const lead = [
   "E4", K, K, "A4", K, K, "C5", K,
   K, "B4", K, "A4", K, K, K, K,
   "E4", K, "G4", K, "A4", K, K, K,
-  "Bb4", K, "A4", K, "E4", K, K, K,
+  "Bb4", K, K, "A4", "E4", K, K, K,
 ];
 // Triad stabs: Am held three bars, Bb (♭2) on bar 4. Chords as arrays.
 const backup = [
@@ -64,11 +64,12 @@ const progArp = [
 export const CORPORATE_SCORE = Object.freeze({
   biome: "corporate",
   name: "Corporate — Dread",
+  root: "A", mode: "aeolian",  // drone harmonic wander (#239)
   bpm: 120,
   masterFilter: { cutoffLo: 600, cutoffHi: 8600, qLo: 0.7, qHi: 4.7 },
   layers: [
     // base
-    { key: "drone", axis: "base", baseGain: 0.55, progressBoost: 0.2,
+    { key: "drone", axis: "base", baseGain: 0.55, progressBoost: 0.2, wander: true,
       sustain: ["A2", "E3"], synth: { type: "fatsawtooth", count: 3, spread: 18, attack: 2, release: 3, volume: -16 } },
     // progress (blossom — bolder, earlier, opens up celebratory toward the top)
     { key: "basePerc", axis: "progress", lo: 0.0, hi: 0.05, pattern: basePerc,
