@@ -17,6 +17,7 @@ class StarnetHud extends StarnetElement {
     paused: { type: Boolean },
     mission: { type: Object },
     menuOpen: { type: Boolean },
+    musicEnabled: { type: Boolean },
   };
 
   constructor() {
@@ -31,6 +32,7 @@ class StarnetHud extends StarnetElement {
     this.paused = false;
     this.mission = null;
     this.menuOpen = false;
+    this.musicEnabled = true;
   }
 
   _emit(action, detail = {}) {
@@ -107,6 +109,8 @@ class StarnetHud extends StarnetElement {
                   @click=${() => this._emit("new-run")}>[ NEW RUN ]</button>
           <button id="pause-btn" class="${this.paused ? "active" : ""}"
                   @click=${() => this._emit("pause")}>${this.paused ? "[ RESUME ]" : "[ PAUSE ]"}</button>
+          <button id="music-btn" title="Toggle music"
+                  @click=${() => this._emit("toggle-music")}>${this.musicEnabled ? "[ MUSIC: ON ]" : "[ MUSIC: OFF ]"}</button>
           <button id="save-btn" title="Save game state to file"
                   @click=${() => this._emit("save")}>[ SAVE ]</button>
           <label id="load-btn" title="Load game state from file">[ LOAD ]

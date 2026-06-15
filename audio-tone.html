@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Starnet audio — Tone.js</title>
+<style>
+  :root { --bg:#0a0a0f; --cyan:#22d3ee; --green:#39ff88; --mag:#ff00aa; --violet:#a78bfa; --dim:#1b2330; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--green); font-family:ui-monospace,Menlo,Consolas,monospace;
+         margin:0; padding:2rem; line-height:1.5; }
+  h1 { color:var(--cyan); font-weight:600; letter-spacing:.05em; font-size:1.2rem;
+       text-shadow:0 0 8px rgba(34,211,238,.5); margin:0 0 .25rem; }
+  .sub { color:#6b7a8d; font-size:.8rem; margin-bottom:1.5rem; }
+  .panel { border:1px solid var(--dim); border-radius:6px; padding:1.25rem; max-width:560px;
+           box-shadow:0 0 24px rgba(34,211,238,.07) inset; }
+  .row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin:.6rem 0; }
+  button { background:transparent; color:var(--cyan); border:1px solid var(--cyan); border-radius:4px;
+           padding:.5rem 1rem; font:inherit; cursor:pointer; text-shadow:0 0 6px rgba(34,211,238,.6); }
+  button:hover { background:rgba(34,211,238,.08); }
+  button.stop { color:var(--mag); border-color:var(--mag); text-shadow:0 0 6px rgba(255,0,170,.6); }
+  .track { display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--dim);
+           border-radius:4px; padding:.4rem .7rem; cursor:pointer; user-select:none; color:#8aa; }
+  .track.on { color:var(--green); border-color:var(--green); text-shadow:0 0 6px rgba(57,255,136,.5); }
+  .track .dot { width:8px; height:8px; border:1px solid currentColor; transform:rotate(45deg); }
+  .track.on .dot { background:var(--green); box-shadow:0 0 6px var(--green); }
+  label.slider { display:flex; flex-direction:column; gap:.2rem; font-size:.75rem; color:#8aa; flex:1; min-width:160px; }
+  input[type=range]{ width:100%; accent-color:var(--mag); }
+  .val { color:var(--violet); }
+  .note { color:#5a6b7d; font-size:.72rem; margin-top:1.25rem; border-top:1px solid var(--dim); padding-top:.9rem; }
+  code { color:var(--cyan); }
+</style>
+</head>
+<body>
+  <h1>STARNET // AUDIO ENGINE TEST — Tone.js</h1>
+  <div class="sub">4-part synth song · per-track mute · tension preview · same composition as the Elementary demo</div>
+
+  <div class="panel">
+    <div class="row">
+      <button id="play">▶ PLAY</button>
+      <button id="stop" class="stop">■ STOP</button>
+      <span id="status" style="color:#6b7a8d;font-size:.8rem">idle</span>
+    </div>
+
+    <div class="row" id="tracks"></div>
+
+    <div class="row">
+      <label class="slider">TEMPO <span class="val" id="bpmVal">104</span> bpm
+        <input type="range" id="bpm" min="70" max="150" value="104" />
+      </label>
+    </div>
+    <div class="row">
+      <label class="slider">ICE TENSION <span class="val" id="tenVal">0.00</span>
+        <input type="range" id="tension" min="0" max="100" value="0" />
+      </label>
+    </div>
+
+    <div class="note">
+      <b style="color:#8aa">What to listen for:</b> tension opens a filter + fades in a detuned drone —
+      this is the reactive hook the game would drive from the alert ladder / ICE attention.<br>
+      <b style="color:#8aa">Engine:</b> Tone.js (CDN). Synths are imperative objects; the song is plain
+      data + a per-step <code>callback</code>. Mutes flip a gain on a live object — no graph rebuild.
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/tone@15/build/Tone.js"></script>
+<script>
+// ---- Composition (shared with Elementary demo) -------------------------------
+// 8th-note grid, 8 steps/bar, 4 bars = 32 steps. i–VI–III–VII in A minor.
+const LEAD = [ // melody, note or null
+  'A4',null,'C5',null,'E5',null,'D5',null,   // Am
+  'C5',null,'A4',null,'F4',null,'A4',null,   // F
+  'E5',null,'G5',null,'E5',null,'C5',null,   // C
+  'D5',null,'B4',null,'G4',null,'B4',null,   // G
+];
+const BASS = [ // root / fifth alternation
+  'A2',null,'E2',null,'A2',null,'E2',null,
+  'F2',null,'C2',null,'F2',null,'C2',null,
+  'C2',null,'G2',null,'C2',null,'G2',null,
+  'G2',null,'D2',null,'G2',null,'D2',null,
+];
+const CHORDS = [ // triad stab on beats 1 & 3 (steps 0 and 4 of each bar)
+  ['A3','C4','E4'], ['F3','A3','C4'], ['C4','E4','G4'], ['G3','B3','D4'],
+];
+const STEPS = 32;
+const step8 = i => i % 8;          // position within bar
+const barOf = i => (i / 8) | 0;    // 0..3
+
+// ---- Synths ------------------------------------------------------------------
+let parts, built = false;
+const enabled = { lead:true, bass:true, rhythm:true, perc:true };
+
+function build() {
+  if (built) return;
+  // MASTER BUS: every voice routes through this filter, so the tension sweep is
+  // truly global (drums + drone included) — the thing you liked in the Elementary demo.
+  const master = new Tone.Filter({ frequency: 8000, type: 'lowpass', Q: 0.7 }).toDestination();
+  const reverb = new Tone.Reverb({ decay: 2.2, wet: 0.18 }).connect(master);
+  const delay  = new Tone.FeedbackDelay('8n.', 0.25).connect(reverb);
+  delay.wet.value = 0.2;
+
+  // melodic voices share a static shaping filter, then feed the master bus
+  const toneFilter = new Tone.Filter(1200, 'lowpass').connect(delay);
+
+  const lead = new Tone.MonoSynth({
+    oscillator:{ type:'sawtooth' }, filter:{ Q:2 },
+    envelope:{ attack:0.01, decay:0.2, sustain:0.2, release:0.2 },
+    filterEnvelope:{ attack:0.02, decay:0.2, baseFrequency:600, octaves:3 },
+  }).connect(toneFilter);
+  lead.volume.value = -8;
+
+  const bass = new Tone.MonoSynth({
+    oscillator:{ type:'square' },
+    envelope:{ attack:0.01, decay:0.25, sustain:0.3, release:0.2 },
+    filterEnvelope:{ attack:0.01, decay:0.15, baseFrequency:200, octaves:2 },
+  }).connect(toneFilter);
+  bass.volume.value = -6;
+
+  const rhythm = new Tone.PolySynth(Tone.Synth, {
+    oscillator:{ type:'triangle' },
+    envelope:{ attack:0.01, decay:0.18, sustain:0, release:0.1 },
+  }).connect(toneFilter);
+  rhythm.volume.value = -16;
+
+  const kick = new Tone.MembraneSynth({ octaves:6, envelope:{ attack:0.001, decay:0.25, sustain:0 } }).connect(reverb);
+  const snare = new Tone.NoiseSynth({ noise:{ type:'white' }, envelope:{ attack:0.001, decay:0.15, sustain:0 } }).connect(reverb);
+  snare.volume.value = -10;
+  const hat = new Tone.NoiseSynth({ noise:{ type:'white' }, envelope:{ attack:0.001, decay:0.03, sustain:0 } }).connect(reverb);
+  hat.volume.value = -22;
+
+  // ICE drone: detuned saw pair that fades in with tension
+  const drone = new Tone.PolySynth(Tone.Synth, { oscillator:{ type:'sawtooth' },
+    envelope:{ attack:1.5, decay:0.5, sustain:1, release:2 } }).connect(reverb);
+  drone.volume.value = -60; // silent until tension
+  drone.triggerAttack(['A2','E3']);
+
+  const seq = new Tone.Sequence((time, i) => {
+    const b = barOf(i), p = step8(i);
+    if (enabled.lead && LEAD[i]) lead.triggerAttackRelease(LEAD[i], '8n', time);
+    if (enabled.bass && BASS[i]) bass.triggerAttackRelease(BASS[i], '8n', time);
+    if (enabled.rhythm && p % 4 === 0) rhythm.triggerAttackRelease(CHORDS[b], '8n', time);
+    if (enabled.perc) {
+      if (p % 2 === 0) kick.triggerAttackRelease('C1', '8n', time);   // four-on-floor
+      if (p === 2 || p === 6) snare.triggerAttackRelease('16n', time); // beats 2 & 4
+      if (p % 2 === 1) hat.triggerAttackRelease('32n', time);          // offbeats
+    }
+  }, [...Array(STEPS).keys()], '8n');
+  seq.start(0);
+
+  parts = { toneFilter, drone, master };
+  built = true;
+}
+
+// ---- Controls ----------------------------------------------------------------
+const tracksEl = document.getElementById('tracks');
+for (const name of ['lead','bass','rhythm','perc']) {
+  const el = document.createElement('span');
+  el.className = 'track on';
+  el.innerHTML = `<span class="dot"></span>${name.toUpperCase()}`;
+  el.onclick = () => { enabled[name] = !enabled[name]; el.classList.toggle('on', enabled[name]); };
+  tracksEl.appendChild(el);
+}
+
+const status = document.getElementById('status');
+document.getElementById('play').onclick = async () => {
+  await Tone.start();
+  build();
+  Tone.Transport.start();
+  status.textContent = 'playing';
+};
+document.getElementById('stop').onclick = () => { Tone.Transport.stop(); status.textContent = 'stopped'; };
+
+const bpm = document.getElementById('bpm'), bpmVal = document.getElementById('bpmVal');
+bpm.oninput = () => { Tone.Transport.bpm.value = +bpm.value; bpmVal.textContent = bpm.value; };
+
+const tension = document.getElementById('tension'), tenVal = document.getElementById('tenVal');
+tension.oninput = () => {
+  const t = +tension.value / 100;
+  tenVal.textContent = t.toFixed(2);
+  if (!built) return;
+  // GLOBAL sweep on the master bus: brighten + resonate the whole mix, fade in the drone
+  parts.master.frequency.rampTo(600 + t * 8000, 0.3);  // 600 Hz (dark) → ~8.6 kHz (open)
+  parts.master.Q.rampTo(0.7 + t * 4, 0.3);             // resonance climbs with pressure
+  parts.drone.volume.rampTo(-60 + t * 48, 0.4);        // -60 → -12 dB
+};
+</script>
+</body>
+</html>

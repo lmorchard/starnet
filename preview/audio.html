@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Starnet audio — tuning harness</title>
+<style>
+  :root { --bg:#0a0a0f; --cyan:#22d3ee; --green:#39ff88; --mag:#ff00aa; --dim:#1b2330; }
+  body { background:var(--bg); color:var(--green); font-family:ui-monospace,monospace; margin:0; padding:2rem; }
+  h1 { color:var(--cyan); font-size:1.1rem; text-shadow:0 0 8px rgba(34,211,238,.5); }
+  .panel { border:1px solid var(--dim); border-radius:6px; padding:1.25rem; max-width:600px; }
+  .row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin:.6rem 0; }
+  button { background:transparent; color:var(--cyan); border:1px solid var(--cyan); border-radius:4px; padding:.5rem 1rem; font:inherit; cursor:pointer; }
+  button.stop { color:var(--mag); border-color:var(--mag); }
+  .track { display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--dim); border-radius:4px; padding:.35rem .6rem; cursor:pointer; user-select:none; color:#8aa; font-size:.8rem; }
+  .track.on { color:var(--green); border-color:var(--green); }
+  .track .dot { width:8px; height:8px; border:1px solid currentColor; transform:rotate(45deg); }
+  .track.on .dot { background:var(--green); }
+  label.slider { display:flex; flex-direction:column; gap:.2rem; font-size:.75rem; color:#8aa; flex:1; min-width:200px; }
+  input[type=range]{ width:100%; accent-color:var(--mag); }
+  .val { color:#a78bfa; }
+  select { background:var(--bg); color:var(--green); border:1px solid var(--dim); border-radius:4px; font:inherit; padding:.35rem .5rem; }
+</style>
+</head>
+<body>
+  <h1>STARNET // AUDIO TUNING HARNESS</h1>
+  <div class="panel">
+    <div class="row">
+      <button id="play">▶ PLAY</button>
+      <button id="stop" class="stop">■ STOP</button>
+      <span id="status" style="color:#6b7a8d;font-size:.8rem">idle</span>
+    </div>
+    <div class="row"><label class="slider" style="max-width:280px;flex-direction:row;align-items:center;gap:.5rem">SCORE
+      <select id="score"></select></label></div>
+    <div class="row"><label style="font-size:.8rem;color:#8aa;display:flex;align-items:center;gap:.4rem">
+      <input type="checkbox" id="sections" checked /> SECTION BREAKDOWNS</label></div>
+    <div class="row" id="tracks"></div>
+    <div class="row"><label class="slider">PROGRESS <span class="val" id="progressVal">0.00</span>
+      <input type="range" id="progress" min="0" max="100" value="0" /></label></div>
+    <div class="row"><label class="slider">THREAT <span class="val" id="threatVal">0.00</span>
+      <input type="range" id="threat" min="0" max="100" value="0" /></label></div>
+  </div>
+  <script type="module" src="/js/audio/playground.js"></script>
+</body>
+</html>

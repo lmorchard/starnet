@@ -362,7 +362,7 @@ html, body {
   50%       { opacity: 0.4; }
 }
 
-#new-run-btn, #pause-btn, #save-btn, #load-btn {
+#new-run-btn, #pause-btn, #music-btn, #save-btn, #load-btn {
   background: transparent;
   border: 1px solid var(--cyan);
   color: var(--cyan);
@@ -377,7 +377,7 @@ html, body {
   transition: background 0.15s, box-shadow 0.15s;
 }
 
-#new-run-btn:hover, #pause-btn:hover, #save-btn:hover, #load-btn:hover {
+#new-run-btn:hover, #pause-btn:hover, #music-btn:hover, #save-btn:hover, #load-btn:hover {
   background: rgba(0, 255, 255, 0.1);
   box-shadow: var(--glow-lg) rgba(0, 255, 255, 0.5);
 }

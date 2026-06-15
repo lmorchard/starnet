@@ -75,4 +75,7 @@ export const E = Object.freeze({
   NODE_STATE_CHANGED:   "graph:node-state-changed",
   MESSAGE_PROPAGATED:   "graph:message-propagated",
   QUALITY_CHANGED:      "graph:quality-changed",
+
+  // Audio (music on/off changed — keeps HUD + console in sync)
+  MUSIC_CHANGED:        "audio:music-changed",
 });

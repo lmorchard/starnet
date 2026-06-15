@@ -478,6 +478,8 @@ needs a fill, a circle, or a dither, it's the wrong primitive.
 - Alert + trace system and ICE (multiple instances, grade-scaled behavior, detection/dwell)
 - Darknet store, exploit card decay (use/disclosure), health/deck loss-clock pressure
 - Headless playtest harness + automated bot + census for balance testing
+- Reactive procedural music (Tone.js): two-axis (progress/threat) layered scores, 8 selectable
+  Corporate variants, section-breakdown automation; see `docs/audio-direction.md`
 
 ## Out of Scope (Future)
 
@@ -485,7 +487,8 @@ needs a fill, a circle, or a dither, it's the wrong primitive.
 - Sprites, daemons, machine elves
 - Full player progression / persistent meta-loop between runs (overworld is early)
 - Wider world (galaxy, planets, cities)
-- Audio
+- Audio: sound effects + vocal-texture one-shots (music has shipped; SFX deferred — see
+  the fast-follows in `docs/audio-direction.md`)
 
 ## Backlog
 
