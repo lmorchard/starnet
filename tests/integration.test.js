@@ -250,7 +250,7 @@ describe("Lifecycle: iceResident — owning security-monitor stops ICE", () => {
 
 // ── Lifecycle: monitor — trace cancellation ───────────────────────────────────
 
-describe("Lifecycle: monitor — owning security-monitor cancels active trace", () => {
+describe("Lifecycle: monitor — cancelling an active trace is explicit", () => {
   beforeEach(() => {
     clearAll();
     initGame(() => buildIceWithMonitorLAN(), "itest-5");
@@ -261,18 +261,27 @@ describe("Lifecycle: monitor — owning security-monitor cancels active trace", 
     assert.notEqual(getState().traceSecondsRemaining, null);
   });
 
-  it("owning security-monitor emits ALERT_TRACE_CANCELLED", () => {
+  it("owning the monitor does NOT auto-cancel the trace", () => {
+    // The player must explicitly run cancel-trace; merely owning the monitor (which
+    // reveals connections / aggregates alerts) leaves the trace running. Ticking while
+    // owned must not cancel it either — there is no owned-cancel-trace trigger.
     const s = getState();
     const fired = withEvents(E.ALERT_TRACE_CANCELLED, () => {
-      // Set via graph so the trigger fires
       s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
+      s.nodeGraph.tick(5);
+      s.nodeGraph.tick(5);
     });
-    assert.equal(fired.length, 1);
+    assert.equal(fired.length, 0, "owning the monitor must not emit ALERT_TRACE_CANCELLED");
+    assert.notEqual(getState().traceSecondsRemaining, null, "trace must still be running");
   });
 
-  it("traceSecondsRemaining is null after owning security-monitor", () => {
+  it("executing cancel-trace on the owned monitor cancels the trace (emits once)", () => {
     const s = getState();
     s.nodeGraph.setNodeAttr("sec-mon", "accessLevel", "owned");
+    const fired = withEvents(E.ALERT_TRACE_CANCELLED, () => {
+      s.nodeGraph.executeAction("sec-mon", "cancel-trace");
+    });
+    assert.equal(fired.length, 1);
     assert.equal(getState().traceSecondsRemaining, null);
   });
 });
@@ -1352,14 +1361,18 @@ describe("security grid: IDS->monitor escalation (#173)", () => {
     assert.equal(getState().traceSecondsRemaining, null, "a corrupted IDS must not start a trace");
   });
 
-  it("owning the monitor cancels an in-flight grid trace", () => {
+  it("cancel-trace on the owned monitor cancels an in-flight grid trace", () => {
     initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "grid-seed-3");
     const graph = getState().nodeGraph;
     alertUntilTrace(graph);
     assert.notEqual(getState().traceSecondsRemaining, null, "trace should be running first");
 
-    graph.setNodeAttr("sp/monitor", "accessLevel", "owned"); // owned-cancel-trace (repeating)
-    assert.equal(getState().traceSecondsRemaining, null, "owning the monitor cancels the trace");
+    graph.setNodeAttr("sp/monitor", "accessLevel", "owned");
+    assert.notEqual(getState().traceSecondsRemaining, null,
+      "owning alone must NOT cancel — cancelling is explicit");
+    graph.executeAction("sp/monitor", "cancel-trace");
+    assert.equal(getState().traceSecondsRemaining, null,
+      "running cancel-trace on the owned monitor cancels the trace");
   });
 });
 

@@ -319,10 +319,10 @@ describe("action execution", () => {
       attributes: { visibility: "accessible", accessLevel: "owned" },
     });
     const graph = new NodeGraph({ nodes: [mon], edges: [] }, ctx);
-    // executeAction fires the action's ctx-call effect (cancelTrace #1) AND
-    // evaluates triggers — security trait's owned-cancel-trace trigger fires (#2)
+    // executeAction fires the action's ctx-call effect exactly once. There is no
+    // owned-cancel-trace trigger — cancelling a trace is explicit, player-driven only.
     graph.executeAction("mon-1", "cancel-trace");
-    assert.ok(ctx.calls.cancelTrace?.length >= 1, "cancelTrace should be called at least once");
+    assert.equal(ctx.calls.cancelTrace?.length, 1, "cancelTrace should be called exactly once");
   });
 
   it("access-darknet action calls ctx.openDarknetsStore", () => {

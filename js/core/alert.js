@@ -55,6 +55,13 @@ export function handleTraceTick() {
 
 export function cancelTraceCountdown() {
   const s = getState();
+  // Event-idempotent: bail when there is no trace to cancel. The security trait's
+  // owned-cancel-trace trigger is repeating and calls this every evaluation cycle
+  // while the monitor stays owned; without this guard each cycle re-emits
+  // ALERT_TRACE_CANCELLED (spamming the log) and re-forces the alert to green.
+  if (s.traceTimerId === null && s.traceSecondsRemaining === null && s.globalAlert !== "trace") {
+    return;
+  }
   if (s.traceTimerId !== null) {
     cancelEvent(s.traceTimerId);
     setTraceTimerId(null);

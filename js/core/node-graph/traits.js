@@ -281,21 +281,13 @@ registerTrait("security", {
     { name: "report", on: "alert", call: "recordMonitorAlert" },
   ],
   actions: [ACTION_TEMPLATES.CANCEL_TRACE, ACTION_TEMPLATES.SCRUB_LOGS],
-  triggers: [
-    // (alert-escalate removed: escalation now flows per-alert through the report operator
-    //  → recordMonitorAlert, which climbs green→yellow→red→trace by accumulated count.)
-    {
-      // Repeating, not one-shot: owning the monitor must cancel a trace even if the
-      // node was owned BEFORE the trace started (a one-shot would fire once into a
-      // no-op and never re-fire). cancelTrace is idempotent, so re-firing is safe.
-      id: "owned-cancel-trace",
-      repeating: true,
-      when: { type: "node-attr", attr: "accessLevel", eq: "owned" },
-      then: [
-        { effect: "ctx-call", method: "cancelTrace", args: [] },
-      ],
-    },
-  ],
+  // No triggers: cancelling a trace is explicit and player-driven via the CANCEL_TRACE
+  // action. There is deliberately no owned-cancel-trace trigger — owning the monitor
+  // reveals connections and aggregates alerts, but the player must run cancel-trace to
+  // abort the countdown. (A prior repeating trigger auto-cancelled on own and re-emitted
+  // ALERT_TRACE_CANCELLED every evaluation cycle, spamming the log.)
+  // (alert-escalate also removed: escalation flows per-alert through the report operator
+  //  → recordMonitorAlert, which climbs green→yellow→red→trace by accumulated count.)
 });
 
 registerTrait("gate", {
