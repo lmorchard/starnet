@@ -90,10 +90,11 @@ deck integrity falls its edges develop deepening ringing, overshoot and timing/a
 glitches (the amplitude itself stays roughly constant); it flatlines at zero. Hover
 either trace to see the exact value as a percentage.
 
-**Uplink control** — Floating beneath the vital traces (upper-right). Normally shows
+**Uplink control** — Floating beneath the vital traces (upper-right). Shows
 `[ VISIT WAN ]`, which selects the WAN node (useful shortcut to reach the darknet broker,
 lie-low, or disconnect). When the global alert is elevated (not green) or a trace is
-counting down, it switches to a pulsing `[ JACK OUT ]` for instant disconnect.
+counting down, a pulsing `[ JACK OUT ]` for instant disconnect is stacked beneath it —
+`[ VISIT WAN ]` stays available so you can still hop to the WAN to lie low under pressure.
 
 **Resizing the layout** — Two borders are drag-resizable: the border above the log/console
 (graph vs. log height) and the border between the log and the exploit hand (log vs. hand
@@ -331,9 +332,9 @@ Three paths to the same outcome:
 
 - **`jackout` console command** — instant, works any time.
 - **`[ JACK OUT ]` uplink control** — the button floated in the upper-right corner of
-  the graph. It appears in place of `[ VISIT WAN ]` whenever the global alert is elevated
-  (not green) or a trace is counting down; at green alert it shows `[ VISIT WAN ]` instead
-  (which selects the WAN node rather than ending the run).
+  the graph. It appears stacked beneath `[ VISIT WAN ]` whenever the global alert is elevated
+  (not green) or a trace is counting down; at green alert only `[ VISIT WAN ]` shows (which
+  selects the WAN node rather than ending the run).
 - **`exec disconnect`** — the in-fiction path. Target the WAN node and choose DISCONNECT
   from the EXEC submenu in the node inspector (or type `exec disconnect`). Severs the uplink
   and ends the run.

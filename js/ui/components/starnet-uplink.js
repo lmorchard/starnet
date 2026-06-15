@@ -1,9 +1,10 @@
 // <starnet-uplink> — Floating uplink control beneath the vital traces.
-// Two modes, driven by visual-renderer from game state:
-//   "visit"   → "[ VISIT WAN ]" selects the WAN node (its inspector exposes
-//               ACCESS DARKNET / LIE LOW / DISCONNECT).
-//   "jackout" → "[ JACK OUT ]" replaces it when alert is elevated or a trace is
-//               counting down — the escape hatch, surfaced exactly when needed.
+// Driven by visual-renderer from game state:
+//   VISIT WAN  → selects the WAN node (its inspector exposes ACCESS DARKNET /
+//                LIE LOW / DISCONNECT). Shown whenever a WAN node exists.
+//   JACK OUT   → the escape hatch, stacked beneath VISIT WAN when alert is
+//                elevated or a trace is counting down. VISIT WAN stays available
+//                so the player can still hop to the WAN to LIE LOW under pressure.
 // Dispatches the shared bubbling `starnet:action` event (forwarded by main.js),
 // so no bespoke wiring is required.
 
@@ -12,14 +13,14 @@ import { StarnetElement } from "./starnet-element.js";
 
 class StarnetUplink extends StarnetElement {
   static properties = {
-    mode: { type: String },        // "visit" | "jackout"
+    danger: { type: Boolean },     // alert elevated or trace counting down
     visible: { type: Boolean },
     wanNodeId: { type: String },
   };
 
   constructor() {
     super();
-    this.mode = "visit";
+    this.danger = false;
     this.visible = false;
     this.wanNodeId = "";
   }
@@ -31,22 +32,19 @@ class StarnetUplink extends StarnetElement {
     }));
   }
 
-  _onClick() {
-    if (this.mode === "jackout") {
-      this._action("jackout");
-    } else if (this.wanNodeId) {
-      this._action("target", { nodeId: this.wanNodeId });
-    }
-  }
-
   render() {
     if (!this.visible) return nothing;
-    const jackout = this.mode === "jackout";
     return html`
-      <button class="uplink-btn ${jackout ? "uplink-danger" : ""}"
-              @click=${() => this._onClick()}>
-        ${jackout ? "[ JACK OUT ]" : "[ VISIT WAN ]"}
-      </button>`;
+      ${this.wanNodeId ? html`
+        <button class="uplink-btn"
+                @click=${() => this._action("target", { nodeId: this.wanNodeId })}>
+          [ VISIT WAN ]
+        </button>` : nothing}
+      ${this.danger ? html`
+        <button class="uplink-btn uplink-danger"
+                @click=${() => this._action("jackout")}>
+          [ JACK OUT ]
+        </button>` : nothing}`;
   }
 }
 
