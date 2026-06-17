@@ -14,7 +14,7 @@ from .mir import extract_mir
 from .prompt import build_prompt, RESPONSE_SCHEMA
 from .gemini import analyze_audio
 from .render import render_markdown
-from .scorespec import build_sidecar
+from .scorespec import build_sidecar, sanitize_numbers
 
 DEFAULT_MODEL = "gemini-2.5-pro"
 
@@ -73,7 +73,9 @@ def main(argv=None) -> int:
     with open(md_path, "w") as fh:
         fh.write(md)
     with open(json_path, "w") as fh:
-        json.dump(build_sidecar(meta, mir, llm), fh, indent=2)
+        # sanitize_numbers + allow_nan=False guarantee strict, browser-parseable JSON
+        # (Gemini can emit Infinity for a numeric option, which json.loads silently accepts).
+        json.dump(sanitize_numbers(build_sidecar(meta, mir, llm)), fh, indent=2, allow_nan=False)
 
     print(f"wrote {md_path}\nwrote {json_path}"
           + (f"\nwrote {midi_path}" if midi_path and mir.get("midi_path") else ""),

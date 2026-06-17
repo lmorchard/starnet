@@ -1,5 +1,9 @@
+import json
+import math
+
 from audio_reference.scorespec import (
     PALETTE, PLAYABLE_SOURCES, is_supported, build_score_spec, build_sidecar,
+    sanitize_numbers,
 )
 
 MIR = {
@@ -26,6 +30,24 @@ def test_palette_membership():
     assert is_supported("Sampler") is False        # excluded (needs assets)
     assert is_supported("Nonsense") is False
     assert "MembraneSynth" in PALETTE
+
+
+def test_sanitize_numbers_replaces_non_finite_and_yields_strict_json():
+    dirty = {
+        "tracks": [
+            {"synth": {"options": {"filterQ": math.inf, "volume": -6.0, "spread": float("nan")}}},
+        ],
+        "neg": -math.inf,
+        "ok": [1, 2.5, "x", None, True],
+    }
+    clean = sanitize_numbers(dirty)
+    assert clean["tracks"][0]["synth"]["options"]["filterQ"] is None
+    assert clean["tracks"][0]["synth"]["options"]["volume"] == -6.0
+    assert clean["tracks"][0]["synth"]["options"]["spread"] is None   # NaN -> None
+    assert clean["neg"] is None
+    assert clean["ok"] == [1, 2.5, "x", None, True]
+    # the whole point: it now serializes as STRICT JSON the browser can parse
+    json.dumps(clean, allow_nan=False)
 
 
 def test_playable_sources_excludes_sample_based_and_matches_palette():
