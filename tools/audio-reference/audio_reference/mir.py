@@ -3,16 +3,21 @@ import numpy as np
 import librosa
 
 from .keyest import estimate_key
+from .features import dynamic_range_db, brightness_stats, dedupe_sections
 
 
 def _sections(y, sr) -> list[dict]:
-    """Coarse structural boundaries (seconds) via librosa onset/agglomerative segmentation."""
+    """Coarse structural boundaries (seconds) via librosa onset/agglomerative segmentation.
+
+    Agglomerative clustering into a fixed count tends to emit near-duplicate boundaries;
+    `dedupe_sections` merges any that fall within ~2s of each other.
+    """
     try:
         boundaries = librosa.segment.agglomerative(
             librosa.feature.mfcc(y=y, sr=sr), 8
         )
         times = librosa.frames_to_time(boundaries, sr=sr)
-        return [{"start": float(t)} for t in times]
+        return [{"start": t} for t in dedupe_sections(times, min_gap=2.0)]
     except Exception:
         return [{"start": 0.0}]
 
@@ -50,11 +55,9 @@ def extract_mir(input_path: str, midi_out: str | None) -> dict:
 
     centroid = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
     rms = librosa.feature.rms(y=y)[0]
-    rms_nonzero = rms[rms > 0]
-    rms_range_db = (
-        float(20 * np.log10(rms_nonzero.max() / rms_nonzero.min()))
-        if rms_nonzero.size else 0.0
-    )
+    # Gate near-silent head/tail frames so dynamics/brightness stay physical.
+    b_mean, b_min, b_max = brightness_stats(centroid, rms)
+    rms_range_db = dynamic_range_db(rms)
 
     midi_path = _midi(input_path, midi_out) if midi_out else None
 
@@ -66,9 +69,9 @@ def extract_mir(input_path: str, midi_out: str | None) -> dict:
         "duration_sec": duration,
         "sections": _sections(y, sr),
         "brightness": {
-            "mean_hz": float(centroid.mean()),
-            "min_hz": float(centroid.min()),
-            "max_hz": float(centroid.max()),
+            "mean_hz": b_mean,
+            "min_hz": b_min,
+            "max_hz": b_max,
         },
         "dynamics": {
             "rms_mean": float(rms.mean()),
