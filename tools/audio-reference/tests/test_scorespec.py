@@ -1,5 +1,5 @@
 from audio_reference.scorespec import (
-    PALETTE, is_supported, build_score_spec, build_sidecar,
+    PALETTE, PLAYABLE_SOURCES, is_supported, build_score_spec, build_sidecar,
 )
 
 MIR = {
@@ -26,6 +26,14 @@ def test_palette_membership():
     assert is_supported("Sampler") is False        # excluded (needs assets)
     assert is_supported("Nonsense") is False
     assert "MembraneSynth" in PALETTE
+
+
+def test_playable_sources_excludes_sample_based_and_matches_palette():
+    # PLAYABLE_SOURCES is the single source of truth offered to the model for synth.type;
+    # it must NOT offer sources the harness can't construct.
+    for excluded in ("Sampler", "Player", "GrainPlayer"):
+        assert excluded not in PLAYABLE_SOURCES
+    assert frozenset(PLAYABLE_SOURCES) == PALETTE
 
 
 def test_build_score_spec_maps_root_mode_bpm_and_passes_tracks():

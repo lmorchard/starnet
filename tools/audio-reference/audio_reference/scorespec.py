@@ -5,11 +5,14 @@ browser harness plays. `root`/`mode`/`bpm` come from the MIR ground truth; `trac
 the LLM's enriched tracks (each carrying `synth` + `steps`) passed through verbatim.
 """
 
-# Tone.js sources the harness can construct. Keep in sync with player/player.js PALETTE.
-PALETTE = frozenset({
+# Tone.js sources the harness can construct (ordered, for prompting). The single source of
+# truth for "playable" instruments — excludes sample-based sources (Sampler/Player/GrainPlayer)
+# which need audio assets. Keep in sync with player/player.js PALETTE.
+PLAYABLE_SOURCES = [
     "Synth", "MonoSynth", "DuoSynth", "FMSynth", "AMSynth", "PolySynth",
     "MembraneSynth", "MetalSynth", "NoiseSynth", "PluckSynth",
-})
+]
+PALETTE = frozenset(PLAYABLE_SOURCES)
 
 
 def is_supported(synth_type: str) -> bool:

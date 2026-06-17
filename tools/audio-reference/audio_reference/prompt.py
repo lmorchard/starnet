@@ -5,7 +5,10 @@ output maps onto any Tone.js project's scores — Starnet is one consumer. A tra
 instrument (a Tone.js source) driven by one pattern; track names are invented per piece.
 """
 
-# The Tone.js source palette offered to the model as vocabulary (not a hard constraint).
+from .scorespec import PLAYABLE_SOURCES
+
+# The Tone.js source palette offered to the model for the PROSE `instrument` field — the
+# full vocabulary, including sample-based sources, since prose is just descriptive.
 TONE_SOURCES = [
     "Synth", "MonoSynth", "DuoSynth", "FMSynth", "AMSynth", "PolySynth",
     "MembraneSynth", "MetalSynth", "NoiseSynth", "PluckSynth",
@@ -86,6 +89,7 @@ RESPONSE_SCHEMA = {
 def build_prompt(meta: dict, mir: dict) -> str:
     sections = ", ".join(f"{s['start']:.1f}s" for s in mir["sections"])
     palette = ", ".join(TONE_SOURCES)
+    playable = ", ".join(PLAYABLE_SOURCES)
     return f"""You are a synthesis-literate music analyst. You are listening to an audio track
 and producing a TECHNICAL breakdown for a developer who builds reactive synth music in Tone.js
 and CANNOT hear audio. Be concrete and parameter-oriented, not poetic.
@@ -113,9 +117,10 @@ Enumerate every distinct track you actually hear (don't force a fixed set). For 
 - pattern: the figure driving it — subdivision/step rhythm, note movement, density,
   phrase length, and dynamics (e.g. "root-note 1/8s, side-chained, 2-bar loop").
 - description: its role in the arrangement, when it enters/drops, and any space/FX.
-- synth: a PLAYABLE instrument spec — `type` MUST be one of the Tone.js sources:
-    {palette}
-  (pick the nearest if the real instrument is sample-based), and `options` is a FLAT object
+- synth: a PLAYABLE instrument spec — `type` MUST be one of these synthesizable sources:
+    {playable}
+  (these exclude samplers; if the real instrument is sample-based, pick the NEAREST synth
+  from this list — never answer "Sampler"/"Player"). `options` is a FLAT object
   using only these optional scalar fields where relevant: oscillatorType (e.g. "sawtooth",
   "square", "fatsawtooth", "triangle", "sine"), count, spread, attack, decay, sustain,
   release, volume (dB, usually negative), harmonicity, modulationIndex, filterType, filterFrequency, filterQ.
