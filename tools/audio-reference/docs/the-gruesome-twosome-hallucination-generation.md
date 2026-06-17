@@ -1,6 +1,6 @@
 # The Gruesome Twosome — Hallucination Generation
 
-> A high-energy, 115 BPM breakbeat techno track in C# minor, characteristic of early 90s rave music. It features a relentless four-on-the-floor kick, layered breakbeat samples, a fast sawtooth arpeggio, and a variety of pitched and spoken vocal samples that form the main hooks. The sound is bright, digital, and percussive, with a dense arrangement built for a dance floor.
+> An aggressive, high-energy big beat track from the late 90s, characterized by a driving breakbeat, a plethora of chopped and processed vocal samples, and gritty synth stabs. The structure is built around repetitive loops and rhythmic intensity rather than melodic development.
 
 *Source: `The Gruesome Twosome - Hallucination Generation.mp3` · Model: gemini-2.5-pro*
 
@@ -17,13 +17,13 @@
 
 | Dimension | Reading |
 |---|---|
-| Timbre | Digital, sampled, 90s rave synths, breakbeats, vocal hooks. A blend of pure synthesis and raw sample manipulation. |
-| Brightness | High, with a measured mean spectral centroid of 4106 Hz. Bright arpeggios, hi-hats, and processed vocals dominate the high-frequency spectrum. |
-| Envelope | Predominantly sharp and percussive. Drums and synth stabs have fast attacks and quick decays, creating a tight, staccato feel. |
-| Register/density | Dense and full-spectrum. A deep sub-bass anchors the low end, while vocal stabs and chords occupy the mids, and a constant high-frequency layer of arpeggios and cymbals fills the top. |
-| Harmony/mode | A dark, hypnotic groove centered on C# minor. The harmony is static and repetitive, relying on loop-based melodic fragments rather than chord progressions. |
-| Groove | A heavy, driving four-on-the-floor techno beat layered with a syncopated breakbeat rhythm. The groove is relentless and highly energetic. |
-| Space/grit | The mix is direct and upfront with a relatively dry feel, though vocal samples are treated with noticeable reverb and delay. Grit comes from the character of 90s-era digital samples and a slightly overdriven master bus. |
+| Timbre | A collage of gritty, lo-fi samples (drums, vocals) and sharp, digital synthesizers. Heavy use of distortion and bit-crushing. |
+| Brightness | High. Crispy hi-hats, sharp synth arpeggios, and sibilant vocal samples keep the spectral centroid elevated throughout. |
+| Envelope | Predominantly short and percussive. Drums, bass stabs, and sample chops all have fast attacks and quick decays, creating a tight, punchy feel. |
+| Register/density | Dense and full-spectrum. A heavy sub-bass foundation, a packed mid-range with drums and vocal samples, and a high-frequency layer of hi-hats and synth arpeggios. |
+| Harmony/mode | Statically rooted in C# minor. The harmony is minimal and tense, using repetitive, often dissonant, stabs to create rhythmic rather than melodic interest. |
+| Groove | A driving 115 BPM breakbeat groove with a strong, funky backbeat and persistent 16th-note subdivisions in the bass and hi-hats. |
+| Space/grit | Very gritty and distorted. The mix is relatively dry and upfront, creating a claustrophobic, high-intensity atmosphere. Reverb is used sparingly as a spot effect. |
 
 ## Tracks (model interpretation)
 
@@ -31,49 +31,16 @@
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Rave Arp | Synth | Continuous 16th-note arpeggio, playing a C# minor triad (C#-E-G#) and ascending through octaves. | A defining melodic feature present from the very beginning. Its high pitch and constant motion create a sense of urgency and hypnotic energy. |
-| Techno Kick | MembraneSynth | A relentless four-on-the-floor quarter-note pattern. | The primary rhythmic anchor of the track, entering at 8.5s. It's a hard, punchy kick drum sound typical of 90s techno. |
-| Breakbeat Snare | NoiseSynth | A syncopated pattern that complements the main kick, hitting on and around the backbeats (2 and 4). | This track represents the snare hits from a layered breakbeat sample, providing the funky, syncopated feel against the straight kick drum. |
-| Sub Bass | MonoSynth | A simple bassline holding the root note, C#, in a one-bar loop. | A deep, clean sub-bass that provides the harmonic foundation. It enters with the main beat and is felt more than it is distinctly heard. |
-| Opera Stab | FMSynth | A short, descending melodic phrase (G#-F#-E) that repeats every two bars. | The iconic pitched operatic vocal sample, which acts as a melodic hook. It first appears around 19s and defines the main theme. |
+| Breakbeat Kick | Synth | A heavy, syncopated kick pattern that anchors the breakbeat. | The fundamental low-end pulse of the track, providing a solid foundation with a classic breakbeat feel. Present almost continuously. |
+| Breakbeat Tops | NoiseSynth | A busy 16th-note hi-hat and snare pattern creating the core breakbeat rhythm. Snare hits on 2 and 4. | The high-frequency rhythmic driver, providing the classic, frantic energy of a sampled breakbeat. The sound is sharp and brittle. |
+| Chiptune Arp | Synth | A fast, continuous 16th-note arpeggio outlining a C# minor 7th chord. | A sharp, digital lead sound that opens and closes the track. It has a gritty, lo-fi, bit-crushed quality. |
+| Pitched 'Oh' Stab | FMSynth | A simple, rhythmic two-note motif (G#4, E4) that forms a primary hook. | One of the main hooks, this synth mimics a pitched and processed female vocal sample ('Oh!'). Appears frequently after the intro section. |
+| Gritty Bass | MonoSynth | A constant, driving 16th-note pattern on the root note C#. | The relentless, distorted bassline that provides the core harmonic and rhythmic foundation under the beat. |
+| Rhythmic Vocal Chop | AMSynth | A syncopated, percussive phrase emulating a chopped vocal sample. | A gritty, rhythmic stab that represents the recurring 'Shake off baby' vocal sample, adding to the percussive texture of the track. |
+| Scratch FX | NoiseSynth | Short, rapid bursts of noise used as rhythmic accents. | Emulates a DJ vinyl scratch, used for fills and transitions to enhance the hip-hop influence and rhythmic complexity. |
 
 ## Score-draft starter (speculative)
 
 > Model-guessed synth parameters — speculative, tune by ear.
 
-/* Speculative Score Starter */
-// Set tempo and key
-Tone.Transport.bpm.value = 115;
-const key = "C#m";
-
-// 1. Kick: Hard and punchy
-const kick = new Tone.MembraneSynth({
-  pitchDecay: 0.05,
-  octaves: 10,
-  oscillator: { type: "fmsine" },
-  envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 }
-}).toDestination();
-new Tone.Loop(time => kick.triggerAttackRelease("C2", "8n", time), "4n").start(0);
-
-// 2. Bass: Deep and simple
-const bass = new Tone.MonoSynth({
-  oscillator: { type: "sine" },
-  filter: { type: "lowpass", frequency: 180 },
-  envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.4 }
-}).toDestination();
-new Tone.Loop(time => bass.triggerAttackRelease("C#2", "1m", time), "1m").start(0);
-
-// 3. Arp: Fast and bright
-const arp = new Tone.Synth({
-  oscillator: { type: "sawtooth" },
-  envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.1 }
-}).toDestination();
-const arpPattern = new Tone.Sequence((time, note) => {
-  arp.triggerAttackRelease(note, 0.1, time);
-}, ["C#5", "E5", "G#5", "C#6"], "16n").start(0);
-
-// 4. Vocals & Samples: Use Sampler/Player
-const operaStab = new Tone.Sampler({ urls: { "G#4": "opera_stab.mp3" }}).toDestination();
-// Play with pattern: new Tone.Sequence(..., ["G#4", null, "F#4", null, "E4",...], "4n")
-const breakbeat = new Tone.Player("breakbeat.mp3").toDestination();
-// breakbeat.loop = true; breakbeat.start();
+SPECULATIVE STARTER: Set Tone.Transport.bpm to 115. The core is a heavy breakbeat; use a `Synth` with a pitch envelope on a sine wave for the kick (`['C2', '', '', '', 'C2', '', '', 'C2']`), and a `NoiseSynth` for the hats/snare (`['x', 'x', 'x', 'x', 'x', '', 'x', '']`). The main bass is a `MonoSynth` with `oscillator: {type: 'fatsawtooth'}, filter: {type: 'lowpass', frequency: 700, Q: 2}, drive: 0.7` playing constant 16th notes on 'C#2'. The signature vocal stab can be approximated with an `FMSynth({harmonicity: 3, modulationIndex: 14})` playing a sequence like `['', '', 'G#4', '', '', '', 'G#4', '', '', '', 'E4', '']`. The intro arp is a simple `Synth({oscillator: {type: 'square'}})` with an arpeggiator on a C#m7 chord. Use `Player` objects triggered via `Tone.Part` to layer the numerous vocal samples for the full 'big beat' effect.

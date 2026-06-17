@@ -1,6 +1,6 @@
 # Agent Side Grinder — Stripdown
 
-> A driving, dark synth-pop track in the style of EBM or post-punk, built on a relentless four-on-the-floor beat and a propulsive 16th-note sawtooth bassline. The arrangement layers melodic synth leads, sustained power-chord pads, and an expressive, wailing synth-sax solo over a static F-sharp minor harmonic foundation. The production is characterized by a spacious, reverb-heavy mix and classic 80s gated percussion.
+> A driving, dark synth-rock track at 120 BPM, built on a relentless 16th-note bassline and four-on-the-floor drum machine beat. The atmosphere is cavernous and gritty, with layers of arpeggiated synths and a baritone vocal delivering a tense, declamatory lyric. The structure builds by adding and removing synth layers, culminating in a distorted synth solo.
 
 *Source: `Agent Side Grinder Stripdown (Official Video).mp3` · Model: gemini-2.5-pro*
 
@@ -17,13 +17,13 @@
 
 | Dimension | Reading |
 |---|---|
-| Timbre | Dominated by raw analog-style synthesizer sounds, including bright sawtooth waves for the bass and leads, and fat, detuned saws for pads. Percussion is synthetic and reminiscent of classic drum machines. Vocals are low, male, and declamatory. |
-| Brightness | Mid-heavy and punchy, but with a consistently bright, buzzy texture from the high-frequency content of the main bass and lead synths. The spectral centroid is high, but the overall feel is dark due to the low vocal register and minor harmony. |
-| Envelope | The primary rhythmic elements (bass, kick, snare) have very sharp attacks and quick decays, creating a tight, percussive, and machine-like feel. Pad and lead sounds have slightly softer attacks and longer releases to create melodic and harmonic layers. |
-| Register/density | The low-to-mid register is extremely dense and rhythmically active, anchored by the constant 16th-note bassline and kick drum. The high register is used more sparingly for lead melodies and the climactic solo. |
-| Harmony/mode | The track is firmly in F-sharp minor. Despite the A major key measurement, the harmonic center and melodic phrasing consistently resolve to F#, creating a dark and melancholic mood typical of the genre. The progression is simple, often cycling through F#m, E, D, and A. |
-| Groove | A rigid, driving, and hypnotic motorik groove at 120 BPM. The feel is defined by a four-on-the-floor kick drum pattern and a constant 16th-note bass sequence, creating a powerful forward momentum suitable for dancing. |
-| Space/grit | The mix feels spacious and cavernous, using significant reverb, particularly a gated effect on the snare and a longer tail on the vocals. Synths have a light analog grit and detuning but are generally clean and punchy, evoking a polished 80s production aesthetic. |
+| Timbre | Dominated by analog-style synthesizers with sawtooth and filtered square waves. Bass and leads are saturated with distortion. Drums are punchy and electronic, resembling a gritty 808/909. Vocals are a low male baritone with heavy reverb. |
+| Brightness | Moderately bright, with a mean spectral centroid of 2529 Hz. The crisp, constant 16th-note hi-hats and the upper harmonics of the distorted synths sit atop a powerful, thick low-mid foundation from the bass. |
+| Envelope | Bass and arpeggiated synths use tight, plucky envelopes (fast attack, fast decay, low sustain). Drums are percussive with quick decays. Some lead synth layers and vocals have longer releases, contributing to the spacious feel. |
+| Register/density | High density throughout. The low register is occupied by the constant kick and driving bassline. The mid-register contains the main synth arpeggios and vocals. The high register is defined by the hi-hats and cymbals. |
+| Harmony/mode | The track has a strong F-sharp minor tonality, creating a dark and tense mood, despite the measured key of A major (its relative major). The harmony is driven by arpeggiated synth progressions outlining chords like F#m, C#m, and D. |
+| Groove | A rigid and propulsive 4/4 groove. A four-on-the-floor kick drum and snare on beats 2 and 4 create a powerful, danceable foundation, while the motorik 16th-note bass arpeggio provides constant forward momentum. |
+| Space/grit | The track is both spacious and gritty. A large hall reverb is applied liberally to the snare and vocals, creating a cavernous soundstage. Grit is introduced through significant drive and saturation on the bass and lead synths, giving them an aggressive edge. |
 
 ## Tracks (model interpretation)
 
@@ -31,47 +31,15 @@
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Four on the Floor Kick | MembraneSynth | A heavy kick drum playing on every quarter note. | The track's rhythmic anchor, this heavy, thudding kick provides a constant pulse from the very beginning. |
-| Gated Snare | NoiseSynth | A classic backbeat, hitting on beats 2 and 4, with a prominent reverb tail. | An archetypal 80s snare sound with a gated reverb effect. It establishes the main backbeat of the song. |
-| Sequencer Bass | MonoSynth | A relentless 16th-note pattern, typically jumping between octaves, following the root notes of the chord progression. | The main driving force of the track, this bright, buzzy sawtooth bass plays almost continuously, defining the song's energy and EBM character. |
-| Power Chord Pad | PolySynth | Sustained root-fifth power chords that change with the harmony, typically every bar or two. | A gritty, distorted pad-like layer that provides the harmonic foundation. It enters after the intro to add weight and texture, functioning like a rhythm guitar. |
-| Harmonized Lead | PolySynth | A recurring 8th-note melodic hook, often harmonized in thirds or sixths. | The main melodic instrument, this bright synth lead enters during instrumental sections (e.g., 0:47) to play a catchy, memorable riff over the chord changes. |
-| Synth Sax Solo | FMSynth | An expressive, improvisational solo with fast runs, pitch bends, and held notes with vibrato, using F# blues scale. | A wailing, saxophone-like solo that appears late in the track (around 2:20), adding a layer of chaotic, human expression over the rigid electronic backing. |
+| Kick Drum | MembraneSynth | Relentless four-on-the-floor quarter-note pattern. | The foundational rhythmic pulse of the track, present almost continuously. It's a punchy, deep kick with a touch of saturation. |
+| Reverb Snare | NoiseSynth | A simple backbeat on 2 and 4. | A sharp, electronic snare hit with a prominent, long reverb tail that defines the track's spaciousness. Enters with the main beat. |
+| 16th Hats | MetalSynth | Constant 16th-note pattern. | Crisp, metallic hi-hats that provide the high-frequency rhythmic texture and drive. Plays throughout most of the track. |
+| Driving Bass Arp | MonoSynth | A constant, fast 16th-note arpeggio outlining the chord progression. | The central motor of the track, entering at the beginning and playing nearly non-stop. Its gritty, filtered sawtooth sound is iconic to the piece. |
+| Lead Chord Synth | PolySynth | Plays sustained chords and melodic motifs that follow the main harmony, often arpeggiated on an 8th-note rhythm. | This synth provides the main harmonic information over the bass. It has a thick, detuned sound and appears in the main instrumental sections, dropping out for vocal-focused parts. |
+| Distorted Solo Lead | MonoSynth | A wailing, expressive solo with slides and bends, appears in the song's final third. | A high-gain, heavily saturated lead synth that takes over for an instrumental solo. It's aggressive and cuts through the mix with a screaming quality. |
 
 ## Score-draft starter (speculative)
 
 > Model-guessed synth parameters — speculative, tune by ear.
 
-/* SPECULATIVE STARTER - This is a rough guide. */
-// Set tempo and key
-Tone.Transport.bpm.value = 120;
-const key = 'F# minor';
-
-// Core Rhythm
-const kick = new Tone.MembraneSynth().toDestination();
-const kickLoop = new Tone.Loop(time => kick.triggerAttackRelease('C1', '8n', time), '4n').start(0);
-const snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.2 } }).toDestination();
-const snareLoop = new Tone.Sequence((time, note) => snare.triggerAttack(time), [null, 'C2', null, 'C2'], '4n').start(0);
-
-// Driving Bassline
-const bass = new Tone.MonoSynth({
-  oscillator: { type: 'sawtooth' },
-  envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 },
-  filter: { type: 'lowpass', frequency: 3500, Q: 1.5 }
-}).toDestination();
-bass.volume.value = -12;
-const bassPattern = new Tone.Sequence((time, note) => {
-  bass.triggerAttackRelease(note, '16n', time);
-}, ['F#2', 'F#3', 'F#2', 'F#3', 'F#2', 'F#3', 'F#2', 'F#3', 'E2', 'E3', 'E2', 'E3', 'E2', 'E3', 'E2', 'E3'], '16n').start(0);
-
-// Pad/Guitar Layer
-const pad = new Tone.PolySynth(Tone.Synth, {
-  oscillator: { type: 'fatsawtooth', count: 5, spread: 40 },
-  envelope: { attack: 0.1, decay: 1.5, sustain: 0.4, release: 1.0 }
-}).toDestination();
-pad.volume.value = -20;
-const chordLoop = new Tone.Sequence((time, chord) => {
-  pad.triggerAttackRelease(chord, '1m', time);
-}, [['F#3', 'C#4'], ['E3', 'B3'], ['D3', 'A3'], ['A2', 'E3']], '1m').start(0);
-
-Tone.Transport.start();
+SPECULATIVE STARTER: Begin with the rhythmic core at 120 BPM. A `MembraneSynth` kick on every quarter note (`['C2', 'C2', 'C2', 'C2']` on a '4n' grid) and a `NoiseSynth` snare on 2 and 4, sent to a large `Reverb` (decay ~4s). The key element is the `MonoSynth` bassline ('Driving Bass Arp'). Use a 'sawtooth' oscillator with a 'lowpass' filter around 900 Hz, Q of 2, and `drive` of 0.4. Sequence a 16th-note pattern in F# minor, like `['F#2', 'C#3', 'A2', 'C#3', 'F#2', 'C#3', 'B2', 'C#3', ...]`. Layer a `PolySynth` ('Lead Chord Synth') using a `fatsawtooth` oscillator, `count: 5`, `spread: 25`, with `chorus` and `reverb`. Voice chords like F#m (`['F#3', 'A3', 'C#4']`) and C#m (`['C#4', 'E4', 'G#4']`) on half-notes to establish the harmony.

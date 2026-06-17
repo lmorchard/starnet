@@ -44,30 +44,31 @@
     "midi_path": null
   },
   "interpretation": {
-    "summary": "A driving, melancholic 80s-inspired synth-pop track featuring a relentless four-on-the-floor beat, a plucky octave bassline, and soaring sawtooth leads over a dark A minor harmony.",
+    "summary": "A quintessential darkwave/synth-pop track featuring a driving four-on-the-floor beat, a prominent 16th-note arpeggiated bassline, and layered analog-style synths. The arrangement builds by adding melodic and harmonic layers over a constant, motorik groove. The production is defined by its use of large hall reverb and an iconic gated snare sound, characteristic of the 80s era.",
     "vocabulary": {
-      "timbre": "Dominated by classic 80s synthesized textures: sawtooth bass and leads, digital drum machine sounds (especially a gated reverb snare), and glassy FM arpeggios.",
-      "brightness": "The track is spectrally bright, filled with crisp 16th-note hi-hats, sizzling sawtooth waves, and a polished high-end sheen on the overall mix.",
-      "envelope": "Envelopes are generally tight and punchy; the bass has a quick pluck (short decay), drums are sharp, and leads have a fast attack to cut through the dense mix.",
-      "register_density": "A dense arrangement with a low-register octave bass providing a solid foundation, thick mid-range pads and vocals, and high-frequency arpeggios and percussion.",
-      "harmony_mode": "The piece is firmly in A minor, using classic diatonic chord progressions (e.g., Am-G-C-F) to create a melancholic and emotive darkwave atmosphere.",
-      "groove": "A propulsive and danceable groove is established by a steady 120 BPM four-on-the-floor kick, a heavy backbeat snare, and a constant 8th-note bass pulse.",
-      "space_grit": "The production uses significant space, defined by a large, cavernous reverb on the snare and vocals, with delay and chorus effects sweetening the synth layers."
+      "timbre": "Classic 80s analog and early digital synth tones. Saw and square waves dominate the bass and pads, with FM bell-like textures appearing later. Percussion is distinctly electronic drum machine-like, with a prominent noise-based snare.",
+      "brightness": "Bright and clear, with a spectral focus in the high-mids (mean 3823 Hz). The cymbals and arpeggiator cut through the mix, while the pads provide a warmer, but still present, background.",
+      "envelope": "Predominantly short, plucky envelopes (fast attack, fast decay, no sustain) for rhythmic elements like the bass arpeggio. The snare has an instantaneous attack and a characteristic gated reverb tail. Pads use slower attacks and long releases.",
+      "register_density": "The arrangement starts sparse and builds to a medium-high density. A low-register bass (A1-A2) provides the foundation, with arpeggios and chords in the mid-range (A3-A5). The high register is occupied by cymbals and brighter synth leads.",
+      "harmony_mode": "The track is firmly in A minor, with a repeating, melancholic chord progression typical of the darkwave genre (e.g., Am-G-F-C). The harmony is functional and supports the strong melodic content of the vocals and lead synths.",
+      "groove": "A straight, driving 4/4 groove at 120 BPM. A four-on-the-floor kick drum and a snare on beats 2 and 4 create a classic dance-pop foundation. The propulsive feel comes from the relentless 16th-note bass arpeggio.",
+      "space_grit": "The track is defined by a large, cavernous reverb space. The most notable effect is the heavy gated reverb on the snare drum. Synths are widened with chorus. Grit is minimal, manifesting as subtle saturation/drive on the bass for punch, rather than heavy distortion."
     },
     "tracks": [
       {
-        "name": "Power Kick",
+        "name": "80s Kick",
         "instrument": "MembraneSynth",
-        "pattern": "Unyielding four-on-the-floor quarter-note pattern.",
-        "description": "The foundational kick drum, providing a constant pulse throughout most of the song. Enters after the intro at 0:08.",
+        "pattern": "Simple four-on-the-floor pattern on every quarter note.",
+        "description": "Provides the foundational pulse of the track. It's present from the beginning and remains constant. It has a punchy, slightly boomy quality.",
         "synth": {
           "type": "MembraneSynth",
           "options": {
             "attack": 0.01,
-            "decay": 0.3,
+            "decay": 0.4,
             "sustain": 0,
-            "release": 0.02,
-            "volume": -6
+            "release": 0.1,
+            "volume": -4,
+            "drive": 0.1
           }
         },
         "steps": {
@@ -83,15 +84,19 @@
       {
         "name": "Gated Snare",
         "instrument": "NoiseSynth",
-        "pattern": "Heavy backbeat on beats 2 and 4.",
-        "description": "A classic 80s snare sound characterized by a sharp transient followed by a massive, gated reverb tail. Enters with the main beat at 0:08.",
+        "pattern": "A classic backbeat on beats 2 and 4.",
+        "description": "The iconic sound of the track. A sharp burst of white noise with a prominent gated reverb tail. It enters with the full drum beat and defines the track's 80s character.",
         "synth": {
           "type": "NoiseSynth",
           "options": {
             "attack": 0.001,
             "decay": 0.15,
             "sustain": 0,
-            "volume": -7
+            "volume": -5,
+            "filterType": "bandpass",
+            "filterFrequency": 3000,
+            "filterQ": 2,
+            "reverbSend": 0.8
           }
         },
         "steps": {
@@ -105,17 +110,16 @@
         }
       },
       {
-        "name": "16th Hats",
+        "name": "Synth Hats",
         "instrument": "MetalSynth",
-        "pattern": "Constant 16th-note rhythm.",
-        "description": "A bright, metallic, digital-sounding hi-hat that provides the high-frequency rhythmic energy and drive. Enters at 0:08.",
+        "pattern": "Continuous 16th notes, with accents from open hat variations.",
+        "description": "Provides high-frequency rhythmic energy. A steady pattern of closed hi-hats, likely with an open hat sound on the off-beats in some sections (notated here as a single pattern for simplicity).",
         "synth": {
           "type": "MetalSynth",
           "options": {
             "harmonicity": 5.1,
-            "modulationIndex": 20,
-            "filterFrequency": 8000,
-            "filterQ": 0.0
+            "modulationIndex": 32,
+            "reverbSend": 0.36
           }
         },
         "steps": {
@@ -141,129 +145,141 @@
         }
       },
       {
-        "name": "Octave Bass",
+        "name": "Arp Bass",
         "instrument": "MonoSynth",
-        "pattern": "Pulsing 8th notes, alternating between root and octave, following the chord progression.",
-        "description": "The primary driving melodic and rhythmic element. A plucky, filtered sawtooth synth that defines the song's energy. Enters at 0:08.",
+        "pattern": "A continuous, driving 16th-note arpeggio outlining the root chord.",
+        "description": "The main rhythmic and harmonic engine of the track, entering after the intro. Its plucky, filtered sound provides constant motion. The pattern shifts to follow the chord changes.",
         "synth": {
           "type": "MonoSynth",
           "options": {
             "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.1,
+            "release": 0.2,
             "filterType": "lowpass",
-            "filterFrequency": 1500,
-            "filterQ": 0.0
-          }
-        },
-        "steps": {
-          "grid": "8n",
-          "notes": [
-            "A1",
-            "A2",
-            "A1",
-            "A2",
-            "G1",
-            "G2",
-            "G1",
-            "G2"
-          ]
-        }
-      },
-      {
-        "name": "Power Lead",
-        "instrument": "PolySynth",
-        "pattern": "Soaring, thematic melody lines, often harmonized, during high-energy chorus sections.",
-        "description": "A thick, detuned sawtooth lead that carries the main instrumental hook. It's drenched in reverb and delay, appearing in choruses to lift the energy.",
-        "synth": {
-          "type": "PolySynth",
-          "options": {
-            "oscillatorType": "fatsawtooth",
-            "count": 4,
-            "spread": 30,
-            "attack": 0.05,
-            "decay": 0.2,
-            "sustain": 0.6,
-            "release": 0.8,
-            "volume": -12
-          }
-        },
-        "steps": {
-          "grid": "8n",
-          "notes": [
-            "A4",
-            "",
-            "C5",
-            "G4",
-            "",
-            "E4",
-            "D4",
-            ""
-          ]
-        }
-      },
-      {
-        "name": "Crystal Arp",
-        "instrument": "FMSynth",
-        "pattern": "Fast-paced 16th-note arpeggios that outline the chord changes.",
-        "description": "A glassy, clean FM synth arpeggio in the upper register that adds a layer of complexity and movement, particularly during verses and instrumental breaks.",
-        "synth": {
-          "type": "FMSynth",
-          "options": {
-            "harmonicity": 3.01,
-            "modulationIndex": 12,
-            "filterFrequency": 10000,
-            "filterQ": 0.0
+            "filterFrequency": 2500,
+            "filterQ": 2,
+            "drive": 0.3,
+            "reverbSend": 0.2
           }
         },
         "steps": {
           "grid": "16n",
           "notes": [
-            "A4",
-            "C5",
-            "E5",
-            "C5",
-            "G4",
-            "B4",
-            "D5",
-            "B4",
-            "C4",
-            "E4",
-            "G4",
-            "E4",
-            "F3",
+            "A2",
+            "E3",
             "A3",
-            "C4",
-            "A3"
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3"
           ]
         }
       },
       {
-        "name": "Atmosphere Pad",
+        "name": "Chorus Pad",
         "instrument": "PolySynth",
-        "pattern": "Long, sustained chords that change with the harmony every 1 or 2 bars.",
-        "description": "A dark, brooding pad with a slow attack and long release that fills out the harmonic space and provides an atmospheric backdrop for the other elements.",
+        "pattern": "Sustained whole-note chords that follow the main progression.",
+        "description": "Provides the main harmonic bed and atmosphere. It enters during the verse/chorus sections. Its slow attack makes it swell in, and a heavy chorus effect gives it width and movement.",
         "synth": {
           "type": "PolySynth",
           "options": {
-            "oscillatorType": "triangle",
-            "attack": 1.2,
+            "oscillatorType": "fatsawtooth",
+            "count": 5,
+            "spread": 30,
+            "attack": 0.8,
             "decay": 0.5,
             "sustain": 0.8,
             "release": 2.5,
-            "volume": -22,
-            "filterType": "lowpass",
-            "filterFrequency": 2500,
-            "filterQ": 1
+            "volume": -18,
+            "chorus": 0.7,
+            "reverbSend": 0.6
           }
         },
         "steps": {
-          "grid": "1m",
+          "grid": "1n",
           "notes": [
-            "A3+C4+E4"
+            "A3+C4+E4",
+            "G3+B3+D4"
+          ]
+        }
+      },
+      {
+        "name": "Bright Lead",
+        "instrument": "PolySynth",
+        "pattern": "A syncopated melodic line that plays during the chorus.",
+        "description": "This is the main instrumental hook, sitting on top of the mix. It's a bright, powerful synth sound that carries the primary melody during instrumental sections.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsquare",
+            "count": 4,
+            "spread": 25,
+            "attack": 0.05,
+            "decay": 0.4,
+            "sustain": 0.7,
+            "release": 0.8,
+            "volume": -10,
+            "filterType": "lowpass",
+            "filterFrequency": 6000,
+            "filterQ": 1.5,
+            "chorus": 0.4,
+            "reverbSend": 0.5
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "E5",
+            "",
+            "D5",
+            "C5",
+            "E5",
+            "",
+            "D5",
+            "C5"
+          ]
+        }
+      },
+      {
+        "name": "FM Bell Counterpoint",
+        "instrument": "FMSynth",
+        "pattern": "A sparse, higher-register melodic phrase that answers the main lead.",
+        "description": "Appears in later sections of the song, adding a crystalline, digital texture. It plays a simple counter-melody that contrasts with the warmer analog synths.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 3,
+            "modulationIndex": 15,
+            "reverbSend": 0.7777777777777778
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "A5",
+            "",
+            "",
+            "",
+            "G5",
+            "",
+            "E5",
+            ""
           ]
         }
       }
     ],
-    "score_draft": "/* Speculative Score Draft for Tone.js */\n// Setup: Tempo 120 BPM, Time Signature 4/4. Use a global reverb and delay.\n\n// Rhythm Section:\nconst kick = new Tone.MembraneSynth({ volume: -6 }).toDestination();\nconst snare = new Tone.NoiseSynth({ envelope: { decay: 0.15 }, volume: -7 }).toDestination(); // Add a large Convolver reverb.\nconst hats = new Tone.MetalSynth({ envelope: { decay: 0.08 }, volume: -18 }).toDestination();\n\n// Kick part: new Tone.Loop(time => kick.triggerAttackRelease('C1', '8n', time), '4n').start(0);\n// Snare part: new Tone.Sequence((time, note) => { if(note) snare.triggerAttack(time) }, [null, 'x', null, 'x'], '4n').start(0);\n// Hats part: new Tone.Loop(time => hats.triggerAttack(time), '16n').start(0);\n\n// Melodic/Harmonic Section:\nconst bass = new Tone.MonoSynth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 }, filter: { type: 'lowpass', frequency: 1500 }, volume: -10 }).toDestination();\n// Bass Part: new Tone.Sequence((time, note) => bass.triggerAttackRelease(note, '8n', time), ['A1', 'A2', 'A1', 'A2', 'G1', 'G2', 'G1', 'G2'], '8n').start(0);\n\nconst lead = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'fatsawtooth', count: 4, spread: 30 }, envelope: { release: 0.8 }, volume: -12 }).toDestination();\n// Lead Part (Chorus): ['A4', null, 'C5', 'G4', null, 'E4', 'D4', null]\n\nconst pad = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 1.2, release: 2.5 }, volume: -22 }).toDestination();\n// Pad Part: Plays long chords like ['A3', 'C4', 'E4']"
+    "score_draft": "speculative score draft: Set tempo to 120 BPM. Use a large hall Reverb as a global effect send. The core groove is a `MembraneSynth` kick on `[\"C1\",\"C1\",\"C1\",\"C1\"]` (4n) and a `NoiseSynth` snare on `[\"\", \"x\", \"\", \"x\"]` (4n). The snare's synth should have a short decay (e.g., 0.15) but a high `reverbSend` (e.g., 0.8) to simulate the gated effect. The main drive is a `MonoSynth` with a 'sawtooth' oscillator and a fast filter envelope playing a 16th-note arpeggio like `[\"A2\",\"E3\",\"A3\",\"E3\",...]`. Layer this with a `PolySynth` pad (oscillator `fatsawtooth`, slow attack >0.5s, high chorus >0.5) playing whole-note chords like `[\"A3+C4+E4\"]` followed by `[\"G3+B3+D4\"]`. The lead hook can be a brighter `PolySynth` with a 'fatsquare' oscillator and a quicker ADSR, playing melodies in A minor around the A4-E5 range."
   },
   "score_spec": {
     "root": "A",
@@ -271,18 +287,19 @@
     "bpm": 120.18531976744185,
     "tracks": [
       {
-        "name": "Power Kick",
+        "name": "80s Kick",
         "instrument": "MembraneSynth",
-        "pattern": "Unyielding four-on-the-floor quarter-note pattern.",
-        "description": "The foundational kick drum, providing a constant pulse throughout most of the song. Enters after the intro at 0:08.",
+        "pattern": "Simple four-on-the-floor pattern on every quarter note.",
+        "description": "Provides the foundational pulse of the track. It's present from the beginning and remains constant. It has a punchy, slightly boomy quality.",
         "synth": {
           "type": "MembraneSynth",
           "options": {
             "attack": 0.01,
-            "decay": 0.3,
+            "decay": 0.4,
             "sustain": 0,
-            "release": 0.02,
-            "volume": -6
+            "release": 0.1,
+            "volume": -4,
+            "drive": 0.1
           }
         },
         "steps": {
@@ -298,15 +315,19 @@
       {
         "name": "Gated Snare",
         "instrument": "NoiseSynth",
-        "pattern": "Heavy backbeat on beats 2 and 4.",
-        "description": "A classic 80s snare sound characterized by a sharp transient followed by a massive, gated reverb tail. Enters with the main beat at 0:08.",
+        "pattern": "A classic backbeat on beats 2 and 4.",
+        "description": "The iconic sound of the track. A sharp burst of white noise with a prominent gated reverb tail. It enters with the full drum beat and defines the track's 80s character.",
         "synth": {
           "type": "NoiseSynth",
           "options": {
             "attack": 0.001,
             "decay": 0.15,
             "sustain": 0,
-            "volume": -7
+            "volume": -5,
+            "filterType": "bandpass",
+            "filterFrequency": 3000,
+            "filterQ": 2,
+            "reverbSend": 0.8
           }
         },
         "steps": {
@@ -320,17 +341,16 @@
         }
       },
       {
-        "name": "16th Hats",
+        "name": "Synth Hats",
         "instrument": "MetalSynth",
-        "pattern": "Constant 16th-note rhythm.",
-        "description": "A bright, metallic, digital-sounding hi-hat that provides the high-frequency rhythmic energy and drive. Enters at 0:08.",
+        "pattern": "Continuous 16th notes, with accents from open hat variations.",
+        "description": "Provides high-frequency rhythmic energy. A steady pattern of closed hi-hats, likely with an open hat sound on the off-beats in some sections (notated here as a single pattern for simplicity).",
         "synth": {
           "type": "MetalSynth",
           "options": {
             "harmonicity": 5.1,
-            "modulationIndex": 20,
-            "filterFrequency": 8000,
-            "filterQ": 0.0
+            "modulationIndex": 32,
+            "reverbSend": 0.36
           }
         },
         "steps": {
@@ -356,124 +376,136 @@
         }
       },
       {
-        "name": "Octave Bass",
+        "name": "Arp Bass",
         "instrument": "MonoSynth",
-        "pattern": "Pulsing 8th notes, alternating between root and octave, following the chord progression.",
-        "description": "The primary driving melodic and rhythmic element. A plucky, filtered sawtooth synth that defines the song's energy. Enters at 0:08.",
+        "pattern": "A continuous, driving 16th-note arpeggio outlining the root chord.",
+        "description": "The main rhythmic and harmonic engine of the track, entering after the intro. Its plucky, filtered sound provides constant motion. The pattern shifts to follow the chord changes.",
         "synth": {
           "type": "MonoSynth",
           "options": {
             "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.1,
+            "release": 0.2,
             "filterType": "lowpass",
-            "filterFrequency": 1500,
-            "filterQ": 0.0
-          }
-        },
-        "steps": {
-          "grid": "8n",
-          "notes": [
-            "A1",
-            "A2",
-            "A1",
-            "A2",
-            "G1",
-            "G2",
-            "G1",
-            "G2"
-          ]
-        }
-      },
-      {
-        "name": "Power Lead",
-        "instrument": "PolySynth",
-        "pattern": "Soaring, thematic melody lines, often harmonized, during high-energy chorus sections.",
-        "description": "A thick, detuned sawtooth lead that carries the main instrumental hook. It's drenched in reverb and delay, appearing in choruses to lift the energy.",
-        "synth": {
-          "type": "PolySynth",
-          "options": {
-            "oscillatorType": "fatsawtooth",
-            "count": 4,
-            "spread": 30,
-            "attack": 0.05,
-            "decay": 0.2,
-            "sustain": 0.6,
-            "release": 0.8,
-            "volume": -12
-          }
-        },
-        "steps": {
-          "grid": "8n",
-          "notes": [
-            "A4",
-            "",
-            "C5",
-            "G4",
-            "",
-            "E4",
-            "D4",
-            ""
-          ]
-        }
-      },
-      {
-        "name": "Crystal Arp",
-        "instrument": "FMSynth",
-        "pattern": "Fast-paced 16th-note arpeggios that outline the chord changes.",
-        "description": "A glassy, clean FM synth arpeggio in the upper register that adds a layer of complexity and movement, particularly during verses and instrumental breaks.",
-        "synth": {
-          "type": "FMSynth",
-          "options": {
-            "harmonicity": 3.01,
-            "modulationIndex": 12,
-            "filterFrequency": 10000,
-            "filterQ": 0.0
+            "filterFrequency": 2500,
+            "filterQ": 2,
+            "drive": 0.3,
+            "reverbSend": 0.2
           }
         },
         "steps": {
           "grid": "16n",
           "notes": [
-            "A4",
-            "C5",
-            "E5",
-            "C5",
-            "G4",
-            "B4",
-            "D5",
-            "B4",
-            "C4",
-            "E4",
-            "G4",
-            "E4",
-            "F3",
+            "A2",
+            "E3",
             "A3",
-            "C4",
-            "A3"
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3"
           ]
         }
       },
       {
-        "name": "Atmosphere Pad",
+        "name": "Chorus Pad",
         "instrument": "PolySynth",
-        "pattern": "Long, sustained chords that change with the harmony every 1 or 2 bars.",
-        "description": "A dark, brooding pad with a slow attack and long release that fills out the harmonic space and provides an atmospheric backdrop for the other elements.",
+        "pattern": "Sustained whole-note chords that follow the main progression.",
+        "description": "Provides the main harmonic bed and atmosphere. It enters during the verse/chorus sections. Its slow attack makes it swell in, and a heavy chorus effect gives it width and movement.",
         "synth": {
           "type": "PolySynth",
           "options": {
-            "oscillatorType": "triangle",
-            "attack": 1.2,
+            "oscillatorType": "fatsawtooth",
+            "count": 5,
+            "spread": 30,
+            "attack": 0.8,
             "decay": 0.5,
             "sustain": 0.8,
             "release": 2.5,
-            "volume": -22,
-            "filterType": "lowpass",
-            "filterFrequency": 2500,
-            "filterQ": 1
+            "volume": -18,
+            "chorus": 0.7,
+            "reverbSend": 0.6
           }
         },
         "steps": {
-          "grid": "1m",
+          "grid": "1n",
           "notes": [
-            "A3+C4+E4"
+            "A3+C4+E4",
+            "G3+B3+D4"
+          ]
+        }
+      },
+      {
+        "name": "Bright Lead",
+        "instrument": "PolySynth",
+        "pattern": "A syncopated melodic line that plays during the chorus.",
+        "description": "This is the main instrumental hook, sitting on top of the mix. It's a bright, powerful synth sound that carries the primary melody during instrumental sections.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsquare",
+            "count": 4,
+            "spread": 25,
+            "attack": 0.05,
+            "decay": 0.4,
+            "sustain": 0.7,
+            "release": 0.8,
+            "volume": -10,
+            "filterType": "lowpass",
+            "filterFrequency": 6000,
+            "filterQ": 1.5,
+            "chorus": 0.4,
+            "reverbSend": 0.5
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "E5",
+            "",
+            "D5",
+            "C5",
+            "E5",
+            "",
+            "D5",
+            "C5"
+          ]
+        }
+      },
+      {
+        "name": "FM Bell Counterpoint",
+        "instrument": "FMSynth",
+        "pattern": "A sparse, higher-register melodic phrase that answers the main lead.",
+        "description": "Appears in later sections of the song, adding a crystalline, digital texture. It plays a simple counter-melody that contrasts with the warmer analog synths.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 3,
+            "modulationIndex": 15,
+            "reverbSend": 0.7777777777777778
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "A5",
+            "",
+            "",
+            "",
+            "G5",
+            "",
+            "E5",
+            ""
           ]
         }
       }
