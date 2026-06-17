@@ -13,14 +13,6 @@ const PERC_DUR = "32n";   // fixed short trigger length regardless of the step g
 // compressor — loud hats were pumping the whole mix down. A model-set `volume` still wins.
 const DEFAULT_TRIM = { MetalSynth: -22, NoiseSynth: -14 };
 
-// A synth triggered thousands of times accumulates un-prunable AudioParam automation, which
-// compounds into rising CPU and crackle over a long run. Mirror the Starnet engine's fix:
-// a larger lookahead (set on the live context in the play handler, after Tone.start()) +
-// periodically recreate each sequenced synth (retiring the old after its release tail) so no
-// instance is triggered unboundedly.
-const RECYCLE_BARS = 8;     // recreate sequenced synths every N bars
-const RETIRE_SEC = 2.5;     // dispose a retired synth this long after swap (let its tail ring)
-
 const $ = (id) => document.getElementById(id);
 const warnings = [];
 let built = null; // { rows, fx, bus, reverb, recycleId, retiring }
@@ -74,34 +66,39 @@ function makeSynth(type, opts) {
 
 // Trigger one step token on a synth, honoring per-type signatures.
 function triggerStep(synth, type, token, dur, time) {
-  if (!token) return;                       // "" -> rest
+  if (!token) return;                        // "" -> rest
   const d = PERC.has(type) ? PERC_DUR : dur; // percussion stays short regardless of grid
-  if (UNPITCHED.has(type)) { synth.triggerAttackRelease(d, time); return; }
-  if (token === "x") { synth.triggerAttackRelease("C3", d, time); return; }
-  if (token.includes("+")) {
-    // A chord. Only PolySynth can sound simultaneous notes; handing an array to a
-    // monophonic synth throws ("start time must be strictly greater...") mid-trigger and
-    // leaves a stuck, never-released note. Collapse to the root for mono synths.
-    const notes = token.split("+");
-    synth.triggerAttackRelease(type === "PolySynth" ? notes : notes[0], d, time);
-    return;
-  }
-  synth.triggerAttackRelease(token, d, time);
+  // A chord ("A+C+E") can only sound on a PolySynth; a mono synth gets the root note.
+  let note;
+  if (token === "x") note = "C3";            // unpitched-hit token on a pitched synth
+  else if (token.includes("+")) note = type === "PolySynth" ? token.split("+") : token.split("+")[0];
+  else note = token;
+  // Tone throws "start time must be strictly greater than previous" on scheduler/timing
+  // collisions; swallow it so one dropped note never spams the console or wedges playback.
+  try {
+    if (UNPITCHED.has(type)) synth.triggerAttackRelease(d, time);
+    else synth.triggerAttackRelease(note, d, time);
+  } catch { /* dropped note on a timing collision */ }
 }
+
+const safeDispose = (n) => { try { if (n && n.dispose) n.dispose(); } catch { /* already gone */ } };
 
 function disposeBuilt() {
   if (!built) return;
-  if (built.recycleId != null) Tone.Transport.clear(built.recycleId);
-  built.retiring.forEach((rec) => { clearTimeout(rec.id); try { rec.synth.dispose(); } catch { /* gone */ } });
-  built.rows.forEach((r) => {
-    if (r.skipped) return;
-    try { r.seq.dispose(); } catch { /* gone */ }
-    try { r.voice.synth.dispose(); } catch { /* gone */ }
-  });
-  built.fx.forEach((n) => { try { n.dispose(); } catch { /* gone */ } });
-  built.bus.forEach((n) => { try { n.dispose(); } catch { /* gone */ } });
-  built.reverb?.dispose();
+  const old = built;
   built = null;
+  // Stop scheduling new notes immediately, and release any held/one-shot voices.
+  old.rows.forEach((r) => { if (r.skipped) return; safeDispose(r.seq); try { r.synth.releaseAll?.(); r.synth.triggerRelease?.(); } catch { /* ok */ } });
+  // Defer node disposal: disposing a synth while one of its one-shot sources still has a
+  // pending `onended` cleanup throws a benign-but-noisy InvalidAccessError (it disconnects
+  // from an already-disposed neighbor). Letting tails settle first avoids it; the old graph
+  // also fades out instead of cutting hard on a track switch.
+  setTimeout(() => {
+    old.rows.forEach((r) => { if (!r.skipped) safeDispose(r.synth); });
+    old.fx.forEach(safeDispose);
+    safeDispose(old.reverb);   // before the masterGain it feeds
+    old.bus.forEach(safeDispose);
+  }, 400);
 }
 
 async function build(spec) {
@@ -146,15 +143,13 @@ async function build(spec) {
       if (o.decay != null) o.decay = Math.min(o.decay, 0.2);
     }
 
-    // Build the post-synth insert chain ([Distortion] -> [Chorus] -> gain) FIRST, so the
-    // synth has a stable target node to feed — the recycler reconnects fresh synths here.
-    const gain = new Tone.Gain(1);    // per-track level for mute/solo (never recycled)
+    // Post-synth insert chain: synth -> [Distortion] -> [Chorus] -> gain -> bus (+ reverb send).
+    const gain = new Tone.Gain(1);    // per-track level for mute/solo
     const inserts = [];
     if (o.drive > 0) inserts.push(new Tone.Distortion(Math.min(1, o.drive)));
     if (o.chorus > 0) inserts.push(new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: Math.min(1, o.chorus) }).start());
     const chain = [...inserts, gain];
     for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
-    const synthTarget = chain[0];     // the node a (recyclable) synth connects into
     gain.connect(masterGain);         // dry path through the bus
     fx.push(...inserts, gain);
     const send = o.reverbSend != null ? o.reverbSend : 0.15;   // default a little space
@@ -164,45 +159,20 @@ async function build(spec) {
     }
 
     const synth = makeSynth(type, o);
-    synth.connect(synthTarget);
-    const voice = { synth, last: -1 }; // mutable holder (recycler swaps synth); last = last trigger time
+    synth.connect(chain[0]);
     const grid = t.steps?.grid || "8n";
     const notes = t.steps?.notes || [];
+    let last = -1;                    // last trigger time on this voice (monotonic guard)
     const seq = new Tone.Sequence((time, tok) => {
-      // A monophonic synth throws "start time must be strictly greater than previous" if
-      // retriggered at a non-increasing time (scheduler collisions, loop-boundary doubling),
-      // and the throw aborts mid-trigger leaving a stuck, never-released note. Guard it.
-      if (time <= voice.last) return;
-      voice.last = time;
-      triggerStep(voice.synth, type, tok, grid, time);
+      if (time <= last) return;       // skip non-increasing times (scheduler/loop collisions)
+      last = time;
+      triggerStep(synth, type, tok, grid, time);
     }, notes, grid);
     seq.start(0);
-    rows.push({ t, type, opts: o, gain, voice, synthTarget, seq, muted: false, skipped: false });
+    rows.push({ t, type, gain, synth, seq, muted: false, skipped: false });
   });
 
-  // Recycler: every RECYCLE_BARS, mint a fresh synth per track (flushing accumulated
-  // automation), point the sequence at it, and retire the old one after its tail rings out.
-  const retiring = new Set();
-  const retire = (synth) => {
-    const rec = { synth };
-    rec.id = setTimeout(() => {
-      try { synth.releaseAll?.(); synth.dispose(); } catch { /* gone */ }
-      retiring.delete(rec);
-    }, RETIRE_SEC * 1000);
-    retiring.add(rec);
-  };
-  const recycleId = Tone.Transport.scheduleRepeat(() => {
-    for (const r of rows) {
-      if (r.skipped) continue;
-      const fresh = makeSynth(r.type, r.opts);
-      fresh.connect(r.synthTarget);
-      const old = r.voice.synth;
-      r.voice.synth = fresh;          // new notes hit the fresh synth; old rings out then disposes
-      retire(old);
-    }
-  }, `${RECYCLE_BARS}m`, `${RECYCLE_BARS}m`);
-
-  built = { rows, fx, bus: [masterGain, eq, comp, limiter], reverb, recycleId, retiring };
+  built = { rows, fx, bus: [masterGain, eq, comp, limiter], reverb };
   return rows;
 }
 
