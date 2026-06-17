@@ -6,6 +6,9 @@ const PALETTE = new Set([
   "MembraneSynth", "MetalSynth", "NoiseSynth", "PluckSynth",
 ]);
 const UNPITCHED = new Set(["NoiseSynth"]);
+// Inherently-hot sources get a default output trim (dB) so they don't dominate the bus
+// compressor — loud hats were pumping the whole mix down. A model-set `volume` still wins.
+const DEFAULT_TRIM = { MetalSynth: -16, NoiseSynth: -10 };
 
 const $ = (id) => document.getElementById(id);
 const warnings = [];
@@ -88,8 +91,10 @@ async function build(spec) {
   // Master glue bus: everything -> masterGain -> EQ3 -> Compressor -> Limiter -> out.
   // This is where cohesion, loudness, and a bit of body come from.
   const masterGain = new Tone.Gain(0.9);
-  const eq = new Tone.EQ3({ low: 2, mid: -1, high: 1.5 });
-  const comp = new Tone.Compressor({ threshold: -20, ratio: 3, attack: 0.005, release: 0.25 });
+  const eq = new Tone.EQ3({ low: 2, mid: -1, high: 0 });   // body, neutral highs (hats stay tame)
+  // Gentle glue with a slow-ish attack so percussive transients pass through instead of
+  // ducking the whole mix on every hit.
+  const comp = new Tone.Compressor({ threshold: -18, ratio: 2.5, attack: 0.025, release: 0.18 });
   const limiter = new Tone.Limiter(-1);
   masterGain.connect(eq); eq.connect(comp); comp.connect(limiter); limiter.toDestination();
 
@@ -111,7 +116,8 @@ async function build(spec) {
       rows.push({ t, type, muted: true, skipped: true });
       return;
     }
-    const o = t.synth.options || {};
+    const o = { ...(t.synth.options || {}) };
+    if (o.volume == null && DEFAULT_TRIM[type] != null) o.volume = DEFAULT_TRIM[type];
     const synth = makeSynth(type, o);
     let tail = synth;                 // walk the insert chain, advancing the tail node
     if (o.drive != null && o.drive > 0) {
