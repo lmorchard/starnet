@@ -125,6 +125,14 @@ Enumerate every distinct track you actually hear (don't force a fixed set). For 
     "C4" = a single note; "C4+E4+G4" = a chord (plus-separated). Keep it consistent with the
     pattern and grid you described, and concrete enough to loop.
 
+HARMONIZE the playable `steps` to the MODE and MOOD you actually hear — do NOT just follow the
+measured major/minor label. The measured key is the best automatic estimate, but at lower
+confidence it often names the relative MAJOR of a darker MINOR tonality (or vice-versa); major
+and its relative minor share the same notes, so the FEEL comes from which chords you voice and
+which tonic you center on. If the track feels dark/minor, voice MINOR chords and center on the
+minor tonic even when the measured label says major. (The measured key stays the reported fact;
+only the playable harmony should follow your ears.)
+
 Finally, write a short SCORE-DRAFT STARTER: concrete Tone.js-flavored suggestions
 (oscillator types, ADSR, filter cutoff/Q, example note arrays) that would approximate this track.
 Mark it as speculative.
