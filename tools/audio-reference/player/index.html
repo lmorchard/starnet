@@ -29,6 +29,8 @@
   </div>
   <div id="warnings"></div>
   <table id="tracks"><tbody></tbody></table>
-  <script type="module" src="./player.js"></script>
+  <!-- Classic script (not type=module): ES modules are CORS-blocked over file:// in
+       Chrome/Firefox, and player.js uses no import/export, so a classic script works. -->
+  <script src="./player.js"></script>
 </body>
 </html>

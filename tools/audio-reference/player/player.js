@@ -9,7 +9,7 @@ const UNPITCHED = new Set(["NoiseSynth"]);
 
 const $ = (id) => document.getElementById(id);
 const warnings = [];
-let built = null; // { sequences:[], gains:[], reverb, master, rows }
+let built = null; // { sequences:[], synths:[], gains:[], reverb, master, rows }
 
 // Flat option scalars -> nested Tone constructor options. Only set what's provided.
 function expandOptions(o = {}) {
@@ -42,7 +42,13 @@ function expandOptions(o = {}) {
 function makeSynth(type, opts) {
   const options = expandOptions(opts);
   try {
-    if (type === "PolySynth") return new Tone.PolySynth(Tone.Synth, options);
+    if (type === "PolySynth") {
+      // In Tone v15 the 2nd PolySynth arg is wrapper options, not voice options —
+      // forward the voice settings via .set() instead.
+      const ps = new Tone.PolySynth(Tone.Synth);
+      if (Object.keys(options).length) ps.set(options);
+      return ps;
+    }
     return new Tone[type](options);
   } catch (e) {
     // Options didn't fit this source — fall back to a bare instance so it still sounds.
@@ -63,13 +69,14 @@ function triggerStep(synth, type, token, dur, time) {
 function disposeBuilt() {
   if (!built) return;
   built.sequences.forEach((s) => s.dispose());
+  built.synths.forEach((s) => s.dispose());
   built.gains.forEach((g) => g.dispose());
   built.reverb?.dispose();
   built.master?.dispose();
   built = null;
 }
 
-function build(spec) {
+async function build(spec) {
   disposeBuilt();
   warnings.length = 0;
   Tone.Transport.stop();
@@ -78,9 +85,14 @@ function build(spec) {
   Tone.Transport.bpm.value = spec.bpm || 120;
 
   const master = new Tone.Gain(0.9).toDestination();
-  const reverb = new Tone.Reverb({ decay: 2.2, wet: 0.15 }).connect(master);
+  // Tone.Reverb generates its impulse response asynchronously — connecting before it's
+  // ready drops the wet signal, so await generate() before wiring it up.
+  const reverb = new Tone.Reverb({ decay: 2.2, wet: 0.15 });
+  await reverb.generate();
+  reverb.connect(master);
 
   const gains = [];
+  const synths = [];
   const sequences = [];
   const rows = [];
   (spec.tracks || []).forEach((t, i) => {
@@ -98,11 +110,12 @@ function build(spec) {
     const seq = new Tone.Sequence((time, tok) => triggerStep(synth, type, tok, grid, time), notes, grid);
     seq.start(0);
     gains.push(gain);
+    synths.push(synth);
     sequences.push(seq);
     rows.push({ t, type, gain, muted: false, skipped: false });
   });
 
-  built = { sequences, gains, reverb, master, rows };
+  built = { sequences, synths, gains, reverb, master, rows };
   return rows;
 }
 
@@ -147,7 +160,7 @@ $("file").addEventListener("change", async (e) => {
   try { json = JSON.parse(await file.text()); }
   catch (err) { $("warnings").textContent = `could not parse JSON: ${err.message}`; return; }
   const spec = json.score_spec || json; // accept a full sidecar or a bare score_spec
-  const rows = build(spec);
+  const rows = await build(spec);
   $("meta").textContent = `${spec.root ?? "?"} ${spec.mode ?? ""} · ${Math.round(spec.bpm ?? 0)} BPM · ${(spec.tracks || []).length} tracks`;
   renderTracks(rows);
   $("play").disabled = false;
