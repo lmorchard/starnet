@@ -47,72 +47,421 @@
     "midi_path": null
   },
   "interpretation": {
-    "summary": "A driving, motorik darkwave track featuring relentless 16th-note bass arpeggios, heavily processed vocals, and a cavernous, atmospheric mix, built on a classic four-on-the-floor beat.",
+    "summary": "A driving, melancholic darkwave track featuring a relentless 126 BPM four-on-the-floor beat, dominated by a thick sawtooth octave bassline and a bright, detuned 16th-note synth arpeggio. The sound is defined by its contrast between dark, punchy low-end and cutting high-end synths, all drenched in a cavernous reverb that envelops the moody lead vocals.",
     "vocabulary": {
-      "timbre": "A mix of classic analog-style synthesis (sawtooth, square waves) for basslines and pads, metallic FM sounds for percussion, and heavily processed, reverberant male vocals.",
-      "brightness": "Bright and crisp, with a mean spectral centroid around 3kHz. The constant 16th-note hi-hats and sharp synth arpeggios create a persistent high-frequency sizzle over a dark, heavy bass foundation.",
-      "envelope": "Predominantly tight and percussive. Bass and arpeggio synths use very short, plucky envelopes (fast attack, quick decay), while pads have slow attacks and long, washed-out releases.",
-      "register_density": "Dense and full-spectrum. A deep sub-bass anchors the low end, a busy mid-range is occupied by the main bass arp and vocals, and the high register is filled with sparkling hi-hats and synth leads.",
-      "harmony_mode": "Firmly rooted in F# minor, employing repetitive, hypnotic chord progressions common in coldwave and post-punk. The harmony is modal and cyclical, prioritizing rhythmic drive over complex changes.",
-      "groove": "A relentless and driving four-on-the-floor groove at 126 BPM. The rhythmic foundation is a constant 16th-note subdivision carried by both the hi-hats and the primary bass arpeggio.",
-      "space_grit": "Characterized by a large, cavernous space created by heavy reverb on vocals and pads. A layer of analog-style saturation and subtle noise adds warmth and grit to the otherwise clean synth tones."
+      "timbre": "Primarily composed of analog-style synthesizer sounds, especially detuned sawtooth and fatsawtooth waves for bass and leads, with noise-based percussion.",
+      "brightness": "High-contrast; a dark, heavily low-pass filtered bass provides a foundation for exceptionally bright, cutting arpeggios and metallic hi-hats, consistent with the measured mean spectral centroid of 2991 Hz.",
+      "envelope": "Rhythmic elements use tight, plucky envelopes (short attack/decay, low sustain) for a punchy, almost gated feel. Pads and vocals utilize long attack and release times to create atmospheric washes.",
+      "register_density": "Dense and layered. The low register is occupied by the kick and bass. The mid-range is dominated by the fast, constant arpeggio and vocals. The high register contains hi-hats and atmospheric pads.",
+      "harmony_mode": "Firmly rooted in F# minor, utilizing a driving i-VI-III-VII (F#m-D-A-E) chord progression that is characteristic of the genre, reinforcing a feeling of melancholic propulsion.",
+      "groove": "A straight and driving 4/4 machine groove. The foundation is a constant four-on-the-floor kick drum, with the primary rhythmic energy coming from the relentless 16th-note synth arpeggio.",
+      "space_grit": "The track is saturated in a large hall or cathedral-like reverb, giving it a vast, epic sense of space. Grit comes from the chorusing/detuning of oscillators (wide 'spread' on fatsawtooth waves) and the sharp, filtered nature of the percussion."
     },
     "tracks": [
       {
-        "name": "Arp Bass",
-        "instrument": "MonoSynth",
-        "pattern": "Continuous 16th-note arpeggio outlining the chord progression (e.g., F#-A-C#). The pattern is a 1-bar loop that transposes with the harmony. It has a slightly accented, driving dynamic.",
-        "description": "The main rhythmic and harmonic driver of the track, entering at the very beginning and playing almost continuously. It has a sharp, slightly resonant filtered saw-wave sound."
+        "name": "Kick Drum",
+        "instrument": "MembraneSynth",
+        "pattern": "Four-on-the-floor quarter notes.",
+        "description": "The foundation of the rhythm, providing a constant, driving pulse throughout most of the track.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.4,
+            "sustain": 0.01,
+            "release": 0.1,
+            "volume": -4
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        }
       },
+      {
+        "name": "Snare Hit",
+        "instrument": "NoiseSynth",
+        "pattern": "Hits on beats 2 and 4.",
+        "description": "A sharp, filtered noise snare that provides the backbeat for the main groove.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "filterType": "bandpass",
+            "filterFrequency": 3000,
+            "filterQ": 2.5039370078740157
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Octave Bass",
+        "instrument": "MonoSynth",
+        "pattern": "Driving 8th-note pattern, often jumping octaves on the beat, following the root of the chords.",
+        "description": "A powerful, filtered sawtooth bass that creates the core rhythmic and harmonic momentum of the track.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0.1,
+            "release": 0.1,
+            "filterType": "lowpass",
+            "filterFrequency": 500,
+            "filterQ": 1.1023622047244095
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "F#1",
+            "F#2",
+            "F#1",
+            "F#2",
+            "F#1",
+            "F#2",
+            "F#1",
+            "F#2"
+          ]
+        }
+      },
+      {
+        "name": "Saw Arp",
+        "instrument": "PolySynth",
+        "pattern": "Continuous 16th-note arpeggio outlining the chord progression.",
+        "description": "The main melodic and rhythmic hook of the song. A bright, wide, detuned sawtooth sound that cuts through the entire mix.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 4,
+            "spread": 40,
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.2,
+            "release": 0.1,
+            "volume": -10
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "F#3",
+            "A3",
+            "C#4",
+            "A3",
+            "F#3",
+            "A3",
+            "C#4",
+            "A3",
+            "F#3",
+            "A3",
+            "C#4",
+            "A3",
+            "F#3",
+            "A3",
+            "C#4",
+            "A3"
+          ]
+        }
+      },
+      {
+        "name": "Verse Vocal Lead",
+        "instrument": "MonoSynth",
+        "pattern": "Melodic phrases corresponding to the main vocal line in the verses.",
+        "description": "Approximation of the male lead vocal melody. It is heavily processed with a large reverb and some delay.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "triangle",
+            "attack": 0.05,
+            "decay": 0.2,
+            "sustain": 0.5,
+            "release": 0.8,
+            "volume": -14
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "F#3",
+            "",
+            "F#3",
+            "F#3",
+            "E3",
+            "D3",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Chorus Pad",
+        "instrument": "PolySynth",
+        "pattern": "Long, sustained chords that swell in during the chorus sections.",
+        "description": "A choir-like pad that adds an epic, atmospheric layer under the 'helplessly' vocal section, filling out the harmony.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 6,
+            "spread": 60,
+            "attack": 0.8,
+            "decay": 0.5,
+            "sustain": 0.9,
+            "release": 2.5,
+            "volume": -18
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A3+C#4+E4"
+          ]
+        }
+      },
+      {
+        "name": "High Pad",
+        "instrument": "PolySynth",
+        "pattern": "Very slow, evolving high-register chords entering in the latter half of the song.",
+        "description": "A high, shimmering pad that adds tension and atmosphere, floating above the main arrangement from the second verse onwards.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "triangle",
+            "attack": 2,
+            "decay": 1,
+            "sustain": 1,
+            "release": 4,
+            "volume": -22
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "F#5+A5"
+          ]
+        }
+      }
+    ],
+    "score_draft": "const synths = {};\nconst reverb = new Tone.Reverb({ decay: 8, wet: 0.5 }).toDestination();\n\n// Start at 126 BPM in F# minor\nTone.Transport.bpm.value = 126;\n\n// SPECULATIVE SETUP:\n\n// Bass: MonoSynth, saw wave, lowpass filter around 400-600Hz.\n// const arpBass = new Tone.MonoSynth({...}).connect(reverb);\n// new Tone.Pattern(time => arpBass.triggerAttackRelease('F#1', '8n', time), ['16n']).start(0);\n\n// Arp: PolySynth, 'fatsawtooth' oscillator with spread, run through an Arpeggiator.\n// const sawArp = new Tone.PolySynth(Tone.Synth, {...}).connect(reverb);\n// const arpeggiator = new Tone.Arpeggiator('up', '16n').connect(sawArp.volume);\n// arpeggiator.start('0m');\n// new Tone.Part((time, chord) => Tone.getTransport().set('chord', chord), [\n//   ['0:0', 'F#m'], ['0:2', 'D'], ['1:0', 'A'], ['1:2', 'E']\n// ]).start(0);\n// Tone.getTransport().on('change:chord', (chord) => arpeggiator.set('notes', Tone.Chord.get(chord).notes));\n\n// Drums: Use MembraneSynth for kick, NoiseSynth for snare/hats.\n// const kick = new Tone.MembraneSynth().toDestination();\n// new Tone.Loop(time => kick.triggerAttackRelease('C1', '8n', time), '4n').start(0);\n"
+  },
+  "score_spec": {
+    "root": "F#",
+    "mode": "minor",
+    "bpm": 126.04801829268293,
+    "tracks": [
       {
         "name": "Kick Drum",
         "instrument": "MembraneSynth",
-        "pattern": "A classic four-on-the-floor pattern, hitting on every quarter note (1, 2, 3, 4).",
-        "description": "Provides the core pulse of the track. It's a punchy, mid-heavy kick sound with a short decay, typical of 80s drum machines."
+        "pattern": "Four-on-the-floor quarter notes.",
+        "description": "The foundation of the rhythm, providing a constant, driving pulse throughout most of the track.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.4,
+            "sustain": 0.01,
+            "release": 0.1,
+            "volume": -4
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        }
       },
       {
-        "name": "Snare Drum",
+        "name": "Snare Hit",
         "instrument": "NoiseSynth",
-        "pattern": "A standard backbeat pattern, hitting on beats 2 and 4 of each measure.",
-        "description": "A sharp, synthetic snare with a prominent white noise component and a very short decay, providing the main backbeat."
+        "pattern": "Hits on beats 2 and 4.",
+        "description": "A sharp, filtered noise snare that provides the backbeat for the main groove.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "filterType": "bandpass",
+            "filterFrequency": 3000,
+            "filterQ": 2.5039370078740157
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
       },
       {
-        "name": "16th Hi-Hats",
-        "instrument": "MetalSynth",
-        "pattern": "Continuous, unaccented 16th notes.",
-        "description": "A bright, metallic hi-hat that adds high-frequency energy and reinforces the driving 16th-note feel. It's present through most of the track."
-      },
-      {
-        "name": "Lead Vocal",
-        "instrument": "Player",
-        "pattern": "Rhythmic, declarative phrases with a mostly monotonic delivery, following 2 or 4-bar structures.",
-        "description": "A low-mixed male vocal with heavy reverb and some delay, acting as a textural and narrative element. Enters around 0:21."
-      },
-      {
-        "name": "Chorus Vocal Pad",
-        "instrument": "GrainPlayer",
-        "pattern": "Long, sustained notes holding on 'Woah' or wordless melodies that follow the root chord changes over 4-bar phrases.",
-        "description": "Layered, reverberant backing vocals that function as a harmonic pad during chorus sections (e.g., at 0:31), adding an epic, atmospheric quality."
-      },
-      {
-        "name": "Sweep Pad",
-        "instrument": "PolySynth",
-        "pattern": "Holds a single chord (e.g., F# minor) for 8 or 16 bars while its filter cutoff is automated upwards.",
-        "description": "A wide, detuned saw-wave pad used to build tension into new sections. It has a slow attack and a rising filter sweep, creating a dramatic wash of sound."
-      },
-      {
-        "name": "Sub Bass",
+        "name": "Octave Bass",
         "instrument": "MonoSynth",
-        "pattern": "Whole notes or half notes playing the root of the current chord.",
-        "description": "A very low-frequency sine or low-passed square wave that reinforces the fundamental harmony, adding weight and power, especially in the chorus sections."
+        "pattern": "Driving 8th-note pattern, often jumping octaves on the beat, following the root of the chords.",
+        "description": "A powerful, filtered sawtooth bass that creates the core rhythmic and harmonic momentum of the track.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0.1,
+            "release": 0.1,
+            "filterType": "lowpass",
+            "filterFrequency": 500,
+            "filterQ": 1.1023622047244095
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "F#1",
+            "F#2",
+            "F#1",
+            "F#2",
+            "F#1",
+            "F#2",
+            "F#1",
+            "F#2"
+          ]
+        }
       },
       {
-        "name": "Bridge Vocal Loop",
-        "instrument": "Sampler",
-        "pattern": "A repeating 4-beat phrase ('helplessly, where one wants to stand') that loops and layers on itself.",
-        "description": "A hypnotic, looping vocal sample that defines the bridge section starting around 1:24. The layers build in density, creating a frantic, obsessive texture."
+        "name": "Saw Arp",
+        "instrument": "PolySynth",
+        "pattern": "Continuous 16th-note arpeggio outlining the chord progression.",
+        "description": "The main melodic and rhythmic hook of the song. A bright, wide, detuned sawtooth sound that cuts through the entire mix.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 4,
+            "spread": 40,
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.2,
+            "release": 0.1,
+            "volume": -10
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "F#3",
+            "A3",
+            "C#4",
+            "A3",
+            "F#3",
+            "A3",
+            "C#4",
+            "A3",
+            "F#3",
+            "A3",
+            "C#4",
+            "A3",
+            "F#3",
+            "A3",
+            "C#4",
+            "A3"
+          ]
+        }
+      },
+      {
+        "name": "Verse Vocal Lead",
+        "instrument": "MonoSynth",
+        "pattern": "Melodic phrases corresponding to the main vocal line in the verses.",
+        "description": "Approximation of the male lead vocal melody. It is heavily processed with a large reverb and some delay.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "triangle",
+            "attack": 0.05,
+            "decay": 0.2,
+            "sustain": 0.5,
+            "release": 0.8,
+            "volume": -14
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "F#3",
+            "",
+            "F#3",
+            "F#3",
+            "E3",
+            "D3",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Chorus Pad",
+        "instrument": "PolySynth",
+        "pattern": "Long, sustained chords that swell in during the chorus sections.",
+        "description": "A choir-like pad that adds an epic, atmospheric layer under the 'helplessly' vocal section, filling out the harmony.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 6,
+            "spread": 60,
+            "attack": 0.8,
+            "decay": 0.5,
+            "sustain": 0.9,
+            "release": 2.5,
+            "volume": -18
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A3+C#4+E4"
+          ]
+        }
+      },
+      {
+        "name": "High Pad",
+        "instrument": "PolySynth",
+        "pattern": "Very slow, evolving high-register chords entering in the latter half of the song.",
+        "description": "A high, shimmering pad that adds tension and atmosphere, floating above the main arrangement from the second verse onwards.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "triangle",
+            "attack": 2,
+            "decay": 1,
+            "sustain": 1,
+            "release": 4,
+            "volume": -22
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "F#5+A5"
+          ]
+        }
       }
-    ],
-    "score_draft": "/* SPECULATIVE SCORE-DRAFT STARTER */\n\n// Key: F# minor, Tempo: 126 BPM\n\n// Arp Bass (MonoSynth)\nconst arpBass = new Tone.MonoSynth({\n  oscillator: { type: 'sawtooth' },\n  envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.1 },\n  filter: { type: 'lowpass', Q: 2, frequency: 1200 },\n  filterEnvelope: { attack: 0.02, decay: 0.4, sustain: 0.1, release: 0.1, baseFrequency: 400, octaves: 2 }\n}).toDestination();\n\nconst arpPattern = new Tone.Pattern(\n  (time, note) => { arpBass.triggerAttackRelease(note, '16n', time); },\n  ['F#3', 'A3', 'C#4', 'A3', 'F#3', 'A3', 'C#4', 'A3'],\n  'upDown'\n);\narpPattern.interval = '16n';\n\n// Sweep Pad (PolySynth)\nconst sweepPad = new Tone.PolySynth(Tone.Synth, {\n  oscillator: { type: 'sawtooth' },\n  detune: 15,\n  envelope: { attack: 2, decay: 0.5, sustain: 1, release: 4 }\n}).toDestination();\nconst padFilter = new Tone.Filter(300, 'lowpass').toDestination();\nsweepPad.connect(padFilter);\n// Automate the filter for a rise:\npadFilter.frequency.rampTo(4000, 16);\n// Trigger with a chord:\nsweepPad.triggerAttackRelease(['F#3', 'A3', 'C#4'], '8m');\n\n// Drums\nconst kick = new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 5, envelope: { attack: 0.001, decay: 0.3, sustain: 0 } }).toDestination();\nconst snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 } }).toDestination();\nconst hats = new Tone.MetalSynth({ frequency: 400, envelope: { attack: 0.001, decay: 0.08, release: 0.05 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000 }).toDestination();\n\nnew Tone.Sequence((time, note) => { kick.triggerAttackRelease(note, '8n', time); }, ['C1', null, 'C1', null], '2n').start(0);\nnew Tone.Sequence((time) => { snare.triggerAttack(time); }, [null, 1, null, 1], '2n').start(0);\nnew Tone.Sequence((time, note) => { hats.triggerAttackRelease(note, '32n', time); }, ['C5'], '16n').start(0);"
+    ]
   }
 }

@@ -1,6 +1,6 @@
 # TR/ST — Icabod
 
-> A driving, motorik darkwave track featuring relentless 16th-note bass arpeggios, heavily processed vocals, and a cavernous, atmospheric mix, built on a classic four-on-the-floor beat.
+> A driving, melancholic darkwave track featuring a relentless 126 BPM four-on-the-floor beat, dominated by a thick sawtooth octave bassline and a bright, detuned 16th-note synth arpeggio. The sound is defined by its contrast between dark, punchy low-end and cutting high-end synths, all drenched in a cavernous reverb that envelops the moody lead vocals.
 
 *Source: `Trust - Icabod.mp3` · Model: gemini-2.5-pro*
 
@@ -17,13 +17,13 @@
 
 | Dimension | Reading |
 |---|---|
-| Timbre | A mix of classic analog-style synthesis (sawtooth, square waves) for basslines and pads, metallic FM sounds for percussion, and heavily processed, reverberant male vocals. |
-| Brightness | Bright and crisp, with a mean spectral centroid around 3kHz. The constant 16th-note hi-hats and sharp synth arpeggios create a persistent high-frequency sizzle over a dark, heavy bass foundation. |
-| Envelope | Predominantly tight and percussive. Bass and arpeggio synths use very short, plucky envelopes (fast attack, quick decay), while pads have slow attacks and long, washed-out releases. |
-| Register/density | Dense and full-spectrum. A deep sub-bass anchors the low end, a busy mid-range is occupied by the main bass arp and vocals, and the high register is filled with sparkling hi-hats and synth leads. |
-| Harmony/mode | Firmly rooted in F# minor, employing repetitive, hypnotic chord progressions common in coldwave and post-punk. The harmony is modal and cyclical, prioritizing rhythmic drive over complex changes. |
-| Groove | A relentless and driving four-on-the-floor groove at 126 BPM. The rhythmic foundation is a constant 16th-note subdivision carried by both the hi-hats and the primary bass arpeggio. |
-| Space/grit | Characterized by a large, cavernous space created by heavy reverb on vocals and pads. A layer of analog-style saturation and subtle noise adds warmth and grit to the otherwise clean synth tones. |
+| Timbre | Primarily composed of analog-style synthesizer sounds, especially detuned sawtooth and fatsawtooth waves for bass and leads, with noise-based percussion. |
+| Brightness | High-contrast; a dark, heavily low-pass filtered bass provides a foundation for exceptionally bright, cutting arpeggios and metallic hi-hats, consistent with the measured mean spectral centroid of 2991 Hz. |
+| Envelope | Rhythmic elements use tight, plucky envelopes (short attack/decay, low sustain) for a punchy, almost gated feel. Pads and vocals utilize long attack and release times to create atmospheric washes. |
+| Register/density | Dense and layered. The low register is occupied by the kick and bass. The mid-range is dominated by the fast, constant arpeggio and vocals. The high register contains hi-hats and atmospheric pads. |
+| Harmony/mode | Firmly rooted in F# minor, utilizing a driving i-VI-III-VII (F#m-D-A-E) chord progression that is characteristic of the genre, reinforcing a feeling of melancholic propulsion. |
+| Groove | A straight and driving 4/4 machine groove. The foundation is a constant four-on-the-floor kick drum, with the primary rhythmic energy coming from the relentless 16th-note synth arpeggio. |
+| Space/grit | The track is saturated in a large hall or cathedral-like reverb, giving it a vast, epic sense of space. Grit comes from the chorusing/detuning of oscillators (wide 'spread' on fatsawtooth waves) and the sharp, filtered nature of the percussion. |
 
 ## Tracks (model interpretation)
 
@@ -31,57 +31,40 @@
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Arp Bass | MonoSynth | Continuous 16th-note arpeggio outlining the chord progression (e.g., F#-A-C#). The pattern is a 1-bar loop that transposes with the harmony. It has a slightly accented, driving dynamic. | The main rhythmic and harmonic driver of the track, entering at the very beginning and playing almost continuously. It has a sharp, slightly resonant filtered saw-wave sound. |
-| Kick Drum | MembraneSynth | A classic four-on-the-floor pattern, hitting on every quarter note (1, 2, 3, 4). | Provides the core pulse of the track. It's a punchy, mid-heavy kick sound with a short decay, typical of 80s drum machines. |
-| Snare Drum | NoiseSynth | A standard backbeat pattern, hitting on beats 2 and 4 of each measure. | A sharp, synthetic snare with a prominent white noise component and a very short decay, providing the main backbeat. |
-| 16th Hi-Hats | MetalSynth | Continuous, unaccented 16th notes. | A bright, metallic hi-hat that adds high-frequency energy and reinforces the driving 16th-note feel. It's present through most of the track. |
-| Lead Vocal | Player | Rhythmic, declarative phrases with a mostly monotonic delivery, following 2 or 4-bar structures. | A low-mixed male vocal with heavy reverb and some delay, acting as a textural and narrative element. Enters around 0:21. |
-| Chorus Vocal Pad | GrainPlayer | Long, sustained notes holding on 'Woah' or wordless melodies that follow the root chord changes over 4-bar phrases. | Layered, reverberant backing vocals that function as a harmonic pad during chorus sections (e.g., at 0:31), adding an epic, atmospheric quality. |
-| Sweep Pad | PolySynth | Holds a single chord (e.g., F# minor) for 8 or 16 bars while its filter cutoff is automated upwards. | A wide, detuned saw-wave pad used to build tension into new sections. It has a slow attack and a rising filter sweep, creating a dramatic wash of sound. |
-| Sub Bass | MonoSynth | Whole notes or half notes playing the root of the current chord. | A very low-frequency sine or low-passed square wave that reinforces the fundamental harmony, adding weight and power, especially in the chorus sections. |
-| Bridge Vocal Loop | Sampler | A repeating 4-beat phrase ('helplessly, where one wants to stand') that loops and layers on itself. | A hypnotic, looping vocal sample that defines the bridge section starting around 1:24. The layers build in density, creating a frantic, obsessive texture. |
+| Kick Drum | MembraneSynth | Four-on-the-floor quarter notes. | The foundation of the rhythm, providing a constant, driving pulse throughout most of the track. |
+| Snare Hit | NoiseSynth | Hits on beats 2 and 4. | A sharp, filtered noise snare that provides the backbeat for the main groove. |
+| Octave Bass | MonoSynth | Driving 8th-note pattern, often jumping octaves on the beat, following the root of the chords. | A powerful, filtered sawtooth bass that creates the core rhythmic and harmonic momentum of the track. |
+| Saw Arp | PolySynth | Continuous 16th-note arpeggio outlining the chord progression. | The main melodic and rhythmic hook of the song. A bright, wide, detuned sawtooth sound that cuts through the entire mix. |
+| Verse Vocal Lead | MonoSynth | Melodic phrases corresponding to the main vocal line in the verses. | Approximation of the male lead vocal melody. It is heavily processed with a large reverb and some delay. |
+| Chorus Pad | PolySynth | Long, sustained chords that swell in during the chorus sections. | A choir-like pad that adds an epic, atmospheric layer under the 'helplessly' vocal section, filling out the harmony. |
+| High Pad | PolySynth | Very slow, evolving high-register chords entering in the latter half of the song. | A high, shimmering pad that adds tension and atmosphere, floating above the main arrangement from the second verse onwards. |
 
 ## Score-draft starter (speculative)
 
 > Model-guessed synth parameters — speculative, tune by ear.
 
-/* SPECULATIVE SCORE-DRAFT STARTER */
+const synths = {};
+const reverb = new Tone.Reverb({ decay: 8, wet: 0.5 }).toDestination();
 
-// Key: F# minor, Tempo: 126 BPM
+// Start at 126 BPM in F# minor
+Tone.Transport.bpm.value = 126;
 
-// Arp Bass (MonoSynth)
-const arpBass = new Tone.MonoSynth({
-  oscillator: { type: 'sawtooth' },
-  envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.1 },
-  filter: { type: 'lowpass', Q: 2, frequency: 1200 },
-  filterEnvelope: { attack: 0.02, decay: 0.4, sustain: 0.1, release: 0.1, baseFrequency: 400, octaves: 2 }
-}).toDestination();
+// SPECULATIVE SETUP:
 
-const arpPattern = new Tone.Pattern(
-  (time, note) => { arpBass.triggerAttackRelease(note, '16n', time); },
-  ['F#3', 'A3', 'C#4', 'A3', 'F#3', 'A3', 'C#4', 'A3'],
-  'upDown'
-);
-arpPattern.interval = '16n';
+// Bass: MonoSynth, saw wave, lowpass filter around 400-600Hz.
+// const arpBass = new Tone.MonoSynth({...}).connect(reverb);
+// new Tone.Pattern(time => arpBass.triggerAttackRelease('F#1', '8n', time), ['16n']).start(0);
 
-// Sweep Pad (PolySynth)
-const sweepPad = new Tone.PolySynth(Tone.Synth, {
-  oscillator: { type: 'sawtooth' },
-  detune: 15,
-  envelope: { attack: 2, decay: 0.5, sustain: 1, release: 4 }
-}).toDestination();
-const padFilter = new Tone.Filter(300, 'lowpass').toDestination();
-sweepPad.connect(padFilter);
-// Automate the filter for a rise:
-padFilter.frequency.rampTo(4000, 16);
-// Trigger with a chord:
-sweepPad.triggerAttackRelease(['F#3', 'A3', 'C#4'], '8m');
+// Arp: PolySynth, 'fatsawtooth' oscillator with spread, run through an Arpeggiator.
+// const sawArp = new Tone.PolySynth(Tone.Synth, {...}).connect(reverb);
+// const arpeggiator = new Tone.Arpeggiator('up', '16n').connect(sawArp.volume);
+// arpeggiator.start('0m');
+// new Tone.Part((time, chord) => Tone.getTransport().set('chord', chord), [
+//   ['0:0', 'F#m'], ['0:2', 'D'], ['1:0', 'A'], ['1:2', 'E']
+// ]).start(0);
+// Tone.getTransport().on('change:chord', (chord) => arpeggiator.set('notes', Tone.Chord.get(chord).notes));
 
-// Drums
-const kick = new Tone.MembraneSynth({ pitchDecay: 0.02, octaves: 5, envelope: { attack: 0.001, decay: 0.3, sustain: 0 } }).toDestination();
-const snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 } }).toDestination();
-const hats = new Tone.MetalSynth({ frequency: 400, envelope: { attack: 0.001, decay: 0.08, release: 0.05 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000 }).toDestination();
+// Drums: Use MembraneSynth for kick, NoiseSynth for snare/hats.
+// const kick = new Tone.MembraneSynth().toDestination();
+// new Tone.Loop(time => kick.triggerAttackRelease('C1', '8n', time), '4n').start(0);
 
-new Tone.Sequence((time, note) => { kick.triggerAttackRelease(note, '8n', time); }, ['C1', null, 'C1', null], '2n').start(0);
-new Tone.Sequence((time) => { snare.triggerAttack(time); }, [null, 1, null, 1], '2n').start(0);
-new Tone.Sequence((time, note) => { hats.triggerAttackRelease(note, '32n', time); }, ['C5'], '16n').start(0);
