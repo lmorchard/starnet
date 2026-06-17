@@ -51,3 +51,25 @@ def test_response_schema_track_items_require_instrument_and_pattern():
     for field in ["name", "instrument", "pattern", "description"]:
         assert field in item["properties"]
         assert field in item["required"]
+
+
+def test_response_schema_track_requires_synth_and_steps():
+    item = RESPONSE_SCHEMA["properties"]["tracks"]["items"]
+    for field in ["synth", "steps"]:
+        assert field in item["properties"]
+        assert field in item["required"]
+    synth = item["properties"]["synth"]
+    assert "type" in synth["properties"] and "options" in synth["properties"]
+    steps = item["properties"]["steps"]
+    assert "grid" in steps["properties"] and "notes" in steps["properties"]
+    # notes is an array of plain strings (Vertex-safe token grammar)
+    assert steps["properties"]["notes"]["type"] == "array"
+    assert steps["properties"]["notes"]["items"]["type"] == "string"
+
+
+def test_prompt_explains_synth_steps_and_token_grammar():
+    p = build_prompt(META, MIR).lower()
+    assert "synth" in p and "steps" in p
+    assert "grid" in p
+    # the token grammar must be spelled out for the model
+    assert "rest" in p and "chord" in p

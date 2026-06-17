@@ -40,8 +40,41 @@ RESPONSE_SCHEMA = {
                     "instrument": {"type": "string"},
                     "pattern": {"type": "string"},
                     "description": {"type": "string"},
+                    "synth": {
+                        "type": "object",
+                        "properties": {
+                            "type": {"type": "string"},
+                            "options": {
+                                "type": "object",
+                                "properties": {
+                                    "oscillatorType": {"type": "string"},
+                                    "count": {"type": "integer"},
+                                    "spread": {"type": "number"},
+                                    "attack": {"type": "number"},
+                                    "decay": {"type": "number"},
+                                    "sustain": {"type": "number"},
+                                    "release": {"type": "number"},
+                                    "volume": {"type": "number"},
+                                    "harmonicity": {"type": "number"},
+                                    "modulationIndex": {"type": "number"},
+                                    "filterType": {"type": "string"},
+                                    "filterFrequency": {"type": "number"},
+                                    "filterQ": {"type": "number"},
+                                },
+                            },
+                        },
+                        "required": ["type", "options"],
+                    },
+                    "steps": {
+                        "type": "object",
+                        "properties": {
+                            "grid": {"type": "string"},
+                            "notes": {"type": "array", "items": {"type": "string"}},
+                        },
+                        "required": ["grid", "notes"],
+                    },
                 },
-                "required": ["name", "instrument", "pattern", "description"],
+                "required": ["name", "instrument", "pattern", "description", "synth", "steps"],
             },
         },
         "score_draft": {"type": "string"},
@@ -80,6 +113,17 @@ Enumerate every distinct track you actually hear (don't force a fixed set). For 
 - pattern: the figure driving it — subdivision/step rhythm, note movement, density,
   phrase length, and dynamics (e.g. "root-note 1/8s, side-chained, 2-bar loop").
 - description: its role in the arrangement, when it enters/drops, and any space/FX.
+- synth: a PLAYABLE instrument spec — `type` MUST be one of the Tone.js sources:
+    {palette}
+  (pick the nearest if the real instrument is sample-based), and `options` is a FLAT object
+  using only these optional scalar fields where relevant: oscillatorType (e.g. "sawtooth",
+  "square", "fatsawtooth", "triangle", "sine"), count, spread, attack, decay, sustain,
+  release, volume (dB, usually negative), harmonicity, modulationIndex, filterType, filterFrequency, filterQ.
+- steps: a PLAYABLE 1-2 bar loop — `grid` is the Tone subdivision (e.g. "16n", "8n", "4n")
+  and `notes` is an ARRAY OF STRINGS using this token grammar:
+    "" (empty string) = a rest; "x" = an unpitched hit (use for NoiseSynth percussion);
+    "C4" = a single note; "C4+E4+G4" = a chord (plus-separated). Keep it consistent with the
+    pattern and grid you described, and concrete enough to loop.
 
 Finally, write a short SCORE-DRAFT STARTER: concrete Tone.js-flavored suggestions
 (oscillator types, ADSR, filter cutoff/Q, example note arrays) that would approximate this track.
