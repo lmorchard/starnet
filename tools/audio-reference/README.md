@@ -69,6 +69,21 @@ uv run audio-reference analyze ~/music/icabod.flac --artist "TR/ST" --title "Ica
 - `docs/<slug>.json` — meta + raw MIR + the model's structured interpretation.
 - `docs/<slug>.mid`  — basic-pitch transcription (only with the `midi` extra, unless `--no-midi`).
 
+## Play a result (browser harness)
+
+Each artifact's JSON carries a `score_spec` — a generalized, engine-shaped score
+(`{root, mode, bpm, tracks}`, each track an instrument + a step pattern). To hear an
+approximation of the analyzed piece:
+
+1. Open `player/index.html` directly in a browser (`file://` is fine — no server needed).
+2. Click the file picker and choose a `docs/<slug>.json`.
+3. Press **Play**. Toggle per-track **Mute**/**Solo** to inspect the arrangement.
+
+The harness loads Tone.js from a CDN and only constructs instruments from a fixed palette
+(`Synth`, `MonoSynth`, `FMSynth`, `MetalSynth`, `NoiseSynth`, …) — it never executes the raw
+`score_draft` from the Markdown (that stays a read-only reference). Sample-based sources
+(`Sampler`/`Player`) are out of scope for now; those tracks emit a nearest-synth approximation.
+
 ## Tests
 
 ```bash
