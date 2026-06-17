@@ -239,6 +239,17 @@ function renderTracks(rows) {
   $("warnings").textContent = warnings.join("\n");
 }
 
+// Build + display a score from a parsed sidecar (or bare score_spec), with an optional label.
+async function loadSpecFromJson(json, label) {
+  const spec = json.score_spec || json;
+  const rows = await build(spec);
+  const head = label ? `${label} · ` : "";
+  $("meta").textContent = `${head}${spec.root ?? "?"} ${spec.mode ?? ""} · ${Math.round(spec.bpm ?? 0)} BPM · ${(spec.tracks || []).length} tracks`;
+  renderTracks(rows);
+  $("play").disabled = false;
+  $("stop").disabled = false;
+}
+
 // --- file load + transport controls ---
 $("file").addEventListener("change", async (e) => {
   const file = e.target.files[0];
@@ -246,13 +257,36 @@ $("file").addEventListener("change", async (e) => {
   let json;
   try { json = JSON.parse(await file.text()); }
   catch (err) { $("warnings").textContent = `could not parse JSON: ${err.message}`; return; }
-  const spec = json.score_spec || json; // accept a full sidecar or a bare score_spec
-  const rows = await build(spec);
-  $("meta").textContent = `${spec.root ?? "?"} ${spec.mode ?? ""} · ${Math.round(spec.bpm ?? 0)} BPM · ${(spec.tracks || []).length} tracks`;
-  renderTracks(rows);
-  $("play").disabled = false;
-  $("stop").disabled = false;
+  await loadSpecFromJson(json, file.name);
 });
+
+// --- library list (served mode): fetch the manifest and render clickable tracks ---
+async function initLibrary() {
+  let idx;
+  try {
+    const res = await fetch("../docs/index.json", { cache: "no-store" });
+    if (!res.ok) return;                 // no manifest → file-picker only
+    idx = await res.json();
+  } catch { return; }                    // file:// or fetch blocked → file-picker only
+  const ul = $("library");
+  let playingBtn = null;
+  idx.forEach((e) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.textContent = `${e.artist} — ${e.title}  ·  ${e.root} ${e.mode} · ${Math.round(e.bpm || 0)} BPM · ${e.tracks} trk`;
+    btn.addEventListener("click", async () => {
+      try {
+        const r = await fetch(`../docs/${e.slug}.json`, { cache: "no-store" });
+        await loadSpecFromJson(await r.json(), `${e.artist} — ${e.title}`);
+        if (playingBtn) playingBtn.classList.remove("playing");
+        btn.classList.add("playing"); playingBtn = btn;
+      } catch (err) { $("warnings").textContent = `could not load ${e.slug}: ${err.message}`; }
+    });
+    li.appendChild(btn); ul.appendChild(li);
+  });
+  if (idx.length) $("library-section").style.display = "";
+}
+initLibrary();
 
 $("play").addEventListener("click", async () => {
   await Tone.start();          // unlock audio on user gesture

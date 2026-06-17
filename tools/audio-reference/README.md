@@ -75,9 +75,21 @@ Each artifact's JSON carries a `score_spec` — a generalized, engine-shaped sco
 (`{root, mode, bpm, tracks}`, each track an instrument + a step pattern). To hear an
 approximation of the analyzed piece:
 
-1. Open `player/index.html` directly in a browser (`file://` is fine — no server needed).
-2. Click the file picker and choose a `docs/<slug>.json`.
-3. Press **Play**. Toggle per-track **Mute**/**Solo** to inspect the arrangement.
+```bash
+uv run audio-reference play          # serves player/ + docs/ at http://127.0.0.1:8777/player/
+                                     # (prints the URL; does NOT open a browser)
+```
+
+Open the printed URL, click a track in the **Library** list, and press **Play**. Toggle
+per-track **Mute**/**Solo** to inspect the arrangement. The library is driven by
+`docs/index.json`, a manifest that `analyze` refreshes automatically; rebuild it by hand with:
+
+```bash
+uv run audio-reference index         # rescans docs/*.json -> docs/index.json
+```
+
+You can also open `player/index.html` directly over `file://` and use the **file picker**
+(the library list needs the served manifest, but the picker works without a server).
 
 The harness loads Tone.js from a CDN and only constructs instruments from a fixed palette
 (`Synth`, `MonoSynth`, `FMSynth`, `MetalSynth`, `NoiseSynth`, …) — it never executes the raw

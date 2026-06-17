@@ -15,18 +15,28 @@
     .muted { opacity: .4; }
     #warnings { color: #b00; white-space: pre-wrap; }
     code { background: #f2f2f2; padding: 0 .25rem; }
+    #library-section { margin: 1rem 0; }
+    #library { list-style: none; padding: 0; margin: .5rem 0; }
+    #library li { margin: .15rem 0; }
+    #library button { width: 100%; text-align: left; cursor: pointer; }
+    #library button.playing { font-weight: 600; outline: 2px solid #39c; }
   </style>
 </head>
 <body>
   <h1>audio-reference player</h1>
-  <p>Load a generated <code>docs/&lt;slug&gt;.json</code> artifact and play its
-     <code>score_spec</code>. (Open this file directly — <code>file://</code> works.)</p>
+  <p>Pick an analyzed track below, or load a <code>docs/&lt;slug&gt;.json</code> file directly.
+     The library list needs the served player (<code>uv run audio-reference play</code>); the
+     file picker also works over <code>file://</code>.</p>
   <div class="controls">
     <input type="file" id="file" accept="application/json,.json" />
     <button id="play" disabled>▶ Play</button>
     <button id="stop" disabled>■ Stop</button>
     <span id="meta"></span>
   </div>
+  <section id="library-section" style="display:none">
+    <strong>Library</strong>
+    <ul id="library"></ul>
+  </section>
   <div id="warnings"></div>
   <table id="tracks"><tbody></tbody></table>
   <!-- Classic script (not type=module): ES modules are CORS-blocked over file:// in
