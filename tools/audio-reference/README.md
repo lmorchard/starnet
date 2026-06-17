@@ -24,9 +24,13 @@ Cloud ADC.
 
 uv sync --extra dev                       # create env + install deps (core MIR + Gemini)
 gcloud auth application-default login     # one-time ADC setup
-export GOOGLE_CLOUD_PROJECT=your-project  # or pass --project
-export GOOGLE_CLOUD_LOCATION=us-central1  # or pass --location
+cp .env.example .env                      # then edit: set GOOGLE_CLOUD_PROJECT / LOCATION
 ```
+
+Project/location resolve in this order: CLI flag → environment → `.env` (cwd + parents)
+→ gcloud config default (inside the google-genai client). The `.env` file is gitignored;
+`.env.example` is the template. You can also `export GOOGLE_CLOUD_PROJECT` /
+`GOOGLE_CLOUD_LOCATION` or pass `--project` / `--location` instead.
 
 ### Optional: MIDI transcription (`--extra midi`)
 

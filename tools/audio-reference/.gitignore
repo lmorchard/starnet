@@ -5,3 +5,5 @@ __pycache__/
 *.egg-info/
 # transcode scratch
 *.16k.wav
+# local Vertex config (project/location) — see .env.example
+.env

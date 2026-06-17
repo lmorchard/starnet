@@ -8,6 +8,7 @@ dependencies = [
     "librosa>=0.10.2",
     "numpy>=1.26",
     "soundfile>=0.12",
+    "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]

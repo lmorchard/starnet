@@ -5,6 +5,8 @@ import os
 import sys
 import tempfile
 
+from dotenv import load_dotenv
+
 from .slug import slugify
 from .config import resolve_setting
 from .transcode import to_16k_mono
@@ -18,6 +20,9 @@ DEFAULT_MODEL = "gemini-2.5-pro"
 
 def main(argv=None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
+    # Load .env (cwd + parents) so GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION
+    # need not be exported each run. CLI flags still win over .env (resolve_setting).
+    load_dotenv()
     parser = argparse.ArgumentParser(prog="audio-reference")
     sub = parser.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("analyze", help="analyze one track")
