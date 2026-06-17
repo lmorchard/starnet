@@ -10,9 +10,17 @@ const UNPITCHED = new Set(["NoiseSynth"]);
 // compressor — loud hats were pumping the whole mix down. A model-set `volume` still wins.
 const DEFAULT_TRIM = { MetalSynth: -16, NoiseSynth: -10 };
 
+// A synth triggered thousands of times accumulates un-prunable AudioParam automation, which
+// compounds into rising CPU and crackle over a long run. Mirror the Starnet engine's fix:
+// a larger lookahead (set on the live context in the play handler, after Tone.start()) +
+// periodically recreate each sequenced synth (retiring the old after its release tail) so no
+// instance is triggered unboundedly.
+const RECYCLE_BARS = 8;     // recreate sequenced synths every N bars
+const RETIRE_SEC = 2.5;     // dispose a retired synth this long after swap (let its tail ring)
+
 const $ = (id) => document.getElementById(id);
 const warnings = [];
-let built = null; // { sequences, synths, gains, fx, bus, reverb, rows }
+let built = null; // { rows, fx, bus, reverb, recycleId, retiring }
 
 // Flat option scalars -> nested Tone constructor options. Only set what's provided.
 function expandOptions(o = {}) {
@@ -71,11 +79,15 @@ function triggerStep(synth, type, token, dur, time) {
 
 function disposeBuilt() {
   if (!built) return;
-  built.sequences.forEach((s) => s.dispose());
-  built.synths.forEach((s) => s.dispose());
-  built.fx.forEach((n) => n.dispose());
-  built.gains.forEach((g) => g.dispose());
-  built.bus.forEach((n) => n.dispose());
+  if (built.recycleId != null) Tone.Transport.clear(built.recycleId);
+  built.retiring.forEach((rec) => { clearTimeout(rec.id); try { rec.synth.dispose(); } catch { /* gone */ } });
+  built.rows.forEach((r) => {
+    if (r.skipped) return;
+    try { r.seq.dispose(); } catch { /* gone */ }
+    try { r.voice.synth.dispose(); } catch { /* gone */ }
+  });
+  built.fx.forEach((n) => { try { n.dispose(); } catch { /* gone */ } });
+  built.bus.forEach((n) => { try { n.dispose(); } catch { /* gone */ } });
   built.reverb?.dispose();
   built = null;
 }
@@ -104,10 +116,7 @@ async function build(spec) {
   await reverb.generate();
   reverb.connect(masterGain);
 
-  const synths = [];
-  const gains = [];
-  const fx = [];            // per-track distortion / chorus / reverb-send nodes
-  const sequences = [];
+  const fx = [];            // per-track aux nodes (distortion / chorus / gain / reverb-send)
   const rows = [];
   (spec.tracks || []).forEach((t) => {
     const type = t.synth?.type;
@@ -118,33 +127,57 @@ async function build(spec) {
     }
     const o = { ...(t.synth.options || {}) };
     if (o.volume == null && DEFAULT_TRIM[type] != null) o.volume = DEFAULT_TRIM[type];
-    const synth = makeSynth(type, o);
-    let tail = synth;                 // walk the insert chain, advancing the tail node
-    if (o.drive != null && o.drive > 0) {
-      const dist = new Tone.Distortion(Math.min(1, o.drive));
-      tail.connect(dist); tail = dist; fx.push(dist);
-    }
-    if (o.chorus != null && o.chorus > 0) {
-      const cho = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: Math.min(1, o.chorus) }).start();
-      tail.connect(cho); tail = cho; fx.push(cho);
-    }
-    const gain = new Tone.Gain(1);    // per-track level for mute/solo
-    tail.connect(gain);
+
+    // Build the post-synth insert chain ([Distortion] -> [Chorus] -> gain) FIRST, so the
+    // synth has a stable target node to feed — the recycler reconnects fresh synths here.
+    const gain = new Tone.Gain(1);    // per-track level for mute/solo (never recycled)
+    const inserts = [];
+    if (o.drive > 0) inserts.push(new Tone.Distortion(Math.min(1, o.drive)));
+    if (o.chorus > 0) inserts.push(new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: Math.min(1, o.chorus) }).start());
+    const chain = [...inserts, gain];
+    for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
+    const synthTarget = chain[0];     // the node a (recyclable) synth connects into
     gain.connect(masterGain);         // dry path through the bus
+    fx.push(...inserts, gain);
     const send = o.reverbSend != null ? o.reverbSend : 0.15;   // default a little space
     if (send > 0) {
       const sendGain = new Tone.Gain(Math.min(1, send));
       gain.connect(sendGain); sendGain.connect(reverb); fx.push(sendGain);
     }
+
+    const synth = makeSynth(type, o);
+    synth.connect(synthTarget);
+    const voice = { synth };          // mutable holder so the recycler can swap the synth
     const grid = t.steps?.grid || "8n";
     const notes = t.steps?.notes || [];
-    const seq = new Tone.Sequence((time, tok) => triggerStep(synth, type, tok, grid, time), notes, grid);
+    const seq = new Tone.Sequence((time, tok) => triggerStep(voice.synth, type, tok, grid, time), notes, grid);
     seq.start(0);
-    synths.push(synth); gains.push(gain); sequences.push(seq);
-    rows.push({ t, type, gain, muted: false, skipped: false });
+    rows.push({ t, type, opts: o, gain, voice, synthTarget, seq, muted: false, skipped: false });
   });
 
-  built = { sequences, synths, gains, fx, bus: [masterGain, eq, comp, limiter], reverb, rows };
+  // Recycler: every RECYCLE_BARS, mint a fresh synth per track (flushing accumulated
+  // automation), point the sequence at it, and retire the old one after its tail rings out.
+  const retiring = new Set();
+  const retire = (synth) => {
+    const rec = { synth };
+    rec.id = setTimeout(() => {
+      try { synth.releaseAll?.(); synth.dispose(); } catch { /* gone */ }
+      retiring.delete(rec);
+    }, RETIRE_SEC * 1000);
+    retiring.add(rec);
+  };
+  const recycleId = Tone.Transport.scheduleRepeat(() => {
+    for (const r of rows) {
+      if (r.skipped) continue;
+      const fresh = makeSynth(r.type, r.opts);
+      fresh.connect(r.synthTarget);
+      const old = r.voice.synth;
+      r.voice.synth = fresh;          // new notes hit the fresh synth; old rings out then disposes
+      retire(old);
+    }
+  }, `${RECYCLE_BARS}m`, `${RECYCLE_BARS}m`);
+
+  built = { rows, fx, bus: [masterGain, eq, comp, limiter], reverb, recycleId, retiring };
   return rows;
 }
 
@@ -198,6 +231,7 @@ $("file").addEventListener("change", async (e) => {
 
 $("play").addEventListener("click", async () => {
   await Tone.start();          // unlock audio on user gesture
+  Tone.getContext().lookAhead = 0.2;   // larger lookahead on the live context: fewer dropouts
   Tone.Transport.start();
 });
 $("stop").addEventListener("click", () => { Tone.Transport.stop(); Tone.Transport.position = 0; });
