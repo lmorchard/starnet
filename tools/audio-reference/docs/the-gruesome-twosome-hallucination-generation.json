@@ -1,0 +1,377 @@
+{
+  "meta": {
+    "artist": "The Gruesome Twosome",
+    "title": "Hallucination Generation",
+    "slug": "the-gruesome-twosome-hallucination-generation",
+    "source_file": "The Gruesome Twosome - Hallucination Generation.mp3",
+    "model": "gemini-2.5-pro"
+  },
+  "mir": {
+    "bpm": 114.84375,
+    "key": "C#",
+    "mode": "minor",
+    "key_confidence": 0.757308376024362,
+    "duration_sec": 226.76607709750567,
+    "sections": [
+      {
+        "start": 0.0
+      },
+      {
+        "start": 8.463673469387755
+      },
+      {
+        "start": 10.62312925170068
+      },
+      {
+        "start": 18.959092970521542
+      },
+      {
+        "start": 206.4370068027211
+      },
+      {
+        "start": 218.17469387755102
+      },
+      {
+        "start": 222.1685260770975
+      }
+    ],
+    "brightness": {
+      "mean_hz": 4105.982251672916,
+      "min_hz": 869.6238455575539,
+      "max_hz": 7988.797127433456
+    },
+    "dynamics": {
+      "rms_mean": 0.16043193638324738,
+      "rms_range_db": 16.36600553172285
+    },
+    "midi_path": null
+  },
+  "interpretation": {
+    "summary": "A high-energy, 115 BPM breakbeat techno track in C# minor, characteristic of early 90s rave music. It features a relentless four-on-the-floor kick, layered breakbeat samples, a fast sawtooth arpeggio, and a variety of pitched and spoken vocal samples that form the main hooks. The sound is bright, digital, and percussive, with a dense arrangement built for a dance floor.",
+    "vocabulary": {
+      "timbre": "Digital, sampled, 90s rave synths, breakbeats, vocal hooks. A blend of pure synthesis and raw sample manipulation.",
+      "brightness": "High, with a measured mean spectral centroid of 4106 Hz. Bright arpeggios, hi-hats, and processed vocals dominate the high-frequency spectrum.",
+      "envelope": "Predominantly sharp and percussive. Drums and synth stabs have fast attacks and quick decays, creating a tight, staccato feel.",
+      "register_density": "Dense and full-spectrum. A deep sub-bass anchors the low end, while vocal stabs and chords occupy the mids, and a constant high-frequency layer of arpeggios and cymbals fills the top.",
+      "harmony_mode": "A dark, hypnotic groove centered on C# minor. The harmony is static and repetitive, relying on loop-based melodic fragments rather than chord progressions.",
+      "groove": "A heavy, driving four-on-the-floor techno beat layered with a syncopated breakbeat rhythm. The groove is relentless and highly energetic.",
+      "space_grit": "The mix is direct and upfront with a relatively dry feel, though vocal samples are treated with noticeable reverb and delay. Grit comes from the character of 90s-era digital samples and a slightly overdriven master bus."
+    },
+    "tracks": [
+      {
+        "name": "Rave Arp",
+        "instrument": "Synth",
+        "pattern": "Continuous 16th-note arpeggio, playing a C# minor triad (C#-E-G#) and ascending through octaves.",
+        "description": "A defining melodic feature present from the very beginning. Its high pitch and constant motion create a sense of urgency and hypnotic energy.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.1,
+            "release": 0.1,
+            "volume": -19,
+            "filterType": "highpass",
+            "filterFrequency": 500,
+            "filterQ": 1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6",
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6",
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6",
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6"
+          ]
+        }
+      },
+      {
+        "name": "Techno Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "A relentless four-on-the-floor quarter-note pattern.",
+        "description": "The primary rhythmic anchor of the track, entering at 8.5s. It's a hard, punchy kick drum sound typical of 90s techno.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.4,
+            "sustain": 0.01,
+            "release": 0.1,
+            "volume": -3
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C2",
+            "C2",
+            "C2",
+            "C2"
+          ]
+        }
+      },
+      {
+        "name": "Breakbeat Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "A syncopated pattern that complements the main kick, hitting on and around the backbeats (2 and 4).",
+        "description": "This track represents the snare hits from a layered breakbeat sample, providing the funky, syncopated feel against the straight kick drum.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.15,
+            "sustain": 0,
+            "release": 0.05,
+            "volume": -11
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "",
+            "x",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Sub Bass",
+        "instrument": "MonoSynth",
+        "pattern": "A simple bassline holding the root note, C#, in a one-bar loop.",
+        "description": "A deep, clean sub-bass that provides the harmonic foundation. It enters with the main beat and is felt more than it is distinctly heard.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sine",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.9,
+            "release": 0.4,
+            "volume": -9,
+            "filterType": "lowpass",
+            "filterFrequency": 180
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "C#2"
+          ]
+        }
+      },
+      {
+        "name": "Opera Stab",
+        "instrument": "FMSynth",
+        "pattern": "A short, descending melodic phrase (G#-F#-E) that repeats every two bars.",
+        "description": "The iconic pitched operatic vocal sample, which acts as a melodic hook. It first appears around 19s and defines the main theme.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 1.2,
+            "modulationIndex": 10,
+            "filterType": "lowpass",
+            "filterFrequency": 3000,
+            "filterQ": 0.0
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "G#4",
+            "F#4",
+            "E4",
+            ""
+          ]
+        }
+      }
+    ],
+    "score_draft": "/* Speculative Score Starter */\n// Set tempo and key\nTone.Transport.bpm.value = 115;\nconst key = \"C#m\";\n\n// 1. Kick: Hard and punchy\nconst kick = new Tone.MembraneSynth({\n  pitchDecay: 0.05,\n  octaves: 10,\n  oscillator: { type: \"fmsine\" },\n  envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 }\n}).toDestination();\nnew Tone.Loop(time => kick.triggerAttackRelease(\"C2\", \"8n\", time), \"4n\").start(0);\n\n// 2. Bass: Deep and simple\nconst bass = new Tone.MonoSynth({\n  oscillator: { type: \"sine\" },\n  filter: { type: \"lowpass\", frequency: 180 },\n  envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.4 }\n}).toDestination();\nnew Tone.Loop(time => bass.triggerAttackRelease(\"C#2\", \"1m\", time), \"1m\").start(0);\n\n// 3. Arp: Fast and bright\nconst arp = new Tone.Synth({\n  oscillator: { type: \"sawtooth\" },\n  envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.1 }\n}).toDestination();\nconst arpPattern = new Tone.Sequence((time, note) => {\n  arp.triggerAttackRelease(note, 0.1, time);\n}, [\"C#5\", \"E5\", \"G#5\", \"C#6\"], \"16n\").start(0);\n\n// 4. Vocals & Samples: Use Sampler/Player\nconst operaStab = new Tone.Sampler({ urls: { \"G#4\": \"opera_stab.mp3\" }}).toDestination();\n// Play with pattern: new Tone.Sequence(..., [\"G#4\", null, \"F#4\", null, \"E4\",...], \"4n\")\nconst breakbeat = new Tone.Player(\"breakbeat.mp3\").toDestination();\n// breakbeat.loop = true; breakbeat.start();"
+  },
+  "score_spec": {
+    "root": "C#",
+    "mode": "minor",
+    "bpm": 114.84375,
+    "tracks": [
+      {
+        "name": "Rave Arp",
+        "instrument": "Synth",
+        "pattern": "Continuous 16th-note arpeggio, playing a C# minor triad (C#-E-G#) and ascending through octaves.",
+        "description": "A defining melodic feature present from the very beginning. Its high pitch and constant motion create a sense of urgency and hypnotic energy.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.1,
+            "release": 0.1,
+            "volume": -19,
+            "filterType": "highpass",
+            "filterFrequency": 500,
+            "filterQ": 1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6",
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6",
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6",
+            "C#5",
+            "E5",
+            "G#5",
+            "C#6"
+          ]
+        }
+      },
+      {
+        "name": "Techno Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "A relentless four-on-the-floor quarter-note pattern.",
+        "description": "The primary rhythmic anchor of the track, entering at 8.5s. It's a hard, punchy kick drum sound typical of 90s techno.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.4,
+            "sustain": 0.01,
+            "release": 0.1,
+            "volume": -3
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C2",
+            "C2",
+            "C2",
+            "C2"
+          ]
+        }
+      },
+      {
+        "name": "Breakbeat Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "A syncopated pattern that complements the main kick, hitting on and around the backbeats (2 and 4).",
+        "description": "This track represents the snare hits from a layered breakbeat sample, providing the funky, syncopated feel against the straight kick drum.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.15,
+            "sustain": 0,
+            "release": 0.05,
+            "volume": -11
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "",
+            "x",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Sub Bass",
+        "instrument": "MonoSynth",
+        "pattern": "A simple bassline holding the root note, C#, in a one-bar loop.",
+        "description": "A deep, clean sub-bass that provides the harmonic foundation. It enters with the main beat and is felt more than it is distinctly heard.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sine",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.9,
+            "release": 0.4,
+            "volume": -9,
+            "filterType": "lowpass",
+            "filterFrequency": 180
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "C#2"
+          ]
+        }
+      },
+      {
+        "name": "Opera Stab",
+        "instrument": "FMSynth",
+        "pattern": "A short, descending melodic phrase (G#-F#-E) that repeats every two bars.",
+        "description": "The iconic pitched operatic vocal sample, which acts as a melodic hook. It first appears around 19s and defines the main theme.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 1.2,
+            "modulationIndex": 10,
+            "filterType": "lowpass",
+            "filterFrequency": 3000,
+            "filterQ": 0.0
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "G#4",
+            "F#4",
+            "E4",
+            ""
+          ]
+        }
+      }
+    ]
+  }
+}

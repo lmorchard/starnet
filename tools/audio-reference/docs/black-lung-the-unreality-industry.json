@@ -1,0 +1,440 @@
+{
+  "meta": {
+    "artist": "Black Lung",
+    "title": "The Unreality Industry",
+    "slug": "black-lung-the-unreality-industry",
+    "source_file": "The Unreality Industry.mp3",
+    "model": "gemini-2.5-pro"
+  },
+  "mir": {
+    "bpm": 161.4990234375,
+    "key": "C#",
+    "mode": "minor",
+    "key_confidence": 0.8484802008304025,
+    "duration_sec": 318.6009977324263,
+    "sections": [
+      {
+        "start": 0.0
+      },
+      {
+        "start": 8.034104308390022
+      },
+      {
+        "start": 39.230113378684806
+      },
+      {
+        "start": 119.21124716553288
+      },
+      {
+        "start": 134.5364172335601
+      },
+      {
+        "start": 198.60027210884354
+      },
+      {
+        "start": 237.55174603174603
+      },
+      {
+        "start": 287.99709750566893
+      }
+    ],
+    "brightness": {
+      "mean_hz": 1929.2526996966392,
+      "min_hz": 72.45603236457816,
+      "max_hz": 6038.523452194654
+    },
+    "dynamics": {
+      "rms_mean": 0.13021919131278992,
+      "rms_range_db": 13.50823024723408
+    },
+    "midi_path": null
+  },
+  "interpretation": {
+    "summary": "This is a dark, driving industrial techno track at 161 BPM in C# minor. It builds methodically from an atmospheric drone pad, introducing a heavy four-on-the-floor kick and relentless 16th-note hi-hats. The main hypnotic element is a metallic, plucked FM synth arpeggio, later joined by a resonant filtered lead and a solid sub-bass, creating a tense, mechanical, and immersive atmosphere.",
+    "vocabulary": {
+      "timbre": "The palette is synthetic and electronic, featuring complex, metallic FM tones, harsh digital noise, wide detuned saw pads, and a deep, distorted sine-wave sub. Grit is added through saturation, particularly on percussive elements.",
+      "brightness": "Moderately bright (mean centroid 1929 Hz), characterized by the contrast between a dark, ambient pad and sharp, high-frequency elements like the persistent 16th-note hi-hats and cutting synth arpeggios.",
+      "envelope": "Envelopes are highly varied. A slow-attack, long-release pad creates a continuous wash. Percussive sounds use very fast attacks and short decays for maximum punch. The main arpeggio has a sharp, plucked envelope with zero sustain.",
+      "register_density": "The track builds from a sparse, low-mid register drone into a dense, full-spectrum arrangement. The low end is anchored by a sub-bass and kick, mids are filled by arpeggios and pads, and the high register is dominated by hi-hats.",
+      "harmony_mode": "The harmony is modal and static, centered on C# minor. The piece establishes a dark, hypnotic mood through repetition of arpeggiated minor-key figures and sustained drone pads rather than through harmonic progression.",
+      "groove": "A relentless and driving four-on-the-floor groove at a fast 161 BPM. The foundation is a heavy kick on each beat and a constant stream of 16th-note hi-hats, creating a powerful, machine-like propulsion.",
+      "space_grit": "The track features a large, cavernous reverb on the pads, creating a vast sense of space. This contrasts with drier, more upfront percussive and melodic elements. A significant amount of grit is present from distortion and saturation on drums and synths."
+    },
+    "tracks": [
+      {
+        "name": "Drone Pad",
+        "instrument": "PolySynth with FMSynth voices",
+        "pattern": "Sustained, low-register two-note chord (root and fifth) held for multiple bars.",
+        "description": "Establishes the dark, atmospheric foundation from the beginning of the track. It's processed with a very large reverb, creating a wide, continuous sonic bed.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fmsine",
+            "harmonicity": 1.5,
+            "modulationIndex": 5,
+            "filterType": "lowpass",
+            "filterFrequency": 2500,
+            "filterQ": 1.0
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "C#3+G#3"
+          ]
+        }
+      },
+      {
+        "name": "Industrial Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "Driving four-on-the-floor pattern (1/4 notes).",
+        "description": "The rhythmic core of the track, entering at 0:39. It's a heavy, punchy kick with a distorted character, providing relentless energy.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.3,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -8
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        }
+      },
+      {
+        "name": "16th Hats",
+        "instrument": "NoiseSynth",
+        "pattern": "Constant, unaccented 16th notes.",
+        "description": "Enters at 0:39 with the kick. A bright, sharp hi-hat pattern that provides high-frequency energy and propels the track forward.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "filterType": "highpass",
+            "filterFrequency": 8000,
+            "filterQ": 1.0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Plucked Arp",
+        "instrument": "FMSynth",
+        "pattern": "Hypnotic, repeating 16th-note arpeggio based on the C# minor scale.",
+        "description": "The primary melodic hook, entering at 0:39. Its metallic, plucked timbre and repetitive nature create a trance-like effect. It's mixed upfront and is relatively dry.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 2,
+            "modulationIndex": 12,
+            "filterType": "lowpass",
+            "filterFrequency": 5000,
+            "filterQ": 1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C#5",
+            "",
+            "G#4",
+            "",
+            "E5",
+            "",
+            "G#4",
+            "",
+            "C#5",
+            "",
+            "G#4",
+            "",
+            "E5",
+            "",
+            "B4",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Noise Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Simple backbeat on beats 2 and 4.",
+        "description": "Enters around 1:19, providing a classic backbeat that reinforces the groove. It has a splashy quality with a noticeable reverb tail.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -15
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Filter Lead",
+        "instrument": "Synth",
+        "pattern": "A simple, evolving melodic line using notes from the C# minor scale.",
+        "description": "Introduced around 1:19 to add melodic development. The key feature is a sweeping low-pass filter with high resonance that opens and closes, creating tension and textural change.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 3,
+            "spread": 20,
+            "filterType": "lowpass",
+            "filterFrequency": 2000,
+            "filterQ": 4
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "G#4",
+            "",
+            "F#4",
+            "",
+            "G#4",
+            "",
+            "B4",
+            "",
+            "G#4",
+            "",
+            "F#4",
+            "",
+            "E4",
+            "",
+            "",
+            ""
+          ]
+        }
+      }
+    ],
+    "score_draft": "SPECULATIVE STARTER: Set tempo to 161 BPM. Start with a PolySynth playing low C#3+G#3 chords. Use FMSynth voices with a slow attack (2s) and long release (4s), harmonicity ~1.5, into a large reverb. At 39s, bring in the main groove: a MembraneSynth kick on every quarter note ('C1') and a NoiseSynth playing constant 16ths ('x'). For the kick, short decay (~0.3s). For the hats, use a high-pass filter (~8kHz). Simultaneously, start a 16n sequence on an FMSynth for the main arp (e.g., ['C#5', '', 'G#4', '', 'E5', '', 'G#4', '']). Use a plucky envelope (decay ~0.1, sustain 0) and metallic settings (harmonicity 2, modIndex 12). For development, introduce a Synth with a 'fatsawtooth' oscillator and a resonant low-pass filter. Automate the filter's frequency to create sweeping build-ups. A simple snare on beats 2 and 4 using a second NoiseSynth (pink noise, decay ~0.2s) will solidify the groove."
+  },
+  "score_spec": {
+    "root": "C#",
+    "mode": "minor",
+    "bpm": 161.4990234375,
+    "tracks": [
+      {
+        "name": "Drone Pad",
+        "instrument": "PolySynth with FMSynth voices",
+        "pattern": "Sustained, low-register two-note chord (root and fifth) held for multiple bars.",
+        "description": "Establishes the dark, atmospheric foundation from the beginning of the track. It's processed with a very large reverb, creating a wide, continuous sonic bed.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fmsine",
+            "harmonicity": 1.5,
+            "modulationIndex": 5,
+            "filterType": "lowpass",
+            "filterFrequency": 2500,
+            "filterQ": 1.0
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "C#3+G#3"
+          ]
+        }
+      },
+      {
+        "name": "Industrial Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "Driving four-on-the-floor pattern (1/4 notes).",
+        "description": "The rhythmic core of the track, entering at 0:39. It's a heavy, punchy kick with a distorted character, providing relentless energy.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.3,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -8
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        }
+      },
+      {
+        "name": "16th Hats",
+        "instrument": "NoiseSynth",
+        "pattern": "Constant, unaccented 16th notes.",
+        "description": "Enters at 0:39 with the kick. A bright, sharp hi-hat pattern that provides high-frequency energy and propels the track forward.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "filterType": "highpass",
+            "filterFrequency": 8000,
+            "filterQ": 1.0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Plucked Arp",
+        "instrument": "FMSynth",
+        "pattern": "Hypnotic, repeating 16th-note arpeggio based on the C# minor scale.",
+        "description": "The primary melodic hook, entering at 0:39. Its metallic, plucked timbre and repetitive nature create a trance-like effect. It's mixed upfront and is relatively dry.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 2,
+            "modulationIndex": 12,
+            "filterType": "lowpass",
+            "filterFrequency": 5000,
+            "filterQ": 1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C#5",
+            "",
+            "G#4",
+            "",
+            "E5",
+            "",
+            "G#4",
+            "",
+            "C#5",
+            "",
+            "G#4",
+            "",
+            "E5",
+            "",
+            "B4",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Noise Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Simple backbeat on beats 2 and 4.",
+        "description": "Enters around 1:19, providing a classic backbeat that reinforces the groove. It has a splashy quality with a noticeable reverb tail.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -15
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Filter Lead",
+        "instrument": "Synth",
+        "pattern": "A simple, evolving melodic line using notes from the C# minor scale.",
+        "description": "Introduced around 1:19 to add melodic development. The key feature is a sweeping low-pass filter with high resonance that opens and closes, creating tension and textural change.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 3,
+            "spread": 20,
+            "filterType": "lowpass",
+            "filterFrequency": 2000,
+            "filterQ": 4
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "G#4",
+            "",
+            "F#4",
+            "",
+            "G#4",
+            "",
+            "B4",
+            "",
+            "G#4",
+            "",
+            "F#4",
+            "",
+            "E4",
+            "",
+            "",
+            ""
+          ]
+        }
+      }
+    ]
+  }
+}

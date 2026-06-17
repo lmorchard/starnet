@@ -1,0 +1,502 @@
+{
+  "meta": {
+    "artist": "Kontravoid",
+    "title": "Native State",
+    "slug": "kontravoid-native-state",
+    "source_file": "Kontravoid - Native State (Official Video).mp3",
+    "model": "gemini-2.5-pro"
+  },
+  "mir": {
+    "bpm": 120.18531976744185,
+    "key": "A",
+    "mode": "minor",
+    "key_confidence": 0.8317310059220084,
+    "duration_sec": 151.97460317460317,
+    "sections": [
+      {
+        "start": 0.0
+      },
+      {
+        "start": 22.755555555555556
+      },
+      {
+        "start": 40.739410430839
+      },
+      {
+        "start": 47.50802721088435
+      },
+      {
+        "start": 62.76353741496599
+      },
+      {
+        "start": 144.56743764172336
+      }
+    ],
+    "brightness": {
+      "mean_hz": 4210.492747762762,
+      "min_hz": 676.4930924261595,
+      "max_hz": 8191.897547064113
+    },
+    "dynamics": {
+      "rms_mean": 0.2337927371263504,
+      "rms_range_db": 15.51002098438725
+    },
+    "midi_path": null
+  },
+  "interpretation": {
+    "summary": "A dark, driving EBM track at 120 BPM in A minor, characterized by classic drum machine sounds, a relentless 16th-note synth bassline, and layered analog-style synths, all drenched in cavernous reverb and industrial grit.",
+    "vocabulary": {
+      "timbre": "Dominated by synthetic, analog-style sounds; sawtooth and square waves for bass/leads, FM for bells, and noise for percussion and texture.",
+      "brightness": "High mean brightness (4210 Hz) from crisp 16th-note hi-hats and a bright bell arpeggio, balanced against a thudding low-end kick and bass.",
+      "envelope": "Mostly short, tight, and plucky envelopes creating a sequenced, machine-like feel, especially in the bass and arpeggios. Leads and pads have slightly longer releases.",
+      "register_density": "Wide register. A low kick and mid-bass occupy the bottom, while arpeggios and hi-hats fill the high frequencies. Density increases significantly in choruses with the addition of a thick saw lead.",
+      "harmony_mode": "Dark and modal, firmly rooted in A minor. The harmony is built from simple, repetitive arpeggios and basslines on the minor scale, with sustained minor chords in the pads.",
+      "groove": "A rigid, driving, machine-like EBM groove. Four-on-the-floor kick, backbeat snare, and a constant 16th-note subdivision from the bass and hi-hats. Not swung.",
+      "space_grit": "Heavy use of digital/plate reverb, especially on the snare and vocals, creating a large, cavernous space. Synths have a moderate amount of grit and saturation, contributing to the industrial aesthetic."
+    },
+    "tracks": [
+      {
+        "name": "Gated Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "Four-on-the-floor 1/4 note pattern. Short and punchy.",
+        "description": "Provides the core rhythmic pulse of the track. A heavy, thudding kick sound with a very short decay, typical of the EBM genre. Present almost throughout.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.1,
+            "sustain": 0,
+            "release": 0,
+            "volume": -4
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Reverb Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Standard backbeat on beats 2 and 4, 1-bar loop.",
+        "description": "A sharp, classic drum machine snare with a prominent plate reverb tail that defines the track's sense of space. It cuts through the mix on the backbeat.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.005,
+            "decay": 0.15,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -8
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "16th Hi-Hats",
+        "instrument": "MetalSynth",
+        "pattern": "Continuous 16th-note pattern.",
+        "description": "A crisp, metallic hi-hat pattern playing straight 16ths, driving the top-end rhythm and contributing to the track's high-frequency energy. Drops out for some breakdowns.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "filterFrequency": 8000,
+            "filterQ": 5e-324
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Sequencer Bass",
+        "instrument": "MonoSynth",
+        "pattern": "Relentless 16th-note sequence, outlining A minor scale fragments. 1-bar loop.",
+        "description": "The main melodic/rhythmic engine. A gritty, filtered sawtooth bass with a fast envelope creating a plucky, sequenced feel. Enters in the intro and drives the verses.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.2,
+            "release": 0.1,
+            "volume": -10,
+            "filterType": "lowpass",
+            "filterFrequency": 900,
+            "filterQ": 1.5
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A2",
+            "A2",
+            "C3",
+            "A2",
+            "G2",
+            "A2",
+            "G2",
+            "A2",
+            "E2",
+            "E2",
+            "G2",
+            "E2",
+            "D2",
+            "E2",
+            "D2",
+            "E2"
+          ]
+        }
+      },
+      {
+        "name": "Bell Arpeggio",
+        "instrument": "FMSynth",
+        "pattern": "High-register 16th-note arpeggio based on A minor.",
+        "description": "A bright, chiming synth that adds a melodic counterpoint, especially in the intro and linking passages. It's processed with a noticeable delay effect.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 3,
+            "modulationIndex": 8,
+            "filterFrequency": 10000,
+            "filterQ": 3.090169943749474
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A4",
+            "",
+            "C5",
+            "",
+            "E5",
+            "",
+            "C5",
+            "",
+            "A4",
+            "",
+            "G4",
+            "",
+            "E4",
+            "",
+            "D4",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Chorus Saw Lead",
+        "instrument": "PolySynth with 'fatsawtooth' voices",
+        "pattern": "A slow, anthemic melody played on quarter and half notes during the chorus.",
+        "description": "The main melodic hook of the chorus. A very wide, detuned, powerful sawtooth lead that gives the chorus its emotional weight and energy. ",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 4,
+            "spread": 15,
+            "attack": 0.05,
+            "decay": 0.2,
+            "sustain": 0.7,
+            "release": 0.5,
+            "volume": -12
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "A4",
+            "",
+            "A4",
+            "G4",
+            "F4",
+            "",
+            "F4",
+            "E4"
+          ]
+        }
+      },
+      {
+        "name": "Grit Pad",
+        "instrument": "AMSynth",
+        "pattern": "Sustained single notes or simple dyads.",
+        "description": "A textural pad that adds a layer of noisy, gritty dissonance. It sits low in the mix, filling out the space behind the main elements without being explicitly melodic.",
+        "synth": {
+          "type": "AMSynth",
+          "options": {
+            "oscillatorType": "square",
+            "harmonicity": 1.5,
+            "modulationIndex": 1.2,
+            "filterFrequency": 4000,
+            "filterQ": 0.0
+          }
+        },
+        "steps": {
+          "grid": "1n",
+          "notes": [
+            "A3"
+          ]
+        }
+      }
+    ],
+    "score_draft": "SPECULATIVE STARTER: Set Tone.Transport.bpm to 120. Use a 'MembraneSynth' for the kick on 1/4 notes ('C1'). Use a 'NoiseSynth' with a short envelope for the snare on beats 2 and 4. A 'MetalSynth' can play constant 16ths for hi-hats. The main bass is a 'MonoSynth' with a 'sawtooth' oscillator and a fast filter envelope (low 'filter.frequency', high 'filter.Q', short 'filter.envelope.attack' and 'filter.envelope.decay') playing a 16th-note pattern like ['A2','A2','C3','A2','G2','A2','E2','A2']. A bright 'FMSynth' ('harmonicity': 3) can play a high arpeggio like ['A4','','C5','','E5',...]. The chorus lead is a 'PolySynth' with 'fatsawtooth' voices, wide 'spread', and a slow melody. Send the snare and vocals to a 'Reverb' with a decay of ~2s."
+  },
+  "score_spec": {
+    "root": "A",
+    "mode": "minor",
+    "bpm": 120.18531976744185,
+    "tracks": [
+      {
+        "name": "Gated Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "Four-on-the-floor 1/4 note pattern. Short and punchy.",
+        "description": "Provides the core rhythmic pulse of the track. A heavy, thudding kick sound with a very short decay, typical of the EBM genre. Present almost throughout.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.1,
+            "sustain": 0,
+            "release": 0,
+            "volume": -4
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Reverb Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Standard backbeat on beats 2 and 4, 1-bar loop.",
+        "description": "A sharp, classic drum machine snare with a prominent plate reverb tail that defines the track's sense of space. It cuts through the mix on the backbeat.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.005,
+            "decay": 0.15,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -8
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "16th Hi-Hats",
+        "instrument": "MetalSynth",
+        "pattern": "Continuous 16th-note pattern.",
+        "description": "A crisp, metallic hi-hat pattern playing straight 16ths, driving the top-end rhythm and contributing to the track's high-frequency energy. Drops out for some breakdowns.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "filterFrequency": 8000,
+            "filterQ": 5e-324
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Sequencer Bass",
+        "instrument": "MonoSynth",
+        "pattern": "Relentless 16th-note sequence, outlining A minor scale fragments. 1-bar loop.",
+        "description": "The main melodic/rhythmic engine. A gritty, filtered sawtooth bass with a fast envelope creating a plucky, sequenced feel. Enters in the intro and drives the verses.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.1,
+            "sustain": 0.2,
+            "release": 0.1,
+            "volume": -10,
+            "filterType": "lowpass",
+            "filterFrequency": 900,
+            "filterQ": 1.5
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A2",
+            "A2",
+            "C3",
+            "A2",
+            "G2",
+            "A2",
+            "G2",
+            "A2",
+            "E2",
+            "E2",
+            "G2",
+            "E2",
+            "D2",
+            "E2",
+            "D2",
+            "E2"
+          ]
+        }
+      },
+      {
+        "name": "Bell Arpeggio",
+        "instrument": "FMSynth",
+        "pattern": "High-register 16th-note arpeggio based on A minor.",
+        "description": "A bright, chiming synth that adds a melodic counterpoint, especially in the intro and linking passages. It's processed with a noticeable delay effect.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 3,
+            "modulationIndex": 8,
+            "filterFrequency": 10000,
+            "filterQ": 3.090169943749474
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A4",
+            "",
+            "C5",
+            "",
+            "E5",
+            "",
+            "C5",
+            "",
+            "A4",
+            "",
+            "G4",
+            "",
+            "E4",
+            "",
+            "D4",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Chorus Saw Lead",
+        "instrument": "PolySynth with 'fatsawtooth' voices",
+        "pattern": "A slow, anthemic melody played on quarter and half notes during the chorus.",
+        "description": "The main melodic hook of the chorus. A very wide, detuned, powerful sawtooth lead that gives the chorus its emotional weight and energy. ",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 4,
+            "spread": 15,
+            "attack": 0.05,
+            "decay": 0.2,
+            "sustain": 0.7,
+            "release": 0.5,
+            "volume": -12
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "A4",
+            "",
+            "A4",
+            "G4",
+            "F4",
+            "",
+            "F4",
+            "E4"
+          ]
+        }
+      },
+      {
+        "name": "Grit Pad",
+        "instrument": "AMSynth",
+        "pattern": "Sustained single notes or simple dyads.",
+        "description": "A textural pad that adds a layer of noisy, gritty dissonance. It sits low in the mix, filling out the space behind the main elements without being explicitly melodic.",
+        "synth": {
+          "type": "AMSynth",
+          "options": {
+            "oscillatorType": "square",
+            "harmonicity": 1.5,
+            "modulationIndex": 1.2,
+            "filterFrequency": 4000,
+            "filterQ": 0.0
+          }
+        },
+        "steps": {
+          "grid": "1n",
+          "notes": [
+            "A3"
+          ]
+        }
+      }
+    ]
+  }
+}

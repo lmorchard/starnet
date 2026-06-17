@@ -1,0 +1,528 @@
+{
+  "meta": {
+    "artist": "Ghost Cop",
+    "title": "Problems",
+    "slug": "ghost-cop-problems",
+    "source_file": "GHOST COP - PROBLEMS.mp3",
+    "model": "gemini-2.5-pro"
+  },
+  "mir": {
+    "bpm": 126.04801829268293,
+    "key": "A",
+    "mode": "minor",
+    "key_confidence": 0.7737571847375597,
+    "duration_sec": 264.87002267573695,
+    "sections": [
+      {
+        "start": 0.0
+      },
+      {
+        "start": 15.023310657596372
+      },
+      {
+        "start": 121.57968253968254
+      },
+      {
+        "start": 152.56671201814058
+      },
+      {
+        "start": 165.86013605442176
+      },
+      {
+        "start": 178.72399092970522
+      },
+      {
+        "start": 243.76308390022675
+      },
+      {
+        "start": 262.29260770975054
+      }
+    ],
+    "brightness": {
+      "mean_hz": 2073.640692309253,
+      "min_hz": 218.60850822199922,
+      "max_hz": 5100.565487085292
+    },
+    "dynamics": {
+      "rms_mean": 0.2805030047893524,
+      "rms_range_db": 12.488067627275775
+    },
+    "midi_path": null
+  },
+  "interpretation": {
+    "summary": "A dark, driving EBM/synth-pop track featuring a relentless 16th-note bass arpeggio, a four-on-the-floor beat, atmospheric pads, and a detached female vocal performance.",
+    "vocabulary": {
+      "timbre": "Dominated by classic analog-style synth textures, including plucky sawtooth/square bass arpeggios, sustained pads, and drum machine sounds, contrasted with a breathy human vocal.",
+      "brightness": "Moderately bright, with a mean spectral centroid of 2074 Hz. The crisp metallic hi-hats and filtered lead synths occupy the high end, balanced by a powerful low-end from the kick and sub-bass.",
+      "envelope": "Envelopes are predominantly short and tight, especially the percussive bass arpeggio and drums which have near-zero attack and quick decay. Pads and vocals use longer attacks and releases to create atmospheric space.",
+      "register_density": "The arrangement builds from a sparse intro of bass and kick to a moderately dense texture, layering multiple synth lines, pads, and vocals. The register is wide, from deep sub-bass to sizzling high-frequency hats.",
+      "harmony_mode": "The track is set in a dark A minor mode, using repetitive, hypnotic basslines centered on the tonic. Harmony is minimal and static, reinforcing the driving, trance-like mood.",
+      "groove": "A straight and powerful four-on-the-floor groove at 126 BPM. The propulsive energy comes from the constant 16th-note bass arpeggiation against the steady quarter-note kick drum.",
+      "space_grit": "The production uses a distinct separation of space: drums and bass are dry and upfront, while vocals and pads are washed in a large, dark reverb. A subtle layer of saturation adds grit and aggression to the synth elements."
+    },
+    "tracks": [
+      {
+        "name": "Kick Drum",
+        "instrument": "MembraneSynth",
+        "pattern": "Unyielding four-on-the-floor quarter-note pattern.",
+        "description": "The foundational rhythmic pulse of the track, a powerful and consistent kick drum present from the very beginning.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.4,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -6
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        }
+      },
+      {
+        "name": "Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Standard backbeat on beats 2 and 4.",
+        "description": "A punchy, electronic snare providing the backbeat. It has a tight envelope and a touch of reverb, entering with the main beat.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "filterType": "bandpass",
+            "filterFrequency": 1500,
+            "filterQ": 1.5
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Closed Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Continuous 8th notes.",
+        "description": "A crisp, metallic closed hi-hat playing steady 8th notes, adding high-frequency energy and tightening the groove.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "filterQ": 1.5
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Arp Bass",
+        "instrument": "FMSynth",
+        "pattern": "Relentless 16th-note arpeggio, outlining the root and fifth.",
+        "description": "The track's signature element, a driving, percussive bass arpeggio that establishes the core melodic and rhythmic identity from the intro.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 1.5,
+            "modulationIndex": 5,
+            "filterType": "lowpass",
+            "filterFrequency": 1800,
+            "filterQ": 1.0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3"
+          ]
+        }
+      },
+      {
+        "name": "Sub Bass",
+        "instrument": "Synth",
+        "pattern": "Sustained whole notes following the root of the harmony.",
+        "description": "A deep, low-passed sine/triangle wave that enters after the intro (0:15) to add weight and fundamental harmonic support beneath the main arp.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "triangle",
+            "attack": 0.5,
+            "decay": 0.1,
+            "sustain": 0.9,
+            "release": 1,
+            "volume": -8
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A1"
+          ]
+        }
+      },
+      {
+        "name": "Vocal",
+        "instrument": "Player",
+        "pattern": "Melodic phrases in a breathy, detached style.",
+        "description": "The lead female vocal, entering at 0:15. It is mixed centrally with a prominent hall reverb effect. As this is a sample, the synth and steps are a playable proxy.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.05,
+            "release": 0.4,
+            "filterType": "lowpass",
+            "filterFrequency": 2500,
+            "filterQ": 2
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "A3",
+            "A3",
+            "",
+            "G3",
+            "G3",
+            "",
+            "E3",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Harmony Pad",
+        "instrument": "PolySynth",
+        "pattern": "Sustained minor chords with slow attack.",
+        "description": "A bright, wide stereo pad that swells in during chorus sections to add atmospheric depth and harmonic texture. Uses detuned oscillators for a thick sound.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 6,
+            "spread": 40,
+            "attack": 0.8,
+            "sustain": 0.8,
+            "release": 1.5,
+            "volume": -18
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A3+C4+E4"
+          ]
+        }
+      },
+      {
+        "name": "Breakdown Arp",
+        "instrument": "Synth",
+        "pattern": "Melodic 16th-note sequence with delay.",
+        "description": "A melodic synth line with a square-wave timbre that appears in the instrumental breakdown section around 2:07, providing a solo-like counterpoint.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "square",
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0.1,
+            "release": 0.1,
+            "volume": -12
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "E4",
+            "D4",
+            "C4",
+            "D4",
+            "E4",
+            "C4",
+            "A3",
+            "C4",
+            "E4",
+            "D4",
+            "C4",
+            "D4",
+            "C4",
+            "A3",
+            "",
+            ""
+          ]
+        }
+      }
+    ],
+    "score_draft": "SPECULATIVE STARTER: Set tempo to 126 BPM. The core is an FMSynth playing a 16n sequence like ['A2', 'E3', 'A3', 'E3']. Give it a plucky envelope (attack:0.001, decay:0.2, sustain:0) and some bite (harmonicity:1.5, modIndex:5). Underpin this with a four-on-the-floor MembraneSynth kick. Layer a NoiseSynth snare on beats 2 and 4. For pads, use a PolySynth with a 'fatsawtooth' oscillator, slow attack (>0.5s), and long release (>1s) on minor chords (e.g., 'A3+C4+E4'). Process vocals and pads with a Reverb with a decay of ~3s and wet level of ~0.4. Keep bass and drums mostly dry."
+  },
+  "score_spec": {
+    "root": "A",
+    "mode": "minor",
+    "bpm": 126.04801829268293,
+    "tracks": [
+      {
+        "name": "Kick Drum",
+        "instrument": "MembraneSynth",
+        "pattern": "Unyielding four-on-the-floor quarter-note pattern.",
+        "description": "The foundational rhythmic pulse of the track, a powerful and consistent kick drum present from the very beginning.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.4,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -6
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        }
+      },
+      {
+        "name": "Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Standard backbeat on beats 2 and 4.",
+        "description": "A punchy, electronic snare providing the backbeat. It has a tight envelope and a touch of reverb, entering with the main beat.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "filterType": "bandpass",
+            "filterFrequency": 1500,
+            "filterQ": 1.5
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Closed Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Continuous 8th notes.",
+        "description": "A crisp, metallic closed hi-hat playing steady 8th notes, adding high-frequency energy and tightening the groove.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "filterQ": 1.5
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Arp Bass",
+        "instrument": "FMSynth",
+        "pattern": "Relentless 16th-note arpeggio, outlining the root and fifth.",
+        "description": "The track's signature element, a driving, percussive bass arpeggio that establishes the core melodic and rhythmic identity from the intro.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 1.5,
+            "modulationIndex": 5,
+            "filterType": "lowpass",
+            "filterFrequency": 1800,
+            "filterQ": 1.0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3",
+            "A2",
+            "E3",
+            "A3",
+            "E3"
+          ]
+        }
+      },
+      {
+        "name": "Sub Bass",
+        "instrument": "Synth",
+        "pattern": "Sustained whole notes following the root of the harmony.",
+        "description": "A deep, low-passed sine/triangle wave that enters after the intro (0:15) to add weight and fundamental harmonic support beneath the main arp.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "triangle",
+            "attack": 0.5,
+            "decay": 0.1,
+            "sustain": 0.9,
+            "release": 1,
+            "volume": -8
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A1"
+          ]
+        }
+      },
+      {
+        "name": "Vocal",
+        "instrument": "Player",
+        "pattern": "Melodic phrases in a breathy, detached style.",
+        "description": "The lead female vocal, entering at 0:15. It is mixed centrally with a prominent hall reverb effect. As this is a sample, the synth and steps are a playable proxy.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.05,
+            "release": 0.4,
+            "filterType": "lowpass",
+            "filterFrequency": 2500,
+            "filterQ": 2
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "A3",
+            "A3",
+            "",
+            "G3",
+            "G3",
+            "",
+            "E3",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Harmony Pad",
+        "instrument": "PolySynth",
+        "pattern": "Sustained minor chords with slow attack.",
+        "description": "A bright, wide stereo pad that swells in during chorus sections to add atmospheric depth and harmonic texture. Uses detuned oscillators for a thick sound.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 6,
+            "spread": 40,
+            "attack": 0.8,
+            "sustain": 0.8,
+            "release": 1.5,
+            "volume": -18
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A3+C4+E4"
+          ]
+        }
+      },
+      {
+        "name": "Breakdown Arp",
+        "instrument": "Synth",
+        "pattern": "Melodic 16th-note sequence with delay.",
+        "description": "A melodic synth line with a square-wave timbre that appears in the instrumental breakdown section around 2:07, providing a solo-like counterpoint.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "square",
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0.1,
+            "release": 0.1,
+            "volume": -12
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "E4",
+            "D4",
+            "C4",
+            "D4",
+            "E4",
+            "C4",
+            "A3",
+            "C4",
+            "E4",
+            "D4",
+            "C4",
+            "D4",
+            "C4",
+            "A3",
+            "",
+            ""
+          ]
+        }
+      }
+    ]
+  }
+}

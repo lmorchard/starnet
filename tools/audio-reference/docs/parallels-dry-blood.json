@@ -1,0 +1,596 @@
+{
+  "meta": {
+    "artist": "Parallels",
+    "title": "Dry Blood",
+    "slug": "parallels-dry-blood",
+    "source_file": "Dry Blood By Parallels (Official Music Video).mp3",
+    "model": "gemini-2.5-pro"
+  },
+  "mir": {
+    "bpm": 120.18531976744185,
+    "key": "A",
+    "mode": "minor",
+    "key_confidence": 0.8581664972791025,
+    "duration_sec": 249.12689342403627,
+    "sections": [
+      {
+        "start": 0.0
+      },
+      {
+        "start": 8.928072562358278
+      },
+      {
+        "start": 82.03609977324263
+      },
+      {
+        "start": 129.23065759637188
+      },
+      {
+        "start": 178.27120181405897
+      },
+      {
+        "start": 241.68489795918367
+      }
+    ],
+    "brightness": {
+      "mean_hz": 3822.7229633789493,
+      "min_hz": 984.966008852432,
+      "max_hz": 8091.684835588126
+    },
+    "dynamics": {
+      "rms_mean": 0.10908868163824081,
+      "rms_range_db": 8.665140932326459
+    },
+    "midi_path": null
+  },
+  "interpretation": {
+    "summary": "An energetic and nostalgic synth-pop track in A minor at 120 BPM, characterized by a driving 16th-note bassline, bright arpeggios, a four-on-the-floor beat with a prominent gated snare, and melancholic melodic themes.",
+    "vocabulary": {
+      "timbre": "Dominated by classic 80s analog and early digital synthesizer sounds: bright sawtooth leads, punchy bass, washy pads, and crisp drum machine percussion.",
+      "brightness": "Bright and crisp, with a high spectral centroid. High-frequency arpeggios and cymbals cut through the mix, balanced by warm, low-passed pads.",
+      "envelope": "A mix of very tight, percussive envelopes (bass, arp, drums) with fast attacks and quick decays, and slow, swelling envelopes for the pads, creating both drive and atmosphere.",
+      "register_density": "Dense and wide-ranging. A low-end anchor from the kick and bass, a busy mid-range with chords and melodies, and a sparkling high-end from arpeggios and hi-hats.",
+      "harmony_mode": "Firmly in A-minor (Aeolian), creating a classic melancholic but driving synth-pop mood. Harmony is built on diatonic chords like Am, G, F, and C.",
+      "groove": "A straight, non-swung 120 BPM four-on-the-floor groove. The relentless 16th-note bass and arpeggio lines create a strong sense of forward momentum.",
+      "space_grit": "Spacious and clean. Dominated by large hall and gated reverbs, especially on the snare, giving the track its characteristic 80s depth. Grit is minimal, with sounds being saturated but not overtly distorted."
+    },
+    "tracks": [
+      {
+        "name": "Four on the Floor Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "Steady quarter notes (4-on-the-floor).",
+        "description": "The core rhythmic foundation of the track. Present throughout most of the song, providing a constant pulse.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "volume": -6,
+            "filterFrequency": 60,
+            "filterQ": Infinity
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C2",
+            "C2",
+            "C2",
+            "C2"
+          ]
+        }
+      },
+      {
+        "name": "Gated Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Hits on beats 2 and 4.",
+        "description": "A classic 80s gated reverb snare sound that defines the backbeat. Requires a GatedReverb effect to achieve its signature spacious-but-tight sound.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "volume": -8,
+            "filterFrequency": 0.2,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Closed Hats",
+        "instrument": "MetalSynth",
+        "pattern": "Continuous 16th notes.",
+        "description": "Provides high-frequency rhythmic drive with a tight, crisp sound.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "volume": -20,
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "filterFrequency": 0.05,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Open Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Plays on the off-beat of every quarter note.",
+        "description": "Accents the main beat, creating the classic open-closed hat groove. Has a longer decay than the closed hats for a 'sizzle' effect.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "volume": -17,
+            "harmonicity": 5.1,
+            "modulationIndex": 20,
+            "filterFrequency": 0.3,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Driving Bass",
+        "instrument": "MonoSynth",
+        "pattern": "Continuous 16th-note octave pattern, following the chord roots.",
+        "description": "The main rhythmic and harmonic driver in the low-mid range. Enters after the intro and plays almost continuously.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "volume": -10,
+            "filterFrequency": 0.15,
+            "filterQ": 0.1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A2",
+            "A1",
+            "A2",
+            "A1",
+            "A2",
+            "A1",
+            "A2",
+            "A1",
+            "G2",
+            "G1",
+            "G2",
+            "G1",
+            "G2",
+            "G1",
+            "G2",
+            "G1"
+          ]
+        }
+      },
+      {
+        "name": "Bright Arp",
+        "instrument": "Synth",
+        "pattern": "Fast 16th-note arpeggio outlining the chords in a high register.",
+        "description": "A defining melodic and textural element from the very start. Its brightness cuts through the mix and provides a sense of speed and energy.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 3,
+            "spread": 20,
+            "volume": -15,
+            "filterFrequency": 0.2,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A4",
+            "C5",
+            "E5",
+            "C5",
+            "A4",
+            "C5",
+            "E5",
+            "C5",
+            "G4",
+            "B4",
+            "D5",
+            "B4",
+            "G4",
+            "B4",
+            "D5",
+            "B4"
+          ]
+        }
+      },
+      {
+        "name": "Main Pad",
+        "instrument": "PolySynth",
+        "pattern": "Sustained whole-note chords that follow the main progression.",
+        "description": "Provides the harmonic glue for the track. Swells in with a slow attack and fills the background with a wide, stereo texture.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "volume": -18,
+            "filterFrequency": 0.5,
+            "filterQ": 0.8
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A3+C4+E4",
+            "G3+B3+D4"
+          ]
+        }
+      },
+      {
+        "name": "Brass Stabs",
+        "instrument": "PolySynth",
+        "pattern": "Syncopated chord stabs, often playing on off-beats.",
+        "description": "Adds punch and excitement during the chorus sections. Has a bright, brassy timbre with a quick decay.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "volume": -12,
+            "filterFrequency": 0.4,
+            "filterQ": 0.1
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "",
+            "A3+C4+E4",
+            "",
+            "",
+            "",
+            "G3+B3+D4",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Simple Lead",
+        "instrument": "MonoSynth",
+        "pattern": "Simple, melodic phrases with held notes.",
+        "description": "Carries the main instrumental melody. It's expressive and reminiscent of a vocal line. Enters in verse-like sections.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "square",
+            "volume": -14,
+            "filterFrequency": 0.3,
+            "filterQ": 0.5
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "E4",
+            "D4",
+            "C4",
+            "B3",
+            "A3",
+            "",
+            "C4",
+            ""
+          ]
+        }
+      }
+    ],
+    "score_draft": "// Speculative starter kit for Tone.js. Effects are crucial.\n// The iconic snare sound needs a Gated Reverb.\nconst gatedReverb = new Tone.GatedReverb({ wet: 0.6, decay: 0.2 }).toDestination();\nconst snare = new Tone.NoiseSynth({ envelope: { attack: 0.005, decay: 0.2 } }).connect(gatedReverb);\n\n// The core rhythm is a 16th-note bass and arp.\nconst bass = new Tone.MonoSynth({ oscillator: { type: 'sawtooth' }, filter: { type: 'lowpass', frequency: 800 }, envelope: { attack: 0.01, decay: 0.2 } }).toDestination();\nconst bassPattern = new Tone.Sequence((time, note) => bass.triggerAttackRelease(note, '16n', time), ['A2', 'A1', 'A2', 'A1', 'A2', 'A1', 'A2', 'A1', 'G2', 'G1', 'G2', 'G1', 'G2', 'G1', 'G2', 'G1'], '16n').start(0);\n\n// Washy pads fill the space.\nconst pad = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'fatsawtooth', count: 4, spread: 40 }, envelope: { attack: 1.5, release: 2.0 }, filter: { type: 'lowpass', frequency: 2500 } }).toDestination();\n\n// Set tempo and start transport.\nTone.Transport.bpm.value = 120;"
+  },
+  "score_spec": {
+    "root": "A",
+    "mode": "minor",
+    "bpm": 120.18531976744185,
+    "tracks": [
+      {
+        "name": "Four on the Floor Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "Steady quarter notes (4-on-the-floor).",
+        "description": "The core rhythmic foundation of the track. Present throughout most of the song, providing a constant pulse.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "volume": -6,
+            "filterFrequency": 60,
+            "filterQ": Infinity
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C2",
+            "C2",
+            "C2",
+            "C2"
+          ]
+        }
+      },
+      {
+        "name": "Gated Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "Hits on beats 2 and 4.",
+        "description": "A classic 80s gated reverb snare sound that defines the backbeat. Requires a GatedReverb effect to achieve its signature spacious-but-tight sound.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "volume": -8,
+            "filterFrequency": 0.2,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Closed Hats",
+        "instrument": "MetalSynth",
+        "pattern": "Continuous 16th notes.",
+        "description": "Provides high-frequency rhythmic drive with a tight, crisp sound.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "volume": -20,
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "filterFrequency": 0.05,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Open Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Plays on the off-beat of every quarter note.",
+        "description": "Accents the main beat, creating the classic open-closed hat groove. Has a longer decay than the closed hats for a 'sizzle' effect.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "volume": -17,
+            "harmonicity": 5.1,
+            "modulationIndex": 20,
+            "filterFrequency": 0.3,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Driving Bass",
+        "instrument": "MonoSynth",
+        "pattern": "Continuous 16th-note octave pattern, following the chord roots.",
+        "description": "The main rhythmic and harmonic driver in the low-mid range. Enters after the intro and plays almost continuously.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "volume": -10,
+            "filterFrequency": 0.15,
+            "filterQ": 0.1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A2",
+            "A1",
+            "A2",
+            "A1",
+            "A2",
+            "A1",
+            "A2",
+            "A1",
+            "G2",
+            "G1",
+            "G2",
+            "G1",
+            "G2",
+            "G1",
+            "G2",
+            "G1"
+          ]
+        }
+      },
+      {
+        "name": "Bright Arp",
+        "instrument": "Synth",
+        "pattern": "Fast 16th-note arpeggio outlining the chords in a high register.",
+        "description": "A defining melodic and textural element from the very start. Its brightness cuts through the mix and provides a sense of speed and energy.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 3,
+            "spread": 20,
+            "volume": -15,
+            "filterFrequency": 0.2,
+            "filterQ": 0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A4",
+            "C5",
+            "E5",
+            "C5",
+            "A4",
+            "C5",
+            "E5",
+            "C5",
+            "G4",
+            "B4",
+            "D5",
+            "B4",
+            "G4",
+            "B4",
+            "D5",
+            "B4"
+          ]
+        }
+      },
+      {
+        "name": "Main Pad",
+        "instrument": "PolySynth",
+        "pattern": "Sustained whole-note chords that follow the main progression.",
+        "description": "Provides the harmonic glue for the track. Swells in with a slow attack and fills the background with a wide, stereo texture.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "volume": -18,
+            "filterFrequency": 0.5,
+            "filterQ": 0.8
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A3+C4+E4",
+            "G3+B3+D4"
+          ]
+        }
+      },
+      {
+        "name": "Brass Stabs",
+        "instrument": "PolySynth",
+        "pattern": "Syncopated chord stabs, often playing on off-beats.",
+        "description": "Adds punch and excitement during the chorus sections. Has a bright, brassy timbre with a quick decay.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "volume": -12,
+            "filterFrequency": 0.4,
+            "filterQ": 0.1
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "",
+            "A3+C4+E4",
+            "",
+            "",
+            "",
+            "G3+B3+D4",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Simple Lead",
+        "instrument": "MonoSynth",
+        "pattern": "Simple, melodic phrases with held notes.",
+        "description": "Carries the main instrumental melody. It's expressive and reminiscent of a vocal line. Enters in verse-like sections.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "square",
+            "volume": -14,
+            "filterFrequency": 0.3,
+            "filterQ": 0.5
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "E4",
+            "D4",
+            "C4",
+            "B3",
+            "A3",
+            "",
+            "C4",
+            ""
+          ]
+        }
+      }
+    ]
+  }
+}
