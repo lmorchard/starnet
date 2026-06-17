@@ -77,8 +77,16 @@ function triggerStep(synth, type, token, dur, time) {
   if (!token) return;                       // "" -> rest
   const d = PERC.has(type) ? PERC_DUR : dur; // percussion stays short regardless of grid
   if (UNPITCHED.has(type)) { synth.triggerAttackRelease(d, time); return; }
-  const note = token === "x" ? "C3" : (token.includes("+") ? token.split("+") : token);
-  synth.triggerAttackRelease(note, d, time);
+  if (token === "x") { synth.triggerAttackRelease("C3", d, time); return; }
+  if (token.includes("+")) {
+    // A chord. Only PolySynth can sound simultaneous notes; handing an array to a
+    // monophonic synth throws ("start time must be strictly greater...") mid-trigger and
+    // leaves a stuck, never-released note. Collapse to the root for mono synths.
+    const notes = token.split("+");
+    synth.triggerAttackRelease(type === "PolySynth" ? notes : notes[0], d, time);
+    return;
+  }
+  synth.triggerAttackRelease(token, d, time);
 }
 
 function disposeBuilt() {
@@ -157,10 +165,17 @@ async function build(spec) {
 
     const synth = makeSynth(type, o);
     synth.connect(synthTarget);
-    const voice = { synth };          // mutable holder so the recycler can swap the synth
+    const voice = { synth, last: -1 }; // mutable holder (recycler swaps synth); last = last trigger time
     const grid = t.steps?.grid || "8n";
     const notes = t.steps?.notes || [];
-    const seq = new Tone.Sequence((time, tok) => triggerStep(voice.synth, type, tok, grid, time), notes, grid);
+    const seq = new Tone.Sequence((time, tok) => {
+      // A monophonic synth throws "start time must be strictly greater than previous" if
+      // retriggered at a non-increasing time (scheduler collisions, loop-boundary doubling),
+      // and the throw aborts mid-trigger leaving a stuck, never-released note. Guard it.
+      if (time <= voice.last) return;
+      voice.last = time;
+      triggerStep(voice.synth, type, tok, grid, time);
+    }, notes, grid);
     seq.start(0);
     rows.push({ t, type, opts: o, gain, voice, synthTarget, seq, muted: false, skipped: false });
   });
