@@ -6,9 +6,12 @@ const PALETTE = new Set([
   "MembraneSynth", "MetalSynth", "NoiseSynth", "PluckSynth",
 ]);
 const UNPITCHED = new Set(["NoiseSynth"]);
+// One-shot percussion: kept short + trimmed so hats tick instead of ringing/dominating.
+const PERC = new Set(["MetalSynth", "NoiseSynth"]);
+const PERC_DUR = "32n";   // fixed short trigger length regardless of the step grid
 // Inherently-hot sources get a default output trim (dB) so they don't dominate the bus
 // compressor — loud hats were pumping the whole mix down. A model-set `volume` still wins.
-const DEFAULT_TRIM = { MetalSynth: -16, NoiseSynth: -10 };
+const DEFAULT_TRIM = { MetalSynth: -22, NoiseSynth: -14 };
 
 // A synth triggered thousands of times accumulates un-prunable AudioParam automation, which
 // compounds into rising CPU and crackle over a long run. Mirror the Starnet engine's fix:
@@ -72,9 +75,10 @@ function makeSynth(type, opts) {
 // Trigger one step token on a synth, honoring per-type signatures.
 function triggerStep(synth, type, token, dur, time) {
   if (!token) return;                       // "" -> rest
-  if (UNPITCHED.has(type)) { synth.triggerAttackRelease(dur, time); return; }
+  const d = PERC.has(type) ? PERC_DUR : dur; // percussion stays short regardless of grid
+  if (UNPITCHED.has(type)) { synth.triggerAttackRelease(d, time); return; }
   const note = token === "x" ? "C3" : (token.includes("+") ? token.split("+") : token);
-  synth.triggerAttackRelease(note, dur, time);
+  synth.triggerAttackRelease(note, d, time);
 }
 
 function disposeBuilt() {
@@ -127,6 +131,12 @@ async function build(spec) {
     }
     const o = { ...(t.synth.options || {}) };
     if (o.volume == null && DEFAULT_TRIM[type] != null) o.volume = DEFAULT_TRIM[type];
+    if (PERC.has(type)) {
+      // Force a one-shot envelope so hats don't sustain/ring (model values were too long).
+      o.sustain = 0;
+      o.release = Math.min(o.release ?? 0.06, 0.1);
+      if (o.decay != null) o.decay = Math.min(o.decay, 0.2);
+    }
 
     // Build the post-synth insert chain ([Distortion] -> [Chorus] -> gain) FIRST, so the
     // synth has a stable target node to feed — the recycler reconnects fresh synths here.
