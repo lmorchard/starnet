@@ -47,16 +47,40 @@ class VocabularyGrid(TypedDict):
     space_grit: str
 
 
-class Track(TypedDict):
-    """One arrangement channel: an instrument driven by a pattern.
+class SynthOptions(TypedDict, total=False):
+    """Flat, Vertex-safe synth options. The harness expands these to nested Tone options."""
+    oscillatorType: str
+    count: int
+    spread: float
+    attack: float
+    decay: float
+    sustain: float
+    release: float
+    volume: float
+    harmonicity: float
+    modulationIndex: float
+    filterType: str
+    filterFrequency: float
+    filterQ: float
 
-    Names/roles are invented per piece (no fixed taxonomy); `instrument` is a
-    Tone.js source type or a short custom-synthesis description.
-    """
+
+class SynthSpec(TypedDict):
+    type: str               # a palette member (see scorespec.PALETTE)
+    options: SynthOptions
+
+
+class Steps(TypedDict):
+    grid: str               # Tone subdivision, e.g. "16n", "8n"
+    notes: list[str]        # token grammar: "" rest / "x" unpitched hit / "C4" note / "C4+E4" chord
+
+
+class Track(TypedDict):
     name: str
-    instrument: str
-    pattern: str
-    description: str
+    instrument: str         # prose (doc + beyond-engine inspiration)
+    pattern: str            # prose
+    description: str        # prose
+    synth: SynthSpec        # playable
+    steps: Steps            # playable
 
 
 class LlmInterp(TypedDict):
@@ -64,3 +88,10 @@ class LlmInterp(TypedDict):
     vocabulary: VocabularyGrid
     tracks: list[Track]
     score_draft: str
+
+
+class ScoreSpec(TypedDict):
+    root: str
+    mode: str
+    bpm: float
+    tracks: list[Track]
