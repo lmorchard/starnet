@@ -14,31 +14,42 @@
     th, td { text-align: left; padding: .25rem .5rem; border-bottom: 1px solid #ddd; }
     .muted { opacity: .4; }
     #warnings { color: #b00; white-space: pre-wrap; }
+    #status { color: #197; }
     code { background: #f2f2f2; padding: 0 .25rem; }
     #library-section { margin: 1rem 0; }
     #library { list-style: none; padding: 0; margin: .5rem 0; }
     #library li { margin: .15rem 0; }
     #library button { width: 100%; text-align: left; cursor: pointer; }
     #library button.playing { font-weight: 600; outline: 2px solid #39c; }
+    .track { border: 1px solid #ddd; border-radius: 4px; padding: .5rem .6rem; margin: .5rem 0; }
+    .track.skipped { opacity: .4; }
+    .track-head { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .track-name { font-weight: 600; min-width: 9rem; }
+    .ctls { display: flex; gap: .4rem .7rem; flex-wrap: wrap; margin-top: .4rem; }
+    .ctl { display: inline-flex; gap: .25rem; align-items: center; font-size: 12px; color: #555; }
+    .ctl input { width: 4.2rem; font: inherit; }
+    .ctl select { font: inherit; }
   </style>
 </head>
 <body>
   <h1>audio-reference player</h1>
   <p>Pick an analyzed track below, or load a <code>docs/&lt;slug&gt;.json</code> file directly.
-     The library list needs the served player (<code>uv run audio-reference play</code>); the
-     file picker also works over <code>file://</code>.</p>
+     The library + <strong>Save</strong> need the served player (<code>uv run audio-reference play</code>);
+     the file picker also works over <code>file://</code>.</p>
   <div class="controls">
     <input type="file" id="file" accept="application/json,.json" />
     <button id="play" disabled>▶ Play</button>
     <button id="stop" disabled>■ Stop</button>
+    <button id="save" disabled title="write tweaks back to docs/<slug>.json">💾 Save</button>
     <span id="meta"></span>
+    <span id="status"></span>
   </div>
   <section id="library-section" style="display:none">
     <strong>Library</strong>
     <ul id="library"></ul>
   </section>
   <div id="warnings"></div>
-  <table id="tracks"><tbody></tbody></table>
+  <div id="tracks"></div>
   <!-- Classic script (not type=module): ES modules are CORS-blocked over file:// in
        Chrome/Firefox, and player.js uses no import/export, so a classic script works. -->
   <script src="./player.js"></script>

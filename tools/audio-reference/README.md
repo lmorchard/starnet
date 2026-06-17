@@ -81,8 +81,17 @@ uv run audio-reference play          # serves player/ + docs/ at http://127.0.0.
 ```
 
 Open the printed URL, click a track in the **Library** list, and press **Play**. Toggle
-per-track **Mute**/**Solo** to inspect the arrangement. The library is driven by
-`docs/index.json`, a manifest that `analyze` refreshes automatically; rebuild it by hand with:
+per-track **Mute**/**Solo** to inspect the arrangement.
+
+**Tweak instruments live.** Each track card exposes its synth type + options (oscillator,
+ADSR, filter, drive, chorus, reverb send, FM harmonicity/modIndex, …). Changing a control
+rebuilds that track in place so you hear it immediately. Hit **Save** to write the tweaked
+`score_spec` back to `docs/<slug>.json` (the served `play` endpoint does this; the
+file-picker / `file://` path is read-only). Hand-tuned tracks become authored — re-running
+`analyze` on them would overwrite the tweaks.
+
+The library is driven by `docs/index.json`, a manifest that `analyze` refreshes
+automatically; rebuild it by hand with:
 
 ```bash
 uv run audio-reference index         # rescans docs/*.json -> docs/index.json

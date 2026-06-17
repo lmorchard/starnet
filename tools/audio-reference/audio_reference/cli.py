@@ -20,6 +20,7 @@ from .gemini import analyze_audio
 from .render import render_markdown
 from .scorespec import build_sidecar, sanitize_numbers
 from .index import build_index
+from .save import safe_slug, apply_score_spec
 
 DEFAULT_MODEL = "gemini-2.5-pro"
 DEFAULT_PORT = 8777
@@ -96,13 +97,43 @@ def cmd_index(args) -> int:
 
 
 class _NoCacheHandler(http.server.SimpleHTTPRequestHandler):
-    """Static handler that disables caching so edited player.js / fresh docs are always served."""
+    """Static handler + a POST /save/<slug> route that writes a tweaked score_spec back to
+    docs/<slug>.json. No-cache so edited player.js / fresh docs are always served."""
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
     def log_message(self, *a):  # quiet per-request logging
         pass
+
+    def do_POST(self):
+        if not self.path.startswith("/save/"):
+            self.send_error(404, "not found")
+            return
+        slug = self.path[len("/save/"):]
+        if not safe_slug(slug):
+            self.send_error(400, "bad slug")
+            return
+        path = os.path.join(self.directory, "docs", f"{slug}.json")
+        if not os.path.isfile(path):
+            self.send_error(404, "no such track")
+            return
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            score_spec = json.loads(self.rfile.read(length))
+            with open(path) as fh:
+                sidecar = json.load(fh)
+            merged = sanitize_numbers(apply_score_spec(sidecar, score_spec))
+            with open(path, "w") as fh:
+                json.dump(merged, fh, indent=2, allow_nan=False)
+            write_index(os.path.join(self.directory, "docs"))
+        except (ValueError, OSError) as e:
+            self.send_error(400, f"save failed: {e}")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"ok":true}')
 
 
 class _Server(socketserver.TCPServer):
