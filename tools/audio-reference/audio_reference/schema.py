@@ -48,7 +48,11 @@ class VocabularyGrid(TypedDict):
 
 
 class SynthOptions(TypedDict, total=False):
-    """Flat, Vertex-safe synth options. The harness expands these to nested Tone options."""
+    """Flat, Vertex-safe synth options. The harness expands these to nested Tone options.
+
+    `drive`/`chorus`/`reverbSend` are not Tone constructor options — the harness reads them
+    separately and wires per-track effect nodes (Distortion / Chorus / a reverb send).
+    """
     oscillatorType: str
     count: int
     spread: float
@@ -62,6 +66,9 @@ class SynthOptions(TypedDict, total=False):
     filterType: str
     filterFrequency: float
     filterQ: float
+    drive: float        # 0..1 distortion amount (body/grit)
+    chorus: float       # 0..1 chorus wet (width)
+    reverbSend: float   # 0..1 send to the shared reverb (space)
 
 
 class SynthSpec(TypedDict):

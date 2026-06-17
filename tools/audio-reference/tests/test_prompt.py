@@ -73,3 +73,15 @@ def test_prompt_explains_synth_steps_and_token_grammar():
     assert "grid" in p
     # the token grammar must be spelled out for the model
     assert "rest" in p and "chord" in p
+
+
+def test_response_schema_synth_options_has_body_fields():
+    opts = RESPONSE_SCHEMA["properties"]["tracks"]["items"]["properties"]["synth"]["properties"]["options"]["properties"]
+    for field in ["drive", "chorus", "reverbSend", "filterQ"]:
+        assert field in opts
+
+
+def test_prompt_asks_for_body_and_drive():
+    p = build_prompt(META, MIR).lower()
+    assert "drive" in p
+    assert "body" in p or "thin" in p

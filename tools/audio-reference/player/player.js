@@ -9,7 +9,7 @@ const UNPITCHED = new Set(["NoiseSynth"]);
 
 const $ = (id) => document.getElementById(id);
 const warnings = [];
-let built = null; // { sequences:[], synths:[], gains:[], reverb, master, rows }
+let built = null; // { sequences, synths, gains, fx, bus, reverb, rows }
 
 // Flat option scalars -> nested Tone constructor options. Only set what's provided.
 function expandOptions(o = {}) {
@@ -70,9 +70,10 @@ function disposeBuilt() {
   if (!built) return;
   built.sequences.forEach((s) => s.dispose());
   built.synths.forEach((s) => s.dispose());
+  built.fx.forEach((n) => n.dispose());
   built.gains.forEach((g) => g.dispose());
+  built.bus.forEach((n) => n.dispose());
   built.reverb?.dispose();
-  built.master?.dispose();
   built = null;
 }
 
@@ -84,38 +85,60 @@ async function build(spec) {
   Tone.Transport.position = 0;
   Tone.Transport.bpm.value = spec.bpm || 120;
 
-  const master = new Tone.Gain(0.9).toDestination();
-  // Tone.Reverb generates its impulse response asynchronously — connecting before it's
-  // ready drops the wet signal, so await generate() before wiring it up.
-  const reverb = new Tone.Reverb({ decay: 2.2, wet: 0.15 });
-  await reverb.generate();
-  reverb.connect(master);
+  // Master glue bus: everything -> masterGain -> EQ3 -> Compressor -> Limiter -> out.
+  // This is where cohesion, loudness, and a bit of body come from.
+  const masterGain = new Tone.Gain(0.9);
+  const eq = new Tone.EQ3({ low: 2, mid: -1, high: 1.5 });
+  const comp = new Tone.Compressor({ threshold: -20, ratio: 3, attack: 0.005, release: 0.25 });
+  const limiter = new Tone.Limiter(-1);
+  masterGain.connect(eq); eq.connect(comp); comp.connect(limiter); limiter.toDestination();
 
-  const gains = [];
+  // Shared reverb fed by per-track sends — runs 100% wet; the send gain sets the amount.
+  // (Reverb's impulse response is generated async; await before wiring it in.)
+  const reverb = new Tone.Reverb({ decay: 2.4, wet: 1 });
+  await reverb.generate();
+  reverb.connect(masterGain);
+
   const synths = [];
+  const gains = [];
+  const fx = [];            // per-track distortion / chorus / reverb-send nodes
   const sequences = [];
   const rows = [];
-  (spec.tracks || []).forEach((t, i) => {
+  (spec.tracks || []).forEach((t) => {
     const type = t.synth?.type;
     if (!type || !PALETTE.has(type)) {
       warnings.push(`track "${t.name}" skipped: unsupported synth type ${JSON.stringify(type)}`);
       rows.push({ t, type, muted: true, skipped: true });
       return;
     }
-    const gain = new Tone.Gain(1).connect(reverb);
-    const synth = makeSynth(type, t.synth.options || {});
-    synth.connect(gain);
+    const o = t.synth.options || {};
+    const synth = makeSynth(type, o);
+    let tail = synth;                 // walk the insert chain, advancing the tail node
+    if (o.drive != null && o.drive > 0) {
+      const dist = new Tone.Distortion(Math.min(1, o.drive));
+      tail.connect(dist); tail = dist; fx.push(dist);
+    }
+    if (o.chorus != null && o.chorus > 0) {
+      const cho = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: Math.min(1, o.chorus) }).start();
+      tail.connect(cho); tail = cho; fx.push(cho);
+    }
+    const gain = new Tone.Gain(1);    // per-track level for mute/solo
+    tail.connect(gain);
+    gain.connect(masterGain);         // dry path through the bus
+    const send = o.reverbSend != null ? o.reverbSend : 0.15;   // default a little space
+    if (send > 0) {
+      const sendGain = new Tone.Gain(Math.min(1, send));
+      gain.connect(sendGain); sendGain.connect(reverb); fx.push(sendGain);
+    }
     const grid = t.steps?.grid || "8n";
     const notes = t.steps?.notes || [];
     const seq = new Tone.Sequence((time, tok) => triggerStep(synth, type, tok, grid, time), notes, grid);
     seq.start(0);
-    gains.push(gain);
-    synths.push(synth);
-    sequences.push(seq);
+    synths.push(synth); gains.push(gain); sequences.push(seq);
     rows.push({ t, type, gain, muted: false, skipped: false });
   });
 
-  built = { sequences, synths, gains, reverb, master, rows };
+  built = { sequences, synths, gains, fx, bus: [masterGain, eq, comp, limiter], reverb, rows };
   return rows;
 }
 

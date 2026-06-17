@@ -63,6 +63,9 @@ RESPONSE_SCHEMA = {
                                     "filterType": {"type": "string"},
                                     "filterFrequency": {"type": "number"},
                                     "filterQ": {"type": "number"},
+                                    "drive": {"type": "number"},
+                                    "chorus": {"type": "number"},
+                                    "reverbSend": {"type": "number"},
                                 },
                             },
                         },
@@ -123,7 +126,14 @@ Enumerate every distinct track you actually hear (don't force a fixed set). For 
   from this list — never answer "Sampler"/"Player"). `options` is a FLAT object
   using only these optional scalar fields where relevant: oscillatorType (e.g. "sawtooth",
   "square", "fatsawtooth", "triangle", "sine"), count, spread, attack, decay, sustain,
-  release, volume (dB, usually negative), harmonicity, modulationIndex, filterType, filterFrequency, filterQ.
+  release, volume (dB, usually negative), harmonicity, modulationIndex, filterType,
+  filterFrequency, filterQ, drive, chorus, reverbSend.
+  GIVE INSTRUMENTS BODY — avoid thin, toy-like patches. Reach for these where the track calls
+  for it: `drive` (0..1 distortion/saturation — essential for gritty/aggressive bass & leads),
+  filter resonance `filterQ` in the 1..8 range for character (not 0), fat oscillators
+  ("fatsawtooth"/"fatsquare" with count 3-7 + spread 20-40) for thick leads/pads/bass,
+  `chorus` (0..1) for width on pads/leads, and `reverbSend` (0..1) for space. Match the amount
+  of grit/distortion to THIS song — heavy for industrial/aggressive, subtle or none for clean tracks.
 - steps: a PLAYABLE 1-2 bar loop — `grid` is the Tone subdivision (e.g. "16n", "8n", "4n")
   and `notes` is an ARRAY OF STRINGS using this token grammar:
     "" (empty string) = a rest; "x" = an unpitched hit (use for NoiseSynth percussion);
