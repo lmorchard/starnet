@@ -10,6 +10,41 @@
 
 ---
 
+## Plan Revision — Tone.js-centric "tracks" model (post-review)
+
+> Added after review, before implementation. **Where this section conflicts with Tasks 3, 4, or 8 below, this section wins.** It restates the interpretation model only; the pipeline, file layout, and all non-`layers` tasks are unchanged.
+
+**Direction (from review):**
+1. Keep the tool's vocabulary **Tone.js-centric and reusable beyond Starnet** — not keyed to Starnet's score model. Starnet is one consumer.
+2. The output should be able to **inform building new Tone.js instruments**, not just map onto existing ones — so a "custom synthesis approach" is a valid `instrument` answer.
+3. The breakdown must be free to **invent names/roles that fit the analyzed piece** — no fixed taxonomy, no presence checklist.
+4. Think in terms of **tracks**, not "layers": a **track** is one **instrument** driven by one **pattern**.
+
+**Revised interpretation shape** — `LlmInterp.layers` is replaced by `LlmInterp.tracks`:
+
+```
+Track = {
+  "name": str,         # invented label that fits THIS piece (e.g. "sub bass", "shimmer pad", "noise riser")
+  "instrument": str,   # a Tone.js source (palette below) OR a short "custom synthesis" description
+  "pattern": str,      # the figure driving it: subdivision/step rhythm, note movement, density, phrase length, dynamics
+  "description": str,  # arrangement role, when it enters, space/FX
+}
+```
+
+There is **no `present` flag** — the array enumerates the tracks actually heard. There is **no fixed role list**.
+
+**Tone.js source palette** (named in the prompt as vocabulary, not a hard constraint — "custom" descriptions allowed):
+`Synth, MonoSynth, DuoSynth, FMSynth, AMSynth, PolySynth, MembraneSynth, MetalSynth, NoiseSynth, PluckSynth, Sampler, Player, GrainPlayer`.
+
+**Per-task overrides:**
+- **Task 3 (schema):** replace the `Layer` TypedDict with `Track` (`name`/`instrument`/`pattern`/`description`); `LlmInterp` has `tracks: list[Track]` (not `layers`).
+- **Task 4 (render):** the layer table becomes a **Tracks** table with columns `Track | Instrument | Pattern | Notes`. Tests assert on instrument names + pattern text, not a present/absent flag.
+- **Task 8 (prompt):** drop the fixed Starnet `_LAYER_ROLES` list. Instruct the model to enumerate every distinct track it hears, **invent** a fitting name per track, name its Tone.js source (palette or custom), describe the **pattern** driving it, and describe its arrangement role. `RESPONSE_SCHEMA` carries `tracks` (items required: `name`, `instrument`, `pattern`, `description`) instead of `layers`. The 7-dimension vocabulary grid and the Tone.js score-draft are unchanged.
+
+Terminology: the analyzed song is "the reference piece"; within the breakdown a "track" is an arrangement channel (instrument + pattern). Prompt/headers use "instrument tracks" where confusion is possible.
+
+---
+
 ## File Structure
 
 ```

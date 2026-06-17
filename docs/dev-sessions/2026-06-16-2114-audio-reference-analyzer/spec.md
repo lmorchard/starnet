@@ -14,9 +14,17 @@ inspiration — e.g. "Icabod" (TR/ST), "Silent Shout" (The Knife), "Systemagic"
 is lossy.
 
 This tool closes that gap: hand it an audio file (MP3/FLAC/etc.), and it produces a
-**technical breakdown keyed to Starnet's audio vocabulary** — accurate enough that
+**technical breakdown keyed to a Tone.js synthesis vocabulary** — accurate enough that
 Claude can translate it toward a `js/audio/scores/*.js` draft, and detailed enough that
 Les learns concrete technical facts about the track he can tweak from.
+
+> **Reframe (post-review):** the breakdown's vocabulary is **Tone.js-centric and
+> reusable beyond Starnet**, not keyed to Starnet's own score model. The interpretation
+> is organized as **tracks** — each an *instrument* (a Tone.js source, or a custom
+> synthesis approach) driven by a *pattern* — with track names **invented to fit the
+> analyzed piece** rather than chosen from a fixed taxonomy. This makes the output useful
+> for inventing *new* Tone.js instruments, not just mapping onto existing Starnet layers.
+> See the "Plan Revision" section in `plan.md` for the concrete data shapes.
 
 ## Goals
 
