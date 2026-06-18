@@ -10,6 +10,7 @@ MIR = {
     "sections": [{"start": 0.0}, {"start": 32.5}, {"start": 120.0}],
     "brightness": {"mean_hz": 1800.0, "min_hz": 400.0, "max_hz": 6000.0},
     "dynamics": {"rms_mean": 0.12, "rms_range_db": 14.0},
+    "timbre": {"rolloff_hz": 3200.0, "flatness": 0.12, "contrast": 18.0, "zcr": 0.08, "harmonic_ratio": 0.78},
     "midi_path": "trst-icabod.mid",
 }
 LLM = {
@@ -69,3 +70,19 @@ def test_render_includes_score_draft_flagged_speculative():
     assert "Score-draft" in md or "Score Draft" in md
     assert "speculative" in md.lower()
     assert "fatsawtooth drone" in md
+
+
+def test_render_stems_markdown_groups_by_stem():
+    from audio_reference.render import render_stems_markdown
+    stem_results = [
+        {"stem": "drums", "mir": {}, "interpretation": {"summary": "punchy kit",
+            "tracks": [{"name": "Kick", "instrument": "MembraneSynth", "pattern": "1/4", "description": "boom"}]}},
+        {"stem": "bass", "mir": {}, "interpretation": {"summary": "growl bass",
+            "tracks": [{"name": "Sub", "instrument": "MonoSynth", "pattern": "1/8", "description": "low"}]}},
+    ]
+    md = render_stems_markdown(META, MIR, stem_results)
+    assert "# TR/ST — Icabod" in md
+    assert "120" in md and "A minor" in md
+    assert "## drums" in md and "## bass" in md
+    assert "punchy kit" in md and "growl bass" in md
+    assert "Kick" in md and "Sub" in md
