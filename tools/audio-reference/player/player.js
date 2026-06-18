@@ -169,7 +169,10 @@ function rebuildTrack(row) {
   retire([oldSynth], oldInserts);
 }
 
+let buildGen = 0;   // bumped per build; a build superseded during its async generate() bails
+
 async function build(spec) {
+  const gen = ++buildGen;
   disposeBuilt();
   warnings.length = 0;
   Tone.Transport.stop();
@@ -185,6 +188,13 @@ async function build(spec) {
 
   const reverb = new Tone.Reverb({ decay: 2.4, wet: 1 });
   await reverb.generate();
+  // If another build started while we awaited generate(), abandon this one — tear down what we
+  // made and bail WITHOUT setting `built`, so its graph can't be orphaned (left playing) and
+  // accumulate into crackle over repeated fast switches.
+  if (gen !== buildGen) {
+    [reverb, masterGain, eq, comp, limiter].forEach(safeDispose);
+    return null;
+  }
   reverb.connect(masterGain);
 
   const rows = [];
@@ -302,7 +312,7 @@ async function loadSpecFromJson(json, label, slug) {
   const spec = json.score_spec || json;
   currentSpec = { root: spec.root, mode: spec.mode, bpm: spec.bpm };
   currentSlug = slug || null;
-  await build(spec);
+  if ((await build(spec)) === null) return;   // superseded by a newer load — leave the UI to it
   renderTracks();
   const head = label ? `${label} · ` : "";
   $("meta").textContent = `${head}${spec.root ?? "?"} ${spec.mode ?? ""} · ${Math.round(spec.bpm ?? 0)} BPM · ${(spec.tracks || []).length} tracks`;
