@@ -1,8 +1,6 @@
 # Kontravoid — Native State
 
-> A driving, dark EBM/coldwave track at 120 BPM in A minor, characterized by a relentless 16th-note synth bass arpeggio, a four-on-the-floor beat with a heavily reverberated snare, and detached female vocals. The production style evokes classic 80s industrial and post-punk with its analog-style synths and prominent rhythmic elements.
-
-*Source: `Kontravoid - Native State (Official Video).mp3` · Model: gemini-2.5-pro*
+*Source: `Kontravoid - Native State (Official Video).mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
 
@@ -12,77 +10,45 @@
 - **Sections: 6** (boundaries at 0:00, 0:23, 0:41, 0:48, 1:03, 2:25)
 - **Brightness (spectral centroid):** mean 4210 Hz (range 676–8192 Hz)
 - **Dynamics:** RMS mean 0.234, range 15.5 dB
+- **Timbre:** rolloff 8458 Hz, flatness 0.01, contrast 20.4, ZCR 0.122, harmonic ratio 0.69
 
-## Vocabulary grid (model interpretation)
+## drums
 
-| Dimension | Reading |
-|---|---|
-| Timbre | Timbre is dominated by synthetic, analog-style sounds including a saturated sawtooth bass, sharp metallic hi-hats, and a bright, bell-like FM lead synth. |
-| Brightness | The track has a wide spectral range, with a deep, dark bass foundation contrasted by crisp, bright hi-hats and cutting lead synth transients. |
-| Envelope | Envelopes are predominantly tight and percussive, featuring short attack and decay times on the bass and drums to emphasize the aggressive, rhythmic drive. |
-| Register/density | The arrangement focuses on the low and high registers, with a powerful bassline anchoring the bottom and hi-hats/lead synth occupying the top, leaving the mid-range relatively open for vocals. |
-| Harmony/mode | The harmony is stark and rooted in A minor, relying on simple root-octave bass motion and sparse melodic lines, reinforcing a bleak, industrial atmosphere. |
-| Groove | A relentless four-on-the-floor EBM groove is established by the kick drum, a strong backbeat snare, and continuous 16th-note hi-hats, creating a highly danceable yet rigid feel. |
-| Space/grit | Space is defined by a large, classic gated reverb on the snare, while grit comes from noticeable saturation and drive on the main bass synth. |
-
-## Tracks (model interpretation)
-
-*Each track is one instrument driven by one pattern. Track names are the model's, invented to fit this piece; instruments are Tone.js sources (or a custom-synthesis note).*
+> An aggressive, driving industrial/EBM drum machine pattern at 120 BPM. The track is built on a foundation of a heavily processed, punchy kick and a sharp, gated snare, with metallic hi-hats providing a constant rhythmic pulse. The arrangement develops by adding layers of percussion, including tom fills and noisy, glitchy textures, creating a dense and powerful groove.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Kick | MembraneSynth | A driving four-on-the-floor pattern on every quarter note. | The foundational pulse of the track, a punchy and consistent kick drum that drives the rhythm from the start. |
-| Gated Snare | NoiseSynth | A strong backbeat on counts 2 and 4. | A bright, snappy white noise snare with a very large and prominent reverb, defining the track's 80s-inspired spatial character. Present throughout. |
-| Hi-Hats | MetalSynth | Constant, running 16th notes. | Bright, metallic hi-hats provide high-frequency energy and reinforce the driving 16th-note subdivision of the groove. |
-| Arp Bass | MonoSynth | A continuous 16th-note arpeggio, outlining the root, fifth, and octave. | The primary melodic and rhythmic engine of the song. Its saturated, punchy tone and constant motion create the track's signature tension and drive. It's present almost throughout. |
-| Pluck Lead | FMSynth | A sparse, high-register melodic phrase with a distinct rhythmic character. | This lead synth enters around 0:22, playing a simple, memorable hook that cuts through the dense rhythm section. It has a bell-like, metallic quality and is processed with a noticeable delay. |
-| Vocal Pad Proxy | PolySynth | Sustained single notes following the main vocal contour. | This track serves as a synthetic proxy for the detached female vocals. It holds long notes in the mid-range to represent the harmonic space occupied by the voice, particularly in the verses. |
-| Chorus Drone | PolySynth | A single, long sustained root note held for multiple bars. | Enters during the chorus sections (e.g., 0:40) to add weight and harmonic depth. This fat, detuned saw pad sits underneath the main arp bass, creating a powerful wall of sound. |
+| Industrial Kick | MembraneSynth | A driving four-on-the-floor pattern on quarter notes, forming the rhythmic backbone. | A deep, powerful, and distorted kick drum. It's present almost continuously from the start, providing the fundamental pulse of the track. Its sound is punchy with a slight resonant tail. |
+| Gated Snare | NoiseSynth | A powerful backbeat on 2 and 4, with frequent and aggressive 16th-note rolls and fills. | A sharp, cracking snare sound dominated by filtered noise. It has a very short, gated-sounding decay, which is a hallmark of the EBM style. It enters at 8.9s and defines the main groove. |
+| Machine Hat | MetalSynth | Continuous 8th-note pattern, sometimes switching to 16ths for added intensity. | A tight, metallic closed hi-hat. It provides the high-frequency rhythmic drive and energy. It plays through most of the track when the main beat is active. |
+| Crash Cymbal | MetalSynth | Accents on the downbeat of major sections or as an off-beat splash within a phrase. | A washy, noisy crash/open-hat sound with a medium decay. It's used to mark transitions and add emphasis, typically entering around 22.8s and used throughout. |
+| Power Tom | MembraneSynth | Fast 16th-note fills, often in a descending pitch sequence, used at the end of phrases. | A resonant, electronic tom sound used for percussive fills. It adds dynamics and signals upcoming changes in the arrangement, appearing in sections like the one starting at 22.8s. |
 
-## Score-draft starter (speculative)
+## vocals
 
-> Model-guessed synth parameters — speculative, tune by ear.
+> A heavily processed male vocal track featuring significant distortion, reverb, and digital harmonization. The performance is declamatory and rhythmic, with a dark, industrial feel, centered on a main lead vocal with occasional background harmonies and textural noise.
 
-/* Speculative Score-Draft Starter for 'Native State' */
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Lead Vocal | MonoSynth | Rhythmic, sung-spoken phrases following the lyrics. The rhythm is syncopated and humanized, not strictly quantized. A representative 1-bar phrase in D minor. | The main vocal line, present for most of the song. It carries the lyrical content and melodic focus. Its sound is defined by heavy distortion and a commanding presence. |
+| Harmonizer Drone | FMSynth | Holds a single, high harmony note over several bars, often the fifth or minor third of the current chord, creating a tense, glassy drone. | A synthetic-sounding harmony layer that enters during intense sections (e.g., from 0:55). It adds a cold, robotic texture and enhances the harmonic tension. It's drenched in reverb and sits behind the lead vocal. |
+| Sibilant Grit | NoiseSynth | A sparse, syncopated rhythmic pattern of short noise bursts, mimicking heavily distorted sibilance ('s' and 't' sounds). | A subtle textural track representing the harsh, percussive artifacts of the vocal distortion. It adds a layer of high-frequency grit and rhythmic complexity, enhancing the industrial feel. |
 
-// Set global tempo and effects
-Tone.Transport.bpm.value = 120;
-const reverb = new Tone.Reverb({ decay: 4, wet: 0.8 }).toDestination();
-const distortion = new Tone.Distortion(0.5).toDestination();
+## other
 
-// 1. Arp Bass (MonoSynth)
-const arpBass = new Tone.MonoSynth({
-  oscillator: { type: 'sawtooth' },
-  envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.1 },
-  filter: { type: 'lowpass', frequency: 1200, Q: 2.5 }
-}).connect(distortion);
-const bassPattern = new Tone.Sequence((time, note) => {
-  arpBass.triggerAttackRelease(note, '16n', time);
-}, ['A2', 'E3', 'A2', 'E3', 'A3', 'E3', 'A2', 'E3'], '16n').start(0);
+> A driving, industrial-tinged piece dominated by a heavily distorted, resonant arpeggiated synth. This is layered with evolving atmospheric pads, noisy textures, and dramatic filter sweeps, creating a dark, tense, and energetic soundscape. The harmony is distinctly minor, centered around A minor.
 
-// 2. Gated Snare (NoiseSynth)
-const gatedSnare = new Tone.NoiseSynth({
-  noise: { type: 'white' },
-  envelope: { attack: 0.005, decay: 0.15, sustain: 0 }
-}).connect(reverb);
-const snarePattern = new Tone.Sequence((time) => {
-  gatedSnare.triggerAttack(time);
-}, [null, 'x', null, 'x'], '4n').start(0);
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Grit Arp | MonoSynth | A continuous 16th-note arpeggio that shifts melodically based on the chord progression. The filter cutoff is heavily automated throughout the track, creating sweeps and dynamic changes. | The central driving element of the track, present from the beginning. It provides the main rhythmic pulse and harmonic foundation. Its sound is defined by heavy distortion and a resonant filter. |
+| Ghost Pad | PolySynth with fat oscillators and chorus. | Slow, evolving arpeggios and sustained notes playing simple chord tones in a high register. The pattern is sparse, with long notes and rests, often on an 8th-note grid. | Enters around 0:22. Provides a high, ethereal counterpoint to the low, gritty arp. It fills out the upper frequency spectrum and adds significant width and space with heavy chorus and reverb. |
+| Filter Noise Riser | NoiseSynth | A non-rhythmic sound effect consisting of a long, sustained note with an upward filter sweep. Used to build tension over 4 or 8 bars leading into new sections. | A classic transitional effect used to build tension and signal a change in the arrangement. It's white noise shaped by a sweeping bandpass filter, adding a 'whoosh' sound. |
 
-// 3. Kick (MembraneSynth)
-const kick = new Tone.MembraneSynth().toDestination();
-const kickPattern = new Tone.Sequence((time) => {
-  kick.triggerAttackRelease('C1', '8n', time);
-}, ['x', null, 'x', null], '4n').start(0);
+## bass
 
-// 4. Lead (FMSynth)
-const leadSynth = new Tone.FMSynth({
-  harmonicity: 2, 
-  modulationIndex: 5,
-  envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.8 }
-}).toDestination();
-// Use a ping pong delay for the lead's rhythmic echo effect
+> A driving, aggressive EBM bassline built on a heavily distorted sawtooth synth, alternating between a static root-note pattern and a more melodic arpeggio.
 
-// Key idea: Layer the relentless 16th-note bass with the 4/4 kick and backbeat snare.
-// The 'gated' reverb effect on the snare is crucial for the sound; use a Gate effect after the Reverb.
-// The harmony is simple A minor, so basslines and melodies will use A, B, C, D, E, F, G.
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Drive Bass | MonoSynth | Relentless root-note 8ths, providing a powerful, rhythmic foundation. A 1-bar loop that emphasizes the tonic. | This is the primary bass pattern, present from the beginning and in most of the high-energy sections. It establishes the track's core rhythmic and harmonic identity. Its sound is gritty and percussive. |
+| Arp Bass | MonoSynth | A melodic 8th-note arpeggio that moves through the notes of the A minor scale. A 1 or 2-bar phrase that introduces melodic interest. | This track takes over from the Drive Bass in sections like the one starting at 22.3s. It uses a similar synth sound but plays a more complex, melodic figure, adding tension and movement. |
