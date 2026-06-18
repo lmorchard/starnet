@@ -1,5 +1,5 @@
 """TypedDict shapes for the pipeline's JSON-serializable data (documentation only)."""
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, NotRequired
 
 
 class Meta(TypedDict):
@@ -25,6 +25,14 @@ class Section(TypedDict):
     start: float
 
 
+class Timbre(TypedDict):
+    rolloff_hz: float
+    flatness: float        # 0 = tonal, 1 = noisy
+    contrast: float
+    zcr: float
+    harmonic_ratio: float  # 1 = tonal/harmonic, 0 = percussive
+
+
 class MirFacts(TypedDict):
     bpm: float
     key: str
@@ -34,6 +42,7 @@ class MirFacts(TypedDict):
     sections: list[Section]
     brightness: Brightness
     dynamics: Dynamics
+    timbre: Timbre
     midi_path: Optional[str]
 
 
@@ -88,6 +97,7 @@ class Track(TypedDict):
     description: str        # prose
     synth: SynthSpec        # playable
     steps: Steps            # playable
+    stem: NotRequired[str]   # which separated stem this track came from (stems mode only)
 
 
 class LlmInterp(TypedDict):
@@ -95,6 +105,12 @@ class LlmInterp(TypedDict):
     vocabulary: VocabularyGrid
     tracks: list[Track]
     score_draft: str
+
+
+class StemResult(TypedDict):
+    stem: str
+    mir: MirFacts
+    interpretation: LlmInterp
 
 
 class ScoreSpec(TypedDict):
