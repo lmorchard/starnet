@@ -50,3 +50,38 @@ def test_dedupe_merges_close_boundaries():
 
 def test_dedupe_sorts_and_keeps_first():
     assert dedupe_sections([5.0, 0.0, 5.1], min_gap=2.0) == [0.0, 5.0]
+
+
+from audio_reference.features import harmonic_ratio, voiced_mean, select_stems
+
+
+def test_harmonic_ratio_all_harmonic_is_one_all_perc_is_zero():
+    assert harmonic_ratio([1.0, -1.0, 1.0], [0.0, 0.0, 0.0]) == 1.0
+    assert harmonic_ratio([0.0, 0.0], [0.5, -0.5]) == 0.0
+    r = harmonic_ratio([1.0, 1.0], [1.0, 1.0])
+    assert abs(r - 0.5) < 1e-9
+
+
+def test_harmonic_ratio_silence_is_zero():
+    assert harmonic_ratio([0.0, 0.0], [0.0, 0.0]) == 0.0
+
+
+def test_voiced_mean_gates_quiet_frames():
+    vals = [0.0, 0.0, 100.0, 100.0]
+    rms = [0.0, 0.0, 1.0, 1.0]
+    assert voiced_mean(vals, rms) == 100.0
+
+
+def test_voiced_mean_falls_back_when_lengths_mismatch():
+    assert voiced_mean([10.0, 20.0], [1.0]) == 15.0
+
+
+def test_select_stems_skips_near_empty():
+    rms = {"drums": 0.5, "bass": 0.4, "other": 0.3, "vocals": 0.01}
+    keep = select_stems(rms, floor_ratio=0.06)
+    assert set(keep) == {"drums", "bass", "other"}
+
+
+def test_select_stems_empty_input():
+    assert select_stems({}) == []
+    assert select_stems({"a": 0.0, "b": 0.0}) == []

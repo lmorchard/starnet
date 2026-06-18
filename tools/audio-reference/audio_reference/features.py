@@ -56,3 +56,37 @@ def dedupe_sections(times, min_gap: float = 2.0) -> list[float]:
         if not out or t - out[-1] >= min_gap:
             out.append(t)
     return out
+
+
+def harmonic_ratio(harmonic, percussive) -> float:
+    """Fraction of energy in the harmonic (tonal) component vs. total (harmonic + percussive).
+    1.0 = fully tonal, 0.0 = fully percussive."""
+    h = float(np.sum(np.square(np.asarray(harmonic, dtype=float))))
+    p = float(np.sum(np.square(np.asarray(percussive, dtype=float))))
+    total = h + p
+    return h / total if total > 0 else 0.0
+
+
+def voiced_mean(values, rms, floor_ratio: float = 0.05) -> float:
+    """Mean of per-frame `values` over frames whose RMS exceeds floor_ratio*peak (gates silence).
+    Falls back to the overall mean when RMS can't be aligned (different length / all zero)."""
+    values = np.asarray(values, dtype=float)
+    rms = np.asarray(rms, dtype=float)
+    if values.size == 0:
+        return 0.0
+    if rms.size == values.size and rms.size and rms.max() > 0:
+        mask = rms > rms.max() * floor_ratio
+        sel = values[mask] if mask.any() else values
+    else:
+        sel = values
+    return float(sel.mean())
+
+
+def select_stems(rms_by_stem: dict, floor_ratio: float = 0.06) -> list:
+    """Stem names whose RMS is at least floor_ratio of the loudest stem's — skip near-empty ones."""
+    if not rms_by_stem:
+        return []
+    peak = max(rms_by_stem.values())
+    if peak <= 0:
+        return []
+    return [s for s, r in rms_by_stem.items() if r >= peak * floor_ratio]
