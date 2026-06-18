@@ -252,27 +252,33 @@ function numCtl(label, value, onChange) {
   wrap.append(inp); return wrap;
 }
 
+// Keep clicks on header controls from toggling the parent <details>.
+const noToggle = (el) => { el.addEventListener("click", (e) => e.stopPropagation()); return el; };
+
 function renderTracks() {
   const host = $("tracks"); host.innerHTML = "";
   if (!built) return;
   built.rows.forEach((row) => {
-    const card = document.createElement("div");
-    card.className = "track" + (row.skipped ? " skipped" : "");
-    const head = document.createElement("div"); head.className = "track-head";
-    const name = document.createElement("span"); name.className = "track-name"; name.textContent = row.t.name ?? "";
-    head.append(name);
-
     if (row.skipped) {
-      const note = document.createElement("span"); note.textContent = `(unsupported: ${row.type ?? "—"})`;
-      head.append(note); card.append(head); host.append(card); return;
+      const card = document.createElement("div");
+      card.className = "track skipped";
+      card.textContent = `${row.t.name ?? ""}  (unsupported: ${row.type ?? "—"})`;
+      host.append(card);
+      return;
     }
 
-    head.append(selectCtl("synth", PALETTE, row.type, (v) => { row.type = v; rebuildTrack(row); }));
+    // Each track is a collapsed <details>; the header row is the <summary> (click to expand).
+    const card = document.createElement("details");
+    card.className = "track";                 // closed by default — no `open` attribute
+    const head = document.createElement("summary"); head.className = "track-head";
+    const name = document.createElement("span"); name.className = "track-name"; name.textContent = row.t.name ?? "";
+    head.append(name);
+    head.append(noToggle(selectCtl("synth", PALETTE, row.type, (v) => { row.type = v; rebuildTrack(row); })));
     ["mute", "solo"].forEach((k) => {
       const l = document.createElement("label"); l.className = "ctl";
       const cb = document.createElement("input"); cb.type = "checkbox";
       cb.addEventListener("change", () => { row[k] = cb.checked; applyMuteSolo(); });
-      l.append(cb, k); head.append(l);
+      l.append(cb, k); head.append(noToggle(l));
     });
     card.append(head);
 

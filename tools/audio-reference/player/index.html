@@ -21,11 +21,15 @@
     #library li { margin: .15rem 0; }
     #library button { width: 100%; text-align: left; cursor: pointer; }
     #library button.playing { font-weight: 600; outline: 2px solid #39c; }
-    .track { border: 1px solid #ddd; border-radius: 4px; padding: .5rem .6rem; margin: .5rem 0; }
+    .track { border: 1px solid #ddd; border-radius: 4px; padding: .4rem .6rem; margin: .35rem 0; }
     .track.skipped { opacity: .4; }
-    .track-head { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    details.track > summary { list-style: none; cursor: pointer; }
+    details.track > summary::-webkit-details-marker { display: none; }
+    details.track > summary::before { content: "▸"; color: #999; margin-right: .25rem; }
+    details.track[open] > summary::before { content: "▾"; }
+    .track-head { display: inline-flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
     .track-name { font-weight: 600; min-width: 9rem; }
-    .ctls { display: flex; gap: .4rem .7rem; flex-wrap: wrap; margin-top: .4rem; }
+    .ctls { display: flex; gap: .4rem .7rem; flex-wrap: wrap; margin-top: .5rem; padding-top: .5rem; border-top: 1px solid #eee; }
     .ctl { display: inline-flex; gap: .25rem; align-items: center; font-size: 12px; color: #555; }
     .ctl input { width: 4.2rem; font: inherit; }
     .ctl select { font: inherit; }
