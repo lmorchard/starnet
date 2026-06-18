@@ -15,10 +15,14 @@ from .slug import slugify
 from .config import resolve_setting
 from .transcode import to_16k_mono
 from .mir import extract_mir
-from .prompt import build_prompt, RESPONSE_SCHEMA
+import librosa
+
+from .separate import separate
+from .features import select_stems
+from .prompt import build_prompt, build_stem_prompt, RESPONSE_SCHEMA
 from .gemini import analyze_audio
-from .render import render_markdown
-from .scorespec import build_sidecar, sanitize_numbers
+from .render import render_markdown, render_stems_markdown
+from .scorespec import build_sidecar, sanitize_numbers, assemble_stems
 from .index import build_index
 from .save import safe_slug, apply_score_spec
 
@@ -43,6 +47,50 @@ def write_index(out_dir: str) -> int:
     return len(idx)
 
 
+def _analyze_stems(args, meta, mir, md_path, json_path) -> int:
+    project = resolve_setting(args.project, os.environ, "GOOGLE_CLOUD_PROJECT")
+    location = resolve_setting(args.location, os.environ, "GOOGLE_CLOUD_LOCATION")
+    with tempfile.TemporaryDirectory() as tmp:
+        print(f"[stems] separating with {args.stems_model} ...", file=sys.stderr)
+        stem_wavs = separate(args.audio, tmp, args.stems_model)
+
+        # energy gate: skip near-silent stems
+        rms = {}
+        for stem, wav in stem_wavs.items():
+            y, sr = librosa.load(wav, sr=None, mono=True)
+            rms[stem] = float((y ** 2).mean() ** 0.5) if y.size else 0.0
+        keep = select_stems(rms)
+        skipped = sorted(set(stem_wavs) - set(keep))
+        if skipped:
+            print(f"[stems] skipping near-empty: {', '.join(skipped)}", file=sys.stderr)
+
+        stem_results = []
+        for stem in keep:
+            wav = stem_wavs[stem]
+            print(f"[stems] analyzing '{stem}' ...", file=sys.stderr)
+            smir = extract_mir(wav, None)
+            wav16 = os.path.join(tmp, f"{stem}.16k.wav")
+            to_16k_mono(wav, wav16)
+            with open(wav16, "rb") as fh:
+                audio_bytes = fh.read()
+            prompt = build_stem_prompt(meta, smir, stem)
+            interp = analyze_audio(audio_bytes, "audio/wav", prompt, RESPONSE_SCHEMA,
+                                   args.model, project, location)
+            stem_results.append({"stem": stem, "mir": smir, "interpretation": interp})
+
+    print("[stems] rendering artifacts ...", file=sys.stderr)
+    sidecar = sanitize_numbers(assemble_stems(meta, mir, stem_results))
+    md = render_stems_markdown(meta, mir, stem_results)
+    with open(md_path, "w") as fh:
+        fh.write(md)
+    with open(json_path, "w") as fh:
+        json.dump(sidecar, fh, indent=2, allow_nan=False)
+    write_index(args.out)
+    print(f"wrote {md_path}\nwrote {json_path}\nrefreshed {os.path.join(args.out, 'index.json')}",
+          file=sys.stderr)
+    return 0
+
+
 def cmd_analyze(args) -> int:
     slug = slugify(args.artist, args.title)
     os.makedirs(args.out, exist_ok=True)
@@ -57,6 +105,9 @@ def cmd_analyze(args) -> int:
 
     print(f"[1/4] MIR extraction on {args.audio} ...", file=sys.stderr)
     mir = extract_mir(args.audio, midi_path)
+
+    if args.stems:
+        return _analyze_stems(args, meta, mir, md_path, json_path)
 
     print("[2/4] transcoding to 16kHz mono for Gemini ...", file=sys.stderr)
     with tempfile.TemporaryDirectory() as tmp:
@@ -168,6 +219,8 @@ def main(argv=None) -> int:
     a.add_argument("--title", required=True)
     a.add_argument("--out", default="docs")
     a.add_argument("--no-midi", action="store_true")
+    a.add_argument("--stems", action="store_true", help="separate into stems and analyze each in isolation")
+    a.add_argument("--stems-model", default="htdemucs_ft", help="Demucs model (e.g. htdemucs_ft, htdemucs_6s)")
     a.add_argument("--model", default=DEFAULT_MODEL)
     a.add_argument("--project", default=None)
     a.add_argument("--location", default=None)
