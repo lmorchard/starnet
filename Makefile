@@ -1,4 +1,4 @@
-.PHONY: all serve dev lint test check bundle-vendor census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint lint-imports test check bundle-vendor census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js dist/tone.js
@@ -31,12 +31,24 @@ lint:
 	npx tsc --noEmit --allowJs --checkJs --target ES2020 --moduleResolution bundler --module ES2020 \
 		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'vendor.js' ! -name 'lit-vendor.js' ! -name 'tone-vendor.js')
 
+# Guard against absolute "/dist/..." paths in js/ and HTML. They resolve to the
+# domain root and 404 under a deploy subpath (e.g. GitHub Pages /starnet/), where
+# the 404 page's text/html MIME blocks the module. Use a relative "./dist/..."
+# path or the page import map instead. (See PR #243.)
+lint-imports:
+	@if grep -rn '"/dist/' js *.html; then \
+		echo 'ERROR: absolute "/dist/..." path(s) above — use a relative "./dist/..." path or the import map (breaks under a deploy subpath; see PR #243).'; \
+		exit 1; \
+	else \
+		echo 'lint-imports: no absolute "/dist/" paths'; \
+	fi
+
 # Run unit + integration tests
 test:
 	node --test $(shell find tests js data -name '*.test.js' ! -path '*/fixtures/*' ! -name 'bot-player.test.js')
 
-# Full check: lint + test
-check: lint test
+# Full check: imports guard + lint + test
+check: lint-imports lint test
 
 # Bundle vendor dependencies (Cytoscape + layout extensions, Lit, Tone)
 bundle-vendor:
