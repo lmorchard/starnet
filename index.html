@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>STARNET</title>
   <link rel="stylesheet" href="css/style.css" />
-  <!-- Import map: bare "lit" specifiers → bundled dist/lit.js -->
+  <!-- Import map: bare specifiers → bundled dist/*. Relative targets so they
+       resolve under a deploy subpath (e.g. GitHub Pages /starnet/). -->
   <script type="importmap">
     { "imports": {
       "lit": "./dist/lit.js",
-      "lit/directives/repeat.js": "./dist/lit.js"
+      "lit/directives/repeat.js": "./dist/lit.js",
+      "tone": "./dist/tone.js"
     } }
   </script>
   <!-- Cytoscape.js + layout extensions (vendor bundle built by: make bundle-vendor) -->

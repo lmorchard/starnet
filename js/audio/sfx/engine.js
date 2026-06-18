@@ -5,7 +5,7 @@
 // until stop() and disposed after their fade-out — so SFX add no long-lived AudioParam
 // accumulation. Cues schedule at currentTime + a small offset (NOT Tone.now()) so they aren't
 // delayed by the music engine's lookahead.
-import * as Tone from "/dist/tone.js";
+import * as Tone from "tone";
 
 const MAX_VOICES = 12;
 const OFFSET = 0.02;
