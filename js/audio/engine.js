@@ -1,6 +1,6 @@
 // @ts-nocheck
 // Tone.js wrapper. The only module that touches Web Audio. Imports the vendored bundle.
-import * as Tone from "/dist/tone.js";
+import * as Tone from "tone";
 import { computeMix } from "./mixer.js";
 import { makeSeededRng, getSeed } from "../core/rng.js";
 import { transposeDiatonic, consonantSteps, pickNextStep } from "./harmony.js";
