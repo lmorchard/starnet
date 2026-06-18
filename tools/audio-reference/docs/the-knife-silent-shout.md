@@ -1,8 +1,6 @@
 # The Knife — Silent Shout
 
-> A dark, driving, and hypnotic electro track built on a foundation of a heavily distorted four-on-the-floor kick and a relentless, fast-decay arpeggiated bassline. The atmosphere is tense and cavernous, created by heavily processed, pitch-shifted vocals and wide, shimmering synth pads, while the groove remains rigid and powerful.
-
-*Source: `The Knife - Silent Shout (Official Music Video).mp3` · Model: gemini-2.5-pro*
+*Source: `The Knife - Silent Shout (Official Music Video).mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
 
@@ -12,33 +10,42 @@
 - **Sections: 8** (boundaries at 0:00, 0:23, 1:07, 2:56, 3:37, 4:07, 4:30, 4:45)
 - **Brightness (spectral centroid):** mean 1549 Hz (range 95–7565 Hz)
 - **Dynamics:** RMS mean 0.063, range 22.4 dB
+- **Timbre:** rolloff 3130 Hz, flatness 0.01, contrast 21.7, ZCR 0.028, harmonic ratio 0.89
 
-## Vocabulary grid (model interpretation)
+## drums
 
-| Dimension | Reading |
-|---|---|
-| Timbre | Primarily synthetic and digital, characterized by sharp, filtered sawtooth waves, distorted sine/triangle basses, and white/pink noise percussion. Vocal timbre is heavily manipulated through pitch shifting. |
-| Brightness | Bimodal spectrum with a deep, resonant low-end from the kick and sub-bass, and a piercing high-mid range from the sharp arpeggiator and crisp noise percussion. The overall spectral centroid is moderate. |
-| Envelope | Dominated by extremely short, percussive, and plucky envelopes with fast attacks and decays (arp, percussion). This is contrasted by the slow-attack, long-release pads that create atmospheric washes. |
-| Register/density | The low register is dense and constantly occupied by the kick and sub-bass. The mid-register is rhythmically dense with the 16th-note arpeggio. The high register is sparse, punctuated by hi-hats and vocal effects. |
-| Harmony/mode | Tense and melancholic, centered on a repetitive C# minor arpeggio. The harmony is static and modal, creating a hypnotic and unsettling feeling rather than functional progression. |
-| Groove | A rigid, driving, four-on-the-floor techno groove is the core. The relentless 16th-note arp bass creates a feeling of high-speed propulsion over the steady kick drum pulse. |
-| Space/grit | A mix of dry, punchy elements and cavernous space. The kick and main arp are relatively dry and upfront, while vocals and pads are saturated in a large hall reverb. Significant grit comes from distortion on the kick and sub-bass. |
-
-## Tracks (model interpretation)
-
-*Each track is one instrument driven by one pattern. Track names are the model's, invented to fit this piece; instruments are Tone.js sources (or a custom-synthesis note).*
+> A driving, four-on-the-floor electronic drum track that relentlessly builds in density and textural complexity, layering noisy shakers, syncopated metallic percussion, and various cymbals over a foundational techno kick drum.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Thumping Kick | MembraneSynth | A relentless, distorted four-on-the-floor kick drum pattern that serves as the track's rhythmic foundation. | Present from the very beginning to the end, this is the unwavering heartbeat of the track. It's heavily distorted, giving it a tonal, resonant quality that cuts through the mix. |
-| Arp Bass | MonoSynth | A fast 16th-note arpeggio playing a minor-key pattern (C#-E-G#). | The main melodic and rhythmic hook of the song, entering after the intro. Its plucky, precise sound drives the track forward with hypnotic repetition. It drops out for some vocal phrases but is otherwise constant. |
-| Sub Bass | Synth | Simple whole notes holding the root of the chord, providing a powerful low-end foundation. | Enters during the fuller sections to add weight and power under the main arp. Its saturated tone fills out the sub-bass frequencies and glues the low-end together. |
-| Noise Hat | NoiseSynth | A steady pattern of off-beat 8th notes, adding a classic electronic hi-hat feel. | A simple, high-frequency noise element that adds drive and helps define the groove against the kick. It's present through most of the track once the beat is established. |
-| Ghost Pad | PolySynth | Long, sustained minor chords (e.g., C#m) that swell in and out. | Provides the atmospheric, cavernous backdrop for the track. It enters subtly and grows in intensity, filling the space with a wide, chorused, and heavily reverberated texture. Its slow evolution contrasts with the rigid rhythmic elements. |
+| Techno Kick | MembraneSynth | Four-on-the-floor quarter notes. | The foundational kick drum that drives the track from the beginning. It's punchy, deep, and consistent. |
+| Shaker Pulse | NoiseSynth | Constant 16th notes. | A high-frequency noise shaker that enters early and provides a constant layer of rhythmic energy and tension. It's filtered to be very bright and sharp. |
+| Offbeat Hat | MetalSynth | Eighth notes on the off-beats. | A classic, sharp closed hi-hat sound that locks in with the kick to create the core groove. |
+| Syncopated Clank | MetalSynth | A syncopated 1-bar pattern that emphasizes upbeats. | A metallic, resonant percussion sound that enters around 0:14, adding a signature syncopated layer to the main groove. |
+| Ride Cymbal | MetalSynth | Quarter notes, sometimes with a preceding 16th note pickup. | A washy, metallic ride cymbal sound that appears in later, more intense sections (e.g., around 1:37), adding a bright, driving layer on top of the existing percussion. |
+| Glitch Perc | FMSynth with distortion | A sparse, irregular syncopated pattern. | A distorted, aggressive, and complex percussive sound that adds an industrial, glitchy texture. It appears intermittently to add variation and intensity. |
 
-## Score-draft starter (speculative)
+## vocals
 
-> Model-guessed synth parameters — speculative, tune by ear.
+> A heavily processed and pitch-shifted monophonic vocal performance that acts as the track's central melodic and narrative element. The sound is transformed into a robotic, synthetic baritone, with significant digital artifacts, distortion, and a tense, driving rhythmic character.
 
-SPECULATIVE STARTER: Start with a Tone.MembraneSynth for the kick, tuned low (C1), with a short decay (~0.4s) and significant drive (~0.6) for distortion. Send to a main bus with slight compression. The main hook is a Tone.MonoSynth with a 'sawtooth' oscillator, routed through a lowpass filter with a cutoff around 1800Hz and some resonance (Q=2.5). The envelope must be very plucky: attack 0.01, decay 0.2, sustain 0. Program a 16th-note arpeggio like ['C#4', 'E4', 'G#4', 'E4', ...]. Add a heavy Tone.Synth sub bass ('triangle' wave, drive ~0.4) playing sustained root notes (e.g., 'C#2'). For atmosphere, use a Tone.PolySynth with 'fatsawtooth' (count=6, spread=35), a very slow attack (~2s), and long release (~3s). Drench this pad in chorus (0.6) and a large hall reverb (send=0.7). Percussion can be NoiseSynths with tight envelopes and filtering (high-pass for hats, band-pass for a snare). The overall harmony should be rooted in C# minor to capture the dark mood.
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| RoboVocal Lead | FMSynth | A syncopated, evolving melodic line following the main vocal performance. Phrases are typically 2-4 bars long and are rhythmically active, using a mixture of eighth and sixteenth notes. | The sole instrument in this stem, this processed vocal carries the lyrics and primary melody throughout the entire track. Its sound is defined by aggressive pitch-shifting, distortion, and a controlled reverb. |
+
+## other
+
+> A dense, driving, and hypnotic arrangement of multiple interlocking synth arpeggios, creating a complex rhythmic and harmonic texture over a simple four-on-the-floor synth pulse.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Kick Synth | Synth | A simple four-on-the-floor pulse on the root note. | Provides the foundational pulse from the very beginning of the track, acting as a soft, tonal kick drum. It underpins the more complex layers that enter later. |
+| Main Arp | FMSynth | A continuous 16th-note arpeggio outlining the primary chords. | The core rhythmic and harmonic engine of the piece, entering after the intro at 22.8s. Its clean, plucky sound and constant motion create the main hypnotic texture. |
+
+## bass
+
+> A deep, driving, four-on-the-floor bass line that functions as the track's primary rhythmic and harmonic anchor. It's built from a single synth patch that blends the percussive attack of a kick drum with the sustained low-frequency tone of a sub-bass. The pattern is relentlessly steady, with the root note shifting subtly over long, multi-bar phrases.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Sub Kick Bass | FMSynth | A relentless four-on-the-floor quarter-note pulse. The pitch shifts slowly, typically holding one note for 4, 8, or 16 bars before moving to another note within the D# minor scale. | This is the sole instrument in this stem, acting as both the kick drum and the bass line. It starts at 0:00 and plays continuously throughout the entire track, providing the fundamental pulse and harmonic foundation. |
