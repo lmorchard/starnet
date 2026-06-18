@@ -61,6 +61,20 @@ uv run audio-reference analyze ~/music/icabod.flac --artist "TR/ST" --title "Ica
 --project / --location   Vertex overrides (else env / gcloud config)
 ```
 
+### Stem-separated analysis (`--stems`)
+
+```bash
+uv sync --extra stems                       # one-time: installs demucs + torch (heavy)
+uv run audio-reference analyze track.mp3 --artist A --title T --stems
+#   --stems-model htdemucs_ft   (default; or htdemucs_6s for piano/guitar stems)
+```
+
+Separates the track into stems (drums / bass / vocals / other) and analyzes **each in isolation**,
+so Gemini characterizes one instrument at a time instead of the blended mix (the full mix is heard
+at a coarse 32 tokens/sec — see the transcode note above). Near-empty stems are skipped. The merged
+`docs/<slug>.json` keeps the same `score_spec` shape (each track tagged with its `stem`), so the
+player works unchanged. Costs ~one Gemini call per non-empty stem. Single-pass remains the default.
+
 ## Output
 
 - `docs/<slug>.md`   — the breakdown: measured facts (MIR ground truth) + 7-dimension
