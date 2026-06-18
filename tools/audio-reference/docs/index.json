@@ -63,6 +63,15 @@
     "tracks": 7
   },
   {
+    "slug": "the-knife-heartbeats",
+    "artist": "The Knife",
+    "title": "Heartbeats",
+    "root": "C",
+    "mode": "minor",
+    "bpm": 87.5926906779661,
+    "tracks": 13
+  },
+  {
     "slug": "the-knife-silent-shout",
     "artist": "The Knife",
     "title": "Silent Shout",
