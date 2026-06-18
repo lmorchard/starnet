@@ -26,6 +26,15 @@ let built = null;        // { rows, masterGain, reverb }
 let currentSlug = null;  // set when loaded from the library; enables Save
 let currentSpec = null;  // {root, mode, bpm} of the loaded track
 
+// Disposing a synth while one of its one-shot sources still has a pending `onended` cleanup
+// throws a benign InvalidAccessError (it disconnects from an already-disposed node), asynchronously.
+// We dispose synchronously on a track switch (so graphs never overlap and pile up CPU), which can
+// trigger that race — swallow only that specific error so it doesn't spam the console.
+window.addEventListener("error", (e) => {
+  const name = e.error && e.error.name;
+  if (name === "InvalidAccessError" || /InvalidAccessError/.test(e.message || "")) e.preventDefault();
+});
+
 // ---- pure-ish helpers ----------------------------------------------------------------
 
 // Flat option scalars -> nested Tone constructor options. Only set what's provided.
@@ -103,8 +112,8 @@ function triggerStep(synth, type, token, dur, time) {
 
 const safeDispose = (n) => { try { if (n && n.dispose) n.dispose(); } catch { /* already gone */ } };
 
-// Release voices now, dispose nodes after their tails settle (disposing a synth with a pending
-// one-shot onended throws a benign InvalidAccessError).
+// Release voices now, dispose a single track's nodes after its tail settles. Used for the
+// in-place tweaker rebuild (one synth — no stacking risk), NOT for whole-graph teardown.
 function retire(synths, nodes) {
   synths.forEach((s) => { try { s.releaseAll?.(); s.triggerRelease?.(); } catch { /* ok */ } });
   setTimeout(() => { synths.forEach(safeDispose); nodes.forEach(safeDispose); }, 400);
@@ -114,15 +123,24 @@ function disposeBuilt() {
   if (!built) return;
   const old = built;
   built = null;
-  const synths = [], nodes = [];
+  // Dispose the WHOLE graph immediately so only one graph is ever live. Deferring it let heavy
+  // graphs (esp. 13-track stems artifacts, each with its own reverb) overlap on a switch and
+  // pile up CPU into crackle/breakup. A pending one-shot onended may now throw a benign
+  // InvalidAccessError — swallowed by the window handler at the top of this file.
   old.rows.forEach((r) => {
     if (r.skipped) return;
     safeDispose(r.seq);
-    synths.push(r.voice.synth);
-    nodes.push(...r.inserts, r.gain, r.sendGain);
+    try { r.voice.synth.releaseAll?.(); r.voice.synth.triggerRelease?.(); } catch { /* ok */ }
+    safeDispose(r.voice.synth);
+    r.inserts.forEach(safeDispose);
+    safeDispose(r.gain);
+    safeDispose(r.sendGain);
   });
-  nodes.push(old.reverb, old.masterGain, old.eq, old.comp, old.limiter);
-  retire(synths, nodes);
+  safeDispose(old.reverb);   // before the masterGain it feeds
+  safeDispose(old.masterGain);
+  safeDispose(old.eq);
+  safeDispose(old.comp);
+  safeDispose(old.limiter);
 }
 
 // Build a track's instrument + inserts and wire synth -> [drive] -> [chorus] -> gain.
