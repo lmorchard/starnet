@@ -93,6 +93,7 @@ def build_prompt(meta: dict, mir: dict) -> str:
     sections = ", ".join(f"{s['start']:.1f}s" for s in mir["sections"])
     palette = ", ".join(TONE_SOURCES)
     playable = ", ".join(PLAYABLE_SOURCES)
+    tb = mir.get("timbre", {})
     return f"""You are a synthesis-literate music analyst. You are listening to an audio track
 and producing a TECHNICAL breakdown for a developer who builds reactive synth music in Tone.js
 and CANNOT hear audio. Be concrete and parameter-oriented, not poetic.
@@ -106,6 +107,7 @@ MEASURED GROUND TRUTH (from signal analysis — treat these as authoritative; do
 - Section boundaries at: {sections}
 - Spectral centroid (brightness): mean {mir['brightness']['mean_hz']:.0f} Hz
 - Dynamics: RMS range {mir['dynamics']['rms_range_db']:.1f} dB
+- Timbre: spectral rolloff {tb.get('rolloff_hz', 0):.0f} Hz, flatness {tb.get('flatness', 0):.2f} (0=tonal,1=noisy), contrast {tb.get('contrast', 0):.1f}, zero-crossing {tb.get('zcr', 0):.3f}, harmonic ratio {tb.get('harmonic_ratio', 0):.2f} (1=tonal, 0=percussive)
 
 Describe the track along these SEVEN dimensions (one concise reading each):
   timbre, brightness, envelope, register/density, harmony/mode, groove, space/grit.
@@ -153,3 +155,13 @@ Finally, write a short SCORE-DRAFT STARTER: concrete Tone.js-flavored suggestion
 Mark it as speculative.
 
 Respond ONLY as JSON matching the provided schema."""
+
+
+def build_stem_prompt(meta: dict, mir: dict, stem: str) -> str:
+    """Per-stem prompt: same task as build_prompt, but framed as one isolated stem."""
+    intro = (
+        f'IMPORTANT: You are hearing ONLY the isolated "{stem}" stem of "{meta["title"]}" '
+        f'(separated from the full mix). Describe just the instrument(s) present in THIS stem — '
+        f"it may be a single instrument or a few. Ignore anything you'd expect from other stems.\n\n"
+    )
+    return intro + build_prompt(meta, mir)

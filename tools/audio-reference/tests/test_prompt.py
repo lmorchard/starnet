@@ -5,7 +5,9 @@ META = {"artist": "TR/ST", "title": "Icabod", "slug": "trst-icabod",
 MIR = {"bpm": 120.0, "key": "A", "mode": "minor", "key_confidence": 0.82,
        "duration_sec": 245.3, "sections": [{"start": 0.0}, {"start": 32.5}],
        "brightness": {"mean_hz": 1800.0, "min_hz": 400.0, "max_hz": 6000.0},
-       "dynamics": {"rms_mean": 0.12, "rms_range_db": 14.0}, "midi_path": None}
+       "dynamics": {"rms_mean": 0.12, "rms_range_db": 14.0},
+       "timbre": {"rolloff_hz": 3200.0, "flatness": 0.12, "contrast": 18.0, "zcr": 0.08, "harmonic_ratio": 0.78},
+       "midi_path": None}
 
 
 def test_prompt_embeds_measured_facts():
@@ -85,3 +87,18 @@ def test_prompt_asks_for_body_and_drive():
     p = build_prompt(META, MIR).lower()
     assert "drive" in p
     assert "body" in p or "thin" in p
+
+
+def test_prompt_includes_timbre_facts():
+    p = build_prompt(META, MIR).lower()
+    assert "rolloff" in p
+    assert "flatness" in p or "tonal" in p
+    assert "harmonic" in p
+
+
+def test_build_stem_prompt_frames_isolation():
+    from audio_reference.prompt import build_stem_prompt
+    p = build_stem_prompt(META, MIR, "drums")
+    assert "drums" in p
+    assert "isolated" in p.lower() or "only" in p.lower()
+    assert "synth" in p.lower() and "steps" in p.lower()
