@@ -89,10 +89,12 @@ model's interpretation.
   description. Vertex + Application Default Credentials matches how Les normally accesses
   Gemini — no API-key management. The unified `google-genai` SDK supports
   `genai.Client(vertexai=True, project=…, location=…)` reading ADC automatically.
-- **16 kHz mono transcode before sending** — Gemini tokenizes audio at 16 kHz mono
-  internally anyway, and Vertex inline requests cap ~20 MB (a FLAC would blow it). Lossy
-  for Gemini's purposes = lossless relative to what it uses. MIR still runs on the
-  full-quality original.
+- **16 kHz mono transcode before sending** — primarily a size guard for the 20 MB inline cap,
+  not a quality lever. Per Google's audio docs, Gemini downsamples to a low ("16 Kbps")
+  resolution, downmixes multiple channels to one, and represents each second as **32 tokens** —
+  so a high-rate stereo file gives it nothing extra (it reduces to mono/low-res itself). That
+  coarse 32-tokens/sec representation — not our transcode — is what limits fine-timbre fidelity.
+  MIR still runs on the full-quality original. See https://ai.google.dev/gemini-api/docs/audio
 - **librosa + Krumhansl-Schmuckler** — librosa has no built-in key detector; we compute
   key/mode from the chroma vector against Krumhansl-Schmuckler major/minor profiles
   (a standard recipe).
