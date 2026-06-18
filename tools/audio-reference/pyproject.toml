@@ -19,7 +19,8 @@ dependencies = [
 midi = ["basic-pitch>=0.4.0"]
 # Stem separation (Demucs + torch) — heavy, opt-in (`uv sync --extra stems`); only pulled when
 # you run `analyze --stems`. separate.py invokes demucs via subprocess and guards the absence.
-stems = ["demucs>=4.0", "torch>=2.0"]
+# torchcodec is torchaudio's I/O backend (>=2.8 routes save() through it); needs ffmpeg (already a dep).
+stems = ["demucs>=4.0", "torch>=2.0", "torchcodec>=0.2"]
 dev = ["pytest>=8.0"]
 
 [project.scripts]
