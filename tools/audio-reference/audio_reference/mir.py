@@ -3,7 +3,7 @@ import numpy as np
 import librosa
 
 from .keyest import estimate_key
-from .features import dynamic_range_db, brightness_stats, dedupe_sections
+from .features import dynamic_range_db, brightness_stats, dedupe_sections, harmonic_ratio, voiced_mean
 
 
 def _sections(y, sr) -> list[dict]:
@@ -59,6 +59,19 @@ def extract_mir(input_path: str, midi_out: str | None) -> dict:
     b_mean, b_min, b_max = brightness_stats(centroid, rms)
     rms_range_db = dynamic_range_db(rms)
 
+    rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)[0]
+    flatness = librosa.feature.spectral_flatness(y=y)[0]
+    contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
+    zcr = librosa.feature.zero_crossing_rate(y)[0]
+    y_harm, y_perc = librosa.effects.hpss(y)
+    timbre = {
+        "rolloff_hz": voiced_mean(rolloff, rms),
+        "flatness": float(flatness.mean()),
+        "contrast": float(contrast.mean()),
+        "zcr": float(zcr.mean()),
+        "harmonic_ratio": harmonic_ratio(y_harm, y_perc),
+    }
+
     midi_path = _midi(input_path, midi_out) if midi_out else None
 
     return {
@@ -77,5 +90,6 @@ def extract_mir(input_path: str, midi_out: str | None) -> dict:
             "rms_mean": float(rms.mean()),
             "rms_range_db": rms_range_db,
         },
+        "timbre": timbre,
         "midi_path": midi_path,
     }
