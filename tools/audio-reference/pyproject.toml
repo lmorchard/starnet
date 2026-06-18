@@ -17,6 +17,9 @@ dependencies = [
 # path installs everywhere; MIDI transcription is opt-in (`uv sync --extra midi`),
 # and `mir._midi` guards the import so `--no-midi` / a missing install is graceful.
 midi = ["basic-pitch>=0.4.0"]
+# Stem separation (Demucs + torch) — heavy, opt-in (`uv sync --extra stems`); only pulled when
+# you run `analyze --stems`. separate.py invokes demucs via subprocess and guards the absence.
+stems = ["demucs>=4.0", "torch>=2.0"]
 dev = ["pytest>=8.0"]
 
 [project.scripts]
