@@ -79,3 +79,34 @@ def test_build_sidecar_includes_all_blocks_and_score_spec():
     assert side["mir"] == MIR
     assert side["interpretation"] == INTERP
     assert side["score_spec"]["bpm"] == 129.0
+
+
+from audio_reference.scorespec import assemble_stems
+
+MIR_GLOBAL = {"bpm": 129.0, "key": "F#", "mode": "minor", "key_confidence": 0.9,
+              "duration_sec": 200.0, "sections": [{"start": 0.0}],
+              "brightness": {"mean_hz": 1500.0, "min_hz": 100.0, "max_hz": 7000.0},
+              "dynamics": {"rms_mean": 0.1, "rms_range_db": 18.0}, "midi_path": None}
+STEM_RESULTS = [
+    {"stem": "drums", "mir": {}, "interpretation": {"tracks": [
+        {"name": "Kick", "instrument": "MembraneSynth", "pattern": "1/4", "description": "",
+         "synth": {"type": "MembraneSynth", "options": {}}, "steps": {"grid": "4n", "notes": ["C1"]}}]}},
+    {"stem": "bass", "mir": {}, "interpretation": {"tracks": [
+        {"name": "Sub", "instrument": "MonoSynth", "pattern": "1/8", "description": "",
+         "synth": {"type": "MonoSynth", "options": {}}, "steps": {"grid": "8n", "notes": ["F#1"]}}]}},
+]
+
+
+def test_assemble_stems_merges_and_tags_tracks():
+    side = assemble_stems({"slug": "x"}, MIR_GLOBAL, STEM_RESULTS)
+    ss = side["score_spec"]
+    assert ss["root"] == "F#" and ss["mode"] == "minor" and ss["bpm"] == 129.0
+    assert [t["name"] for t in ss["tracks"]] == ["Kick", "Sub"]
+    assert [t["stem"] for t in ss["tracks"]] == ["drums", "bass"]
+
+
+def test_assemble_stems_sidecar_shape():
+    side = assemble_stems({"slug": "x"}, MIR_GLOBAL, STEM_RESULTS)
+    assert set(side.keys()) == {"meta", "mir", "stems", "score_spec"}
+    assert side["stems"] == STEM_RESULTS
+    assert side["mir"] == MIR_GLOBAL

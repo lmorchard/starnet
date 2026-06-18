@@ -41,6 +41,26 @@ def build_sidecar(meta: dict, mir: dict, interp: dict) -> dict:
     }
 
 
+def assemble_stems(meta: dict, mir_global: dict, stem_results: list) -> dict:
+    """Merge per-stem analyses into one sidecar. root/mode/bpm come from the full-mix MIR;
+    every per-stem track is tagged with its stem. stem_results: [{stem, mir, interpretation}]."""
+    tracks = []
+    for sr in stem_results:
+        for t in sr.get("interpretation", {}).get("tracks", []):
+            tracks.append({**t, "stem": sr["stem"]})
+    return {
+        "meta": meta,
+        "mir": mir_global,
+        "stems": stem_results,
+        "score_spec": {
+            "root": mir_global["key"],
+            "mode": mir_global["mode"],
+            "bpm": mir_global["bpm"],
+            "tracks": tracks,
+        },
+    }
+
+
 def sanitize_numbers(obj):
     """Return a copy with non-finite floats (inf/-inf/nan) replaced by None.
 
