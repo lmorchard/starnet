@@ -1,8 +1,6 @@
 # TR/ST — Dressed For Space
 
-> A driving, melancholic darkwave track at 133 BPM in E minor. It's built on a relentless 16th-note sawtooth bass arpeggio and a four-on-the-floor beat. Layers of saturated synths, including a prominent square-wave lead, swelling pads, and bright chime arpeggios, create a dense, atmospheric texture. Low, reverb-drenched male vocals deliver the melody, reinforcing the track's somber yet energetic mood.
-
-*Source: `TR_ST - Dressed For Space (Official Video).mp3` · Model: gemini-2.5-pro*
+*Source: `TR_ST - Dressed For Space (Official Video).mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
 
@@ -12,35 +10,45 @@
 - **Sections: 6** (boundaries at 0:00, 0:08, 0:22, 1:35, 1:50, 3:32)
 - **Brightness (spectral centroid):** mean 2353 Hz (range 138–5433 Hz)
 - **Dynamics:** RMS mean 0.333, range 12.2 dB
+- **Timbre:** rolloff 5274 Hz, flatness 0.00, contrast 22.1, ZCR 0.036, harmonic ratio 0.89
 
-## Vocabulary grid (model interpretation)
+## drums
 
-| Dimension | Reading |
-|---|---|
-| Timbre | Dominated by classic 80s analog-style synth voices: saturated sawtooth bass, bright square-wave leads, FM-like bells, and wide sawtooth pads, with processed, low-register male vocals. |
-| Brightness | Crisp and present, with bright digital-sounding synth leads and chimes cutting through a darker, saturated low-mid range from the bass and pads. The overall mix has a high-frequency sheen. |
-| Envelope | A mix of tight, plucky envelopes for the bass arpeggio and drums (short attack/decay), and much longer, swelling envelopes (slow attack, long release) for the atmospheric pads. |
-| Register/density | Starts with a sparse low-mid register bassline, then builds to a high density by layering a kick, snare, mid-register pads, a high-mid lead, and a very high chime arpeggio. |
-| Harmony/mode | Strongly rooted in a melancholic E minor mode, using a simple, repetitive chord progression (e.g., Em-C-G). The harmony is functional but serves mainly as a bed for melodic and rhythmic texture. |
-| Groove | A straight and propulsive four-on-the-floor groove driven by the constant 16th-note bass arpeggio and a simple kick-on-every-beat, snare-on-2-and-4 pattern. |
-| Space/grit | The track is drenched in a large hall reverb, creating a vast, cavernous space, especially on the vocals and pads. Most synth elements, particularly the bass, have noticeable saturation and drive, adding warmth and grit without being overtly distorted. |
-
-## Tracks (model interpretation)
-
-*Each track is one instrument driven by one pattern. Track names are the model's, invented to fit this piece; instruments are Tone.js sources (or a custom-synthesis note).*
+> A driving, synthetic drum machine track in a classic EBM/industrial style. It's built on a foundation of a four-on-the-floor kick and backbeat snare, with layers of metallic hi-hats and syncopated percussion that build in density and complexity to create a high-energy, machine-like groove. The sounds are raw, punchy, and have a distinct lo-fi grit.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Arp Bass | MonoSynth | Continuous 16th-note arpeggio outlining the chord progression, typically in a root-fifth-octave pattern. The primary rhythmic and harmonic driver of the track. | The foundational element, starting from the intro and running almost continuously. It's a punchy, saturated sound that sits in the low-mid range. |
-| Synth Kick | MembraneSynth | Simple and steady four-on-the-floor pattern, hitting on every quarter note. | Enters at 0:22 to establish the dance beat. It's a deep, punchy kick with a medium decay that anchors the groove. |
-| Noise Snare | NoiseSynth | A classic backbeat hitting on beats 2 and 4 of each bar. | Enters with the kick at 0:22, providing the backbeat. It's a bright, noisy snare sound with a quick decay and noticeable reverb. |
-| Swell Pad | PolySynth | Sustained whole-note chords that follow the main harmony, swelling in and out. | Enters around 0:08, providing a continuous atmospheric and harmonic bed. The sound is very wide due to chorus and has a long reverb tail. |
-| Main Lead | MonoSynth | A simple, catchy, and syncopated melodic hook that repeats throughout the chorus sections. | Enters at 0:22, serving as the main melodic focus besides the vocal. It has a bright, cutting square-wave tone that sits high in the mix. |
-| Lead Vocal Synth | FMSynth used to approximate a vocal tone | Melodic phrases with a relatively narrow pitch range and simple rhythm, following the lyrical structure. | Enters around 0:36. This is an approximation of the low, baritone male vocal, which is heavily processed with reverb. |
-| Chime Arp | FMSynth | A very fast, high-pitched 16th-note arpeggio that follows the chord changes. | Appears during chorus sections (e.g., 0:50) to add a layer of bright, crystalline texture on top of the mix. It has a bell-like, percussive quality. |
+| Thump Kick | MembraneSynth | A relentless four-on-the-floor pattern playing on every quarter note. | The foundational element of the track, providing a constant, driving pulse from the very beginning. Its sound is a deep, punchy thump with a quick, slightly tonal decay and a touch of saturation. |
+| Crack Snare | NoiseSynth | A strong, steady backbeat hitting on beats 2 and 4 of every bar. | Provides the essential backbeat that defines the groove. It's a sharp, bright, and noisy snare sound that cuts through the mix, entering at 7.9s. |
+| Offbeat Hat | MetalSynth | Plays a constant off-beat 8th note pattern (on the 'and' of each beat). | Introduced at 7.9s, this track creates the initial syncopated feel. Its slightly longer decay gives it an 'open hi-hat' quality that adds lift and a classic EBM shuffle to the groove. |
+| Driving Hat | MetalSynth | A busy, syncopated 16th-note pattern, hitting on the 1, 'e', and 'a' of each beat. | Enters at 35.9s to ramp up the energy. This tighter, more aggressive hi-hat sound fills in the rhythm and provides a relentless, driving texture during the more intense sections. |
+| Clave Hit | PluckSynth | A sparse, syncopated pattern adding accents within the main groove. | Also entering at 35.9s, this track adds a contrasting percussive layer. The sound is a short, sharp, almost woodblock-like click that makes the overall rhythm more complex and funky. |
 
-## Score-draft starter (speculative)
+## vocals
 
-> Model-guessed synth parameters — speculative, tune by ear.
+> A heavily processed male lead vocal, characterized by a dark, gothic tone, a vast reverb space, and a prominent chorus effect. The performance is dynamic, shifting between rhythmic, driving verse phrases and long, sustained notes in the chorus, all within a consistent E minor tonality.
 
-Speculative starter: Set tempo to 133 BPM. The harmonic foundation is an E minor chord progression (e.g., | Em | Em | C | C |). The core driver is a 'MonoSynth' with a 'sawtooth' oscillator playing 16th-note arpeggios (e.g., ['E2', 'B2', 'E3', 'B2', ...]). Apply moderate `drive: 0.5` and a `lowpass` filter with `filterFrequency: 1200`, `filterQ: 2.5` for punch. The main lead is a 'MonoSynth' with a 'fatsquare' oscillator (`count: 3`, `spread: 20`) playing a syncopated hook around B4. Pads can be a 'PolySynth' with 'fatsawtooth', a slow `attack: 2.5`, and high `chorus: 0.6` and `reverbSend: 0.7`. Drums are a `MembraneSynth` kick on every quarter note and a `NoiseSynth` snare on beats 2 and 4. A global reverb with a long decay is essential for the track's atmosphere.
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Gothic Lead Vocal | PolySynth | The main sung melody, alternating between rhythmic 16th-note patterns in verses and sustained whole notes in the chorus. Follows an E minor scale. | The central melodic and lyrical element of the track, present from the first verse at 0:24. It is defined by its heavy chorus, subtle drive, and prominent reverb, giving it a signature wide and atmospheric sound. |
+| Vocal Reverb Pad | PolySynth | Sustained single notes or simple chords (Em) that swell in and out, mimicking the blooming reverb tail of the main vocal. | An atmospheric pad that simulates the massive reverb wash. It sits quietly in the background, providing a continuous sense of space and harmonic glue. It's present whenever the main vocal is active. |
+| Breath & Sibilance | NoiseSynth | Sparse, intermittent percussive hits of white noise to simulate breath sounds and sharp sibilance ('s', 'sh' sounds). | A high-frequency textural layer that adds grit and a percussive quality to the vocal performance. Most noticeable in the intro (0:00-0:24) and in the gaps between lyrical phrases. |
+
+## other
+
+> This track consists of several layered synthesizers creating a dense, atmospheric soundscape. The core is a thick, sustained pad playing chords, overlaid with a prominent, fast 16th-note arpeggio that provides rhythmic drive and melodic interest. A higher, shimmering pad layer adds ethereal texture. The overall feel is epic, melancholic, and characteristic of 80s darkwave or synth-pop.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Foundation Pad | PolySynth | Sustained whole-note chords following a 4-bar progression. Each chord is held for one full bar. | This is the core harmonic bed of the track, a very thick and wide pad sound. It's present from the beginning and provides a continuous, lush background for the other elements. Its slow attack and long release cause chords to bleed into one another smoothly. |
+| Arp Lead | Synth | A relentless, continuous 16th-note arpeggio that outlines the current chord. The pattern is typically a rising and falling figure within one octave. | Entering at 7.9s, this is the main melodic and rhythmic driver. Its bright, resonant tone cuts through the pad, and its constant motion creates the track's signature energy. It's also heavily processed with reverb, allowing it to feel both upfront and integrated into the overall space. |
+| High Pad Layer | PolySynth | Plays single, very long sustained notes in a high register, often acting as a pedal point over changing chords. | A secondary, ethereal pad layer that adds a glassy, shimmering quality to the top end of the mix. It has an even slower attack than the main pad, making it swell in gently. It often holds the fifth or root of the key for long stretches, creating harmonic tension and a sense of scale. |
+
+## bass
+
+> A driving, motorik EBM bassline at 133 BPM in A minor. The track is built around a single, relentless eighth-note arpeggio pattern played on a synthesized bass. The timbre evolves, shifting between a darker, more subdued character and a brighter, more aggressive tone with increased filter cutoff and drive for dynamic variation.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Subdued EBM Bass | MonoSynth | A continuous 2-bar eighth-note arpeggio outlining an Am-G-C-E / Am-G-C-D progression. | This is the primary bassline for the track's quieter sections (e.g., 0:00-51.3s). It establishes the core rhythmic and harmonic drive with a darker, rounded, and less aggressive timbre. |
+| Driven EBM Bass | MonoSynth | A continuous 2-bar eighth-note arpeggio outlining an Am-G-C-E / Am-G-C-D progression. The pattern is identical to the subdued bass. | This track takes over during the more intense 'chorus' sections (e.g., 51.3s-95.2s). It uses the same melodic pattern but with a brighter, grittier, and more aggressive sound, achieved by increasing the filter cutoff and drive. |

@@ -1,8 +1,6 @@
 # TR/ST — Icabod
 
-> A high-energy darkwave track at 126 BPM in F# minor, built on a driving four-on-the-floor beat and a propulsive 16th-note arpeggiated bassline. The arrangement is dense, layering multiple bright, resonant synth arpeggios, a powerful saturated bass, and heavily reverberated vocals and percussion. The mood is urgent and melancholic, characteristic of the 80s goth/synth-pop revival style, with a mix of tight rhythmic elements and vast, cavernous reverb.
-
-*Source: `Trust - Icabod.mp3` · Model: gemini-2.5-pro*
+*Source: `Trust - Icabod.mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
 
@@ -12,59 +10,47 @@
 - **Sections: 7** (boundaries at 0:00, 1:24, 2:43, 3:25, 4:12, 4:19, 4:22)
 - **Brightness (spectral centroid):** mean 2991 Hz (range 701–7479 Hz)
 - **Dynamics:** RMS mean 0.259, range 15.1 dB
+- **Timbre:** rolloff 6334 Hz, flatness 0.01, contrast 20.8, ZCR 0.062, harmonic ratio 0.81
 
-## Vocabulary grid (model interpretation)
+## drums
 
-| Dimension | Reading |
-|---|---|
-| Timbre | Dominated by analog-style synth textures, featuring sharp, resonant saw and square waves. Vocals are low in the mix and heavily processed. Percussion is synthetic and punchy. |
-| Brightness | Bright and sizzly, with prominent high-frequency content from synth leads and sharp percussion, balanced by a weighty low-mid bass. The overall feel is crisp despite the dark tone. |
-| Envelope | Predominantly short and plosive envelopes for rhythmic elements (bass, leads), creating a tight, driving pulse. Pads and vocals have slower attacks and longer releases for atmospheric layering. |
-| Register/density | Dense and layered, with a powerful low-end from the bassline, a busy mid-range filled with arpeggiated synths and vocals, and a crisp high-end from percussion and lead textures. |
-| Harmony/mode | Firmly in F# minor, using driving root-note basslines and arpeggiated minor chords to create a dark, urgent, and melancholic new-wave atmosphere. |
-| Groove | A driving, four-on-the-floor dance beat with a strong backbeat. The groove is defined by a relentless kick drum and a propulsive, arpeggiated synth bassline, creating an insistent, motorik feel. |
-| Space/grit | A mix of tight, dry rhythmic elements and cavernous, reverberant spaces. Grit is applied liberally through saturation/distortion on bass and lead synths, while vocals and snares are washed in large hall reverb. |
-
-## Tracks (model interpretation)
-
-*Each track is one instrument driven by one pattern. Track names are the model's, invented to fit this piece; instruments are Tone.js sources (or a custom-synthesis note).*
+> A driving, four-on-the-floor electronic drum pattern with a bright, crisp, and slightly gritty character, reminiscent of classic drum machines with modern processing. The arrangement builds in density, adding layers of hi-hats and percussive fills.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Arp Bass | MonoSynth | Relentless 16th-note arpeggio outlining chord roots and fifths, with a gritty, slightly overdriven tone. 2-bar loop. | The core rhythmic and harmonic driver of the track, entering at the start and present almost throughout. Its saturated tone helps it cut through the dense mix. |
-| Kick | MembraneSynth | Standard four-on-the-floor 1/4 note pattern. | The foundational pulse of the dance beat. A solid, punchy kick drum sound that drives the track from the very beginning. |
-| Reverb Snare | NoiseSynth | Hits on the backbeats (2 and 4). | A classic 80s gated reverb snare sound. The large reverb adds a huge sense of space and punctuates the groove, contrasting with the tighter elements. |
-| Hi-Hat | MetalSynth | Constant, driving 16th notes. | Provides high-frequency energy and reinforces the fast pace. Sits high in the mix, with a sharp, metallic character. |
-| Main Arp Lead | PolySynth | High-register 16th-note arpeggio playing a melodic hook. 2-bar loop. | The iconic opening hook. A bright, resonant, and detuned synth sound that defines the track's character from the start. |
-| Choir Pad | PolySynth | Long, sustained minor chords changing every 2 or 4 bars. | A background pad with a vocal-like quality, providing atmospheric texture and harmonic support, especially in the chorus-like sections. |
-| Woah Backing Synth | PolySynth | Rhythmic 'Woah-oh' melodic pattern, syncopated against the main beat. | A synth layer that mimics the sung 'Woah-oh' backing vocals. Has a distinct, filtered, and resonant quality, appearing in the main hook sections. |
+| FourOnTheFloorKick | MembraneSynth | A relentless four-on-the-floor pattern on every quarter note. | The foundational element of the track, a punchy and consistent kick drum that drives the rhythm from beginning to end. It has a focused low-mid punch rather than a deep sub-bass boom. |
+| BackbeatSnare | NoiseSynth | A classic backbeat pattern, hitting on beats 2 and 4. | A sharp, cracking snare sound that provides the main backbeat. It sounds like a blend of a synthetic snare and a clap, with a noisy transient and very short body. |
+| ClosedHats | MetalSynth | A busy, driving pattern of 16th notes with some rests for rhythmic texture. | A tight, metallic closed hi-hat that fills the high-end and propels the track forward. Its pattern varies in complexity throughout the song. |
+| OffbeatOpenHat | MetalSynth | A consistent off-beat 8th note pattern. | A sizzling open hi-hat that adds a classic disco/EBM feel. It plays on the off-beats, creating a sustained 'tsss' that contrasts with the tight closed hats. |
 
-## Score-draft starter (speculative)
+## vocals
 
-> Model-guessed synth parameters — speculative, tune by ear.
+> A heavily processed and layered male vocal performance. It features a central lead vocal with a gritty, emotional delivery, set against a backdrop of ethereal, choral pads and rhythmic, mantra-like vocal loops. The entire stem is saturated in a vast, cavernous reverb, creating a dark, atmospheric, and gothic soundscape.
 
-/* DRAFT STARTER - speculative */
-const reverb = new Tone.Reverb({ decay: 4, wet: 0.5 }).toDestination();
-const chorus = new Tone.Chorus(4, 2.5, 0.7).toDestination();
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Grit Lead Vocal | MonoSynth | Syncopated 8th-note phrases in verses, holding longer notes in the chorus. The main melodic and lyrical focus. | The central narrative voice of the track, present through most of the song after the intro. It has a gritty texture and is drenched in a massive reverb, but remains the most forward element in this stem. |
+| Ghost Choir Pad | PolySynth | Long, sustained chords that swell in and out, holding for multiple bars at a time. | An ethereal, pad-like texture made from layered vocal 'oohs'. It establishes the atmosphere from the very beginning and provides a continuous harmonic bed throughout the track. It has an extremely long reverb tail. |
+| High Counter-Melody | MonoSynth | An ascending melodic line that acts as a call-and-response to the lead vocal during the pre-chorus/chorus. | A distinct, higher-register harmony line that appears in the 'helplessly...' sections. It has a smoother, less gritty tone than the lead but is processed with the same enormous reverb. |
+| Stutter Mantra | MonoSynth | A tight, hypnotic, and repetitive 16th-note phrase on a single pitch. | A rhythmic vocal loop of the phrase 'wants to stand in' that creates a stuttering, tense layer during the pre-chorus sections. Its percussive and repetitive nature drives the rhythm forward. |
 
-// Main Arp Lead: PolySynth with fatsawtooth, chorus, reverb
-const leadSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'fatsawtooth', count: 5, spread: 30 }, envelope: { attack: 0.01, decay: 0.3, release: 0.4 }, filter: {type: 'highpass', frequency: 400}, volume: -13 }).connect(chorus).connect(reverb);
-const leadPattern = new Tone.Sequence((time, note) => {
-  leadSynth.triggerAttackRelease(note, '16n', time);
-}, ['F#5', null, 'C#6', null, 'F#5', null, 'B5', null, 'A5', null, 'C#6', null, 'A5', null, 'E5', null], '16n').start(0);
+## other
 
-// Arp Bass: MonoSynth with fatsawtooth and drive
-const bassSynth = new Tone.MonoSynth({ oscillator: { type: 'fatsawtooth', count: 3 }, filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.1, baseFrequency: 200, octaves: 2.6 }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }, volume: -6 }).toDestination();
-bassSynth.set({ filter: { Q: 2.5, type: 'lowpass' }, drive: 0.5 });
-const bassPattern = new Tone.Sequence((time, note) => {
-  bassSynth.triggerAttackRelease(note, '16n', time);
-}, ['F#2', 'C#3', 'F#2', 'C#3', 'F#2', 'C#3', 'F#2', 'C#3', 'A2', 'E3', 'A2', 'E3', 'A2', 'E3', 'A2', 'E3'], '16n').start(0);
+> A driving, dark synthwave track built on a foundation of a gritty, distorted 16th-note arpeggio and a pulsing bass. The track evolves dramatically, introducing a massive, wide supersaw pad and a clear, melodic FM lead in the second half, creating a sense of epic scale and emotional weight. The overall sound is a blend of aggressive, lo-fi grit and expansive, atmospheric reverb.
 
-// Beat: Classic 4/4 with gated snare
-const kick = new Tone.MembraneSynth({ volume: -3 }).toDestination();
-const snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { decay: 0.15 }, filter: { type: 'bandpass', Q: 1.2, frequency: 5000 }, volume: -9 }).connect(reverb);
-const kickLoop = new Tone.Loop(time => kick.triggerAttackRelease('C1', '8n', time), '4n').start(0);
-const snareLoop = new Tone.Loop(time => snare.triggerAttackRelease('16n', time), '2n').start('4n');
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Buzz Arpeggio | MonoSynth | A relentless 16th-note arpeggio outlining the chord progression. It runs for almost the entire track, providing the main rhythmic and melodic drive. | The primary driving force for the track, present from the start. It's a gritty, distorted, mid-range synth that establishes the propulsive energy. Its constant motion creates a hypnotic effect. |
+| Grit Bass | MonoSynth | Pulsing 8th notes on the root of each chord. Has a pumping feel, suggesting sidechain compression. | Provides the low-end harmonic foundation and rhythmic pulse. Works in tandem with the arpeggio to create the core groove. It's heavily distorted and present through most of the track. |
+| Epic Pad | PolySynth | Sustained, slow-swelling chords that change every one or two bars. | Enters at 147.2s. Creates a massive, wide, atmospheric shift. It's the harmonic and emotional core of the second half, processed with heavy chorus and reverb for an expansive sound. |
+| Crystal Lead | FMSynth | A high-register, syncopated melodic hook using 8th and 16th notes. | Enters at 201.0s over the Epic Pad. This bright, glassy lead adds a new melodic focal point. Its bell-like, digital character is softened by a long reverb tail. |
 
-Tone.Transport.bpm.value = 126;
-Tone.Transport.start();
+## bass
+
+> A dark, hypnotic bass track driven by a relentless 16th-note synth pattern. The piece is built on a single, consistent bass patch—a plucky, slightly overdriven sawtooth wave—which evolves through different melodic and rhythmic patterns to create distinct sections of varying intensity. The harmony is rooted in B minor, creating a tense and brooding atmosphere throughout.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Motorik Bass | MonoSynth | A relentless, repeating 1-bar 16th-note ostinato that arpeggiates B minor and F-sharp minor chords. | This is the primary engine of the track, present from the beginning until 1:25, and returning at 1:54. It establishes the dark, driving, and hypnotic feel of the piece. |
+| Sparse Ostinato | MonoSynth | A syncopated and much sparser 16th-note pattern, creating rhythmic space by omitting many notes from the constant stream. | This pattern appears during the breakdown section from 1:25 (85.7s) to 1:54 (114.7s). It maintains the core sound but reduces the density, changing the track's energy. |
+| Melodic Root Motion | MonoSynth | A 16th-note pattern that abandons arpeggiation for melodic movement, stepping through chord roots in quarter-note blocks (e.g., B, E, G, F#). | This variation appears from 3:24 (204.8s) onward, introducing a new harmonic progression and a more declarative, melodic feel while maintaining the driving 16th-note rhythm. |

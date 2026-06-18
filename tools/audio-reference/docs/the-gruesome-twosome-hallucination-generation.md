@@ -1,8 +1,6 @@
 # The Gruesome Twosome — Hallucination Generation
 
-> An aggressive, high-energy big beat track from the late 90s, characterized by a driving breakbeat, a plethora of chopped and processed vocal samples, and gritty synth stabs. The structure is built around repetitive loops and rhythmic intensity rather than melodic development.
-
-*Source: `The Gruesome Twosome - Hallucination Generation.mp3` · Model: gemini-2.5-pro*
+*Source: `The Gruesome Twosome - Hallucination Generation.mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
 
@@ -12,35 +10,50 @@
 - **Sections: 7** (boundaries at 0:00, 0:08, 0:11, 0:19, 3:26, 3:38, 3:42)
 - **Brightness (spectral centroid):** mean 4106 Hz (range 870–7989 Hz)
 - **Dynamics:** RMS mean 0.160, range 16.4 dB
+- **Timbre:** rolloff 8697 Hz, flatness 0.00, contrast 20.9, ZCR 0.095, harmonic ratio 0.79
 
-## Vocabulary grid (model interpretation)
+## drums
 
-| Dimension | Reading |
-|---|---|
-| Timbre | A collage of gritty, lo-fi samples (drums, vocals) and sharp, digital synthesizers. Heavy use of distortion and bit-crushing. |
-| Brightness | High. Crispy hi-hats, sharp synth arpeggios, and sibilant vocal samples keep the spectral centroid elevated throughout. |
-| Envelope | Predominantly short and percussive. Drums, bass stabs, and sample chops all have fast attacks and quick decays, creating a tight, punchy feel. |
-| Register/density | Dense and full-spectrum. A heavy sub-bass foundation, a packed mid-range with drums and vocal samples, and a high-frequency layer of hi-hats and synth arpeggios. |
-| Harmony/mode | Statically rooted in C# minor. The harmony is minimal and tense, using repetitive, often dissonant, stabs to create rhythmic rather than melodic interest. |
-| Groove | A driving 115 BPM breakbeat groove with a strong, funky backbeat and persistent 16th-note subdivisions in the bass and hi-hats. |
-| Space/grit | Very gritty and distorted. The mix is relatively dry and upfront, creating a claustrophobic, high-intensity atmosphere. Reverb is used sparingly as a spot effect. |
-
-## Tracks (model interpretation)
-
-*Each track is one instrument driven by one pattern. Track names are the model's, invented to fit this piece; instruments are Tone.js sources (or a custom-synthesis note).*
+> A high-energy, aggressive big beat drum track at 115 BPM. The piece is built from heavily processed and synthesized drum sounds, featuring a punchy kick, a sharp, layered snare, and metallic hi-hats. The arrangement evolves through various sections, introducing different breakbeat patterns, fills, and percussive layers, creating a wide dynamic range and a sense of forward momentum.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Breakbeat Kick | Synth | A heavy, syncopated kick pattern that anchors the breakbeat. | The fundamental low-end pulse of the track, providing a solid foundation with a classic breakbeat feel. Present almost continuously. |
-| Breakbeat Tops | NoiseSynth | A busy 16th-note hi-hat and snare pattern creating the core breakbeat rhythm. Snare hits on 2 and 4. | The high-frequency rhythmic driver, providing the classic, frantic energy of a sampled breakbeat. The sound is sharp and brittle. |
-| Chiptune Arp | Synth | A fast, continuous 16th-note arpeggio outlining a C# minor 7th chord. | A sharp, digital lead sound that opens and closes the track. It has a gritty, lo-fi, bit-crushed quality. |
-| Pitched 'Oh' Stab | FMSynth | A simple, rhythmic two-note motif (G#4, E4) that forms a primary hook. | One of the main hooks, this synth mimics a pitched and processed female vocal sample ('Oh!'). Appears frequently after the intro section. |
-| Gritty Bass | MonoSynth | A constant, driving 16th-note pattern on the root note C#. | The relentless, distorted bassline that provides the core harmonic and rhythmic foundation under the beat. |
-| Rhythmic Vocal Chop | AMSynth | A syncopated, percussive phrase emulating a chopped vocal sample. | A gritty, rhythmic stab that represents the recurring 'Shake off baby' vocal sample, adding to the percussive texture of the track. |
-| Scratch FX | NoiseSynth | Short, rapid bursts of noise used as rhythmic accents. | Emulates a DJ vinyl scratch, used for fills and transitions to enhance the hip-hop influence and rhythmic complexity. |
+| Industrial Kick | MembraneSynth | A heavily syncopated, driving pattern that often avoids the straight 4-on-the-floor in favor of a broken, funky rhythm. Kick on 1 is common, with other hits landing on off-beats. | The foundational element, providing the low-end weight and driving pulse of the track. Present throughout most of the song after the intro, defining the core groove. |
+| Aggro Snare | A NoiseSynth and a high-pitched MembraneSynth layered together, sent through a high-pass filter and distortion. | Strong backbeat on 2 and 4, with lots of syncopated 16th-note ghost notes and fills creating a complex, driving rhythm. | Provides the sharp, cracking backbeat. It's a central element of the groove, often playing intricate patterns that define the breakbeat feel. Present throughout. |
+| Metallic Hats | MetalSynth | Constant driving 16th notes, with velocity accents creating a pulsing, machine-like feel. | The primary time-keeping element in the high register, providing a constant stream of rhythmic energy. It drops out for effect in some sections but is mostly present. |
+| Sizzle Hat | MetalSynth | Plays on the off-beats, typically the '+' of each beat, creating a classic disco/funk lift. | Adds sizzle and an off-beat pulse to the groove, working in tandem with the closed hats to create a full high-frequency rhythm section. Used in the main high-energy sections. |
+| Deep Tom | FMSynth | Plays sparse, syncopated melodic fragments and fills, often accenting the end of a 2 or 4 bar phrase. | A low, tonal percussion element that adds a funky, melodic quality to the drum patterns. Its appearances are sporadic but impactful, often functioning as a fill. |
+| Noise Crash | NoiseSynth | Single hits on the downbeat of major sections, like beat 1 of a new 4-bar phrase. | A loud, explosive noise burst used as a crash cymbal to mark significant transitions and add impact to downbeats. |
 
-## Score-draft starter (speculative)
+## vocals
 
-> Model-guessed synth parameters — speculative, tune by ear.
+> This track is an intricate and rhythmic collage built exclusively from processed vocal samples. It features a haunting female choral pad, a main male narrator, various hype-man interjections, a repetitive female hook, a distorted scream stab, and DJ scratches. The composition uses these vocal elements percussively and melodically to construct a driving, sample-heavy groove without any traditional instrumentation.
 
-SPECULATIVE STARTER: Set Tone.Transport.bpm to 115. The core is a heavy breakbeat; use a `Synth` with a pitch envelope on a sine wave for the kick (`['C2', '', '', '', 'C2', '', '', 'C2']`), and a `NoiseSynth` for the hats/snare (`['x', 'x', 'x', 'x', 'x', '', 'x', '']`). The main bass is a `MonoSynth` with `oscillator: {type: 'fatsawtooth'}, filter: {type: 'lowpass', frequency: 700, Q: 2}, drive: 0.7` playing constant 16th notes on 'C#2'. The signature vocal stab can be approximated with an `FMSynth({harmonicity: 3, modulationIndex: 14})` playing a sequence like `['', '', 'G#4', '', '', '', 'G#4', '', '', '', 'E4', '']`. The intro arp is a simple `Synth({oscillator: {type: 'square'}})` with an arpeggiator on a C#m7 chord. Use `Player` objects triggered via `Tone.Part` to layer the numerous vocal samples for the full 'big beat' effect.
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Choral Pad | PolySynth using a fat oscillator with chorus to emulate a multi-tracked choir. | A repeating, descending 3-note melodic phrase (C-Bb-A) that plays every bar, forming the main harmonic bed. | A haunting, ethereal female choir that provides the main melodic and atmospheric content. It's present throughout most of the track and is drenched in a long reverb, creating a spacious, pad-like texture. |
+| Main Narrator | MonoSynth with a bandpass filter to approximate a processed male spoken voice. | Syncopated, rhythmic spoken-word phrases that deliver the song's verses. The pattern is conversational but rhythmically precise. | The lead male vocal, delivering verses with a measured, slightly robotic cadence. The voice is processed to be clear and upfront, acting as the primary narrative driver during verse sections. |
+| Female Hook | MonoSynth with a quick envelope and bandpass filter to mimic a catchy female vocal sample. | A highly repetitive and rhythmic 1-bar phrase, "Shake it up baby, break up baby". | A catchy, repetitive female vocal hook that appears during the chorus sections. It's a central, energetic element that drives the groove forward. |
+| Scream Stab | A heavily distorted and filtered MonoSynth to create a harsh, scream-like effect. | A short, impactful stab, often hitting on the first beat of a phrase. | A distorted male scream of "No!" used as a powerful, percussive accent. It functions like a dramatic synth stab or a crash cymbal, adding aggression and punctuation. |
+| DJ Scratch | NoiseSynth with a very short envelope and resonant filter to simulate a turntable scratch. | Fast, rhythmic 16th-note patterns that emulate a DJ scratching a vocal sample. | A classic DJ scratch sound used as a textural and rhythmic element. It appears in short bursts, adding a hip-hop flavor and filling in rhythmic gaps. |
+| Hype Man | MonoSynth to represent various one-shot spoken samples. | Sporadic, short phrases used as call-outs and transitions. | Various male vocal samples that interject throughout the track, such as "Listen to the sounds" or "Where did she come from?". They function as hype-man shouts, building energy and adding variety. |
+
+## other
+
+> An intense and chaotic electronic piece driven by a fast, digital arpeggio, a distorted screaming lead, and glitchy noise percussion, all set against a dissonant pad drone in E minor.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Arp Lead | PolySynth | Continuous, fast 16th-note arpeggios outlining chords in E minor. The pattern evolves, creating a sense of constant movement. | The main rhythmic and melodic engine of the track, present almost throughout. It establishes the fast-paced, digital, and tense atmosphere with its bright, plucky sound. |
+| Screaming Lead | MonoSynth | Long, wailing notes with significant portamento (glide) and filter modulation, creating a vocal-like, screaming effect. | An aggressive, distorted lead that enters around 10 seconds to add intensity. Its prominent filter sweeps and sustained notes serve as a melodic focal point over the busy arpeggio. |
+| Pad Drone | FMSynth | A long, sustained, dissonant chord that evolves slowly in timbre, providing a harmonic bed. | A background textural layer that appears in sections (e.g., at 86s) to fill out the harmony. Its metallic, distorted quality adds to the track's uneasy and industrial atmosphere. |
+| Noise Clicks | NoiseSynth | A sparse and syncopated pattern of short, sharp noise hits. | A subtle percussive layer, most noticeable in the intro and outro, that adds a glitchy, digital texture and enhances the chaotic feel of the arrangement. |
+
+## bass
+
+> A dark, industrial track driven by a relentless, heavily distorted and filtered syncopated bass line. The piece is built on a repetitive, hypnotic mono-synth riff, with sparse, noisy percussive elements providing texture in the introduction and transitions.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Growler Bass | MonoSynth | A repeating, syncopated 1-bar phrase based on a 16th-note grid. The pattern uses notes from the E minor scale, primarily E, G, and A, creating the main riff. | The central driving element of the track, entering at 0:27 and continuing almost non-stop. This aggressive, distorted bass line provides the core rhythmic and harmonic foundation. |
+| Sub Kick / Noise | MembraneSynth | A simple, pulsing quarter-note pattern that provides a foundational beat. | A deep, noisy, percussive element that appears in the intro (0:00-0:27) and other sparse sections. It acts as a distorted kick drum, establishing the pulse before the main bass riff begins. |

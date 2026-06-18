@@ -6,7 +6,7 @@
     "root": "A",
     "mode": "major",
     "bpm": 120.18531976744185,
-    "tracks": 6
+    "tracks": 15
   },
   {
     "slug": "black-lung-the-unreality-industry",
@@ -15,7 +15,7 @@
     "root": "C#",
     "mode": "minor",
     "bpm": 161.4990234375,
-    "tracks": 6
+    "tracks": 15
   },
   {
     "slug": "ghost-cop-problems",
@@ -24,7 +24,7 @@
     "root": "A",
     "mode": "minor",
     "bpm": 126.04801829268293,
-    "tracks": 7
+    "tracks": 13
   },
   {
     "slug": "kite-step-forward",
@@ -51,7 +51,7 @@
     "root": "A",
     "mode": "minor",
     "bpm": 120.18531976744185,
-    "tracks": 7
+    "tracks": 12
   },
   {
     "slug": "the-gruesome-twosome-hallucination-generation",
@@ -60,7 +60,7 @@
     "root": "C#",
     "mode": "minor",
     "bpm": 114.84375,
-    "tracks": 7
+    "tracks": 18
   },
   {
     "slug": "the-knife-heartbeats",
@@ -87,7 +87,7 @@
     "root": "G",
     "mode": "major",
     "bpm": 132.51201923076923,
-    "tracks": 7
+    "tracks": 13
   },
   {
     "slug": "trst-icabod",
@@ -96,6 +96,6 @@
     "root": "F#",
     "mode": "minor",
     "bpm": 126.04801829268293,
-    "tracks": 7
+    "tracks": 15
   }
 ]

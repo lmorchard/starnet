@@ -1,8 +1,6 @@
 # Ghost Cop — Problems
 
-> A dark, driving synth-pop track in the style of 80s EBM/darkwave, built on a propulsive four-on-the-floor beat, gritty analog-style bass sequences, and arpeggiated synth leads. The mood is tense and energetic, with a clear A minor tonality and heavily processed female vocals.
-
-*Source: `GHOST COP - PROBLEMS.mp3` · Model: gemini-2.5-pro*
+*Source: `GHOST COP - PROBLEMS.mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
 
@@ -12,71 +10,45 @@
 - **Sections: 8** (boundaries at 0:00, 0:15, 2:02, 2:33, 2:46, 2:59, 4:04, 4:22)
 - **Brightness (spectral centroid):** mean 2074 Hz (range 219–5101 Hz)
 - **Dynamics:** RMS mean 0.281, range 12.5 dB
+- **Timbre:** rolloff 4448 Hz, flatness 0.00, contrast 20.5, ZCR 0.041, harmonic ratio 0.84
 
-## Vocabulary grid (model interpretation)
+## drums
 
-| Dimension | Reading |
-|---|---|
-| Timbre | Primarily gritty, detuned analog synth emulations (sawtooth, square) with occasional brighter, metallic FM textures. |
-| Brightness | Bright and present in the high-mids, with a cutting lead synth and crisp percussion over a darker bass foundation; spectral centroid is moderately high. |
-| Envelope | Dominated by tight, percussive, and short-decay envelopes for bass, arps, and drums, creating a strong rhythmic pulse. |
-| Register/density | Starts sparse, building to a dense mid-to-high register arrangement with a constant low-end anchor from the bass and kick drum. |
-| Harmony/mode | Firmly in A minor, using progressions like i-VII-III-VI (Am-G-C-F) to create a classic darkwave harmonic feel. |
-| Groove | A straight and relentless 4/4 machine groove at 126 BPM, with constant 16th-note motion in the bass and arpeggiator. |
-| Space/grit | The mix combines dry, upfront rhythmic elements with a moderately large, reverberant space for vocals and leads, while key synth parts feature noticeable saturation and drive. |
-
-## Tracks (model interpretation)
-
-*Each track is one instrument driven by one pattern. Track names are the model's, invented to fit this piece; instruments are Tone.js sources (or a custom-synthesis note).*
+> An aggressive, driving industrial techno drum track built on a foundation of a distorted four-on-the-floor kick. The arrangement features synthesized percussion, including a noisy snare backbeat, metallic hi-hats, and various syncopated fills, creating a dense and energetic rhythm that evolves in complexity.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Kick | MembraneSynth | Standard four-on-the-floor kick pattern on every quarter note. | The foundation of the rhythm section, providing a constant pulse throughout most of the track. |
-| Snare | NoiseSynth | Hits on beats 2 and 4, providing the backbeat. | A sharp, filtered noise hit that functions as the snare drum, cutting through the mix. |
-| Hi-Hats | MetalSynth | Constant 16th-note pattern with slight velocity variations (not shown in steps). | Provides high-frequency rhythmic energy and drives the top-end of the groove. |
-| Sequenced Bass | MonoSynth | Continuous 16th-note pattern following the root notes of the chord progression. | A gritty, driving bassline that acts as a core melodic and rhythmic engine. Enters from the beginning. It has a slight filter pluck on each note. |
-| Arp Lead | MonoSynth | An arpeggiated 16th-note figure that outlines the chords. Plays a counter-rhythm to the bass. | A brighter, detuned synth lead that adds harmonic complexity and rhythmic interest. Enters during the intro and features prominently in instrumental sections. |
-| Chorus Pad | PolySynth | Sustained chords that change every 2 or 4 bars, following the main harmony. | A thick, wide pad that enters during the chorus sections to add weight and harmonic depth. It sits in the background behind the leads and vocals. |
-| Accent Arp | FMSynth | Sparse, higher-register arpeggiated pattern that appears during vocal phrases. | A bell-like, metallic synth that provides punctuation and call-and-response with the vocals. First appears around 0:30. Its tone is more piercing than the main arp. |
+| Industrial Kick | MembraneSynth | A driving, four-on-the-floor pattern on every quarter note. | The foundation of the track, a powerful and distorted kick drum that is present from the beginning to the end. It has a heavy low-end and a sharp, clicky transient. |
+| Noise Snare | NoiseSynth | A steady backbeat on beats 2 and 4. | A sharp, gated white noise snare that provides the main backbeat. Its very short envelope gives it a tight, cracking sound. It's a core element of the groove. |
+| Closed Hi-Hat | MetalSynth | Starts with off-beat 8th notes, later evolving into a driving 16th-note pattern. | A tight, metallic hi-hat that provides rhythmic subdivision and energy. The pattern's density increases throughout the track, contributing to the builds in intensity. |
+| Syncopated Perc | PluckSynth | Sporadic, syncopated 16th-note figures, often appearing as fills. | A set of short, often metallic or clicky percussive sounds that create rhythmic fills and add variation. These sounds are used to punctuate phrases and build tension, appearing more frequently in busier sections. |
+| Ride Cymbal | MetalSynth | A sustained, ringing hit accenting the downbeat of certain phrases. | A bright, metallic ride cymbal sound with a longer decay, used as a crash to mark the beginning of new sections or major phrases. It adds impact and helps define the song's structure. |
 
-## Score-draft starter (speculative)
+## vocals
 
-> Model-guessed synth parameters — speculative, tune by ear.
+> A heavily processed female vocal performance with a dark, atmospheric quality. It features a central lead vocal, wide synth-like harmonies, and spacious reverb/delay effects, creating a sound typical of darkwave or synth-pop. The delivery is emotional and dynamic, ranging from breathy whispers to powerful singing.
 
-/* DRAFT STARTER -- speculative, incomplete. Based on Ghost Cop - 'Problems' */
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Lead Vocal | MonoSynth | Main melodic line following the lyrics, with expressive, syncopated phrasing. Primarily active throughout the song. | The central element carrying the lyrics and melody. It's processed with a prominent hall reverb and subtle saturation that increases with volume. Sits front and center in the mix. |
+| Synth Harmony | PolySynth | Sustained chordal pads or parallel harmony lines that follow the main vocal melody during choruses. Typically plays held notes that change with the underlying chord progression. | A wide, synth-like vocal layer that enters during choruses to add harmonic depth and texture. It's mixed behind the lead vocal with heavy chorus and reverb to create a spacious, atmospheric pad. |
+| Breathy FX Tail | NoiseSynth | Atextural wash that blooms at the end of some vocal phrases. It is not rhythmically precise but rather a triggered atmospheric effect. | An ethereal, breathy wash that fills the space between vocal lines. It's the sound of the massive reverb and delay tails, acting as a ghostly echo that enhances the track's cavernous atmosphere. It's most prominent during pauses in the lead vocal. |
 
-const mainReverb = new Tone.Reverb(2.5).toDestination();
-const mainChorus = new Tone.Chorus(4, 2.5, 0.5).connect(mainReverb);
+## other
 
-// Gritty 16th-note bass sequence
-const bassSynth = new Tone.MonoSynth({
-  oscillator: { type: 'sawtooth' },
-  envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 },
-  filter: { type: 'lowpass', frequency: 1200, Q: 2.5 },
-  filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1, baseFrequency: 200, octaves: 2 },
-}).toDestination();
-const bassFx = new Tone.Distortion(0.5).connect(bassSynth);
-bassSynth.volume.value = -6;
-const bassPattern = new Tone.Sequence((time, note) => {
-  bassSynth.triggerAttackRelease(note, '16n', time);
-}, ['A2','A2','A2','A2','A2','A2','A2','A2','G2','G2','G2','G2','G2','G2','G2','G2'], '16n').start(0);
+> An epic and cinematic synthwave piece built on layers of powerful synthesizers. It begins with a gritty, pulsing bass before introducing a massive, wide sawtooth lead that carries the main theme. The arrangement builds in density and energy by adding a driving 16th-note arpeggiator and vast, reverberant pads, creating a dark yet triumphant atmosphere rooted in E minor.
 
-// Driving arp lead
-const leadSynth = new Tone.MonoSynth({
-  oscillator: { type: 'fatsawtooth', count: 3, spread: 25 },
-  envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.2 },
-  filter: { type: 'lowpass', frequency: 3000, Q: 1.5 },
-}).connect(mainChorus);
-leadSynth.volume.value = -12;
-const leadPattern = new Tone.Sequence((time, note) => {
-  if(note) leadSynth.triggerAttackRelease(note, '16n', time);
-}, ['A3', null, 'E4', null, 'C4', null, 'E4', null], '16n').start(0);
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Grit Bass | MonoSynth | Persistent 8th-note pulse, primarily on the root note, creating a driving rhythmic foundation. | The foundational element, present from the beginning. It provides a constant, gritty rhythmic drive in the low register. Its sound is distorted and filtered. |
+| Epic Saw Lead | PolySynth | Long, soaring melodic lines and sustained chords. The main thematic voice of the piece. | Enters around 0:15. This is the dominant melodic instrument, characterized by its massive, wide, and slightly detuned sound. It carries the primary hooks and emotional weight of the track. |
+| Trance Arp | Synth | Constant, fast 16th-note arpeggios outlining the chord progression. | Introduced around 1:38, this track injects high-frequency energy and rhythmic complexity. It sits in the mid-high register and plays continuously, driving the track forward. |
+| Cathedral Pad | PolySynth | Very slow-moving, sustained chords in the mid-to-high register, providing a harmonic bed. | A background textural layer that fills out the harmony and enhances the epic, spacious feel. It has a very long attack and release, creating a wash of sound that glues the other elements together. |
 
-// Basic drums
-const kick = new Tone.MembraneSynth().toDestination();
-const snare = new Tone.NoiseSynth({noise:{type:'pink'}, envelope:{decay:0.15}}).toDestination();
-new Tone.Loop(time => kick.triggerAttackRelease('C1', '8n', time), '4n').start(0);
-new Tone.Loop(time => snare.triggerAttackRelease('8n', time), '2n').start('4n');
+## bass
 
-Tone.Transport.bpm.value = 126;
-// Tone.Transport.start();
+> An aggressive, relentless synth bass track built on a near-continuous 16th-note pulse. The timbre is dark and gritty, achieved through a low-pass filter and distortion. The part provides the primary rhythmic drive and a solid harmonic foundation in C minor, with subtle variations in pattern and filter cutoff creating sectional changes.
+
+| Track | Instrument | Pattern | Notes |
+|---|---|---|---|
+| Saw Bass Pulse | MonoSynth | A continuous 16th-note pulse, primarily on the tonic. Variations include octave jumps (e.g., C2 to C1) and simple root-fifth movement (e.g., C-G). Changes in pattern and filter frequency define the song's sections. | This is the track's engine, present from the beginning to the end. It establishes the tempo, groove, and key, providing a constant stream of aggressive energy. The filter cutoff is automated, opening for more intensity and closing down for quieter sections. |
