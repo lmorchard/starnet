@@ -1,0 +1,34 @@
+[project]
+name = "audio-reference"
+version = "0.1.0"
+description = "Analyze a reference track into a technical breakdown keyed to a synthesis vocabulary."
+requires-python = ">=3.11"
+dependencies = [
+    "google-genai>=1.0.0",
+    "librosa>=0.10.2",
+    "numpy>=1.26",
+    "soundfile>=0.12",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# basic-pitch is heavy (pulls an ML runtime) and platform-fussy: its tensorflow
+# dep currently has no cp312 wheel on macOS. Kept optional so the core MIR+Gemini
+# path installs everywhere; MIDI transcription is opt-in (`uv sync --extra midi`),
+# and `mir._midi` guards the import so `--no-midi` / a missing install is graceful.
+midi = ["basic-pitch>=0.4.0"]
+# Stem separation (Demucs + torch) — heavy, opt-in (`uv sync --extra stems`); only pulled when
+# you run `analyze --stems`. separate.py invokes demucs via subprocess and guards the absence.
+# torchcodec is torchaudio's I/O backend (>=2.8 routes save() through it); needs ffmpeg (already a dep).
+stems = ["demucs>=4.0", "torch>=2.0", "torchcodec>=0.2"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+audio-reference = "audio_reference.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["audio_reference"]

@@ -1,0 +1,1044 @@
+{
+  "meta": {
+    "artist": "The Knife",
+    "title": "Silent Shout",
+    "slug": "the-knife-silent-shout",
+    "source_file": "The Knife - Silent Shout (Official Music Video).mp3",
+    "model": "gemini-2.5-pro"
+  },
+  "mir": {
+    "bpm": 129.19921875,
+    "key": "E",
+    "mode": "major",
+    "key_confidence": 0.6872497325441296,
+    "duration_sec": 291.82839002267576,
+    "sections": [
+      {
+        "start": 0.0
+      },
+      {
+        "start": 22.755555555555556
+      },
+      {
+        "start": 67.38430839002268
+      },
+      {
+        "start": 176.05369614512472
+      },
+      {
+        "start": 217.16462585034014
+      },
+      {
+        "start": 247.1996371882086
+      },
+      {
+        "start": 270.43120181405897
+      },
+      {
+        "start": 285.3732426303855
+      }
+    ],
+    "brightness": {
+      "mean_hz": 1549.059466897561,
+      "min_hz": 95.20629089702595,
+      "max_hz": 7565.443870364953
+    },
+    "dynamics": {
+      "rms_mean": 0.063021719455719,
+      "rms_range_db": 22.36354067227964
+    },
+    "timbre": {
+      "rolloff_hz": 3130.4623720882355,
+      "flatness": 0.005236780270934105,
+      "contrast": 21.745336155734055,
+      "zcr": 0.027710218316127622,
+      "harmonic_ratio": 0.8881590761580584
+    },
+    "midi_path": null
+  },
+  "stems": [
+    {
+      "stem": "drums",
+      "mir": {
+        "bpm": 129.19921875,
+        "key": "A#",
+        "mode": "minor",
+        "key_confidence": 0.7475381718504712,
+        "duration_sec": 291.82839002267576,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 14.349931972789115
+          },
+          {
+            "start": 52.43065759637188
+          },
+          {
+            "start": 54.56689342403628
+          },
+          {
+            "start": 97.04780045351474
+          },
+          {
+            "start": 176.5297052154195
+          },
+          {
+            "start": 224.64145124716552
+          },
+          {
+            "start": 239.08426303854876
+          }
+        ],
+        "brightness": {
+          "mean_hz": 1885.3841405908763,
+          "min_hz": 147.1592045513293,
+          "max_hz": 10273.98360630548
+        },
+        "dynamics": {
+          "rms_mean": 0.03918024152517319,
+          "rms_range_db": 45.164730564892636
+        },
+        "timbre": {
+          "rolloff_hz": 3833.1427029077267,
+          "flatness": 0.00977842416614294,
+          "contrast": 16.16774917542781,
+          "zcr": 0.04596661855531686,
+          "harmonic_ratio": 0.8556494048425636
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "A driving, four-on-the-floor electronic drum track that relentlessly builds in density and textural complexity, layering noisy shakers, syncopated metallic percussion, and various cymbals over a foundational techno kick drum.",
+        "vocabulary": {
+          "timbre": "A synthetic drum kit composed of a punchy, low-frequency kick, crisp digital hi-hats and shakers, and an array of resonant, metallic, and atonal percussive sounds. The high harmonic ratio suggests significant tonal components within the percussive hits.",
+          "brightness": "Moderately bright and persistent, with a constant high-frequency sizzle from 16th-note shakers layered over a deep, thudding kick. The overall texture is sharp and digital, with the spectral energy centered in the low-mids and high-treble regions.",
+          "envelope": "Dominated by extremely short, percussive envelopes. The kick has a sharp attack and quick decay. Hats and shakers are tiny transient clicks. Some metallic and cymbal sounds introduce longer, resonant decays and releases, adding a sense of space and complexity as the track builds.",
+          "register_density": "The track starts sparsely with a low-register kick, but rapidly builds into a dense, full-spectrum arrangement. The groove is anchored by the low kick and high-register shakers/hats, while syncopated mid-register metallic sounds fill the spaces, creating a dense rhythmic wall.",
+          "harmony_mode": "Primarily rhythmic and unpitched. However, several percussive elements (cymbals, clanks) have a distinct metallic pitch, often creating dissonant, tense intervals that contribute to the track's dark, industrial atmosphere, aligning with the A# minor tonality.",
+          "groove": "A rigid, machine-like, and driving 4/4 techno groove. A four-to-the-floor kick provides a relentless pulse, with 16th-note shakers creating a fast, nervous energy. Syncopation is introduced through layered, off-kilter metallic percussion patterns.",
+          "space_grit": "The production is generally dry and upfront, particularly the core kick and hat elements. As layers are added, a digital reverb with a noticeable decay is introduced on cymbals and certain percussive hits, opening up the space. A subtle layer of digital saturation and bit-reduction-like grit is present on many sounds, giving the track a sharp, aggressive edge."
+        },
+        "tracks": [
+          {
+            "name": "Techno Kick",
+            "instrument": "MembraneSynth",
+            "pattern": "Four-on-the-floor quarter notes.",
+            "description": "The foundational kick drum that drives the track from the beginning. It's punchy, deep, and consistent.",
+            "synth": {
+              "type": "MembraneSynth",
+              "options": {
+                "attack": 0.001,
+                "decay": 0.4,
+                "sustain": 0.01,
+                "release": 0.1,
+                "volume": -4,
+                "harmonicity": 6,
+                "drive": 0.2
+              }
+            },
+            "steps": {
+              "grid": "4n",
+              "notes": [
+                "C1",
+                "C1",
+                "C1",
+                "C1"
+              ]
+            }
+          },
+          {
+            "name": "Shaker Pulse",
+            "instrument": "NoiseSynth",
+            "pattern": "Constant 16th notes.",
+            "description": "A high-frequency noise shaker that enters early and provides a constant layer of rhythmic energy and tension. It's filtered to be very bright and sharp.",
+            "synth": {
+              "type": "NoiseSynth",
+              "options": {
+                "attack": 0.001,
+                "decay": 0.04,
+                "sustain": 0,
+                "release": 0.01,
+                "volume": -22,
+                "filterType": "highpass",
+                "filterFrequency": 4000,
+                "filterQ": 1
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x"
+              ]
+            }
+          },
+          {
+            "name": "Offbeat Hat",
+            "instrument": "MetalSynth",
+            "pattern": "Eighth notes on the off-beats.",
+            "description": "A classic, sharp closed hi-hat sound that locks in with the kick to create the core groove.",
+            "synth": {
+              "type": "MetalSynth",
+              "options": {
+                "attack": 0.001,
+                "decay": 0.08,
+                "sustain": 0,
+                "release": 0.01,
+                "volume": -18,
+                "harmonicity": 8.1,
+                "modulationIndex": 22,
+                "filterFrequency": 6000,
+                "filterQ": 2
+              }
+            },
+            "steps": {
+              "grid": "8n",
+              "notes": [
+                "",
+                "x",
+                "",
+                "x",
+                "",
+                "x",
+                "",
+                "x"
+              ]
+            }
+          },
+          {
+            "name": "Syncopated Clank",
+            "instrument": "MetalSynth",
+            "pattern": "A syncopated 1-bar pattern that emphasizes upbeats.",
+            "description": "A metallic, resonant percussion sound that enters around 0:14, adding a signature syncopated layer to the main groove.",
+            "synth": {
+              "type": "MetalSynth",
+              "options": {
+                "attack": 0.01,
+                "decay": 0.2,
+                "release": 0.1,
+                "volume": -15,
+                "harmonicity": 4.2,
+                "modulationIndex": 15,
+                "filterFrequency": 3500,
+                "filterQ": 3,
+                "drive": 0.3,
+                "reverbSend": 0.2
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "",
+                "A#4",
+                "",
+                "",
+                "",
+                "A#4",
+                "",
+                "",
+                "A#4",
+                "",
+                "",
+                "",
+                "A#4",
+                "",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Ride Cymbal",
+            "instrument": "MetalSynth",
+            "pattern": "Quarter notes, sometimes with a preceding 16th note pickup.",
+            "description": "A washy, metallic ride cymbal sound that appears in later, more intense sections (e.g., around 1:37), adding a bright, driving layer on top of the existing percussion.",
+            "synth": {
+              "type": "MetalSynth",
+              "options": {
+                "attack": 0.005,
+                "decay": 0.8,
+                "sustain": 0.1,
+                "release": 0.9,
+                "volume": -16,
+                "harmonicity": 5.1,
+                "modulationIndex": 64,
+                "filterFrequency": 7000,
+                "filterQ": 1.5,
+                "chorus": 0.2,
+                "reverbSend": 0.4
+              }
+            },
+            "steps": {
+              "grid": "4n",
+              "notes": [
+                "C#5",
+                "C#5",
+                "C#5",
+                "C#5"
+              ]
+            }
+          },
+          {
+            "name": "Glitch Perc",
+            "instrument": "FMSynth with distortion",
+            "pattern": "A sparse, irregular syncopated pattern.",
+            "description": "A distorted, aggressive, and complex percussive sound that adds an industrial, glitchy texture. It appears intermittently to add variation and intensity.",
+            "synth": {
+              "type": "FMSynth",
+              "options": {
+                "attack": 0.002,
+                "decay": 0.15,
+                "release": 0.05,
+                "volume": -12,
+                "harmonicity": 3.5,
+                "modulationIndex": 12,
+                "drive": 0.8,
+                "reverbSend": 0.3
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "D#3",
+                "",
+                "",
+                "D#3",
+                "",
+                "",
+                ""
+              ]
+            }
+          }
+        ],
+        "score_draft": "/* speculative score starter */\n\n// Effects chain\nconst reverb = new Tone.Reverb(3).toDestination();\nconst distortion = new Tone.Distortion(0.2).toDestination();\n\n// Kick Drum (four-on-the-floor)\nconst kick = new Tone.MembraneSynth({\n  pitchDecay: 0.04,\n  octaves: 6,\n  oscillator: { type: \"sine\" },\n  envelope: { attack: 0.001, decay: 0.5, sustain: 0.01, release: 0.1 }\n}).connect(distortion);\nconst kickPattern = new Tone.Sequence((time, note) => {\n  kick.triggerAttackRelease(note, \"8n\", time);\n}, [\"C1\", \"C1\", \"C1\", \"C1\"], \"4n\");\n\n// Shaker (constant 16ths)\nconst shaker = new Tone.NoiseSynth({\n  noise: { type: 'white' },\n  envelope: { attack: 0.005, decay: 0.05, sustain: 0 }\n}).toDestination();\nshaker.volume.value = -20;\nconst shakerPattern = new Tone.Loop(time => {\n    shaker.triggerAttack(time);\n}, \"16n\");\n\n// Metallic Percussion\nconst clank = new Tone.MetalSynth({\n    frequency: 200, harmonicity: 4.2, modulationIndex: 15, \n    envelope: { attack: 0.01, decay: 0.2, release: 0.1 },\n    volume: -15\n}).connect(reverb);\nconst clankPattern = new Tone.Sequence((time, note) => {\n  clank.triggerAttack(time);\n}, [null, null, 'A#4', null, null, null, 'A#4', null, null, 'A#4', null, null, null, 'A#4', null, null], '16n');"
+      }
+    },
+    {
+      "stem": "vocals",
+      "mir": {
+        "bpm": 129.19921875,
+        "key": "D",
+        "mode": "minor",
+        "key_confidence": 0.7974414937952787,
+        "duration_sec": 291.82839002267576,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 67.60489795918367
+          },
+          {
+            "start": 112.46585034013606
+          },
+          {
+            "start": 127.22213151927437
+          },
+          {
+            "start": 157.79120181405895
+          },
+          {
+            "start": 180.12879818594104
+          },
+          {
+            "start": 224.53696145124715
+          },
+          {
+            "start": 247.24607709750566
+          }
+        ],
+        "brightness": {
+          "mean_hz": 3858.9076436383903,
+          "min_hz": 1157.9132525727202,
+          "max_hz": 8662.59673024044
+        },
+        "dynamics": {
+          "rms_mean": 0.002623466309159994,
+          "rms_range_db": 55.82892882807301
+        },
+        "timbre": {
+          "rolloff_hz": 7331.503767291167,
+          "flatness": 0.1656799614429474,
+          "contrast": 13.3408466050561,
+          "zcr": 0.09371777425334168,
+          "harmonic_ratio": 0.5396877414900302
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "A heavily processed and pitch-shifted monophonic vocal performance that acts as the track's central melodic and narrative element. The sound is transformed into a robotic, synthetic baritone, with significant digital artifacts, distortion, and a tense, driving rhythmic character.",
+        "vocabulary": {
+          "timbre": "Nasal, robotic, and heavily processed, resembling a pitch-shifted vocoder or a pulse wave passed through a formant filter. The core sound is tonal but rich with digital grit and complex overtones.",
+          "brightness": "Bright and cutting, with a high spectral centroid. The sound has significant high-frequency content generated by the distortion and digital pitch-shifting processes, allowing it to slice through a mix.",
+          "envelope": "Plosive and articulated, with a very fast attack on each syllable and a controlled decay, likely shaped by heavy compression. The release is short but noticeable, with reverb tails.",
+          "register_density": "A single, monophonic vocal line occupying a synthetic baritone range (approx. G2-A4). The density is low, focusing all attention on the one melodic voice.",
+          "harmony_mode": "The melody is firmly rooted in D Aeolian (natural minor), reinforcing the track's dark and brooding atmosphere. The melodic contours clearly outline the D minor scale and its characteristic intervals.",
+          "groove": "Highly syncopated and rhythmically precise. Phrases often begin on upbeats and push against the underlying pulse, giving the vocal a forward, driving momentum that functions almost percussively.",
+          "space_grit": "The sound is defined by heavy digital grit and saturation, with audible aliasing artifacts from the aggressive pitch-shifting. It sits in a moderately sized space, treated with a noticeable but not overwhelming reverb."
+        },
+        "tracks": [
+          {
+            "name": "RoboVocal Lead",
+            "instrument": "FMSynth",
+            "pattern": "A syncopated, evolving melodic line following the main vocal performance. Phrases are typically 2-4 bars long and are rhythmically active, using a mixture of eighth and sixteenth notes.",
+            "description": "The sole instrument in this stem, this processed vocal carries the lyrics and primary melody throughout the entire track. Its sound is defined by aggressive pitch-shifting, distortion, and a controlled reverb.",
+            "synth": {
+              "type": "FMSynth",
+              "options": {
+                "harmonicity": 1.5,
+                "modulationIndex": 15,
+                "filterType": "lowpass",
+                "filterFrequency": 4500,
+                "filterQ": 2.5,
+                "drive": 0.6,
+                "chorus": 0.2,
+                "reverbSend": 0.45
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "D4",
+                "",
+                "D4",
+                "",
+                "F4",
+                "",
+                "G4",
+                "A4",
+                "",
+                "G4",
+                "",
+                "F4",
+                "",
+                "",
+                ""
+              ]
+            }
+          }
+        ],
+        "score_draft": "SPECULATIVE STARTER: The core of this sound is a heavily processed vocal, best approximated by a synth that can create complex, metallic timbres. Try an FMSynth. Set `harmonicity` to a non-integer like 1.5 and `modulationIndex` high (10-20) to generate a rich, gritty spectrum. The envelope needs to be sharp: `attack: 0.01`, `decay: 0.1`, `sustain: 0.9`, `release: 0.4`. Crucially, add significant distortion using `drive: 0.6` or a separate `Distortion` effect. Shape the result with a `lowpass` filter around 4000Hz with some resonance (`filterQ: 2`). The melody is in D minor, using syncopated rhythms. A sample one-bar phrase could be: `['', 'D4', '', 'D4', 'F4', '', 'G4', 'A4', '', 'G4', '', 'F4', '', '', '', '']` on a '16n' grid. Add `Reverb` (0.4) and a touch of `Chorus` (0.2) for space and width."
+      }
+    },
+    {
+      "stem": "other",
+      "mir": {
+        "bpm": 129.19921875,
+        "key": "A",
+        "mode": "major",
+        "key_confidence": 0.8150510437580452,
+        "duration_sec": 291.82839002267576,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 22.76716553287982
+          },
+          {
+            "start": 82.22185941043084
+          },
+          {
+            "start": 110.99138321995464
+          },
+          {
+            "start": 156.81596371882085
+          },
+          {
+            "start": 169.4592290249433
+          },
+          {
+            "start": 217.15301587301587
+          },
+          {
+            "start": 270.1409523809524
+          }
+        ],
+        "brightness": {
+          "mean_hz": 1403.667199465541,
+          "min_hz": 467.4707863430141,
+          "max_hz": 4044.36732171465
+        },
+        "dynamics": {
+          "rms_mean": 0.02036113291978836,
+          "rms_range_db": 45.210684094963774
+        },
+        "timbre": {
+          "rolloff_hz": 2051.990808352256,
+          "flatness": 0.01579812914133072,
+          "contrast": 17.814148317445646,
+          "zcr": 0.04213288134149859,
+          "harmonic_ratio": 0.9536187450950246
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "A dense, driving, and hypnotic arrangement of multiple interlocking synth arpeggios, creating a complex rhythmic and harmonic texture over a simple four-on-the-floor synth pulse.",
+        "vocabulary": {
+          "timbre": "Digital, arpeggiated, and layered; sounds range from clean, plucky FM tones to brighter, detuned sawtooth waves.",
+          "brightness": "Bright and articulate, centered in the mid-to-high frequencies, with the constant motion of the arpeggios creating a shimmering top end.",
+          "envelope": "Predominantly short and plucky (fast attack, quick decay, low sustain), characteristic of sequencer-driven synth lines.",
+          "register_density": "Very dense and busy. A continuous, machine-like flurry of 16th notes primarily in the mid and high registers.",
+          "harmony_mode": "Tense and hypnotic, centered on A minor. Harmony is implied through the rapid cycling of notes within minor chord structures.",
+          "groove": "Strictly quantized, mechanical, and propulsive, based on a relentless 16th-note grid with no swing.",
+          "space_grit": "Sounds are individually clean but placed in a large, ambient space via reverb. Grit is minimal, manifesting as a sharp, digital edge rather than analog distortion."
+        },
+        "tracks": [
+          {
+            "name": "Kick Synth",
+            "instrument": "Synth",
+            "pattern": "A simple four-on-the-floor pulse on the root note.",
+            "description": "Provides the foundational pulse from the very beginning of the track, acting as a soft, tonal kick drum. It underpins the more complex layers that enter later.",
+            "synth": {
+              "type": "Synth",
+              "options": {
+                "oscillatorType": "sine",
+                "attack": 0.005,
+                "decay": 0.3,
+                "sustain": 0,
+                "release": 0.2,
+                "volume": -9
+              }
+            },
+            "steps": {
+              "grid": "4n",
+              "notes": [
+                "A2",
+                "A2",
+                "A2",
+                "A2"
+              ]
+            }
+          },
+          {
+            "name": "Main Arp",
+            "instrument": "FMSynth",
+            "pattern": "A continuous 16th-note arpeggio outlining the primary chords.",
+            "description": "The core rhythmic and harmonic engine of the piece, entering after the intro at 22.8s. Its clean, plucky sound and constant motion create the main hypnotic texture.",
+            "synth": {
+              "type": "FMSynth",
+              "options": {
+                "harmonicity": 3,
+                "modulationIndex": 10,
+                "reverbSend": 0.0
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "A3",
+                "C4",
+                "E4",
+                "C4",
+                "A3",
+                "C4",
+                "E4",
+                "C4",
+                "G3",
+                "B3",
+                "D4",
+                "B3",
+                "G3",
+                "B3",
+                "D4",
+                "B3"
+              ]
+            }
+          }
+        ],
+        "score_draft": "SPECULATIVE STARTER: The core of this sound is layering multiple arpeggiators and sequences with distinct timbres. Start with a simple 'Kick Synth' using a `Synth({oscillator: {type: 'sine'}, envelope: {decay: 0.3}})` on a '4n' grid for the pulse. The main texture comes from several `Tone.Sequence` instances running at '16n'. Layer 1: An `FMSynth({harmonicity: 3, modulationIndex: 10})` playing a simple arpeggio like `['A3', 'C4', 'E4', 'C4']`. Layer 2: A detuned `PolySynth({oscillator: {type: 'fatsawtooth', count: 4, spread: 30}})` playing a counter-pattern. Layer 3: A high-frequency 'gated pad' effect using a `PolySynth` with a very short envelope (`envelope: {attack: 0.01, decay: 0.1, sustain: 0}`) playing repeated high chords like 'A5+C6+E6'. Route all synths to a shared `Reverb` with a decay around 2.5s and use `AutoPanner` on the arpeggiator tracks to create stereo movement and width."
+      }
+    },
+    {
+      "stem": "bass",
+      "mir": {
+        "bpm": 172.265625,
+        "key": "D#",
+        "mode": "minor",
+        "key_confidence": 0.6748056724595461,
+        "duration_sec": 291.82839002267576,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 136.7655328798186
+          },
+          {
+            "start": 141.5140136054422
+          },
+          {
+            "start": 175.1481179138322
+          },
+          {
+            "start": 179.7572789115646
+          },
+          {
+            "start": 276.02721088435374
+          }
+        ],
+        "brightness": {
+          "mean_hz": 248.51575100741326,
+          "min_hz": 143.53574951295826,
+          "max_hz": 2464.406554394269
+        },
+        "dynamics": {
+          "rms_mean": 0.024958137422800064,
+          "rms_range_db": 52.22628807510419
+        },
+        "timbre": {
+          "rolloff_hz": 213.11408984285057,
+          "flatness": 0.023719126358628273,
+          "contrast": 14.626829735543085,
+          "zcr": 0.033607957300244656,
+          "harmonic_ratio": 0.9167573020840336
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "A deep, driving, four-on-the-floor bass line that functions as the track's primary rhythmic and harmonic anchor. It's built from a single synth patch that blends the percussive attack of a kick drum with the sustained low-frequency tone of a sub-bass. The pattern is relentlessly steady, with the root note shifting subtly over long, multi-bar phrases.",
+        "vocabulary": {
+          "timbre": "Deep, round, and fundamental-heavy, resembling a hybrid of a sine-wave sub and a soft 808-style kick. The high harmonic ratio (0.92) confirms its strong tonal character, but the very low spectral rolloff (213 Hz) keeps it focused in the sub-bass region.",
+          "brightness": "Extremely dark and low-frequency focused. The mean spectral centroid of 249 Hz indicates that almost all energy resides below the low-mids, creating a sound that is often felt more than heard on smaller playback systems.",
+          "envelope": "Very percussive and plucky. It features a nearly instantaneous attack, a very fast decay, and zero sustain, creating a distinct, separated pulse on each quarter note rather than a continuous drone.",
+          "register_density": "Consistently in the very low bass register (E1-E2). The density is sparse and constant, playing a single monophonic note on every quarter note without variation in rhythm.",
+          "harmony_mode": "The bass outlines a simple, modal root motion, grounding the harmony in D# minor. It avoids complex harmonic function, instead creating a hypnotic, trance-like foundation by slowly shifting between key diatonic notes like the tonic (D#) and subdominant (G#) over many bars.",
+          "groove": "A rigid, motorik four-on-the-floor quarter-note pulse at a brisk 172 BPM. The groove is completely straight, with no swing or syncopation, providing a powerful and unwavering rhythmic drive.",
+          "space_grit": "The sound is exceptionally clean and dry, with no audible reverb, delay, or significant distortion. The 'grit' is more of a physical pressure from the low frequencies rather than textural noise. The low spectral flatness (0.02) confirms its tonal purity."
+        },
+        "tracks": [
+          {
+            "name": "Sub Kick Bass",
+            "instrument": "FMSynth",
+            "pattern": "A relentless four-on-the-floor quarter-note pulse. The pitch shifts slowly, typically holding one note for 4, 8, or 16 bars before moving to another note within the D# minor scale.",
+            "description": "This is the sole instrument in this stem, acting as both the kick drum and the bass line. It starts at 0:00 and plays continuously throughout the entire track, providing the fundamental pulse and harmonic foundation.",
+            "synth": {
+              "type": "FMSynth",
+              "options": {
+                "oscillatorType": "sine",
+                "attack": 0.001,
+                "decay": 0.25,
+                "sustain": 0,
+                "release": 0.1,
+                "volume": -6,
+                "harmonicity": 3,
+                "modulationIndex": 12,
+                "filterType": "lowpass",
+                "filterFrequency": 400,
+                "filterQ": 1.5,
+                "drive": 0.1
+              }
+            },
+            "steps": {
+              "grid": "4n",
+              "notes": [
+                "D#2",
+                "D#2",
+                "D#2",
+                "D#2",
+                "G#1",
+                "G#1",
+                "G#1",
+                "G#1"
+              ]
+            }
+          }
+        ],
+        "score_draft": "/* Speculative Score Draft */\n\n// Set the tempo\nTone.Transport.bpm.value = 172;\n\n// The bass instrument is an FMSynth, perfect for punchy, pitched sounds.\nconst subKickBass = new Tone.FMSynth({\n  harmonicity: 3,\n  modulationIndex: 12,\n  envelope: {\n    attack: 0.001,\n    decay: 0.25,\n    sustain: 0,\n    release: 0.1\n  },\n  modulationEnvelope: {\n    attack: 0.01,\n    decay: 0.3,\n    sustain: 0,\n    release: 0.1\n  }\n}).toDestination();\n\n// A filter chain to shape the tone: a lowpass to keep it dark and an EQ for a slight boost.\nconst filter = new Tone.Filter(400, 'lowpass').connect(subKickBass);\n\n// A sequence to play the four-on-the-floor pattern.\n// The pattern shifts notes very slowly; this example shows a two-bar change from D# to G#.\nconst bassPattern = new Tone.Sequence((time, note) => {\n  subKickBass.triggerAttackRelease(note, '8n', time);\n}, ['D#2', 'D#2', 'D#2', 'D#2', 'G#1', 'G#1', 'G#1', 'G#1'], '4n');\n\n// Start the transport to hear the loop.\nbassPattern.start(0);\nTone.Transport.start();"
+      }
+    }
+  ],
+  "score_spec": {
+    "root": "E",
+    "mode": "major",
+    "bpm": 129.19921875,
+    "tracks": [
+      {
+        "name": "Techno Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "Four-on-the-floor quarter notes.",
+        "description": "The foundational kick drum that drives the track from the beginning. It's punchy, deep, and consistent.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.4,
+            "sustain": 0.01,
+            "release": 0.1,
+            "volume": -4,
+            "harmonicity": 6,
+            "drive": 0.2
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Shaker Pulse",
+        "instrument": "NoiseSynth",
+        "pattern": "Constant 16th notes.",
+        "description": "A high-frequency noise shaker that enters early and provides a constant layer of rhythmic energy and tension. It's filtered to be very bright and sharp.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.04,
+            "sustain": 0,
+            "release": 0.01,
+            "volume": -22,
+            "filterType": "highpass",
+            "filterFrequency": 4000,
+            "filterQ": 1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Offbeat Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Eighth notes on the off-beats.",
+        "description": "A classic, sharp closed hi-hat sound that locks in with the kick to create the core groove.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.08,
+            "sustain": 0,
+            "release": 0.01,
+            "volume": -18,
+            "harmonicity": 8.1,
+            "modulationIndex": 22,
+            "filterFrequency": 6000,
+            "filterQ": 2
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Syncopated Clank",
+        "instrument": "MetalSynth",
+        "pattern": "A syncopated 1-bar pattern that emphasizes upbeats.",
+        "description": "A metallic, resonant percussion sound that enters around 0:14, adding a signature syncopated layer to the main groove.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.2,
+            "release": 0.1,
+            "volume": -15,
+            "harmonicity": 4.2,
+            "modulationIndex": 15,
+            "filterFrequency": 3500,
+            "filterQ": 3,
+            "drive": 0.3,
+            "reverbSend": 0.2
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "A#4",
+            "",
+            "",
+            "",
+            "A#4",
+            "",
+            "",
+            "A#4",
+            "",
+            "",
+            "",
+            "A#4",
+            "",
+            ""
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Ride Cymbal",
+        "instrument": "MetalSynth",
+        "pattern": "Quarter notes, sometimes with a preceding 16th note pickup.",
+        "description": "A washy, metallic ride cymbal sound that appears in later, more intense sections (e.g., around 1:37), adding a bright, driving layer on top of the existing percussion.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "attack": 0.005,
+            "decay": 0.8,
+            "sustain": 0.1,
+            "release": 0.9,
+            "volume": -16,
+            "harmonicity": 5.1,
+            "modulationIndex": 64,
+            "filterFrequency": 7000,
+            "filterQ": 1.5,
+            "chorus": 0.2,
+            "reverbSend": 0.4
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C#5",
+            "C#5",
+            "C#5",
+            "C#5"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Glitch Perc",
+        "instrument": "FMSynth with distortion",
+        "pattern": "A sparse, irregular syncopated pattern.",
+        "description": "A distorted, aggressive, and complex percussive sound that adds an industrial, glitchy texture. It appears intermittently to add variation and intensity.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "attack": 0.002,
+            "decay": 0.15,
+            "release": 0.05,
+            "volume": -12,
+            "harmonicity": 3.5,
+            "modulationIndex": 12,
+            "drive": 0.8,
+            "reverbSend": 0.3
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "D#3",
+            "",
+            "",
+            "D#3",
+            "",
+            "",
+            ""
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "RoboVocal Lead",
+        "instrument": "FMSynth",
+        "pattern": "A syncopated, evolving melodic line following the main vocal performance. Phrases are typically 2-4 bars long and are rhythmically active, using a mixture of eighth and sixteenth notes.",
+        "description": "The sole instrument in this stem, this processed vocal carries the lyrics and primary melody throughout the entire track. Its sound is defined by aggressive pitch-shifting, distortion, and a controlled reverb.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 1.5,
+            "modulationIndex": 15,
+            "filterType": "lowpass",
+            "filterFrequency": 4500,
+            "filterQ": 2.5,
+            "drive": 0.6,
+            "chorus": 0.2,
+            "reverbSend": 0.45
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "D4",
+            "",
+            "D4",
+            "",
+            "F4",
+            "",
+            "G4",
+            "A4",
+            "",
+            "G4",
+            "",
+            "F4",
+            "",
+            "",
+            ""
+          ]
+        },
+        "stem": "vocals"
+      },
+      {
+        "name": "Kick Synth",
+        "instrument": "Synth",
+        "pattern": "A simple four-on-the-floor pulse on the root note.",
+        "description": "Provides the foundational pulse from the very beginning of the track, acting as a soft, tonal kick drum. It underpins the more complex layers that enter later.",
+        "synth": {
+          "type": "Synth",
+          "options": {
+            "oscillatorType": "sine",
+            "attack": 0.005,
+            "decay": 0.3,
+            "sustain": 0,
+            "release": 0.2,
+            "volume": -9
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "A2",
+            "A2",
+            "A2",
+            "A2"
+          ]
+        },
+        "stem": "other"
+      },
+      {
+        "name": "Main Arp",
+        "instrument": "FMSynth",
+        "pattern": "A continuous 16th-note arpeggio outlining the primary chords.",
+        "description": "The core rhythmic and harmonic engine of the piece, entering after the intro at 22.8s. Its clean, plucky sound and constant motion create the main hypnotic texture.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 3,
+            "modulationIndex": 10,
+            "reverbSend": 0.0
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A3",
+            "C4",
+            "E4",
+            "C4",
+            "A3",
+            "C4",
+            "E4",
+            "C4",
+            "G3",
+            "B3",
+            "D4",
+            "B3",
+            "G3",
+            "B3",
+            "D4",
+            "B3"
+          ]
+        },
+        "stem": "other"
+      },
+      {
+        "name": "Sub Kick Bass",
+        "instrument": "FMSynth",
+        "pattern": "A relentless four-on-the-floor quarter-note pulse. The pitch shifts slowly, typically holding one note for 4, 8, or 16 bars before moving to another note within the D# minor scale.",
+        "description": "This is the sole instrument in this stem, acting as both the kick drum and the bass line. It starts at 0:00 and plays continuously throughout the entire track, providing the fundamental pulse and harmonic foundation.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "oscillatorType": "sine",
+            "attack": 0.001,
+            "decay": 0.25,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -6,
+            "harmonicity": 3,
+            "modulationIndex": 12,
+            "filterType": "lowpass",
+            "filterFrequency": 400,
+            "filterQ": 1.5,
+            "drive": 0.1
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "D#2",
+            "D#2",
+            "D#2",
+            "D#2",
+            "G#1",
+            "G#1",
+            "G#1",
+            "G#1"
+          ]
+        },
+        "stem": "bass"
+      }
+    ]
+  }
+}

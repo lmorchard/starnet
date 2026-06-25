@@ -1,0 +1,1593 @@
+{
+  "meta": {
+    "artist": "The Gruesome Twosome",
+    "title": "Hallucination Generation",
+    "slug": "the-gruesome-twosome-hallucination-generation",
+    "source_file": "The Gruesome Twosome - Hallucination Generation.mp3",
+    "model": "gemini-2.5-pro"
+  },
+  "mir": {
+    "bpm": 114.84375,
+    "key": "C#",
+    "mode": "minor",
+    "key_confidence": 0.757308376024362,
+    "duration_sec": 226.76607709750567,
+    "sections": [
+      {
+        "start": 0.0
+      },
+      {
+        "start": 8.463673469387755
+      },
+      {
+        "start": 10.62312925170068
+      },
+      {
+        "start": 18.959092970521542
+      },
+      {
+        "start": 206.4370068027211
+      },
+      {
+        "start": 218.17469387755102
+      },
+      {
+        "start": 222.1685260770975
+      }
+    ],
+    "brightness": {
+      "mean_hz": 4105.982251672916,
+      "min_hz": 869.6238455575539,
+      "max_hz": 7988.797127433456
+    },
+    "dynamics": {
+      "rms_mean": 0.16043193638324738,
+      "rms_range_db": 16.36600553172285
+    },
+    "timbre": {
+      "rolloff_hz": 8697.426978196598,
+      "flatness": 0.000954688701312989,
+      "contrast": 20.9474631762046,
+      "zcr": 0.09469204059316286,
+      "harmonic_ratio": 0.7881400528409778
+    },
+    "midi_path": null
+  },
+  "stems": [
+    {
+      "stem": "drums",
+      "mir": {
+        "bpm": 114.84375,
+        "key": "C#",
+        "mode": "minor",
+        "key_confidence": 0.6940713833344874,
+        "duration_sec": 226.76607709750567,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 10.62312925170068
+          },
+          {
+            "start": 28.409614512471656
+          },
+          {
+            "start": 151.7772335600907
+          },
+          {
+            "start": 154.40108843537416
+          },
+          {
+            "start": 187.5591836734694
+          },
+          {
+            "start": 189.78829931972788
+          },
+          {
+            "start": 206.44861678004534
+          }
+        ],
+        "brightness": {
+          "mean_hz": 5283.884212084677,
+          "min_hz": 376.53909351641664,
+          "max_hz": 9550.722666296864
+        },
+        "dynamics": {
+          "rms_mean": 0.11477265506982803,
+          "rms_range_db": 46.628553345554224
+        },
+        "timbre": {
+          "rolloff_hz": 10453.5160711306,
+          "flatness": 0.003283637808635831,
+          "contrast": 17.196751517442078,
+          "zcr": 0.10198403723026417,
+          "harmonic_ratio": 0.8129365441994242
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "A high-energy, aggressive big beat drum track at 115 BPM. The piece is built from heavily processed and synthesized drum sounds, featuring a punchy kick, a sharp, layered snare, and metallic hi-hats. The arrangement evolves through various sections, introducing different breakbeat patterns, fills, and percussive layers, creating a wide dynamic range and a sense of forward momentum.",
+        "vocabulary": {
+          "timbre": "The timbre is aggressive, electronic, and synthetic. Sounds are heavily processed, featuring sharp attacks, digital noise, and metallic textures. It's a mix of punchy, low-frequency elements (kick) and sharp, noisy, high-frequency transients (snare, hats).",
+          "brightness": "Very bright. The spectral rolloff is high, indicating significant energy in the high frequencies from the crisp hi-hats, sharp snare attacks, and cymbal-like sounds. The overall texture is sharp and cutting.",
+          "envelope": "Envelopes are predominantly short and percussive. Kicks have a fast attack and quick decay. Snares and hats have almost instantaneous attacks and very short releases, contributing to the track's tight and punchy feel. There are some exceptions with reverb tails and reverse swells.",
+          "register_density": "The density varies dramatically across the track. It starts sparsely and builds to dense, complex breakbeat patterns. The register is wide, from the low-end thump of the kick to the high-frequency sizzle of the cymbals and hi-hats.",
+          "harmony_mode": "Primarily atonal and rhythmic. However, some synthesized drum sounds, like the tom-like percussion, have a discernible pitch. Given the C# minor key context, these pitched elements likely reinforce the root or fifth, but the mode is defined by rhythm rather than melody.",
+          "groove": "The core groove is a driving, syncopated four-on-the-floor feel that frequently breaks into more complex, funky breakbeat patterns. Abundant 16th-note syncopation in the snare and hi-hats creates a propulsive, energetic feel.",
+          "space_grit": "The track is gritty and saturated. Sounds are processed with distortion or saturation, giving them a tough, industrial edge. The spatial sense is mostly dry and in-your-face, but some elements like the snare have short reverb tails, creating a sense of a controlled, reflective room."
+        },
+        "tracks": [
+          {
+            "name": "Industrial Kick",
+            "instrument": "MembraneSynth",
+            "pattern": "A heavily syncopated, driving pattern that often avoids the straight 4-on-the-floor in favor of a broken, funky rhythm. Kick on 1 is common, with other hits landing on off-beats.",
+            "description": "The foundational element, providing the low-end weight and driving pulse of the track. Present throughout most of the song after the intro, defining the core groove.",
+            "synth": {
+              "type": "MembraneSynth",
+              "options": {
+                "oscillatorType": "sine",
+                "attack": 0.001,
+                "decay": 0.4,
+                "sustain": 0.01,
+                "release": 0.1,
+                "volume": -2,
+                "drive": 0.2
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "C1",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "C1",
+                "",
+                "",
+                "C1",
+                "",
+                "",
+                "",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Aggro Snare",
+            "instrument": "A NoiseSynth and a high-pitched MembraneSynth layered together, sent through a high-pass filter and distortion.",
+            "pattern": "Strong backbeat on 2 and 4, with lots of syncopated 16th-note ghost notes and fills creating a complex, driving rhythm.",
+            "description": "Provides the sharp, cracking backbeat. It's a central element of the groove, often playing intricate patterns that define the breakbeat feel. Present throughout.",
+            "synth": {
+              "type": "NoiseSynth",
+              "options": {
+                "attack": 0.001,
+                "decay": 0.15,
+                "sustain": 0,
+                "volume": -8,
+                "filterType": "bandpass",
+                "filterFrequency": 4000,
+                "filterQ": 2,
+                "drive": 0.3,
+                "reverbSend": 0.2
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "",
+                "",
+                "",
+                "x",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "x",
+                "",
+                "",
+                "x"
+              ]
+            }
+          },
+          {
+            "name": "Metallic Hats",
+            "instrument": "MetalSynth",
+            "pattern": "Constant driving 16th notes, with velocity accents creating a pulsing, machine-like feel.",
+            "description": "The primary time-keeping element in the high register, providing a constant stream of rhythmic energy. It drops out for effect in some sections but is mostly present.",
+            "synth": {
+              "type": "MetalSynth",
+              "options": {
+                "harmonicity": 5.1,
+                "modulationIndex": 32,
+                "reverbSend": 0.15000000000000002
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Sizzle Hat",
+            "instrument": "MetalSynth",
+            "pattern": "Plays on the off-beats, typically the '+' of each beat, creating a classic disco/funk lift.",
+            "description": "Adds sizzle and an off-beat pulse to the groove, working in tandem with the closed hats to create a full high-frequency rhythm section. Used in the main high-energy sections.",
+            "synth": {
+              "type": "MetalSynth",
+              "options": {
+                "harmonicity": 8.1,
+                "modulationIndex": 40,
+                "reverbSend": 0.3
+              }
+            },
+            "steps": {
+              "grid": "8n",
+              "notes": [
+                "",
+                "x",
+                "",
+                "x",
+                "",
+                "x",
+                "",
+                "x"
+              ]
+            }
+          },
+          {
+            "name": "Deep Tom",
+            "instrument": "FMSynth",
+            "pattern": "Plays sparse, syncopated melodic fragments and fills, often accenting the end of a 2 or 4 bar phrase.",
+            "description": "A low, tonal percussion element that adds a funky, melodic quality to the drum patterns. Its appearances are sporadic but impactful, often functioning as a fill.",
+            "synth": {
+              "type": "FMSynth",
+              "options": {
+                "oscillatorType": "sine",
+                "harmonicity": 0.5,
+                "modulationIndex": 5,
+                "reverbSend": 0.1
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "C#2",
+                "",
+                "C#2"
+              ]
+            }
+          },
+          {
+            "name": "Noise Crash",
+            "instrument": "NoiseSynth",
+            "pattern": "Single hits on the downbeat of major sections, like beat 1 of a new 4-bar phrase.",
+            "description": "A loud, explosive noise burst used as a crash cymbal to mark significant transitions and add impact to downbeats.",
+            "synth": {
+              "type": "NoiseSynth",
+              "options": {
+                "reverbSend": 0.5
+              }
+            },
+            "steps": {
+              "grid": "1m",
+              "notes": [
+                "x"
+              ]
+            }
+          }
+        ],
+        "score_draft": "SPECULATIVE STARTER: Create a sequence at 115 BPM. The core groove comes from layering three patterns. KICK: Use a MembraneSynth with a fast attack, medium decay (~0.4s), and a bit of drive (0.2). Program a syncopated 16th-note pattern like [\"C1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"C1\", \"\", \"\", \"C1\", \"\", \"\", \"\", \"\"]. SNARE: Use a NoiseSynth with a very short decay (~0.15s) and a bandpass filter around 4kHz. Program it on beats 2 and 4, with extra 16th-note fills, e.g., [\"\", \"\", \"\", \"\", \"x\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"x\", \"\", \"\", \"x\"]. HATS: Use two MetalSynth instances. One for tight closed hats (decay: 0.05) playing 16ths, and one for open hats (decay: 0.3) on the 8th-note off-beats. Route everything to a master bus with a compressor to glue the sounds together and a reverb send for space, especially on the snare and open hat."
+      }
+    },
+    {
+      "stem": "vocals",
+      "mir": {
+        "bpm": 105.46875,
+        "key": "F",
+        "mode": "major",
+        "key_confidence": 0.82755800497025,
+        "duration_sec": 226.76607709750567,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 10.251609977324263
+          },
+          {
+            "start": 18.935873015873018
+          },
+          {
+            "start": 93.35582766439909
+          },
+          {
+            "start": 101.7730612244898
+          },
+          {
+            "start": 144.021768707483
+          },
+          {
+            "start": 150.18666666666667
+          },
+          {
+            "start": 198.0081632653061
+          }
+        ],
+        "brightness": {
+          "mean_hz": 3080.5224741700576,
+          "min_hz": 878.5946081143406,
+          "max_hz": 10581.0184633366
+        },
+        "dynamics": {
+          "rms_mean": 0.03517735004425049,
+          "rms_range_db": 40.16972665367069
+        },
+        "timbre": {
+          "rolloff_hz": 5278.3574787145635,
+          "flatness": 0.0008135139942169189,
+          "contrast": 17.62893454367671,
+          "zcr": 0.05809726948465418,
+          "harmonic_ratio": 0.5702015257278286
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "This track is an intricate and rhythmic collage built exclusively from processed vocal samples. It features a haunting female choral pad, a main male narrator, various hype-man interjections, a repetitive female hook, a distorted scream stab, and DJ scratches. The composition uses these vocal elements percussively and melodically to construct a driving, sample-heavy groove without any traditional instrumentation.",
+        "vocabulary": {
+          "timbre": "A dense collage of processed vocal samples: a multi-tracked female choir, multiple male spoken-word artists, a distorted screamer, and DJ scratches of vocal phrases. Highly synthetic and varied.",
+          "brightness": "Moderately bright (mean centroid 3081Hz), with clear sibilance and breath from the vocals. The choral pads are softer, while the spoken word and screams have more high-frequency energy and grit.",
+          "envelope": "A mix of sustained and percussive envelopes. The choral pad has a slow attack and long release, creating a continuous wash. Spoken phrases and scratches are rhythmically tight with fast attacks and short decays.",
+          "register_density": "Wide-ranging. The choral pad occupies the mid-high register (A4-C5). Male spoken word is in the low-mid range (C3-G3). Density is high, with multiple layers of vocals often overlapping.",
+          "harmony_mode": "Tonal elements center on a haunting, descending 3-note phrase (C-Bb-A) from the F major scale, creating a feeling of tension rather than resolution, suggesting a mode like F Mixolydian or D Aeolian. Spoken sections are atonal.",
+          "groove": "A driving 105 BPM house/funk groove is implied by the precise, syncopated placement of the vocal samples, which act as the primary rhythmic drivers in this isolated stem.",
+          "space_grit": "Highly processed. The choral pad is washed in a large hall reverb. The lead spoken voice has a robotic, slightly flanged quality. Other samples are dry and upfront, while the scream stab is heavily saturated with distortion."
+        },
+        "tracks": [
+          {
+            "name": "Choral Pad",
+            "instrument": "PolySynth using a fat oscillator with chorus to emulate a multi-tracked choir.",
+            "pattern": "A repeating, descending 3-note melodic phrase (C-Bb-A) that plays every bar, forming the main harmonic bed.",
+            "description": "A haunting, ethereal female choir that provides the main melodic and atmospheric content. It's present throughout most of the track and is drenched in a long reverb, creating a spacious, pad-like texture.",
+            "synth": {
+              "type": "PolySynth",
+              "options": {
+                "oscillatorType": "fatsawtooth",
+                "count": 5,
+                "spread": 30,
+                "attack": 0.2,
+                "decay": 0.4,
+                "sustain": 0.8,
+                "release": 1.5,
+                "volume": -15,
+                "filterType": "lowpass",
+                "filterFrequency": 2500,
+                "filterQ": 2,
+                "chorus": 0.4,
+                "reverbSend": 0.7
+              }
+            },
+            "steps": {
+              "grid": "4n",
+              "notes": [
+                "C5",
+                "Bb4",
+                "A4",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Main Narrator",
+            "instrument": "MonoSynth with a bandpass filter to approximate a processed male spoken voice.",
+            "pattern": "Syncopated, rhythmic spoken-word phrases that deliver the song's verses. The pattern is conversational but rhythmically precise.",
+            "description": "The lead male vocal, delivering verses with a measured, slightly robotic cadence. The voice is processed to be clear and upfront, acting as the primary narrative driver during verse sections.",
+            "synth": {
+              "type": "MonoSynth",
+              "options": {
+                "oscillatorType": "sawtooth",
+                "attack": 0.01,
+                "decay": 0.2,
+                "sustain": 0,
+                "release": 0.1,
+                "volume": -9,
+                "filterType": "bandpass",
+                "filterFrequency": 1500,
+                "filterQ": 4,
+                "drive": 0.2
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "",
+                "",
+                "",
+                "C3",
+                "",
+                "C3",
+                "C3",
+                "",
+                "C3",
+                "",
+                "C3",
+                "",
+                "C3",
+                "",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Female Hook",
+            "instrument": "MonoSynth with a quick envelope and bandpass filter to mimic a catchy female vocal sample.",
+            "pattern": "A highly repetitive and rhythmic 1-bar phrase, \"Shake it up baby, break up baby\".",
+            "description": "A catchy, repetitive female vocal hook that appears during the chorus sections. It's a central, energetic element that drives the groove forward.",
+            "synth": {
+              "type": "MonoSynth",
+              "options": {
+                "oscillatorType": "pulse",
+                "attack": 0.01,
+                "decay": 0.15,
+                "sustain": 0,
+                "release": 0.1,
+                "volume": -10,
+                "filterType": "bandpass",
+                "filterFrequency": 2200,
+                "filterQ": 3,
+                "drive": 0.1
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "A4",
+                "",
+                "A4",
+                "",
+                "",
+                "A4",
+                "",
+                "A4",
+                "A4",
+                "",
+                "A4",
+                "",
+                "",
+                "A4",
+                "",
+                "A4"
+              ]
+            }
+          },
+          {
+            "name": "Scream Stab",
+            "instrument": "A heavily distorted and filtered MonoSynth to create a harsh, scream-like effect.",
+            "pattern": "A short, impactful stab, often hitting on the first beat of a phrase.",
+            "description": "A distorted male scream of \"No!\" used as a powerful, percussive accent. It functions like a dramatic synth stab or a crash cymbal, adding aggression and punctuation.",
+            "synth": {
+              "type": "MonoSynth",
+              "options": {
+                "oscillatorType": "sawtooth",
+                "attack": 0.005,
+                "decay": 0.4,
+                "sustain": 0.1,
+                "release": 0.2,
+                "volume": -6,
+                "filterType": "peaking",
+                "filterFrequency": 3000,
+                "filterQ": 5,
+                "drive": 0.9
+              }
+            },
+            "steps": {
+              "grid": "2n",
+              "notes": [
+                "C5",
+                "",
+                "C5",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "DJ Scratch",
+            "instrument": "NoiseSynth with a very short envelope and resonant filter to simulate a turntable scratch.",
+            "pattern": "Fast, rhythmic 16th-note patterns that emulate a DJ scratching a vocal sample.",
+            "description": "A classic DJ scratch sound used as a textural and rhythmic element. It appears in short bursts, adding a hip-hop flavor and filling in rhythmic gaps.",
+            "synth": {
+              "type": "NoiseSynth",
+              "options": {
+                "attack": 0.001,
+                "decay": 0.05,
+                "sustain": 0,
+                "release": 0.02,
+                "volume": -18,
+                "filterType": "bandpass",
+                "filterFrequency": 1200,
+                "filterQ": 10
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "x",
+                "x",
+                "",
+                "",
+                "x",
+                "x",
+                "",
+                "x",
+                "",
+                "x",
+                "x",
+                "",
+                "",
+                "x",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Hype Man",
+            "instrument": "MonoSynth to represent various one-shot spoken samples.",
+            "pattern": "Sporadic, short phrases used as call-outs and transitions.",
+            "description": "Various male vocal samples that interject throughout the track, such as \"Listen to the sounds\" or \"Where did she come from?\". They function as hype-man shouts, building energy and adding variety.",
+            "synth": {
+              "type": "MonoSynth",
+              "options": {
+                "oscillatorType": "square",
+                "attack": 0.01,
+                "decay": 0.3,
+                "sustain": 0,
+                "release": 0.2,
+                "volume": -11,
+                "filterType": "lowpass",
+                "filterFrequency": 4000,
+                "filterQ": 1
+              }
+            },
+            "steps": {
+              "grid": "8n",
+              "notes": [
+                "G3",
+                "",
+                "G3",
+                "G3",
+                "G3",
+                "",
+                "G3",
+                ""
+              ]
+            }
+          }
+        ],
+        "score_draft": "/* DRAFT - This is a speculative starter for a developer. */\nconst choralPad = new Tone.PolySynth(Tone.FMSynth, {\n  harmonicity: 1.5,\n  modulationIndex: 10,\n  oscillator: { type: 'sine' },\n  envelope: { attack: 0.2, release: 1.5 },\n  modulation: { type: 'sawtooth' },\n  modulationEnvelope: { attack: 0.1, release: 1.5 },\n}).toDestination();\nconst choralPart = new Tone.Part((time, note) => {\n  choralPad.triggerAttackRelease(note, '8n', time);\n}, [\n  { time: '0:0', note: 'C5' },\n  { time: '0:1', note: 'Bb4' },\n  { time: '0:2', note: 'A4' }\n]).start(0);\n\nconst screamStab = new Tone.MonoSynth({\n  oscillator: { type: 'sawtooth' },\n  filter: { type: 'peaking', frequency: 3000, Q: 5 },\n  envelope: { attack: 0.005, decay: 0.4 },\n}).chain(new Tone.Distortion(0.9), Tone.Destination);\n\nconst mainNarrator = new Tone.MonoSynth({\n    oscillator: { type: 'pulse' },\n    filter: { type: 'bandpass', frequency: 1500, Q: 4 },\n    envelope: { attack: 0.01, decay: 0.2 }\n}).chain(new Tone.BitCrusher(6), Tone.Destination);\n// Use precise, syncopated rhythms with short notes for the narrator and hook parts to mimic the chopped sample feel."
+      }
+    },
+    {
+      "stem": "other",
+      "mir": {
+        "bpm": 114.84375,
+        "key": "E",
+        "mode": "minor",
+        "key_confidence": 0.8774591094271635,
+        "duration_sec": 226.76607709750567,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 10.669569160997732
+          },
+          {
+            "start": 86.378231292517
+          },
+          {
+            "start": 102.84117913832199
+          },
+          {
+            "start": 143.95210884353742
+          },
+          {
+            "start": 152.35773242630387
+          },
+          {
+            "start": 188.74340136054423
+          },
+          {
+            "start": 223.72426303854874
+          }
+        ],
+        "brightness": {
+          "mean_hz": 2024.5600420308278,
+          "min_hz": 747.496502914825,
+          "max_hz": 5930.631389868497
+        },
+        "dynamics": {
+          "rms_mean": 0.02224874682724476,
+          "rms_range_db": 36.74771298253006
+        },
+        "timbre": {
+          "rolloff_hz": 3536.4410446699544,
+          "flatness": 0.016375621780753136,
+          "contrast": 16.035042453932256,
+          "zcr": 0.07097374075282854,
+          "harmonic_ratio": 0.9224123550693234
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "An intense and chaotic electronic piece driven by a fast, digital arpeggio, a distorted screaming lead, and glitchy noise percussion, all set against a dissonant pad drone in E minor.",
+        "vocabulary": {
+          "timbre": "A harsh, digital mix of sharp square-wave plucks and aggressive, highly resonant, distorted saw waves, creating a busy and harmonically rich texture.",
+          "brightness": "Very bright and piercing, with significant energy in the high frequencies. The sound has a sharp, cutting edge, especially in the arpeggiated lead.",
+          "envelope": "The primary arpeggio has a very fast attack and quick decay, creating a staccato, plucked feel. In contrast, the lead synth uses a slower attack and long sustain for wailing, sustained notes.",
+          "register_density": "The piece is densely packed with information, spanning from the mid-to-high registers. The relentless 16th-note arpeggios create a high level of activity.",
+          "harmony_mode": "Firmly in E minor, with arpeggios and melodies outlining the chords of the minor scale. The overall mood is dark, tense, and energetic.",
+          "groove": "A driving, straight 16th-note pulse is established by the main arpeggio, creating a feeling of constant, frantic forward motion without any swing.",
+          "space_grit": "The sound is saturated with digital grit and distortion, giving it an aggressive and slightly lo-fi character. A moderate reverb provides some depth, but the overall impression is more direct than spacious."
+        },
+        "tracks": [
+          {
+            "name": "Arp Lead",
+            "instrument": "PolySynth",
+            "pattern": "Continuous, fast 16th-note arpeggios outlining chords in E minor. The pattern evolves, creating a sense of constant movement.",
+            "description": "The main rhythmic and melodic engine of the track, present almost throughout. It establishes the fast-paced, digital, and tense atmosphere with its bright, plucky sound.",
+            "synth": {
+              "type": "PolySynth",
+              "options": {
+                "oscillatorType": "square",
+                "attack": 0.01,
+                "decay": 0.2,
+                "sustain": 0.1,
+                "release": 0.3,
+                "volume": -15,
+                "filterType": "lowpass",
+                "filterFrequency": 3500,
+                "filterQ": 1.2
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "E5",
+                "B4",
+                "G4",
+                "E4",
+                "D4",
+                "G4",
+                "B4",
+                "D5",
+                "E5",
+                "B4",
+                "G4",
+                "E4",
+                "D4",
+                "G4",
+                "B4",
+                "D5"
+              ]
+            }
+          },
+          {
+            "name": "Screaming Lead",
+            "instrument": "MonoSynth",
+            "pattern": "Long, wailing notes with significant portamento (glide) and filter modulation, creating a vocal-like, screaming effect.",
+            "description": "An aggressive, distorted lead that enters around 10 seconds to add intensity. Its prominent filter sweeps and sustained notes serve as a melodic focal point over the busy arpeggio.",
+            "synth": {
+              "type": "MonoSynth",
+              "options": {
+                "oscillatorType": "fatsawtooth",
+                "count": 4,
+                "spread": 30,
+                "attack": 0.2,
+                "decay": 0.4,
+                "sustain": 0.8,
+                "release": 1.5,
+                "volume": -8,
+                "drive": 0.7,
+                "chorus": 0.3,
+                "reverbSend": 0.5
+              }
+            },
+            "steps": {
+              "grid": "2n",
+              "notes": [
+                "B5",
+                "A5"
+              ]
+            }
+          },
+          {
+            "name": "Pad Drone",
+            "instrument": "FMSynth",
+            "pattern": "A long, sustained, dissonant chord that evolves slowly in timbre, providing a harmonic bed.",
+            "description": "A background textural layer that appears in sections (e.g., at 86s) to fill out the harmony. Its metallic, distorted quality adds to the track's uneasy and industrial atmosphere.",
+            "synth": {
+              "type": "FMSynth",
+              "options": {
+                "harmonicity": 1.5,
+                "modulationIndex": 8,
+                "filterType": "lowpass",
+                "filterFrequency": 1800,
+                "filterQ": 2,
+                "drive": 0.4,
+                "reverbSend": 0.6
+              }
+            },
+            "steps": {
+              "grid": "1n",
+              "notes": [
+                "E4+G4+B4+D5"
+              ]
+            }
+          },
+          {
+            "name": "Noise Clicks",
+            "instrument": "NoiseSynth",
+            "pattern": "A sparse and syncopated pattern of short, sharp noise hits.",
+            "description": "A subtle percussive layer, most noticeable in the intro and outro, that adds a glitchy, digital texture and enhances the chaotic feel of the arrangement.",
+            "synth": {
+              "type": "NoiseSynth",
+              "options": {
+                "attack": 0.001,
+                "decay": 0.05,
+                "sustain": 0,
+                "release": 0.05,
+                "volume": -22
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "x",
+                "",
+                "",
+                "x",
+                "",
+                "",
+                "x",
+                "",
+                "x",
+                "",
+                "",
+                "",
+                "x",
+                "",
+                "x",
+                ""
+              ]
+            }
+          }
+        ],
+        "score_draft": "SPECULATIVE STARTER: Set tempo to 115 BPM. The core is the 'Arp Lead' using a PolySynth with a 'square' oscillator and a fast, plucky envelope (attack: 0.01, decay: 0.2, sustain: 0.1). Drive it with a Tone.Pattern playing 16th-note E minor arpeggios like ['E5', 'B4', 'G4', 'E4']. For the 'Screaming Lead', use a MonoSynth with a 'fatsawtooth' oscillator, portamento enabled, and a prominent filter envelope (high resonance 'filterQ': 6) to create the 'wah' effect. Add heavy drive (e.g., Tone.Distortion(0.7)). Layer in a background 'FMSynth' drone playing long E minor chords (['E4+G4+B4+D5']) with a high harmonicity (1.5) and modulationIndex (8) for a metallic texture. Sprinkle in a 'NoiseSynth' with a very short envelope (decay: 0.05) for percussive clicks. Route everything through a master reverb (wet: 0.3) for space."
+      }
+    },
+    {
+      "stem": "bass",
+      "mir": {
+        "bpm": 77.1338619402985,
+        "key": "E",
+        "mode": "minor",
+        "key_confidence": 0.7956811788649587,
+        "duration_sec": 226.76607709750567,
+        "sections": [
+          {
+            "start": 0.0
+          },
+          {
+            "start": 27.271836734693878
+          },
+          {
+            "start": 76.73034013605442
+          },
+          {
+            "start": 93.93632653061225
+          },
+          {
+            "start": 135.10530612244898
+          },
+          {
+            "start": 154.35464852607709
+          },
+          {
+            "start": 178.80526077097505
+          },
+          {
+            "start": 205.89133786848072
+          }
+        ],
+        "brightness": {
+          "mean_hz": 322.032370672025,
+          "min_hz": 175.99591709710114,
+          "max_hz": 3420.8682774362333
+        },
+        "dynamics": {
+          "rms_mean": 0.03910154104232788,
+          "rms_range_db": 38.907037985864385
+        },
+        "timbre": {
+          "rolloff_hz": 319.46808016765704,
+          "flatness": 0.00013384755584411323,
+          "contrast": 15.311412081998247,
+          "zcr": 0.004055936588081708,
+          "harmonic_ratio": 0.9502019529124395
+        },
+        "midi_path": null
+      },
+      "interpretation": {
+        "summary": "A dark, industrial track driven by a relentless, heavily distorted and filtered syncopated bass line. The piece is built on a repetitive, hypnotic mono-synth riff, with sparse, noisy percussive elements providing texture in the introduction and transitions.",
+        "vocabulary": {
+          "timbre": "The primary timbre is a gritty, resonant synth bass, likely a saturated sawtooth or square wave passed through a resonant low-pass filter, creating a growling, aggressive texture.",
+          "brightness": "Dark and focused in the low-end, with a mean spectral centroid of 322 Hz. The heavy distortion adds upper-harmonic grit, but this is largely contained by filtering, keeping the overall sound deep and menacing.",
+          "envelope": "The bass notes have a defined, plucky quality with a sharp attack, a quick decay, and a moderate sustain, allowing the syncopated rhythm to remain clear and punchy.",
+          "register_density": "The track is dominated by a single melodic line in the low bass register (E1-E2). The pattern is rhythmically dense, based on a 16th-note grid, but harmonically sparse, creating a hypnotic and driving feel.",
+          "harmony_mode": "The piece is firmly in E minor, with the main riff emphasizing the root (E), minor third (G), and fourth (A), creating a dark, brooding, and modal atmosphere.",
+          "groove": "A highly syncopated, machine-like groove at 77 BPM. The rhythm is relentless and built on off-beat 16th-note accents, giving the track its propulsive and hypnotic character.",
+          "space_grit": "The sound is extremely gritty, saturated with audible distortion and drive. The spatial environment is dry and direct, placing the aggressive bass texture front and center with minimal reverb or delay."
+        },
+        "tracks": [
+          {
+            "name": "Growler Bass",
+            "instrument": "MonoSynth",
+            "pattern": "A repeating, syncopated 1-bar phrase based on a 16th-note grid. The pattern uses notes from the E minor scale, primarily E, G, and A, creating the main riff.",
+            "description": "The central driving element of the track, entering at 0:27 and continuing almost non-stop. This aggressive, distorted bass line provides the core rhythmic and harmonic foundation.",
+            "synth": {
+              "type": "MonoSynth",
+              "options": {
+                "oscillatorType": "fatsawtooth",
+                "count": 5,
+                "spread": 30,
+                "attack": 0.02,
+                "decay": 0.2,
+                "sustain": 0.3,
+                "release": 0.4,
+                "volume": -6,
+                "filterType": "lowpass",
+                "filterFrequency": 500,
+                "filterQ": 4,
+                "drive": 0.7
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "E2",
+                "",
+                "",
+                "E2",
+                "",
+                "E2",
+                "G2",
+                "",
+                "E2",
+                "",
+                "",
+                "A2",
+                "",
+                "G2",
+                "E2",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Sub Kick / Noise",
+            "instrument": "MembraneSynth",
+            "pattern": "A simple, pulsing quarter-note pattern that provides a foundational beat.",
+            "description": "A deep, noisy, percussive element that appears in the intro (0:00-0:27) and other sparse sections. It acts as a distorted kick drum, establishing the pulse before the main bass riff begins.",
+            "synth": {
+              "type": "MembraneSynth",
+              "options": {
+                "attack": 0.01,
+                "decay": 0.4,
+                "sustain": 0,
+                "release": 0.1,
+                "volume": -9,
+                "harmonicity": 1.5,
+                "drive": 0.4,
+                "reverbSend": 0.1
+              }
+            },
+            "steps": {
+              "grid": "4n",
+              "notes": [
+                "C1",
+                "C1",
+                "C1",
+                "C1"
+              ]
+            }
+          }
+        ],
+        "score_draft": "/* Speculative Score Draft */\n// Set tempo to a slow, driving 77 BPM.\nTone.Transport.bpm.value = 77;\n\n// Main 'Growler Bass' synth\n// Use a MonoSynth with a fat oscillator for thickness and heavy drive for grit.\n// A resonant lowpass filter is key to the 'growl'.\nconst growlerBass = new Tone.MonoSynth({\n  oscillator: { type: 'fatsawtooth', count: 5, spread: 30 },\n  envelope: { attack: 0.02, decay: 0.2, sustain: 0.3, release: 0.4 },\n  filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.5, baseFrequency: 100, octaves: 4 },\n  filter: { type: 'lowpass', Q: 4 },\n  volume: -6\n}).chain(new Tone.Distortion(0.7), Tone.Destination);\n\n// Bass pattern: a syncopated 16th-note loop in E minor.\nconst bassPattern = new Tone.Sequence((time, note) => {\n  if (note) growlerBass.triggerAttackRelease(note, '16n', time);\n}, [\n  'E2', null, null, 'E2', null, 'E2', 'G2', null, 'E2', null, null, 'A2', null, 'G2', 'E2', null\n], '16n').start(0);\n\n// 'Sub Kick' for intro sections.\n// A driven MembraneSynth for a distorted, percussive low-end pulse.\nconst subKick = new Tone.MembraneSynth({\n  attack: 0.01, decay: 0.4, harmonicity: 1.5, volume: -9\n}).chain(new Tone.Distortion(0.4), Tone.Destination);\n\nconst kickPattern = new Tone.Sequence((time, note) => {\n  subKick.triggerAttackRelease(note, '8n', time);\n}, ['C1', 'C1', 'C1', 'C1'], '4n');"
+      }
+    }
+  ],
+  "score_spec": {
+    "root": "C#",
+    "mode": "minor",
+    "bpm": 114.84375,
+    "tracks": [
+      {
+        "name": "Industrial Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "A heavily syncopated, driving pattern that often avoids the straight 4-on-the-floor in favor of a broken, funky rhythm. Kick on 1 is common, with other hits landing on off-beats.",
+        "description": "The foundational element, providing the low-end weight and driving pulse of the track. Present throughout most of the song after the intro, defining the core groove.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "oscillatorType": "sine",
+            "attack": 0.001,
+            "decay": 0.4,
+            "sustain": 0.01,
+            "release": 0.1,
+            "volume": -2,
+            "drive": 0.2
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C1",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "C1",
+            "",
+            "",
+            "C1",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Aggro Snare",
+        "instrument": "A NoiseSynth and a high-pitched MembraneSynth layered together, sent through a high-pass filter and distortion.",
+        "pattern": "Strong backbeat on 2 and 4, with lots of syncopated 16th-note ghost notes and fills creating a complex, driving rhythm.",
+        "description": "Provides the sharp, cracking backbeat. It's a central element of the groove, often playing intricate patterns that define the breakbeat feel. Present throughout.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.15,
+            "sustain": 0,
+            "volume": -8,
+            "filterType": "bandpass",
+            "filterFrequency": 4000,
+            "filterQ": 2,
+            "drive": 0.3,
+            "reverbSend": 0.2
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "x"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Metallic Hats",
+        "instrument": "MetalSynth",
+        "pattern": "Constant driving 16th notes, with velocity accents creating a pulsing, machine-like feel.",
+        "description": "The primary time-keeping element in the high register, providing a constant stream of rhythmic energy. It drops out for effect in some sections but is mostly present.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "reverbSend": 0.15000000000000002
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            ""
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Sizzle Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Plays on the off-beats, typically the '+' of each beat, creating a classic disco/funk lift.",
+        "description": "Adds sizzle and an off-beat pulse to the groove, working in tandem with the closed hats to create a full high-frequency rhythm section. Used in the main high-energy sections.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 8.1,
+            "modulationIndex": 40,
+            "reverbSend": 0.3
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Deep Tom",
+        "instrument": "FMSynth",
+        "pattern": "Plays sparse, syncopated melodic fragments and fills, often accenting the end of a 2 or 4 bar phrase.",
+        "description": "A low, tonal percussion element that adds a funky, melodic quality to the drum patterns. Its appearances are sporadic but impactful, often functioning as a fill.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "oscillatorType": "sine",
+            "harmonicity": 0.5,
+            "modulationIndex": 5,
+            "reverbSend": 0.1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "C#2",
+            "",
+            "C#2"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Noise Crash",
+        "instrument": "NoiseSynth",
+        "pattern": "Single hits on the downbeat of major sections, like beat 1 of a new 4-bar phrase.",
+        "description": "A loud, explosive noise burst used as a crash cymbal to mark significant transitions and add impact to downbeats.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "reverbSend": 0.5
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "x"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Choral Pad",
+        "instrument": "PolySynth using a fat oscillator with chorus to emulate a multi-tracked choir.",
+        "pattern": "A repeating, descending 3-note melodic phrase (C-Bb-A) that plays every bar, forming the main harmonic bed.",
+        "description": "A haunting, ethereal female choir that provides the main melodic and atmospheric content. It's present throughout most of the track and is drenched in a long reverb, creating a spacious, pad-like texture.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 5,
+            "spread": 30,
+            "attack": 0.2,
+            "decay": 0.4,
+            "sustain": 0.8,
+            "release": 1.5,
+            "volume": -15,
+            "filterType": "lowpass",
+            "filterFrequency": 2500,
+            "filterQ": 2,
+            "chorus": 0.4,
+            "reverbSend": 0.7
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C5",
+            "Bb4",
+            "A4",
+            ""
+          ]
+        },
+        "stem": "vocals"
+      },
+      {
+        "name": "Main Narrator",
+        "instrument": "MonoSynth with a bandpass filter to approximate a processed male spoken voice.",
+        "pattern": "Syncopated, rhythmic spoken-word phrases that deliver the song's verses. The pattern is conversational but rhythmically precise.",
+        "description": "The lead male vocal, delivering verses with a measured, slightly robotic cadence. The voice is processed to be clear and upfront, acting as the primary narrative driver during verse sections.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -9,
+            "filterType": "bandpass",
+            "filterFrequency": 1500,
+            "filterQ": 4,
+            "drive": 0.2
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "",
+            "",
+            "C3",
+            "",
+            "C3",
+            "C3",
+            "",
+            "C3",
+            "",
+            "C3",
+            "",
+            "C3",
+            "",
+            ""
+          ]
+        },
+        "stem": "vocals"
+      },
+      {
+        "name": "Female Hook",
+        "instrument": "MonoSynth with a quick envelope and bandpass filter to mimic a catchy female vocal sample.",
+        "pattern": "A highly repetitive and rhythmic 1-bar phrase, \"Shake it up baby, break up baby\".",
+        "description": "A catchy, repetitive female vocal hook that appears during the chorus sections. It's a central, energetic element that drives the groove forward.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "pulse",
+            "attack": 0.01,
+            "decay": 0.15,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -10,
+            "filterType": "bandpass",
+            "filterFrequency": 2200,
+            "filterQ": 3,
+            "drive": 0.1
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "A4",
+            "",
+            "A4",
+            "",
+            "",
+            "A4",
+            "",
+            "A4",
+            "A4",
+            "",
+            "A4",
+            "",
+            "",
+            "A4",
+            "",
+            "A4"
+          ]
+        },
+        "stem": "vocals"
+      },
+      {
+        "name": "Scream Stab",
+        "instrument": "A heavily distorted and filtered MonoSynth to create a harsh, scream-like effect.",
+        "pattern": "A short, impactful stab, often hitting on the first beat of a phrase.",
+        "description": "A distorted male scream of \"No!\" used as a powerful, percussive accent. It functions like a dramatic synth stab or a crash cymbal, adding aggression and punctuation.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.005,
+            "decay": 0.4,
+            "sustain": 0.1,
+            "release": 0.2,
+            "volume": -6,
+            "filterType": "peaking",
+            "filterFrequency": 3000,
+            "filterQ": 5,
+            "drive": 0.9
+          }
+        },
+        "steps": {
+          "grid": "2n",
+          "notes": [
+            "C5",
+            "",
+            "C5",
+            ""
+          ]
+        },
+        "stem": "vocals"
+      },
+      {
+        "name": "DJ Scratch",
+        "instrument": "NoiseSynth with a very short envelope and resonant filter to simulate a turntable scratch.",
+        "pattern": "Fast, rhythmic 16th-note patterns that emulate a DJ scratching a vocal sample.",
+        "description": "A classic DJ scratch sound used as a textural and rhythmic element. It appears in short bursts, adding a hip-hop flavor and filling in rhythmic gaps.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.05,
+            "sustain": 0,
+            "release": 0.02,
+            "volume": -18,
+            "filterType": "bandpass",
+            "filterFrequency": 1200,
+            "filterQ": 10
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "x",
+            "x",
+            "",
+            "",
+            "x",
+            "x",
+            "",
+            "x",
+            "",
+            "x",
+            "x",
+            "",
+            "",
+            "x",
+            ""
+          ]
+        },
+        "stem": "vocals"
+      },
+      {
+        "name": "Hype Man",
+        "instrument": "MonoSynth to represent various one-shot spoken samples.",
+        "pattern": "Sporadic, short phrases used as call-outs and transitions.",
+        "description": "Various male vocal samples that interject throughout the track, such as \"Listen to the sounds\" or \"Where did she come from?\". They function as hype-man shouts, building energy and adding variety.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "square",
+            "attack": 0.01,
+            "decay": 0.3,
+            "sustain": 0,
+            "release": 0.2,
+            "volume": -11,
+            "filterType": "lowpass",
+            "filterFrequency": 4000,
+            "filterQ": 1
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "G3",
+            "",
+            "G3",
+            "G3",
+            "G3",
+            "",
+            "G3",
+            ""
+          ]
+        },
+        "stem": "vocals"
+      },
+      {
+        "name": "Arp Lead",
+        "instrument": "PolySynth",
+        "pattern": "Continuous, fast 16th-note arpeggios outlining chords in E minor. The pattern evolves, creating a sense of constant movement.",
+        "description": "The main rhythmic and melodic engine of the track, present almost throughout. It establishes the fast-paced, digital, and tense atmosphere with its bright, plucky sound.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "square",
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0.1,
+            "release": 0.3,
+            "volume": -15,
+            "filterType": "lowpass",
+            "filterFrequency": 3500,
+            "filterQ": 1.2
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "E5",
+            "B4",
+            "G4",
+            "E4",
+            "D4",
+            "G4",
+            "B4",
+            "D5",
+            "E5",
+            "B4",
+            "G4",
+            "E4",
+            "D4",
+            "G4",
+            "B4",
+            "D5"
+          ]
+        },
+        "stem": "other"
+      },
+      {
+        "name": "Screaming Lead",
+        "instrument": "MonoSynth",
+        "pattern": "Long, wailing notes with significant portamento (glide) and filter modulation, creating a vocal-like, screaming effect.",
+        "description": "An aggressive, distorted lead that enters around 10 seconds to add intensity. Its prominent filter sweeps and sustained notes serve as a melodic focal point over the busy arpeggio.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 4,
+            "spread": 30,
+            "attack": 0.2,
+            "decay": 0.4,
+            "sustain": 0.8,
+            "release": 1.5,
+            "volume": -8,
+            "drive": 0.7,
+            "chorus": 0.3,
+            "reverbSend": 0.5
+          }
+        },
+        "steps": {
+          "grid": "2n",
+          "notes": [
+            "B5",
+            "A5"
+          ]
+        },
+        "stem": "other"
+      },
+      {
+        "name": "Pad Drone",
+        "instrument": "FMSynth",
+        "pattern": "A long, sustained, dissonant chord that evolves slowly in timbre, providing a harmonic bed.",
+        "description": "A background textural layer that appears in sections (e.g., at 86s) to fill out the harmony. Its metallic, distorted quality adds to the track's uneasy and industrial atmosphere.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 1.5,
+            "modulationIndex": 8,
+            "filterType": "lowpass",
+            "filterFrequency": 1800,
+            "filterQ": 2,
+            "drive": 0.4,
+            "reverbSend": 0.6
+          }
+        },
+        "steps": {
+          "grid": "1n",
+          "notes": [
+            "E4+G4+B4+D5"
+          ]
+        },
+        "stem": "other"
+      },
+      {
+        "name": "Noise Clicks",
+        "instrument": "NoiseSynth",
+        "pattern": "A sparse and syncopated pattern of short, sharp noise hits.",
+        "description": "A subtle percussive layer, most noticeable in the intro and outro, that adds a glitchy, digital texture and enhances the chaotic feel of the arrangement.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.05,
+            "sustain": 0,
+            "release": 0.05,
+            "volume": -22
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "x",
+            ""
+          ]
+        },
+        "stem": "other"
+      },
+      {
+        "name": "Growler Bass",
+        "instrument": "MonoSynth",
+        "pattern": "A repeating, syncopated 1-bar phrase based on a 16th-note grid. The pattern uses notes from the E minor scale, primarily E, G, and A, creating the main riff.",
+        "description": "The central driving element of the track, entering at 0:27 and continuing almost non-stop. This aggressive, distorted bass line provides the core rhythmic and harmonic foundation.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 5,
+            "spread": 30,
+            "attack": 0.02,
+            "decay": 0.2,
+            "sustain": 0.3,
+            "release": 0.4,
+            "volume": -6,
+            "filterType": "lowpass",
+            "filterFrequency": 500,
+            "filterQ": 4,
+            "drive": 0.7
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "E2",
+            "",
+            "",
+            "E2",
+            "",
+            "E2",
+            "G2",
+            "",
+            "E2",
+            "",
+            "",
+            "A2",
+            "",
+            "G2",
+            "E2",
+            ""
+          ]
+        },
+        "stem": "bass"
+      },
+      {
+        "name": "Sub Kick / Noise",
+        "instrument": "MembraneSynth",
+        "pattern": "A simple, pulsing quarter-note pattern that provides a foundational beat.",
+        "description": "A deep, noisy, percussive element that appears in the intro (0:00-0:27) and other sparse sections. It acts as a distorted kick drum, establishing the pulse before the main bass riff begins.",
+        "synth": {
+          "type": "MembraneSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.4,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -9,
+            "harmonicity": 1.5,
+            "drive": 0.4,
+            "reverbSend": 0.1
+          }
+        },
+        "steps": {
+          "grid": "4n",
+          "notes": [
+            "C1",
+            "C1",
+            "C1",
+            "C1"
+          ]
+        },
+        "stem": "bass"
+      }
+    ]
+  }
+}
