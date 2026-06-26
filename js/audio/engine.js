@@ -66,7 +66,7 @@ export function createAudioEngine() {
     // Snare = noise crack + a tonal BODY thump for punch. Pure noise reads as a wash; the
     // MembraneSynth body (a short pitched transient ~D3) supplies the impact. Tweak by ear:
     // snareBody volume = body↔crack balance; its note = body pitch; noise decay = snappiness.
-    const snare = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.28, sustain: 0.03 } });
+    const snare = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.45, sustain: 0.18 } });
     const snareBody = new Tone.MembraneSynth({ pitchDecay: 0.028, octaves: 2, envelope: { attack: 0.001, decay: 0.23, sustain: 0.03 } });
     const hat = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.03, sustain: 0 } });
     snare.volume.value = -9; snareBody.volume.value = -9; hat.volume.value = -20;
