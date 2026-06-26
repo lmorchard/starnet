@@ -102,3 +102,48 @@ def test_build_stem_prompt_frames_isolation():
     assert "drums" in p
     assert "isolated" in p.lower() or "only" in p.lower()
     assert "synth" in p.lower() and "steps" in p.lower()
+
+
+def test_prompt_has_budget_and_consolidation_rule():
+    p = build_prompt(META, MIR).lower()
+    # whole-song budget: lean arrangement with both pools sized
+    assert "budget" in p and "lean" in p
+    assert "melodic" in p and "percussion" in p
+    # consolidation rule drives merging of near-duplicates
+    assert "consolidate" in p and "merge" in p
+
+
+def test_prompt_softens_exhaustive_enumeration():
+    # the old "enumerate every distinct track" framing drove the over-split; it's gone,
+    # replaced by deliberate/lean language.
+    p = build_prompt(META, MIR).lower()
+    assert "enumerate every distinct" not in p
+    assert "lean" in p and "deliberate" in p
+
+
+def test_build_stem_prompt_budgets_per_stem():
+    from audio_reference.prompt import build_stem_prompt
+    drums = build_stem_prompt(META, MIR, "drums").lower()
+    assert "kit" in drums and "5-8" in drums
+    bass = build_stem_prompt(META, MIR, "bass").lower()
+    assert "bass stem" in bass and "1-2" in bass
+    vocals = build_stem_prompt(META, MIR, "vocals").lower()
+    assert "vocals stem" in vocals and "1-2" in vocals
+    # consolidation rule is inherited by every stem prompt
+    assert "consolidate" in bass
+
+
+def test_build_stem_prompt_unknown_stem_uses_generic_budget():
+    from audio_reference.prompt import build_stem_prompt
+    p = build_stem_prompt(META, MIR, "piano").lower()
+    assert "isolated stem" in p and "1-3 parts" in p
+    assert "consolidate" in p
+
+
+def test_build_stem_prompt_does_not_leak_whole_song_budget():
+    # the whole-song "2-6 melodic + 5-8 perc" budget must NOT appear in a single-stem prompt,
+    # or it would contradict the per-stem budget.
+    from audio_reference.prompt import build_stem_prompt, WHOLE_SONG_BUDGET
+    bass = build_stem_prompt(META, MIR, "bass")
+    assert WHOLE_SONG_BUDGET not in bass
+    assert "drum kit of about 5-8" not in bass.lower()
