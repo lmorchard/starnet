@@ -71,6 +71,7 @@ export const CORPORATE_HAZE = Object.freeze({
   biome: "corporate",
   name: "Corporate — Haze",
   root: "G", mode: "ionian",  // drone harmonic wander (#239)
+  bars: 4,
   bpm: 84,
   masterFilter: { cutoffLo: 500, cutoffHi: 8000, qLo: 0.7, qHi: 3.0 },
   layers: [

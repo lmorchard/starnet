@@ -6,6 +6,7 @@ export const HUB_AMBIENT = Object.freeze({
   biome: "hub",
   name: "Hub Ambient",
   root: "A", mode: "aeolian",  // drone + pad harmonic wander (#239)
+  bars: 4,
   bpm: 70,
   masterFilter: { cutoffLo: 2200, cutoffHi: 7000, qLo: 0.7, qHi: 1.5 },
   layers: [

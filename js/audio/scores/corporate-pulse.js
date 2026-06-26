@@ -69,7 +69,8 @@ export const CORPORATE_PULSE = Object.freeze({
   biome: "corporate",
   name: "Corporate — Pulse",
   root: "A", mode: "ionian",  // drone harmonic wander (#239)
-  bpm: 120,
+  bars: 4,
+  bpm: 160,
   masterFilter: { cutoffLo: 700, cutoffHi: 9500, qLo: 0.7, qHi: 4.0 },
   layers: [
     // base

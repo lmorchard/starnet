@@ -60,6 +60,7 @@ export const CORPORATE_VAST = Object.freeze({
   biome: "corporate",
   name: "Corporate — Vast",
   root: "A", mode: "aeolian",  // drone harmonic wander (#239)
+  bars: 4,
   bpm: 72,
   masterFilter: { cutoffLo: 500, cutoffHi: 9000, qLo: 0.7, qHi: 3.5 },
   layers: [

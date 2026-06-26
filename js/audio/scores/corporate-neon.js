@@ -67,7 +67,8 @@ export const CORPORATE_NEON = Object.freeze({
   biome: "corporate",
   name: "Corporate — Neon",
   root: "F#", mode: "aeolian",  // drone harmonic wander (#239)
-  bpm: 128,
+  bars: 4,
+  bpm: 148,
   masterFilter: { cutoffLo: 700, cutoffHi: 9000, qLo: 0.7, qHi: 4.5 },
   layers: [
     // base

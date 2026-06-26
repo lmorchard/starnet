@@ -68,7 +68,8 @@ export const CORPORATE_INDUSTRIAL = Object.freeze({
   biome: "corporate",
   name: "Corporate — Industrial",
   root: "E", mode: "phrygian",  // drone harmonic wander (#239)
-  bpm: 100,
+  bars: 4,
+  bpm: 140,
   masterFilter: { cutoffLo: 450, cutoffHi: 6500, qLo: 0.8, qHi: 4.0 },
   layers: [
     // base

@@ -65,6 +65,7 @@ export const CORPORATE_SCORE = Object.freeze({
   biome: "corporate",
   name: "Corporate — Dread",
   root: "A", mode: "aeolian",  // drone harmonic wander (#239)
+  bars: 4,
   bpm: 120,
   masterFilter: { cutoffLo: 600, cutoffHi: 8600, qLo: 0.7, qHi: 4.7 },
   layers: [

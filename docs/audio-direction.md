@@ -1,6 +1,6 @@
 # Starnet — Audio Direction
 
-> **Status: v1 shipped — wired into the game.** Reactive two-axis music with 8 selectable
+> **Status: v1 shipped — wired into the game.** Reactive two-axis music with 11 selectable
 > Corporate scores + section-breakdown automation, driven by live game state. Tuning harness
 > at `preview/audio.html`. Deferred / fast-follow items are tracked at the bottom.
 
@@ -71,6 +71,27 @@ The two axes fade layers in/out. Variety comes from **seeded selection among aut
 variants** (using the game's existing `js/rng.js` named streams), not full generativity — keeps
 runs deterministic and the vibe intentional. A *hybrid* pass (light generative fills/variation
 on top) is a possible later enhancement, not v1.
+
+#### Flexible rhythm grids + step modifiers
+
+The pattern format supports per-layer grids and per-step expressiveness (pure logic in
+`js/audio/rhythm.js`, applied by the engine's `playStep`):
+
+- **`bars` × `stepsPerBar`** — a score declares `bars` (nominal loop length); each layer's `grid`
+  (`8n`/`16n`/`32n`/`8t`/…) derives `stepsPerBar`. A pattern's length must be a **whole number of
+  bars** (a multiple of `stepsPerBar`) — no hardcoded magic. Any grid per layer — a `32n` arp or an
+  `8t` triplet line beside a straight `8n` groove (3-against-4 cross-rhythm). A layer may also run a
+  **longer loop** than the score's `bars` (e.g. an 8-bar drum phrase over a 4-bar groove); each
+  `Tone.Sequence` loops independently, so the longer phrase cycles against the rest (a constrained,
+  whole-bar polymeter). Sections/wander are bar-quantized and unaffected.
+- **Step modifiers** — a step may be `{ note, ratchet?, prob?, vel? }`: `ratchet: N` = N fast
+  evenly-spaced sub-hits in the cell (rolls/stutter/fills/chiptune buzz); `prob: 0–1` = fires that
+  fraction of loops (glitch non-repeat, seeded `:rhythm` stream, re-rolled every loop, never
+  gameplay RNG); `vel` = velocity (ghost notes/accents). Plain steps (note/chord/token/`null`)
+  collapse to a single full-velocity hit — fully backward-compatible.
+- **Out of scope:** free polymeter (loops must be whole bars — see above for the constrained
+  whole-bar version that IS supported), sample/slice playback (synthesis-only holds), swing,
+  Euclidean/generative fills.
 
 ### Texture: triggered vocal/sample one-shots
 
@@ -194,8 +215,9 @@ cover probe/xploit/dump/fetch/mine — natural hooks for fire-and-forget SFX. `E
 
 ### Scope
 
-- **Shipped:** music only — a two-axis layered engine wired to live game state; **8 selectable
-  Corporate scores** (Dread / Cold / Noir / Vast / Neon / Industrial / Pulse / Haze) chosen per
+- **Shipped:** music only — a two-axis layered engine wired to live game state; **11 selectable
+  Corporate scores** (Dread / Cold / Noir / Vast / Neon / Industrial / Pulse / Haze / Glitch /
+  Chip / Cipher — the last three showcase the flexible rhythm grids + step modifiers) chosen per
   run by an independent seeded RNG; **section-breakdown automation** (seeded-random, no-repeat,
   bar-quantized, subtractive over progress layers); a biome-independent **hub ambient** track
   (all sustained pads) with **faded transitions** (hub ↔ run, fade-out on jack-out); a **Music

@@ -61,6 +61,7 @@ export const CORPORATE_NOIR = Object.freeze({
   biome: "corporate",
   name: "Corporate — Noir",
   root: "D", mode: "dorian",  // drone harmonic wander (#239)
+  bars: 4,
   bpm: 84,
   masterFilter: { cutoffLo: 500, cutoffHi: 7000, qLo: 0.7, qHi: 3.5 },
   layers: [
