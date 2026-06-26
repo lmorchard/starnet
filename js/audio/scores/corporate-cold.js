@@ -25,10 +25,14 @@ const doublePerc = [
 
 // Insistent C pedal (eighth notes mostly); cold move to Ab/Bb in bar 4.
 const bass = [
-  "C2", K, "C2", K, "C2", K, "C2", K,
-  "C2", K, "C2", K, "C2", K, "C2", K,
-  "C2", K, "C2", K, "C2", K, "C2", K,
-  "Ab1", K, "Ab1", K, "Bb1", K, "C2", K,
+//  "C2", K, "C2", K, "C2", K, "C2", K,
+//  "C2", K, "C2", K, "C2", K, "C2", K,
+//  "C2", K, "C2", K, "C2", K, "C2", K,
+//  "Ab1", K, "Ab1", K, "Bb1", K, "C2", K,
+  "C2", K, "C2", "C2", K, "C2", "C2", K,
+  "C2", K, "C2", "C2", K, "C2", "C2", K,
+  "C2", K, "C2", "Eb2", K, "C2", "Bb1", K,
+  "Ab1", K, "Ab1", "Bb1", K, "Bb1", "C2", K,
 ];
 
 // Detached, repetitive two-/three-note square motif in C minor (C Eb G Bb).
@@ -68,6 +72,7 @@ export const CORPORATE_COLD = Object.freeze({
   biome: "corporate",
   name: "Corporate — Cold",
   root: "C", mode: "aeolian",  // drone harmonic wander (#239)
+  bars: 4,
   bpm: 138,
   masterFilter: { cutoffLo: 600, cutoffHi: 8600, qLo: 0.7, qHi: 4.0 },
   layers: [

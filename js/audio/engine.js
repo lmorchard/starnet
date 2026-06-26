@@ -4,6 +4,7 @@ import * as Tone from "tone";
 import { computeMix } from "./mixer.js";
 import { makeSeededRng, getSeed } from "../core/rng.js";
 import { transposeDiatonic, consonantSteps, pickNextStep } from "./harmony.js";
+import { normalizeStep, ratchetOffsets, shouldFire } from "./rhythm.js";
 
 const GRID = "8n";          // default step grid
 const RAMP_UP = 0.3;        // threat fast attack (s)
@@ -31,6 +32,7 @@ export function createAudioEngine() {
   // Drone harmonic wander — periodically planes the sustained "wander" layers (drone, +hub pad)
   // to another diatonic degree so the harmonic bed evolves over a run instead of holding one
   // chord. Seeded per run (independent of gameplay RNG), bar-quantized, no immediate repeat.
+  let rhythmRng = null;     // seeded :rhythm stream for per-step prob (never gameplay RNG)
   let droneRng = null;
   let droneTimerId = null;
   let droneStep = 0;            // current diatonic-step offset in effect
@@ -61,10 +63,30 @@ export function createAudioEngine() {
 
   function drumVoices() {
     const kick = new Tone.MembraneSynth({ octaves: 6, envelope: { attack: 0.001, decay: 0.25, sustain: 0 } });
-    const snare = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 } });
+    // Snare = noise crack + a tonal BODY thump for punch. Pure noise reads as a wash; the
+    // MembraneSynth body (a short pitched transient ~D3) supplies the impact. Tweak by ear:
+    // snareBody volume = body↔crack balance; its note = body pitch; noise decay = snappiness.
+    const snare = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.28, sustain: 0.03 } });
+    const snareBody = new Tone.MembraneSynth({ pitchDecay: 0.028, octaves: 2, envelope: { attack: 0.001, decay: 0.23, sustain: 0.03 } });
     const hat = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.03, sustain: 0 } });
-    snare.volume.value = -8; hat.volume.value = -20;
-    return { kick, snare, hat };
+    snare.volume.value = -9; snareBody.volume.value = -9; hat.volume.value = -20;
+    return { kick, snare, snareBody, hat };
+  }
+
+  // Render one sequenced step through the rhythm model: prob gate (seeded), then ratchet into N
+  // evenly-spaced sub-hits in the cell. `trigger(value, time, vel, dur)` does the actual Tone call
+  // for the layer's voice. Plain steps (ratchet 1, prob 1, no vel) collapse to a single hit.
+  function playStep(trigger, step, time, grid) {
+    const n = normalizeStep(step);
+    if (!n) return;                                   // rest
+    if (!shouldFire(n.prob, rhythmRng)) return;       // glitch: skip this loop
+    if (n.ratchet === 1) {                            // common case: skip the per-tick seconds math
+      trigger(n.value, time, n.vel, grid);            // dur = the full cell (grid notation string)
+      return;
+    }
+    const cell = Tone.Time(grid).toSeconds();
+    const dur = cell / n.ratchet;                     // sub-cell length so ratchets don't smear
+    for (const off of ratchetOffsets(cell, n.ratchet)) trigger(n.value, time + off, n.vel, dur);
   }
 
   function buildLayer(spec) {
@@ -97,12 +119,14 @@ export function createAudioEngine() {
       const voices = drumVoices();
       const trim = spec.synth.volume ?? 0;
       Object.values(voices).forEach((v) => { v.connect(gain); if (trim) v.volume.value += trim; });
-      const seq = new Tone.Sequence((time, tok) => {
-        if (!tok) return;
-        if (tok === "snare") voices.snare.triggerAttackRelease("16n", time);
-        else if (tok === "hat") voices.hat.triggerAttackRelease("32n", time);
-        else voices.kick.triggerAttackRelease("C1", "8n", time);
-      }, spec.pattern, grid);
+      // velocity threads through; drum voices keep their own short hold times (dur ignored).
+      const hit = (tok, t, vel) => {
+        const v = vel == null ? undefined : vel;
+        if (tok === "snare") { voices.snare.triggerAttackRelease("16n", t, v); voices.snareBody.triggerAttackRelease("D3", "16n", t, v); }
+        else if (tok === "hat") voices.hat.triggerAttackRelease("32n", t, v);
+        else voices.kick.triggerAttackRelease("C1", "8n", t, v);
+      };
+      const seq = new Tone.Sequence((time, step) => playStep(hit, step, time, grid), spec.pattern, grid);
       seq.start(0);
       layers[spec.key] = { gain, voices, seq };
       return;
@@ -114,9 +138,8 @@ export function createAudioEngine() {
         envelope: { attack: spec.synth.attack, decay: spec.synth.decay, sustain: spec.synth.sustain, release: spec.synth.release },
       }).connect(gain);
       if (spec.synth.volume != null) s.volume.value = spec.synth.volume;
-      const seq = new Tone.Sequence((time, note) => {
-        if (note) s.triggerAttackRelease(note, grid, time);
-      }, spec.pattern, grid);
+      const hit = (note, t, vel, dur) => s.triggerAttackRelease(note, dur, t, vel == null ? undefined : vel);
+      const seq = new Tone.Sequence((time, step) => playStep(hit, step, time, grid), spec.pattern, grid);
       seq.start(0);
       layers[spec.key] = { gain, voice: s, seq };
       return;
@@ -129,9 +152,8 @@ export function createAudioEngine() {
       envelope: { attack: spec.synth.attack, decay: spec.synth.decay, sustain: spec.synth.sustain, release: spec.synth.release },
     }).connect(gain);
     if (spec.synth.volume != null) s.volume.value = spec.synth.volume;
-    const seq = new Tone.Sequence((time, note) => {
-      if (note) s.triggerAttackRelease(note, grid, time);
-    }, spec.pattern, grid);
+    const hit = (note, t, vel, dur) => s.triggerAttackRelease(note, dur, t, vel == null ? undefined : vel);
+    const seq = new Tone.Sequence((time, step) => playStep(hit, step, time, grid), spec.pattern, grid);
     seq.start(0);
     layers[spec.key] = { gain, voice: s, seq };
   }
@@ -256,6 +278,7 @@ export function createAudioEngine() {
     sectionActive = null; sectionIdx = 0; sectionRng = null; maskable = new Set();
     if (droneTimerId != null) { Tone.Transport.clear(droneTimerId); droneTimerId = null; }
     droneRng = null; droneStep = 0; droneSteps = null;
+    rhythmRng = null;
     for (const rec of retiring) { clearTimeout(rec.id); try { rec.synth.dispose(); } catch { /* already gone */ } }
     retiring.clear();
     for (const key of Object.keys(layers)) {
@@ -301,6 +324,8 @@ export function createAudioEngine() {
       buildMasterBus();
       if (fadeInSec > 0) { master.gain.value = 0; master.gain.rampTo(0.9, fadeInSec); }
       Tone.Transport.bpm.value = score?.bpm ?? 100;
+      // seeded stream for per-step `prob` (glitch); deterministic per run, never gameplay RNG.
+      rhythmRng = makeSeededRng((getSeed() || "audio") + ":rhythm");
       for (const spec of score.layers) buildLayer(spec);
       // kick off sustained layers
       for (const layer of Object.values(layers)) {

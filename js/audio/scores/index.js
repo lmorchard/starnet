@@ -11,12 +11,16 @@ import { CORPORATE_NEON } from "./corporate-neon.js";
 import { CORPORATE_INDUSTRIAL } from "./corporate-industrial.js";
 import { CORPORATE_PULSE } from "./corporate-pulse.js";
 import { CORPORATE_HAZE } from "./corporate-haze.js";
+import { CORPORATE_GLITCH } from "./corporate-glitch.js";
+import { CORPORATE_CHIP } from "./corporate-chip.js";
+import { CORPORATE_CIPHER } from "./corporate-cipher.js";
 
 /** Scores available per biome (index 0 is the default fallback). */
 const BIOME_SCORES = {
   corporate: [
     CORPORATE_SCORE, CORPORATE_COLD, CORPORATE_NOIR, CORPORATE_VAST,
     CORPORATE_NEON, CORPORATE_INDUSTRIAL, CORPORATE_PULSE, CORPORATE_HAZE,
+    CORPORATE_GLITCH, CORPORATE_CHIP, CORPORATE_CIPHER,
   ],
 };
 

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { ALL_SCORES } from "../js/audio/scores/index.js";
 import { LAYER_KEYS } from "../js/audio/scores/corporate.js";
 import { computeMix } from "../js/audio/mixer.js";
+import { stepsPerBar, normalizeStep } from "../js/audio/rhythm.js";
 
 // Structural validation across EVERY score — the safety net for authored data
 // (note-name typos, wrong pattern lengths, bad perc tokens) that can't be heard.
@@ -11,8 +12,16 @@ const NOTE_RE = /^[A-G][#b]?\d$/;
 const PERC = new Set(["C1", "hat", "snare"]);
 const validNote = (n) => typeof n === "string" && NOTE_RE.test(n);
 
-test("there are 8 selectable scores", () => {
-  assert.equal(ALL_SCORES.length, 8);
+// Flatten a pattern to its underlying note/token strings — normalizing object steps
+// ({note,ratchet,prob,vel}) and chords, skipping rests — so validation works on any step form.
+const stepValues = (pattern) => pattern.flatMap((step) => {
+  const n = normalizeStep(step);
+  if (!n) return [];
+  return Array.isArray(n.value) ? n.value : [n.value];
+});
+
+test("there are 11 selectable scores", () => {
+  assert.equal(ALL_SCORES.length, 11);
 });
 
 test("every score has a unique display name", () => {
@@ -28,8 +37,9 @@ for (const score of ALL_SCORES) {
     assert.deepEqual(score.layers.map((l) => l.key).sort(), [...LAYER_KEYS].sort());
   });
 
-  test(`[${label}] has a positive bpm and a complete masterFilter`, () => {
+  test(`[${label}] has a positive bpm, integer bars, and a complete masterFilter`, () => {
     assert.ok(typeof score.bpm === "number" && score.bpm > 0, "bpm");
+    assert.ok(Number.isInteger(score.bars) && score.bars > 0, "bars is a positive integer");
     for (const k of ["cutoffLo", "cutoffHi", "qLo", "qHi"]) {
       assert.ok(typeof score.masterFilter[k] === "number", `masterFilter.${k}`);
     }
@@ -42,26 +52,22 @@ for (const score of ALL_SCORES) {
       assert.ok(l.synth, `${l.key} synth`);
       assert.ok(Array.isArray(l.pattern) || Array.isArray(l.sustain), `${l.key} source`);
     }
-    // grid lengths
-    for (const k of ["basePerc", "doublePerc", "bass", "lead", "backup"]) {
-      assert.equal(byKey[k].pattern.length, 32, `${k} length`);
+    // each pattern must be a whole number of bars (length is a positive multiple of
+    // stepsPerBar(grid)). Layers may run LONGER loops than the score's nominal `bars` — e.g. an
+    // 8-bar drum phrase over a 4-bar groove — looping independently (a constrained polymeter).
+    for (const l of score.layers) {
+      if (!Array.isArray(l.pattern)) continue;
+      const per = stepsPerBar(l.grid || "8n");
+      assert.ok(l.pattern.length > 0 && l.pattern.length % per === 0,
+        `${l.key} length ${l.pattern.length} must be a whole number of bars (multiple of ${per})`);
     }
-    for (const k of ["progArp", "urgencyArp"]) {
-      assert.equal(byKey[k].pattern.length, 64, `${k} length`);
-    }
-    // perc tokens
+    // perc tokens (normalized — object steps and ratchet/prob/vel allowed)
     for (const k of ["basePerc", "doublePerc"]) {
-      for (const t of byKey[k].pattern) assert.ok(t === null || PERC.has(t), `${k} bad token: ${t}`);
+      for (const v of stepValues(byKey[k].pattern)) assert.ok(PERC.has(v), `${k} bad token: ${v}`);
     }
-    // pitched single-note patterns
-    for (const k of ["bass", "lead", "progArp", "urgencyArp"]) {
-      for (const n of byKey[k].pattern) assert.ok(n === null || validNote(n), `${k} bad note: ${n}`);
-    }
-    // backup: notes or chord arrays
-    for (const c of byKey.backup.pattern) {
-      if (c === null) continue;
-      if (Array.isArray(c)) c.forEach((n) => assert.ok(validNote(n), `backup chord note: ${n}`));
-      else assert.ok(validNote(c), `backup note: ${c}`);
+    // pitched + chord layers resolve to valid note names
+    for (const k of ["bass", "lead", "backup", "progArp", "urgencyArp"]) {
+      for (const v of stepValues(byKey[k].pattern)) assert.ok(validNote(v), `${k} bad note: ${v}`);
     }
     // sustained layers
     for (const k of ["drone", "tensionDrone"]) {
