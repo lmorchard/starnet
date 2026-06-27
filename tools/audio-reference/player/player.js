@@ -16,9 +16,10 @@ const OSC_TYPES = ["", "sawtooth", "square", "fatsawtooth", "fatsquare", "triang
 const FILTER_TYPES = ["", "lowpass", "highpass", "bandpass", "notch"];
 const NUM_FIELDS = ["attack", "decay", "sustain", "release", "filterFrequency", "filterQ",
                     "drive", "chorus", "reverbSend", "volume", "harmonicity", "modulationIndex",
-                    "count", "spread"];
+                    "count", "spread", "octaves", "pitchDecay", "pan",
+                    "modAttack", "modDecay", "modSustain"];
 const SHORT = { filterFrequency: "freq", filterQ: "Q", reverbSend: "rev", modulationIndex: "mod",
-                oscillatorType: "osc", filterType: "filt" };
+                oscillatorType: "osc", filterType: "filt", pitchDecay: "pdec", octaves: "oct" };
 
 const $ = (id) => document.getElementById(id);
 const warnings = [];
@@ -75,6 +76,18 @@ function expandOptions(o = {}) {
   if (o.filterFrequency != null) out.filterEnvelope = { baseFrequency: o.filterFrequency };
   if (o.harmonicity != null) out.harmonicity = o.harmonicity;
   if (o.modulationIndex != null) out.modulationIndex = o.modulationIndex;
+  // MembraneSynth pitch-sweep shape: octaves = how far the pitch chirps down on each hit (low =
+  // straight thump, less "thwip"); pitchDecay = how fast that sweep happens.
+  if (o.octaves != null) out.octaves = o.octaves;
+  if (o.pitchDecay != null) out.pitchDecay = o.pitchDecay;
+  // FM modulation envelope (shapes the brightness/tine over time). Tone's default has a slow
+  // attack, so the FM "swells in" -> a reverse-y "mwoop"; a fast modAttack strikes bright = "dunng".
+  if (o.modAttack != null || o.modDecay != null || o.modSustain != null) {
+    out.modulationEnvelope = {};
+    if (o.modAttack != null) out.modulationEnvelope.attack = o.modAttack;
+    if (o.modDecay != null) out.modulationEnvelope.decay = o.modDecay;
+    if (o.modSustain != null) out.modulationEnvelope.sustain = o.modSustain;
+  }
   if (o.volume != null) out.volume = o.volume;
   return out;
 }
@@ -198,6 +211,7 @@ function buildInstrument(row) {
   const inserts = [];
   if (o.drive > 0) inserts.push(new Tone.Distortion(Math.min(1, o.drive)));
   if (o.chorus > 0) inserts.push(new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: Math.min(1, o.chorus) }).start());
+  if (o.pan != null) inserts.push(new Tone.Panner(Math.max(-1, Math.min(1, o.pan))));   // static L/R position (-1..1)
   const chain = [...inserts, row.gain];
   for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
   const synth = makeSynth(row.renderType, o);
