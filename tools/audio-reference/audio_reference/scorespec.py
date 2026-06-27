@@ -41,14 +41,19 @@ def build_sidecar(meta: dict, mir: dict, interp: dict) -> dict:
     }
 
 
-def assemble_stems(meta: dict, mir_global: dict, stem_results: list) -> dict:
+def assemble_stems(meta: dict, mir_global: dict, stem_results: list, overview: dict = None) -> dict:
     """Merge per-stem analyses into one sidecar. root/mode/bpm come from the full-mix MIR;
-    every per-stem track is tagged with its stem. stem_results: [{stem, mir, interpretation}]."""
+    every per-stem track is tagged with its stem. stem_results: [{stem, mir, interpretation}].
+
+    `overview` (optional) is a whole-song interpretation from analyzing the full mix — a
+    holistic read (summary + 7-dimension vocabulary + score_draft) that the per-stem passes,
+    each blind to the others, can't provide. Stored under top-level `overview`; the playable
+    `score_spec` tracks still come from the (better-isolated) stems, not the overview."""
     tracks = []
     for sr in stem_results:
         for t in sr.get("interpretation", {}).get("tracks", []):
             tracks.append({**t, "stem": sr["stem"]})
-    return {
+    sidecar = {
         "meta": meta,
         "mir": mir_global,
         "stems": stem_results,
@@ -59,6 +64,9 @@ def assemble_stems(meta: dict, mir_global: dict, stem_results: list) -> dict:
             "tracks": tracks,
         },
     }
+    if overview is not None:
+        sidecar["overview"] = overview
+    return sidecar
 
 
 def sanitize_numbers(obj):

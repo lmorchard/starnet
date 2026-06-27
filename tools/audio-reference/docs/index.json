@@ -6,7 +6,7 @@
     "root": "A",
     "mode": "major",
     "bpm": 120.18531976744185,
-    "tracks": 15
+    "tracks": 11
   },
   {
     "slug": "black-lung-the-unreality-industry",
@@ -15,7 +15,7 @@
     "root": "C#",
     "mode": "minor",
     "bpm": 161.4990234375,
-    "tracks": 15
+    "tracks": 11
   },
   {
     "slug": "ghost-cop-problems",
@@ -24,7 +24,7 @@
     "root": "A",
     "mode": "minor",
     "bpm": 126.04801829268293,
-    "tracks": 13
+    "tracks": 11
   },
   {
     "slug": "kite-step-forward",
@@ -33,7 +33,7 @@
     "root": "E",
     "mode": "minor",
     "bpm": 135.99917763157896,
-    "tracks": 17
+    "tracks": 10
   },
   {
     "slug": "kontravoid-native-state",
@@ -42,7 +42,7 @@
     "root": "A",
     "mode": "minor",
     "bpm": 120.18531976744185,
-    "tracks": 13
+    "tracks": 10
   },
   {
     "slug": "parallels-dry-blood",
@@ -51,7 +51,7 @@
     "root": "A",
     "mode": "minor",
     "bpm": 120.18531976744185,
-    "tracks": 12
+    "tracks": 10
   },
   {
     "slug": "the-gruesome-twosome-hallucination-generation",
@@ -60,7 +60,7 @@
     "root": "C#",
     "mode": "minor",
     "bpm": 114.84375,
-    "tracks": 18
+    "tracks": 11
   },
   {
     "slug": "the-knife-heartbeats",
@@ -69,7 +69,7 @@
     "root": "C",
     "mode": "minor",
     "bpm": 87.5926906779661,
-    "tracks": 13
+    "tracks": 10
   },
   {
     "slug": "the-knife-silent-shout",
@@ -78,7 +78,7 @@
     "root": "E",
     "mode": "major",
     "bpm": 129.19921875,
-    "tracks": 10
+    "tracks": 11
   },
   {
     "slug": "trst-dressed-for-space",
@@ -87,7 +87,7 @@
     "root": "G",
     "mode": "major",
     "bpm": 132.51201923076923,
-    "tracks": 13
+    "tracks": 9
   },
   {
     "slug": "trst-icabod",
@@ -96,6 +96,6 @@
     "root": "F#",
     "mode": "minor",
     "bpm": 126.04801829268293,
-    "tracks": 15
+    "tracks": 10
   }
 ]

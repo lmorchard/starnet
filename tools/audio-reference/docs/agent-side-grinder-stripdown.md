@@ -1,5 +1,7 @@
 # Agent Side Grinder — Stripdown
 
+> A driving, darkwave track featuring a relentless 16th-note bassline, raw analog synth textures, and cavernous reverb-drenched vocals, built on a stomping four-on-the-floor drum machine groove.
+
 *Source: `Agent Side Grinder Stripdown (Official Video).mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
@@ -12,45 +14,81 @@
 - **Dynamics:** RMS mean 0.250, range 11.1 dB
 - **Timbre:** rolloff 5459 Hz, flatness 0.00, contrast 20.2, ZCR 0.051, harmonic ratio 0.84
 
+## Overview (full-mix read)
+
+| Dimension | Reading |
+|---|---|
+| Timbre | Dominated by raw, distorted analog-style synth sounds, including sawtooth bass, square wave chords, and noisy percussive elements, contrasted with a deep, baritone vocal. |
+| Brightness | Balanced but leaning dark, with a thick, murky low-mid range from the bass and chords, punctuated by the sharp, cutting quality of the lead synth arpeggios and metallic hi-hats. |
+| Envelope | A study in contrasts: the rhythm section (bass, drums) is extremely tight and percussive (short attack/decay), while vocals and lead synths are washed in long reverb, creating a vast sense of space. |
+| Register/density | Dense and layered. A constant, busy low-end from the bass, a solid mid-range foundation from chords and vocals, and an active high register occupied by the main synth riff and hi-hats. |
+| Harmony/mode | A clear F-sharp minor tonality, characterized by a dark, brooding mood. The progressions are simple and powerful, often moving between the tonic (F#m) and chords like Bm and C#m, reinforcing the track's somber feel. |
+| Groove | A rigid, motorik 120 BPM groove defined by a four-on-the-floor kick drum and a relentless 16th-note bassline, creating an insistent, danceable pulse reminiscent of EBM and post-punk. |
+| Space/grit | High grit and cavernous space. The bass and rhythm synths are heavily saturated with distortion ('drive'). This dry, gritty core is set against the immense space created by heavy, long-decay reverb on the lead synths and vocals. |
+
+> Model-guessed song-level synth direction — speculative, tune by ear.
+
+const reverb = new Tone.Reverb({ decay: 8, wet: 1 }).toDestination();
+const chorus = new Tone.Chorus(4, 2.5, 0.5).toDestination();
+const distortion = new Tone.Distortion(0.6).toDestination();
+
+// SPECULATIVE STARTER //
+
+// Driving Bass - Key is saturation and filter
+const bassSynth = new Tone.MonoSynth({
+  oscillator: { type: 'sawtooth' },
+  envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.1 },
+  filter: { type: 'lowpass', frequency: 800, Q: 2 }
+}).connect(new Tone.Distortion(0.6).toDestination());
+
+const bassPattern = new Tone.Sequence((time, note) => {
+  bassSynth.triggerAttackRelease(note, '16n', time);
+}, ['F#1', 'F#1', 'F#1', 'F#1', /*...continue for full bar...*/ ], '16n').start(0);
+
+// Arp Lead - Key is fat oscillator, chorus, and reverb
+const arpSynth = new Tone.PolySynth(Tone.Synth, {
+  oscillator: { type: 'fatsawtooth', count: 5, spread: 30 },
+  envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.8 },
+}).connect(chorus).connect(reverb.set({ wet: 0.7 }));
+
+const arpPattern = new Tone.Sequence((time, note) => {
+  if (note) arpSynth.triggerAttackRelease(note, '8n', time);
+}, ['F#5', null, 'E5', 'C#5', 'B4', null, 'C#5', 'E5'], '8n').start(0);
+
+Tone.Transport.bpm.value = 120;
+
 ## drums
 
-> A driving, energetic drum machine track in a classic post-punk/industrial style. It features a punchy kick, a sharp and noisy snare, metallic hi-hats, and synthetic toms. The arrangement builds in intensity by layering these percussive elements, driven by a consistent 4/4 groove.
+> An aggressive and heavily processed drum machine pattern, characteristic of industrial or EBM genres. It features a driving four-on-the-floor kick, a powerful gated reverb snare, and various hi-hat and percussive layers that build in complexity over the track's duration.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Machine Kick | MembraneSynth | A relentless four-on-the-floor 1/4 note pattern with occasional syncopation. | The foundational pulse of the track, providing a constant, driving beat from beginning to end. |
-| Gated Snare | NoiseSynth | A powerful backbeat on counts 2 and 4, with occasional ghost notes and fills. | The main driver of the backbeat, with a sharp noise component and a prominent gated reverb tail that defines the track's spatial character. |
-| Closed Hi-Hat | MetalSynth | Continuous 8th notes, switching to 16ths in more intense sections. | Provides the high-frequency rhythmic glue. Its consistent, machine-like pattern is a key element of the groove. |
-| Open Hi-Hat | MetalSynth | Accents on the offbeat 8th notes, creating a push-pull feel. | Adds syncopation and lift to the groove. Appears in busier sections to build energy, with a longer decay than the closed hat. |
-| Digital Clap | A custom sound layering multiple short noise bursts. | Layers with the snare on counts 2 and 4 to add texture and impact. | A sharp, synthetic clap sound that enhances the main backbeat, giving it a classic 80s electronic feel. |
-| Tom Fill | MembraneSynth | Short, descending 16th-note fills used for transitions. | Appears periodically to mark the end of phrases and add variation. The sound has a characteristic downward pitch envelope. |
-| Outro Sweep | NoiseSynth with filter and envelope automation. | A single, long event at the very end of the track. | A dramatic white noise sweep with a very long decay and reverb, creating a cinematic fade-out. |
+| Industrial Kick | MembraneSynth | A relentless and driving four-on-the-floor 1/4 note pattern. | The foundation of the track, providing a constant, powerful pulse from the very beginning. The sound is a deep, slightly boomy electronic kick with a sharp attack. |
+| Gated Snare | A NoiseSynth processed with a very short reverb or a dedicated Gated Reverb effect. | A powerful, unwavering backbeat on counts 2 and 4. | The most character-defining element. Its explosive, reverberant, yet abruptly cut-off sound gives the track its classic 80s industrial feel. It is present almost throughout. |
+| 8th Note Hi-Hat | MetalSynth | A constant, machine-like 8th note pattern. | Enters after the initial kick/snare intro, providing the main high-frequency energy and driving the rhythm forward. Its metallic and consistent nature adds to the industrial feel. |
+| Off-beat Open Hat | MetalSynth | Syncopated off-beat hits, typically on the '+' of each quarter note, creating a classic disco/EBM feel. | This track adds a 'breathing' quality and syncopation to the otherwise rigid groove. Its longer decay contrasts with the tight closed hat. |
 
 ## vocals
 
-> This track features heavily processed vocal layers, creating a dark, industrial, and deconstructive atmosphere. A central, low-pitched male spoken-word vocal delivers the main narrative. This is supported by ethereal, choir-like backing vocals that function as pads. The piece culminates in a wild, highly distorted and expressive vocal solo that mimics an aggressive lead synthesizer or saxophone.
+> A dynamic and atmospheric track featuring a lone, raspy male baritone vocal that builds with layered, choral harmonies and a wild, expressive saxophone solo, all drenched in heavy reverb.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Lead Spoken Vocal | MonoSynth | Rhythmic, spoken-word phrases in a low register, following the E minor scale. Phrases are 2-4 bars long and have a declamatory feel. | The central narrative element, present from the beginning. It's a deep, gritty male voice that sets the dark, introspective tone. Processed with saturation and a large hall reverb. |
-| Choir Pad | PolySynth | Sustained minor chords (Em, Am, Bm) held for multiple bars. Enters as a backing texture, swelling in and out. | These are layered, harmonized vocals that function as an atmospheric pad. They enter around 0:30, providing harmonic support and enhancing the track's epic, spacious quality. They are heavily processed with chorus and a long reverb. |
-| Distorted Vocal Solo | MonoSynth | A frantic, high-register melodic solo using the E minor scale with slides and fast runs. It appears in the latter half of the song, starting around the 2:35 mark. | An extremely expressive and aggressive lead line created from a heavily processed vocal take. It sounds like a hybrid of a screaming vocal, a distorted saxophone, and a lead synth. It provides the track's emotional and sonic climax. |
 
 ## other
 
-> A layered and evolving synth piece built on a driving 16th-note arpeggio. The track develops by introducing a gritty, distorted lead melody, followed by massive, slow-swelling pads that create a cathedral-like space. The climax features a high-pitched, screaming lead, adding tension over the dense harmonic washes.
+> A dense and dramatic synth-driven piece in the post-punk/goth style. It is built on three primary layers: a frantic, continuous 16th-note sawtooth lead melody; a vast, slow-moving atmospheric pad that provides a harmonic wash; and powerful, heavily overdriven chord stabs that enter to create immense, climactic walls of sound. The entire mix is saturated in a large, cavernous reverb, giving it an epic and melancholic feel.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Arp Bass | MonoSynth | Continuous 16th-note arpeggio outlining an E minor chord, creating a constant rhythmic pulse. | A dark, driving arpeggio that provides a rhythmic and harmonic undercurrent from the very beginning. It's low-passed and sits in the background of the mix. |
-| Gritty Lead | MonoSynth | A syncopated, melodic 4-bar riff that functions as the main hook. Features expressive, guitar-like phrasing. | The main melodic hook, entering at 0:16. It has a thick, distorted, post-punk guitar feel and is prominent in the chorus-like sections. It's saturated with drive and has a moderate reverb tail. |
-| Cathedral Pad | PolySynth | Extremely slow-swelling, sustained chords that follow the main progression. One chord change every 1-2 bars. | A massive, choir-like pad providing an epic, atmospheric backdrop. It enters around 1:03 and dominates later sections with huge washes of sound. Characterized by a very slow attack, long release, and heavy chorus and reverb. |
-| Screaming Lead | MonoSynth | High-pitched, sustained, and bending notes that create tension. | A tense, dissonant lead synth that appears in the climax around 2:20. Its piercing sound comes from a resonant bandpass filter, adding a layer of controlled chaos over the dense pads. |
+| Goth Lead Synth | MonoSynth | (REWORK) Sultry, melancholic, spooky-60s guitar lead (reverb-drenched) — NOT the model's frantic 16th arpeggio. Mostly E Dorian (raised 6th = C#) with chromatic/tritone spice. Two-phrase melody by ear: P1 = E | G E G G# A D | D A G; P2 = E F# G D | F# G C# (G->C# tritone) | F# G F# A G. | Re-voiced from a bright distorted saw to a reverb-drenched ringing guitar (MonoSynth, long decay/release). Melody hand-transcribed by ear (first phrase; rhythm being refined). |
+| Cathedral Pad | PolySynth | Sustained whole-note or half-note chords, typically playing minor triads or open fifths. The harmonic rhythm is very slow, with chords held for one or two bars. | Provides the atmospheric, harmonic foundation. It's present throughout most of the track, swelling and receding. It starts smooth but becomes much louder, brighter, and more distorted around 1:40, creating a massive wall of sound. It's very wide and washed in reverb. |
+| Lead Drone (unison double) | warm saw synth pad, in unison with the lead | Sustained synth drone doubling the lead melody in unison (same notes, held/legato). | Layered under the e-piano lead to fatten it and fill the gaps where the plucked tone decays. Same 16-bar melody as the Goth Lead. |
 
 ## bass
 
-> A driving, hypnotic monophonic bassline serves as the relentless engine for the entire track. Its sound is characterized by a heavily filtered, gritty analog-style synthesis, playing a repetitive 8th-note ostinato in E minor. The pattern is constant and forms both the rhythmic and harmonic foundation.
+> A driving, motorik-style synth bass track that forms the relentless rhythmic and harmonic foundation of the song. A single, gritty monophonic synth plays a continuous stream of eighth notes, outlining E minor arpeggios and scale fragments. The timbre is that of a sawtooth wave passed through a resonant low-pass filter and a distortion/drive effect, giving it a dark, buzzy, and powerful character. The sound is direct and upfront, with a tight, percussive envelope and very little spatial effect.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Motorik Bass | MonoSynth | A continuous 2-bar ostinato of 8th notes, cycling through a pattern based in E minor. The rhythm is straight and driving, with melodic movement centered around E, G, and A. | This single bass track is the core element of the song, present from the beginning to the end. It establishes the tempo, key, and relentless groove. Its filter and volume may have subtle automation throughout the piece, but its fundamental role as the engine is unwavering. |
+| Motorik Bass | MonoSynth | 16-bar bass form in driving straight 8th-notes: a 4-bar chromatic descending pedal phrase (E->D->C#->C, connecting Em(i) to C(VI)) played 3x, then a 4-bar answer phrase that dips to A and climbs back A->B->C->D. Each root is pedaled, and the last 8th of most bars anticipates the next root (pickup) ahead of the bar line. | The harmonic + rhythmic engine: a chromatic descending pedal bass with an antecedent/consequent shape (3 descending statements + 1 dip-and-rise answer). Anticipation pickups pull each change ahead of the downbeat. (Hand-transcribed by ear; replaces the model's 1-bar arpeggio guess.) |

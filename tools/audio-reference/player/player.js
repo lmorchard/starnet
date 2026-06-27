@@ -16,9 +16,11 @@ const OSC_TYPES = ["", "sawtooth", "square", "fatsawtooth", "fatsquare", "triang
 const FILTER_TYPES = ["", "lowpass", "highpass", "bandpass", "notch"];
 const NUM_FIELDS = ["attack", "decay", "sustain", "release", "filterFrequency", "filterQ",
                     "drive", "chorus", "reverbSend", "volume", "harmonicity", "modulationIndex",
-                    "count", "spread"];
+                    "count", "spread", "octaves", "pitchDecay", "pan",
+                    "modAttack", "modDecay", "modSustain", "delay"];
+const NOISE_TYPES = ["", "white", "pink", "brown"];
 const SHORT = { filterFrequency: "freq", filterQ: "Q", reverbSend: "rev", modulationIndex: "mod",
-                oscillatorType: "osc", filterType: "filt" };
+                oscillatorType: "osc", filterType: "filt", pitchDecay: "pdec", octaves: "oct" };
 
 const $ = (id) => document.getElementById(id);
 const warnings = [];
@@ -60,6 +62,7 @@ function expandOptions(o = {}) {
     if (o.count != null) out.oscillator.count = Math.min(o.count, MAX_OSC_VOICES);   // chiptune clamp
     if (o.spread != null) out.oscillator.spread = o.spread;
   }
+  if (o.noiseType) out.noise = { type: o.noiseType };   // NoiseSynth color: white(hiss)/pink/brown(dark)
   if (o.attack != null || o.decay != null || o.sustain != null || o.release != null) {
     out.envelope = {};
     if (o.attack != null) out.envelope.attack = o.attack;
@@ -75,6 +78,18 @@ function expandOptions(o = {}) {
   if (o.filterFrequency != null) out.filterEnvelope = { baseFrequency: o.filterFrequency };
   if (o.harmonicity != null) out.harmonicity = o.harmonicity;
   if (o.modulationIndex != null) out.modulationIndex = o.modulationIndex;
+  // MembraneSynth pitch-sweep shape: octaves = how far the pitch chirps down on each hit (low =
+  // straight thump, less "thwip"); pitchDecay = how fast that sweep happens.
+  if (o.octaves != null) out.octaves = o.octaves;
+  if (o.pitchDecay != null) out.pitchDecay = o.pitchDecay;
+  // FM modulation envelope (shapes the brightness/tine over time). Tone's default has a slow
+  // attack, so the FM "swells in" -> a reverse-y "mwoop"; a fast modAttack strikes bright = "dunng".
+  if (o.modAttack != null || o.modDecay != null || o.modSustain != null) {
+    out.modulationEnvelope = {};
+    if (o.modAttack != null) out.modulationEnvelope.attack = o.modAttack;
+    if (o.modDecay != null) out.modulationEnvelope.decay = o.modDecay;
+    if (o.modSustain != null) out.modulationEnvelope.sustain = o.modSustain;
+  }
   if (o.volume != null) out.volume = o.volume;
   return out;
 }
@@ -172,7 +187,7 @@ function ensureBus() {
     const comp = new Tone.Compressor({ threshold: -18, ratio: 2.5, attack: 0.025, release: 0.18 });
     const limiter = new Tone.Limiter(-1);
     masterGain.connect(eq); eq.connect(comp); comp.connect(limiter); limiter.toDestination();
-    const reverb = new Tone.Reverb({ decay: 2.4, wet: 1 });
+    const reverb = new Tone.Reverb({ decay: 4.5, wet: 1 });   // long cathedral tail
     await reverb.generate();
     reverb.connect(masterGain);
     bus = { masterGain, eq, comp, limiter, reverb };
@@ -198,6 +213,8 @@ function buildInstrument(row) {
   const inserts = [];
   if (o.drive > 0) inserts.push(new Tone.Distortion(Math.min(1, o.drive)));
   if (o.chorus > 0) inserts.push(new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: Math.min(1, o.chorus) }).start());
+  if (o.pan != null) inserts.push(new Tone.Panner(Math.max(-1, Math.min(1, o.pan))));   // static L/R position (-1..1)
+  if (o.delay > 0) inserts.push(new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.35, wet: Math.min(1, o.delay) }));   // rhythmic echo
   const chain = [...inserts, row.gain];
   for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
   const synth = makeSynth(row.renderType, o);
@@ -426,11 +443,12 @@ function renderTracks() {
     const ctls = document.createElement("div"); ctls.className = "ctls";
     const setOpt = (field, raw) => {
       if (raw === "" || raw == null) delete row.opts[field];
-      else row.opts[field] = field === "oscillatorType" || field === "filterType" ? raw : Number(raw);
+      else row.opts[field] = ["oscillatorType", "filterType", "noiseType"].includes(field) ? raw : Number(raw);
       rebuildTrack(row);
     };
     ctls.append(selectCtl(SHORT.oscillatorType, OSC_TYPES, row.opts.oscillatorType, (v) => setOpt("oscillatorType", v)));
     ctls.append(selectCtl(SHORT.filterType, FILTER_TYPES, row.opts.filterType, (v) => setOpt("filterType", v)));
+    ctls.append(selectCtl("noise", NOISE_TYPES, row.opts.noiseType, (v) => setOpt("noiseType", v)));
     NUM_FIELDS.forEach((f) => ctls.append(numCtl(SHORT[f] || f, row.opts[f], (v) => setOpt(f, v))));
     card.append(ctls);
     host.append(card);

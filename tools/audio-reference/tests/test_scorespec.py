@@ -110,3 +110,26 @@ def test_assemble_stems_sidecar_shape():
     assert set(side.keys()) == {"meta", "mir", "stems", "score_spec"}
     assert side["stems"] == STEM_RESULTS
     assert side["mir"] == MIR_GLOBAL
+
+
+OVERVIEW = {
+    "summary": "Driving industrial EBM with a relentless four-on-the-floor pulse.",
+    "vocabulary": {"timbre": "x", "brightness": "x", "envelope": "x",
+                   "register_density": "x", "harmony_mode": "x", "groove": "x", "space_grit": "x"},
+    "tracks": [{"name": "ignored full-mix track", "instrument": "PolySynth", "pattern": "x",
+                "description": "", "synth": {"type": "PolySynth", "options": {}},
+                "steps": {"grid": "4n", "notes": ["A1"]}}],
+    "score_draft": "speculative whole-song direction",
+}
+
+
+def test_assemble_stems_includes_overview_when_provided():
+    side = assemble_stems({"slug": "x"}, MIR_GLOBAL, STEM_RESULTS, OVERVIEW)
+    assert side["overview"] == OVERVIEW
+    # score_spec tracks still come from the STEMS, not the overview's (ignored) full-mix track
+    assert [t["name"] for t in side["score_spec"]["tracks"]] == ["Kick", "Sub"]
+
+
+def test_assemble_stems_omits_overview_key_when_absent():
+    side = assemble_stems({"slug": "x"}, MIR_GLOBAL, STEM_RESULTS)
+    assert "overview" not in side

@@ -1,0 +1,81 @@
+# Notes — reduce instrument count
+
+## What shipped
+Analysis-prompt change in `tools/audio-reference/audio_reference/prompt.py`:
+- New constants: `WHOLE_SONG_BUDGET`, `STEM_BUDGETS` (drums/bass/vocals/other) + `GENERIC_STEM_BUDGET`, `CONSOLIDATION_RULE`.
+- `build_prompt(meta, mir, budget=None)` — budget-parameterized; injects budget + consolidation rule into the TRACKS section.
+- **Softened** the over-split driver: "Enumerate every distinct track you actually hear" → "Identify the FEW tracks that actually define the piece — be deliberate and lean, not exhaustive."
+- `build_stem_prompt` threads a per-stem budget through `build_prompt` (drums = 5–8 kit; bass/vocals = 1–2; other = 1–3; unknown = generic 1–3), and dropped "or a few."
+- `tests/test_prompt.py`: +5 tests (budget/consolidation present, enumeration softened, per-stem budgets, generic fallback, whole-song-budget leak guard). 12 → 17 prompt tests; full suite 63 passed.
+
+## Key finding that shaped the work
+The over-split is **melodic, not percussive** (melodic mean 8.1 vs target 2–6; percussion 5.9 vs target 5–8 — already on-target), and **every corpus artifact is stem-separated**, so splitting compounds per stem. That's why the fix is per-stem budgets + a consolidation rule, not a single whole-song cap or a schema `maxItems`. Quantified with `count_tracks.py` (kept in this session dir).
+
+## Decisions (from Les)
+1. Strong textual preference + consolidation rule — no schema `maxItems`.
+2. Per-stem budgets in `build_stem_prompt`.
+3. Verify via pytest this session; Les re-runs the corpus on real audio later.
+4. Re-run overwrites `docs/` (default `--out`).
+
+## Verification status
+- `uv run --extra dev pytest -q` → **67 passed** (after the overview addition).
+- **Canonical corpus re-run DONE & COMMITTED** (all 11, `htdemucs_ft` + `gemini-2.5-pro`):
+  melodic mean **8.1 → 5.1** (every track now in 2–6 target), perc **5.9 → 5.3** (all in 5–8).
+  Worst offenders fixed: gruesome-twosome 10→6, icabod 11→5, dressed-for-space 8→4 (bass→1).
+  Synth variety preserved (Mono/Poly/FM mix — pro does NOT fall into the FMSynth monotony a
+  flash run does). All 11 carry the new song-level overview. Audio in `~/Downloads`; gcloud
+  project `moz-fx-tabs-nonprod`. Driver: `rerun_all.sh` (env-configurable model/stems-model).
+- A throwaway flash validation run earlier gave mean 4.6 melodic but timbrally monotone
+  (FMSynth-heavy); superseded by the pro run that was committed.
+
+## 2nd change (same session): whole-song overview in stems mode
+Stems mode produced NO song-level description — only per-stem reads (Les noticed via the .md).
+Added a full-mix `build_prompt` overview pass (reuses existing prompt + RESPONSE_SCHEMA):
+- `cli._analyze_stems` runs one extra full-mix Gemini call → `overview` interpretation.
+- `scorespec.assemble_stems(..., overview=None)` stores it under top-level `overview`
+  (score_spec tracks still come from stems; overview's tracks are ignored).
+- `render.render_stems_markdown(..., overview=None)` renders `> summary` + an
+  "Overview (full-mix read)" 7-dim vocabulary grid + speculative score-draft. Factored
+  `_vocab_grid()` shared with `render_markdown`.
+- Tests: +4 (assemble_stems with/without overview; render with/without overview). 63→67.
+- Player does NOT yet surface the overview summary — possible quick follow-up if wanted.
+
+## Follow-ups / open
+- **Les re-runs the corpus** (`analyze … --stems` on the real audio), then `python3 count_tracks.py` to confirm melodic ≤ ~6. If still high, tighten `other`/`vocals` budgets — cheap.
+- **Deferred (out of scope):** revisit player `TRACK_CAPS` (4 melodic) once arrangements are leaner — may bump melodic cap to 5–6 so the default mix shows the whole song. Player change, separate session.
+- Existing `docs/*.json` still carry the OLD (over-split) arrangements + hand-tweaks until the re-run.
+
+## Retrospective (Stripdown by-ear reconstruction)
+
+After the prompt/overview/corpus work, the session turned into a long by-ear
+reconstruction of Agent Side Grinder "Stripdown" — correcting what the analyzer
+got wrong, instrument by instrument, via per-instrument idempotent hand-tweak
+scripts (`handtweak_stripdown_{bass,goth_lead,drums,arrangement}.py`).
+
+### Process learnings (what would make it faster)
+- **Division of labor:** the player rebuilds a track live on every control change,
+  so TIMBRE is fastest dialed by the user at the controls; the assistant/scripts
+  are for NOTES / rhythm / octaves / structure / add-remove tracks (which the UI
+  can't edit). The text round-trip (describe → guess params → script → reload) was
+  the main bottleneck for timbre.
+- Lock melody/rhythm FIRST, then voice timbre once (we re-judged timbre against
+  placeholder notes a few times).
+- Audit the tool's ceiling up front — we hit "harness can't do X" ~5× and extended
+  the player reactively (filter env, kick pitch-chirp, FM mod-env, noise color, pan).
+- Smaller per-iteration deltas isolate cause faster; ask about octaves vs guessing.
+
+### Player capabilities added this session
+longer reverb tail (4.5s); `octaves`/`pitchDecay` (MembraneSynth); `modAttack`/
+`modDecay`/`modSustain` (FM mod-env); `noiseType` (white/pink/brown); `pan`; `delay`.
+All wired into the live tweaker. NOTE: these are PLAYER-only — not yet in the
+analyzer schema/prompt (issue #248).
+
+### Analysis-system lessons → follow-up issues
+- #248 sync new player options into analyzer schema/prompt
+- #249 steps loop can't express multi-bar form / phrase structure (biggest gap)
+- #250 prompt should pin instrument identity + avoid "synthy" defaults + drum synthesis
+- #251 player: step/pattern editor in the live UI (input melodies by ear)
+- #252 player: usable tweaker (labeled range sliders, ranges, grouping)
+
+The hand-tweak scripts are a literal record of "analyzer said X, truth was Y" —
+training signal for prompt improvement.

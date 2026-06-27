@@ -15,6 +15,49 @@ TONE_SOURCES = [
     "Sampler", "Player", "GrainPlayer",
 ]
 
+# Arrangement budgets: the model over-splits without an explicit ceiling — bass lines become
+# two near-identical synths, a lead vocal plus its reverb tail become two tracks, etc. These
+# strings are injected into the TRACKS section (whole-song by default; per-stem in stem mode).
+WHOLE_SONG_BUDGET = (
+    "ARRANGEMENT BUDGET: aim for a LEAN, deliberate arrangement — about 2-6 melodic/harmonic "
+    "parts PLUS a drum kit of about 5-8 percussion pieces. Prefer fewer, fuller tracks."
+)
+
+# Per-stem budgets (keys are demucs stem basenames). Each stem is analyzed in isolation, so a
+# whole-song budget doesn't bind it — without a per-stem ceiling the bass stem alone yields 2-3
+# tracks. Unknown stems (e.g. piano/guitar under htdemucs_6s) fall back to GENERIC_STEM_BUDGET.
+STEM_BUDGETS = {
+    "drums": (
+        "ARRANGEMENT BUDGET: this is the DRUMS stem — render the kit as about 5-8 distinct "
+        "percussion pieces (kick, snare, claps, hats, toms, cymbals). Don't split a single "
+        "hi-hat or snare pattern into multiple tracks unless they are genuinely independent voices."
+    ),
+    "bass": (
+        "ARRANGEMENT BUDGET: this is the BASS stem — output 1-2 parts at most. A sub-bass PLUS a "
+        "separate driven mid-bass is two; a single bassline you'd merely describe at two "
+        "intensities or FX settings is ONE."
+    ),
+    "vocals": (
+        "ARRANGEMENT BUDGET: this is the VOCALS stem — output 1-2 parts. A lead vocal and its "
+        "reverb/double/harmony layer is ONE track, not two."
+    ),
+    "other": (
+        "ARRANGEMENT BUDGET: this is the OTHER stem (pads, leads, arps, FX) — output 1-3 parts. "
+        "Merge stacked pads that share a register or role."
+    ),
+}
+GENERIC_STEM_BUDGET = (
+    "ARRANGEMENT BUDGET: this is one isolated stem — output 1-3 parts at most; consolidate "
+    "near-duplicates."
+)
+
+# Universal consolidation rule (applies whole-song and per-stem).
+CONSOLIDATION_RULE = (
+    "CONSOLIDATE near-duplicates: if two candidate tracks differ ONLY in FX (reverb/delay/width), "
+    "octave, or intensity (subdued vs driven), MERGE them into ONE track capturing the dominant "
+    "character. Two hi-hats -> one; a subdued + a driven bass of the same line -> one."
+)
+
 # Gemini structured-output schema (a JSON Schema subset Vertex accepts).
 RESPONSE_SCHEMA = {
     "type": "object",
@@ -89,7 +132,8 @@ RESPONSE_SCHEMA = {
 }
 
 
-def build_prompt(meta: dict, mir: dict) -> str:
+def build_prompt(meta: dict, mir: dict, budget: str | None = None) -> str:
+    budget = budget or WHOLE_SONG_BUDGET
     sections = ", ".join(f"{s['start']:.1f}s" for s in mir["sections"])
     palette = ", ".join(TONE_SOURCES)
     playable = ", ".join(PLAYABLE_SOURCES)
@@ -113,7 +157,11 @@ Describe the track along these SEVEN dimensions (one concise reading each):
   timbre, brightness, envelope, register/density, harmony/mode, groove, space/grit.
 
 Then break the piece into TRACKS. A TRACK is one INSTRUMENT driven by one PATTERN.
-Enumerate every distinct track you actually hear (don't force a fixed set). For each track give:
+{budget}
+Identify the FEW tracks that actually define the piece — be deliberate and lean, not exhaustive.
+Don't force a fixed set, but don't pad it either: prefer fewer, fuller tracks over many thin
+near-duplicates. {CONSOLIDATION_RULE}
+For each track give:
 - name: a short label you INVENT to fit THIS piece (e.g. "sub bass", "shimmer pad", "noise riser").
 - instrument: the Tone.js source that would most naturally produce it — one of:
     {palette}
@@ -158,10 +206,11 @@ Respond ONLY as JSON matching the provided schema."""
 
 
 def build_stem_prompt(meta: dict, mir: dict, stem: str) -> str:
-    """Per-stem prompt: same task as build_prompt, but framed as one isolated stem."""
+    """Per-stem prompt: same task as build_prompt, but framed as one isolated stem with a
+    stem-specific arrangement budget (the whole-song budget doesn't bind a single stem)."""
     intro = (
         f'IMPORTANT: You are hearing ONLY the isolated "{stem}" stem of "{meta["title"]}" '
-        f'(separated from the full mix). Describe just the instrument(s) present in THIS stem — '
-        f"it may be a single instrument or a few. Ignore anything you'd expect from other stems.\n\n"
+        f"(separated from the full mix). Describe just the instrument(s) present in THIS stem. "
+        f"Ignore anything you'd expect from other stems.\n\n"
     )
-    return intro + build_prompt(meta, mir)
+    return intro + build_prompt(meta, mir, budget=STEM_BUDGETS.get(stem, GENERIC_STEM_BUDGET))
