@@ -19,12 +19,14 @@ The over-split is **melodic, not percussive** (melodic mean 8.1 vs target 2–6;
 
 ## Verification status
 - `uv run --extra dev pytest -q` → **67 passed** (after the overview addition).
-- **Corpus re-run DONE** (all 11, `htdemucs` + `gemini-2.5-flash` — Les chose fast settings for speed):
-  melodic mean **8.1 → 4.6** (every track now in 2–6 target), perc **5.9 → 5.5**.
-  Worst offenders fixed: gruesome-twosome 10→6, icabod 11→4, dressed-for-space 8→5 (bass→1).
-  Audio in `~/Downloads`; gcloud project `moz-fx-tabs-nonprod`. Driver: `rerun_all.sh`.
-- **Quality caveat:** flash leans heavily on FMSynth (timbrally monotone vs a pro run). Counts
-  are the validated thing; the regenerated flash artifacts are coarser than pro would produce.
+- **Canonical corpus re-run DONE & COMMITTED** (all 11, `htdemucs_ft` + `gemini-2.5-pro`):
+  melodic mean **8.1 → 5.1** (every track now in 2–6 target), perc **5.9 → 5.3** (all in 5–8).
+  Worst offenders fixed: gruesome-twosome 10→6, icabod 11→5, dressed-for-space 8→4 (bass→1).
+  Synth variety preserved (Mono/Poly/FM mix — pro does NOT fall into the FMSynth monotony a
+  flash run does). All 11 carry the new song-level overview. Audio in `~/Downloads`; gcloud
+  project `moz-fx-tabs-nonprod`. Driver: `rerun_all.sh` (env-configurable model/stems-model).
+- A throwaway flash validation run earlier gave mean 4.6 melodic but timbrally monotone
+  (FMSynth-heavy); superseded by the pro run that was committed.
 
 ## 2nd change (same session): whole-song overview in stems mode
 Stems mode produced NO song-level description — only per-stem reads (Les noticed via the .md).

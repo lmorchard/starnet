@@ -1,5 +1,7 @@
 # TR/ST — Icabod
 
+> A driving, darkwave track at 126 BPM in F# minor, characterized by relentless 16th-note synth arpeggios, a gritty four-on-the-floor beat, and cavernous, reverb-drenched vocals, creating a feeling of intense, melancholic momentum.
+
 *Source: `Trust - Icabod.mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
@@ -12,45 +14,56 @@
 - **Dynamics:** RMS mean 0.259, range 15.1 dB
 - **Timbre:** rolloff 6334 Hz, flatness 0.01, contrast 20.8, ZCR 0.062, harmonic ratio 0.81
 
+## Overview (full-mix read)
+
+| Dimension | Reading |
+|---|---|
+| Timbre | Dominated by classic analog-style synthesizer textures. Bright, detuned sawtooth leads and plucks contrast with a distorted square-wave bass and breathy, atmospheric pads. |
+| Brightness | Bright and sharp, especially in the high-mid range, driven by the persistent synth arpeggio and metallic hi-hats. The spectral centroid at 2991 Hz reflects this, though a heavy low-end provides a dark foundation. |
+| Envelope | Primarily short, percussive envelopes. The main arpeggio and bass have quick attack and decay, creating a tight, sequenced feel. This is contrasted by slow-attack, long-release pads that swell in the background. |
+| Register/density | Dense and wide-ranging. The arrangement is packed with layers from a deep sub-bass to shimmering high-frequency arpeggios, creating a full spectral wall of sound, particularly in the choruses. |
+| Harmony/mode | Anchored in F# minor, with a strong, melancholic Goth-pop feel. Harmony is primarily conveyed through arpeggiated minor chords and root-note basslines, emphasizing a dark and driving tonality. |
+| Groove | A relentless four-on-the-floor machine groove at 126 BPM. The constant 16th-note pulse from the arpeggiator and hi-hats creates a hypnotic, driving energy typical of EBM and dark synth-pop. |
+| Space/grit | The space is vast and cavernous, achieved through heavy use of hall reverb on most elements, especially vocals and pads. Grit is applied via saturation and light drive on the bass and lead synths, adding an aggressive, industrial edge. |
+
+> Model-guessed song-level synth direction — speculative, tune by ear.
+
+SPECULATIVE STARTER: Create a 126 BPM transport. The core is a Tone.Sequence for the 'Arpeggio Lead' (MonoSynth, fatsawtooth, short ADSR, LPF at ~4.5kHz, reverb). Sequence: ['F#4', null, 'A4', null, 'C#5', null, 'A4', null] on a '16n' grid. The 'Driving Bass' (MonoSynth, square wave, drive: 0.4, LPF at ~700Hz) plays a '8n' octave pattern ['F#2', 'F#1']. Drums are a four-on-the-floor kick (MembraneSynth), snare on 2/4 (NoiseSynth), and off-beat 8th-note hi-hats (MetalSynth). Layer a 'Goth Pad' (PolySynth, slow attack, lots of chorus/reverb) playing sustained F#m chords ('F#3+A3+C#4') for atmosphere. Set up a global reverb (Tone.Reverb) with a long decay (~4s) and use sends for space.
+
 ## drums
 
-> A driving, four-on-the-floor electronic drum pattern with a bright, crisp, and slightly gritty character, reminiscent of classic drum machines with modern processing. The arrangement builds in density, adding layers of hi-hats and percussive fills.
+> A driving, four-on-the-floor electronic drum pattern characteristic of darkwave and EBM. The track builds in intensity by layering increasingly dense hi-hat patterns, adding syncopated percussive elements, and applying more saturation and reverb over time. The core groove is stark and powerful, built from synthetic, processed drum sounds.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| FourOnTheFloorKick | MembraneSynth | A relentless four-on-the-floor pattern on every quarter note. | The foundational element of the track, a punchy and consistent kick drum that drives the rhythm from beginning to end. It has a focused low-mid punch rather than a deep sub-bass boom. |
-| BackbeatSnare | NoiseSynth | A classic backbeat pattern, hitting on beats 2 and 4. | A sharp, cracking snare sound that provides the main backbeat. It sounds like a blend of a synthetic snare and a clap, with a noisy transient and very short body. |
-| ClosedHats | MetalSynth | A busy, driving pattern of 16th notes with some rests for rhythmic texture. | A tight, metallic closed hi-hat that fills the high-end and propels the track forward. Its pattern varies in complexity throughout the song. |
-| OffbeatOpenHat | MetalSynth | A consistent off-beat 8th note pattern. | A sizzling open hi-hat that adds a classic disco/EBM feel. It plays on the off-beats, creating a sustained 'tsss' that contrasts with the tight closed hats. |
+| Driving Kick | MembraneSynth | A relentless and punchy four-on-the-floor 1/4 note pattern. | The foundational element of the track, providing a constant, driving pulse. It's a deep electronic kick with a tight envelope and a slight clicky attack that remains present for nearly the entire duration. |
+| Backbeat Snare | NoiseSynth | A sharp, cracking backbeat on beats 2 and 4. | A synthetic snare composed primarily of filtered white noise. It provides the essential backbeat and becomes more aggressive and saturated as the track progresses. It's often layered with a clap for extra impact. |
+| Syncopated Clap | NoiseSynth | Syncopated rhythmic figures, often playing around the main snare beat. | A digital clap sound that adds rhythmic complexity. It frequently plays on off-beats or in short, fast fills, creating a stuttering effect that contrasts with the steady main groove. |
+| Clockwork Hat | MetalSynth | Evolves from off-beat 1/8ths to a constant, driving 1/16th note pattern. | A tight, metallic, and precise hi-hat that dictates the track's energy level. The shift from a sparse to a dense pattern is a key feature of the arrangement, creating a sense of acceleration and urgency. |
+| Cymbal Wash | MetalSynth | Longer-decay hits used as accents, typically on the downbeat of a new phrase or on an off-beat. | A noisy, washy open hi-hat or crash cymbal sound. It's used for punctuation, adding space and a high-frequency splash that contrasts with the tightness of the other percussive elements. Its reverb is more pronounced. |
 
 ## vocals
 
-> A heavily processed and layered male vocal performance. It features a central lead vocal with a gritty, emotional delivery, set against a backdrop of ethereal, choral pads and rhythmic, mantra-like vocal loops. The entire stem is saturated in a vast, cavernous reverb, creating a dark, atmospheric, and gothic soundscape.
+> A heavily processed baritone vocal performance, characterized by its deep, chant-like delivery and drenched in a cavernous reverb and delay, creating a sound that is simultaneously intimate and vast, synthetic and human.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Grit Lead Vocal | MonoSynth | Syncopated 8th-note phrases in verses, holding longer notes in the chorus. The main melodic and lyrical focus. | The central narrative voice of the track, present through most of the song after the intro. It has a gritty texture and is drenched in a massive reverb, but remains the most forward element in this stem. |
-| Ghost Choir Pad | PolySynth | Long, sustained chords that swell in and out, holding for multiple bars at a time. | An ethereal, pad-like texture made from layered vocal 'oohs'. It establishes the atmosphere from the very beginning and provides a continuous harmonic bed throughout the track. It has an extremely long reverb tail. |
-| High Counter-Melody | MonoSynth | An ascending melodic line that acts as a call-and-response to the lead vocal during the pre-chorus/chorus. | A distinct, higher-register harmony line that appears in the 'helplessly...' sections. It has a smoother, less gritty tone than the lead but is processed with the same enormous reverb. |
-| Stutter Mantra | MonoSynth | A tight, hypnotic, and repetitive 16th-note phrase on a single pitch. | A rhythmic vocal loop of the phrase 'wants to stand in' that creates a stuttering, tense layer during the pre-chorus sections. Its percussive and repetitive nature drives the rhythm forward. |
+| Crypt Keeper Vocals | PolySynth with fat sawtooth oscillators, processed through a resonant lowpass filter and heavy effects. | Syncopated, descending melodic phrases with a chant-like repetition, typically spanning 1-2 bars. | The sole element of the stem, this track features a low male vocal, heavily processed with reverb, chorus, and delay. It's present throughout, varying in intensity from a single voice in the verses to a dense, harmonized choral texture in the main sections. |
 
 ## other
 
-> A driving, dark synthwave track built on a foundation of a gritty, distorted 16th-note arpeggio and a pulsing bass. The track evolves dramatically, introducing a massive, wide supersaw pad and a clear, melodic FM lead in the second half, creating a sense of epic scale and emotional weight. The overall sound is a blend of aggressive, lo-fi grit and expansive, atmospheric reverb.
+> A dark, driving synth-pop instrumental layer built on a relentless 16th-note arpeggio. Atmospheric pads and a mournful lead melody add emotional depth and texture, all saturated in cavernous reverb.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Buzz Arpeggio | MonoSynth | A relentless 16th-note arpeggio outlining the chord progression. It runs for almost the entire track, providing the main rhythmic and melodic drive. | The primary driving force for the track, present from the start. It's a gritty, distorted, mid-range synth that establishes the propulsive energy. Its constant motion creates a hypnotic effect. |
-| Grit Bass | MonoSynth | Pulsing 8th notes on the root of each chord. Has a pumping feel, suggesting sidechain compression. | Provides the low-end harmonic foundation and rhythmic pulse. Works in tandem with the arpeggio to create the core groove. It's heavily distorted and present through most of the track. |
-| Epic Pad | PolySynth | Sustained, slow-swelling chords that change every one or two bars. | Enters at 147.2s. Creates a massive, wide, atmospheric shift. It's the harmonic and emotional core of the second half, processed with heavy chorus and reverb for an expansive sound. |
-| Crystal Lead | FMSynth | A high-register, syncopated melodic hook using 8th and 16th notes. | Enters at 201.0s over the Epic Pad. This bright, glassy lead adds a new melodic focal point. Its bell-like, digital character is softened by a long reverb tail. |
+| Driving Arp | PolySynth | Constant 16th-note arpeggios outlining chords (e.g., i-VI-VII in F# minor), creating a propulsive, hypnotic foundation. | The core engine of the stem, present almost throughout. It's drenched in reverb, giving it a sense of scale, with a slightly gritty, detuned analog character. |
+| Vocal Lead / Choir Pad | PolySynth | Initially plays a syncopated, mournful melody in the mid-high register. Later transforms into sustained, choir-like pads playing block chords. | Introduced at 147s as a lead voice, adding an emotional, melodic focus. From 201s, it shifts to a background role, providing lush, sustained harmonic pads with the same vocal-like timbre. |
+| Glimmer Pad | PolySynth | Sustained high-register notes or simple dyads, holding for multiple bars, with slow swells. | Enters periodically to add atmospheric texture and harmonic lift. Its heavily chorused and reverberated sound creates a wide, shimmering wash that floats above the arpeggio. |
 
 ## bass
 
-> A dark, hypnotic bass track driven by a relentless 16th-note synth pattern. The piece is built on a single, consistent bass patch—a plucky, slightly overdriven sawtooth wave—which evolves through different melodic and rhythmic patterns to create distinct sections of varying intensity. The harmony is rooted in B minor, creating a tense and brooding atmosphere throughout.
+> A relentless, driving 16th-note synth bassline with a dark, plucky character and moderate saturation, forming the sole rhythmic and harmonic backbone of the track.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Motorik Bass | MonoSynth | A relentless, repeating 1-bar 16th-note ostinato that arpeggiates B minor and F-sharp minor chords. | This is the primary engine of the track, present from the beginning until 1:25, and returning at 1:54. It establishes the dark, driving, and hypnotic feel of the piece. |
-| Sparse Ostinato | MonoSynth | A syncopated and much sparser 16th-note pattern, creating rhythmic space by omitting many notes from the constant stream. | This pattern appears during the breakdown section from 1:25 (85.7s) to 1:54 (114.7s). It maintains the core sound but reduces the density, changing the track's energy. |
-| Melodic Root Motion | MonoSynth | A 16th-note pattern that abandons arpeggiation for melodic movement, stepping through chord roots in quarter-note blocks (e.g., B, E, G, F#). | This variation appears from 3:24 (204.8s) onward, introducing a new harmonic progression and a more declarative, melodic feel while maintaining the driving 16th-note rhythm. |
+| Motorik Bass | MonoSynth | A continuous, driving 16th-note sequence playing evolving arpeggiated figures in B minor. The pattern loops in 2 or 4-bar phrases. | The sole instrument in this stem, this bassline provides the complete harmonic and rhythmic foundation. It enters at the beginning and plays almost continuously until the end, defining the track's energy. |

@@ -1,5 +1,7 @@
 # Parallels — Dry Blood
 
+> A driving, anthemic 80s-inspired synth-pop track at 120 BPM in A minor. It features a classic four-on-the-floor drum machine beat, a propulsive 16th-note arpeggiated bassline, gated chords, and a soaring lead synth melody. The production uses heavy gated reverb to create a large, cavernous soundscape, while the core instrumental elements remain punchy and defined.
+
 *Source: `Dry Blood By Parallels (Official Music Video).mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
@@ -12,42 +14,56 @@
 - **Dynamics:** RMS mean 0.109, range 8.7 dB
 - **Timbre:** rolloff 8384 Hz, flatness 0.02, contrast 21.2, ZCR 0.097, harmonic ratio 0.76
 
+## Overview (full-mix read)
+
+| Dimension | Reading |
+|---|---|
+| Timbre | A classic retro-analog synthesis palette, blending bright, cutting sawtooth and square leads with thick, chorused pads and a punchy, filtered bass. Percussion is based on classic drum machine sounds with significant noise components and reverb. |
+| Brightness | Crisp and bright, with a high spectral centroid. Shimmering hi-hats and cutting lead synths occupy the high frequencies, balanced by a powerful mid-range from chords and a focused low-end from the bass and kick. |
+| Envelope | Predominantly plucky and gated. Basslines and rhythmic chords have very fast attacks and short, abrupt decays creating a tight, percussive feel. This contrasts with soaring lead lines and background pads which use longer attacks and releases. |
+| Register/density | Layered and wide-ranging. The arrangement builds from a sparse intro to a dense, full-spectrum texture. It utilizes deep sub-bass, a busy mid-range with arpeggios and chords, and high-frequency lead melodies and percussion. |
+| Harmony/mode | Driving minor key. The harmony is firmly rooted in A minor, using simple, powerful chord progressions (i-VII-VI) typical of the 80s pop/rock style, reinforcing a feeling of moody determination. |
+| Groove | Four-on-the-floor. A straight, propulsive 4/4 groove is established by the kick drum, with a strong backbeat from a prominent gated snare. The constant 16th-note bass arpeggio provides relentless rhythmic energy. |
+| Space/grit | Cavernous and saturated. The mix is defined by a large, ambient space created with heavy use of reverb, especially a gated effect on the snare. Synths have a light to moderate analog-style saturation (drive) for warmth and presence, without being overtly distorted. |
+
+> Model-guessed song-level synth direction — speculative, tune by ear.
+
+SPECULATIVE STARTER: To approximate 'Dry Blood', set tempo to 120 BPM in A minor. Use a `MembraneSynth` for the kick in a 4/4 pattern: `['C1', 'C1', 'C1', 'C1']`. The snare is a `NoiseSynth` with a short decay and heavy reverb on beats 2 and 4. The main engine is a `MonoSynth` (`oscillatorType: 'sawtooth'`) with a low-pass filter (cutoff ~800Hz, Q ~2) playing a 16th-note arpeggio like `['A2', 'E3', 'A3', 'E3', ...]`. Layer this with a `PolySynth` (`oscillatorType: 'fatsquare'`) playing gated power chords like `['A3+E4', '', 'G3+D4', '']`. The lead melody can be a `MonoSynth` with `oscillatorType: 'fatsawtooth'`, chorus, and reverb, playing a simple line in A minor. Background pads are a `PolySynth` with a very slow attack (`>1.5s`), long release, and high chorus, holding chords like 'Am' and 'G'.
+
 ## drums
 
-> An energetic and driving drum machine pattern in a classic 80s synth-pop/rock style. The groove is built on a four-on-the-floor kick, a prominent backbeat snare with heavy reverb, and crisp 8th-note hi-hats. Tom fills and cymbal crashes punctuate section changes.
+> A driving, powerful, and bright acoustic-style drum performance with a strong 4/4 rock backbeat, characterized by a punchy kick, a sharp reverberant snare, and constant, crisp hi-hats.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Kick Drum | MembraneSynth | Steady four-on-the-floor pattern on every quarter note. | The foundational element of the track, providing a constant and powerful pulse from the beginning to the end. It's a punchy, low-end sound typical of an 80s drum machine. |
-| Snare | NoiseSynth | A strong backbeat on beats 2 and 4 of each measure, with occasional fills and flams. | Defines the backbeat of the groove. This is a bright, snappy noise-based snare with a very prominent reverb tail that gives it a large sense of space. It enters at 0:08 and is a constant feature. |
-| Closed Hi-Hat | MetalSynth | Continuous 8th notes, with some 16th note flourishes. | Provides the high-frequency energy and drives the rhythm forward. It's a crisp, metallic sound that plays a constant 8th note pattern for most of the song, starting at 0:08. |
-| Crash Cymbal | MetalSynth | Hits on the downbeat of major sections and transitions, typically beat 1. | Used as punctuation to mark the start of new sections (e.g., at 0:08, 0:34). It's a bright, washy sound with a long decay that adds impact. |
-| Tom Fill | MembraneSynth | Short, syncopated 16th-note fills, often with descending pitch, used to lead into new sections. | Appears periodically throughout the song (e.g., around 0:08) to create transitional fills. The sound is a synthesized tom, higher in pitch than the kick drum. |
+| Power Kick | MembraneSynth | A foundational rock pattern, primarily landing on beats 1 and 3, with occasional syncopated 8th notes to add drive. | The low-end anchor of the entire track. It provides a consistent, punchy pulse that is present through almost the entire duration. |
+| Backbeat Snare | NoiseSynth | A solid, unwavering backbeat on 2 and 4, occasionally embellished with ghost notes and leading into fills. | The defining element of the groove, providing a sharp, cracking sound with noticeable reverb that gives it size. It cuts through the mix clearly. |
+| Driving Hats | MetalSynth | Constant, driving 8th notes, with accents created by velocity variation and periodic open-hat sizzles on an off-beat. | The main time-keeping element, providing high-frequency energy and a sense of constant motion. The sound is tight and metallic. |
+| Crash Cymbals | MetalSynth | Dramatic, explosive accents landing on the downbeat of major phrases (e.g., beat 1 of an 8-bar section). | Used for emphasis and to mark structural transitions. The crashes are bright, loud, and have a long, shimmering decay, adding a sense of scale and drama. |
+| Tom Fills | MembraneSynth | Fast 16th-note runs, typically over one or two beats, used to connect phrases and build tension. | These fills provide rhythmic variation and excitement, usually appearing at the end of a 4 or 8 bar phrase before a chorus or new section. They are tuned from high to low. |
 
 ## vocals
 
-> A heavily processed and layered vocal arrangement featuring a clean, ethereal female lead, a vast atmospheric choir pad, and a dramatic swelling choral effect. The track is defined by its enormous reverb space, creating a dreamlike and melancholic atmosphere. An initial section features percussive, glitchy vocal chops before the main song structure begins.
+> A heavily processed female lead vocal accompanied by multiple layers of harmony and a massive reverb. The track consists entirely of sung lyrical phrases and occasional breathy textures, creating an ethereal and atmospheric soundscape. The arrangement builds from a single voice to a dense, choral wall of sound in the choruses.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Vocal Glitch Rhythm | PluckSynth | A syncopated 16th-note rhythm built from short, pitched vocal chops, creating a shuffling, nervous groove. | Appears in the introduction (0-32s), providing a rhythmic bed before the main song begins. The sound is short, clean, and percussive, with subtle stereo panning. |
-| Choir Riser | PolySynth | A single, sustained minor chord that swells in volume and brightness over 4-8 bars. | A dramatic transitional effect that builds tension, heard prominently at 17s leading into the first vocal section. It sounds like a massive, layered choir. |
-| Ethereal Lead Vocal | PolySynth | Long, flowing, and emotional melodic phrases with a lyrical rhythm that syncopates around the beat. One to two bar phrases are common. | The main melodic element of the song, carrying the lyrics. It enters at 32.8s and is present in all verse and chorus sections, drenched in a massive hall reverb that makes the notes bleed into one another. |
-| Vocal Choir Pad | PolySynth | Sustained block chords that change every 2 or 4 bars, following the main harmony of the song. | A constant atmospheric and harmonic foundation, present almost throughout the entire piece after the intro. Its slow swells and wide stereo image create a vast, dreamlike soundscape. |
+| Ethereal Lead Vocals | PolySynth | Melodic, lyrical phrases that follow the song's structure. Verses are sparser, while choruses feature dense, multi-part harmonies. The rhythm is largely based on quarter and eighth notes with significant legato and long-held notes, all saturated in reverb. | This single track represents the entire vocal arrangement, including the lead, doubles, and harmony layers. It is the sole melodic and harmonic element in this stem, present from the beginning to the end. The defining characteristic is the massive reverb wash that glues all vocal layers together into a single atmospheric entity. |
 
 ## other
 
-> A driving 16th-note synth arpeggio provides the rhythmic and melodic core, while a wide, chorused synthesizer pad lays down a shifting harmonic foundation, creating a classic 80s synth-pop texture.
+> A dense, driving synth-wave arrangement featuring a prominent 16th-note arpeggio, a soaring, atmospheric lead/pad, and a gritty, supportive bass arpeggio. The piece is built on classic synth-pop textures with heavy use of reverb and chorus to create a large, immersive soundscape.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Sequencer Arp | PolySynth | Continuous 16th-note arpeggio outlining chords of the progression. The pattern is a steady, unaccented pulse that runs through the entire track. | The main rhythmic and melodic driver of the piece. It runs almost continuously from the start to the end, defining the track's energy and outlining the harmony. |
-| Chorus Pad | PolySynth | Sustained whole-note or half-note block chords, changing with the harmony every 2 or 4 bars. Swells in and out with a slow attack and long release. | Enters at 0:33. Provides the harmonic bed and atmospheric texture. It is very wide in the stereo mix and has a slow, breathing quality. Its timbre evolves, getting brighter in later sections. |
+| Classic Arp | PolySynth | Continuous 16th-note arpeggio outlining transposed chord progressions. The pattern is a fast, multi-octave figure that forms the primary rhythmic and melodic element. | The main rhythmic and harmonic driver of the track, present from the beginning. It has a bright, plucky sound with a significant amount of reverb, creating a wash of notes that propels the song forward. |
+| Soaring Lead Pad | PolySynth with fat oscillators | Long, sustained notes and simple, evolving melodic lines. Notes often hold for one or more bars, creating a slow-moving harmonic layer. | Enters at 0:33 to provide an epic, atmospheric layer. Sits high in the mix with a very wide stereo field (from chorus) and a long reverb tail. Its slow attack allows it to swell in and out of the arrangement. |
+| Gritty Bass Arp | MonoSynth | Plays a simplified 16th-note arpeggio in the low-mid register, often outlining the root and fifth of the current chord. | Adds rhythmic weight and a touch of aggression to the low-mids, entering around 0:33. This is a synth bass line with mild drive that locks in with the main arp, rather than a sub-bass. |
 
 ## bass
 
-> A single, driving monophonic synthesizer bassline provides the entirety of the audio content. It plays a continuous, machine-precise 16th-note pattern, outlining chord progressions in A minor. The timbre is a classic warm sawtooth, with a plucky envelope and subtle filter modulation creating dynamic variation over the song's structure.
+> A driving, repetitive synth bass line plays a constant 8th-note pattern, forming the rhythmic and harmonic foundation of the track with a gritty, filtered tone.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Sequencer Bass | MonoSynth | Continuous 16th-note arpeggiations and scalar runs, outlining chord changes. The pattern typically repeats over 2 or 4 bars. The filter cutoff is the primary source of variation, opening up for more intense sections. | The sole instrument in this stem, this bass provides the harmonic foundation and rhythmic drive for the entire piece. It is present from beginning to end, with its brightness changing to create sectional dynamics. |
+| Driving Mid-Bass | MonoSynth | A relentless 8th-note pattern outlining chord roots, typically in a repeating 2-bar or 4-bar phrase. The filter cutoff subtly opens in more intense sections. | The core rhythmic and harmonic engine, present from the start and playing nearly continuously. It provides a constant, hypnotic pulse that underpins the entire song. |

@@ -10,7 +10,7 @@
     "bpm": 161.4990234375,
     "key": "C#",
     "mode": "minor",
-    "key_confidence": 0.8484802008304025,
+    "key_confidence": 0.8484802008304027,
     "duration_sec": 318.6009977324263,
     "sections": [
       {
@@ -63,7 +63,7 @@
         "bpm": 161.4990234375,
         "key": "C",
         "mode": "major",
-        "key_confidence": 0.7863039168077156,
+        "key_confidence": 0.7839221480155352,
         "duration_sec": 318.6009977324263,
         "sections": [
           {
@@ -73,7 +73,7 @@
             "start": 39.230113378684806
           },
           {
-            "start": 119.11836734693877
+            "start": 119.17641723356009
           },
           {
             "start": 134.5364172335601
@@ -85,190 +85,253 @@
             "start": 237.55174603174603
           },
           {
-            "start": 280.04426303854876
+            "start": 280.05587301587303
           },
           {
-            "start": 287.76489795918366
+            "start": 287.70684807256237
           }
         ],
         "brightness": {
-          "mean_hz": 4082.9842222168227,
-          "min_hz": 286.1860803019567,
-          "max_hz": 7709.785982750944
+          "mean_hz": 4067.257777120343,
+          "min_hz": 298.76891465949666,
+          "max_hz": 7722.129442354881
         },
         "dynamics": {
-          "rms_mean": 0.048423830419778824,
-          "rms_range_db": 53.45804620074096
+          "rms_mean": 0.048828501254320145,
+          "rms_range_db": 53.58878817648575
         },
         "timbre": {
-          "rolloff_hz": 7394.147137203279,
-          "flatness": 0.0027025179006159306,
-          "contrast": 16.50503187522201,
-          "zcr": 0.08293267451513137,
-          "harmonic_ratio": 0.6859631106555875
+          "rolloff_hz": 7386.508557250718,
+          "flatness": 0.002644109074026346,
+          "contrast": 16.5255182365092,
+          "zcr": 0.0822800077945651,
+          "harmonic_ratio": 0.6938123363100885
         },
         "midi_path": null
       },
       "interpretation": {
-        "summary": "An aggressive, high-tempo industrial techno drum track built from heavily synthesized and distorted percussion. The piece starts with an atmospheric noise drone before erupting into a relentless four-on-the-floor groove driven by a punchy kick, a sharp noise snare, and sizzling 16th-note metallic hi-hats. The arrangement evolves by layering additional syncopated digital percussion and manipulating the texture and density of the core rhythmic elements, creating a powerful and mechanical feel.",
+        "summary": "An aggressive and driving industrial drum track at 161 BPM, characterized by heavily distorted, synthetic percussion. The arrangement builds from sparse, atmospheric scraping sounds into a relentless four-on-the-floor beat with dense layers of metallic hi-hats, a sharp noise snare, and a punchy kick, creating a raw and powerful machine-like groove.",
         "vocabulary": {
-          "timbre": "The timbre is synthetic, harsh, and heavily processed. It consists of a tight, distorted low-frequency kick, a sharp, burst-like noise snare, and a bright, inharmonic metallic sizzle for the hi-hats. The overall sound is aggressive and industrial.",
-          "brightness": "Extremely bright and sharp. The sound is dominated by the high-frequency content of the fast metallic hi-hats and the crack of the noise snare, confirmed by a high mean spectral centroid of 4083 Hz. The low-end is present but serves as a tight punch rather than a deep rumble.",
-          "envelope": "All percussive elements have extremely fast attacks and very short decays, creating a tight, staccato, and machine-gun-like quality. There is virtually no sustain or release, emphasizing the rigid, mechanical nature of the groove.",
-          "register_density": "The track builds from a sparse, atmospheric intro into a very dense and driving main section. The register is wide, spanning from the low punch of the kick to the very high, shimmering frequency of the hi-hats. The main groove features a high density of events with constant 16th notes.",
-          "harmony_mode": "Primarily atonal and percussive. The track functions rhythmically without any discernible harmonic or melodic content. The pitched nature of the sounds is complex and inharmonic, used for timbral effect rather than creating a key center.",
-          "groove": "A rigid, straight, and driving four-on-the-floor groove at a fast 161 BPM. The feel is mechanical and relentless, characteristic of industrial techno, with a strong kick on every quarter note and a powerful snare on the backbeats (2 and 4).",
-          "space_grit": "The track is defined by its heavy grit and saturation. All drum sounds are distorted and compressed, giving them an aggressive, punchy character. The spatial sense is relatively dry and in-your-face, with minimal reverb, enhancing the direct and powerful impact of the drums."
+          "timbre": "Highly synthetic and aggressive. A mix of distorted, punchy low-end, sharp digital noise, and bright, inharmonic metallic sounds. The presence of pitched, resonant percussive elements alongside pure noise creates a complex, industrial texture.",
+          "brightness": "Extremely bright, with a high spectral centroid (4067 Hz). This is driven by layers of fast, metallic hi-hats, ride cymbals, and sharp, filtered noise snares. The distortion on the kick also adds significant high-frequency content.",
+          "envelope": "Predominantly sharp and percussive. Most sounds have an extremely fast attack and quick decay, creating a tight, punchy feel. This is contrasted by atmospheric sounds with long, swelling attacks and releases in sparser sections.",
+          "register_density": "Dynamically shifts from sparse and textural to extremely dense. The main beat sections are packed with a driving low-end kick, a mid-range snare, and a constant stream of high-frequency 16th-note hats, occupying the full frequency spectrum.",
+          "harmony_mode": "Atonal and percussive. While some textural elements have discernible pitch, they are used for timbral effect rather than functional harmony. The overall mood is dark and abrasive, suggesting a minor or chromatic context.",
+          "groove": "Relentless and driving. Built on a fast four-on-the-floor kick pattern, a strong backbeat snare, and a constant 16th-note hi-hat pulse. Additional syncopated glitch percussion adds complexity and a machine-like, propulsive energy.",
+          "space_grit": "Extremely gritty and moderately spacious. Every element is processed with heavy distortion and saturation for a raw, abrasive texture. The core kit is tight and upfront, while significant reverb on cymbals and textural layers creates a contrasting sense of depth and a large, cavernous space."
         },
         "tracks": [
           {
             "name": "Industrial Kick",
             "instrument": "MembraneSynth",
-            "pattern": "A driving and relentless four-on-the-floor quarter-note pattern.",
-            "description": "The foundational element of the track, entering at 0:39. This is a tight, punchy, and distorted kick drum that provides the main propulsive force, characteristic of industrial techno. It remains constant through most of the beat-driven sections.",
+            "pattern": "A driving, mostly four-on-the-floor pattern at 161 BPM, providing the core pulse of the track.",
+            "description": "The foundational element of the beat, entering at 0:39. It's a heavily distorted, punchy kick with a sharp attack and significant low-end weight, defining the track's aggressive character.",
             "synth": {
               "type": "MembraneSynth",
               "options": {
-                "volume": -6,
-                "drive": 0.7,
-                "reverbSend": 0.15220038890838625
-              }
-            },
-            "steps": {
-              "grid": "4n",
-              "notes": [
-                "C1",
-                "C1",
-                "C1",
-                "C1"
-              ]
-            }
-          },
-          {
-            "name": "Gated Noise Snare",
-            "instrument": "NoiseSynth",
-            "pattern": "A solid, cracking backbeat on counts 2 and 4.",
-            "description": "A sharp, distorted white noise snare that provides the main backbeat, entering at 0:39. Its character is harsh, digital, and percussive, cutting through the mix to define the groove alongside the kick.",
-            "synth": {
-              "type": "NoiseSynth",
-              "options": {
-                "volume": -9,
-                "drive": 0.4,
-                "chorus": 0,
-                "reverbSend": 0.23126588761806488
-              }
-            },
-            "steps": {
-              "grid": "8n",
-              "notes": [
-                "",
-                "x",
-                "",
-                "x",
-                "",
-                "x",
-                "",
-                "x"
-              ]
-            }
-          },
-          {
-            "name": "Sizzle Hats",
-            "instrument": "MetalSynth",
-            "pattern": "A constant, driving stream of 16th notes.",
-            "description": "A very bright, fast, and metallic-sounding hi-hat pattern that enters at 0:39. It provides the high-frequency energy and rhythmic density for the track, maintaining a relentless pace throughout the main sections.",
-            "synth": {
-              "type": "MetalSynth",
-              "options": {
-                "volume": -22,
-                "harmonicity": 8.1,
-                "modulationIndex": 22,
-                "reverbSend": 0.3204919993877411
+                "attack": 0.001,
+                "decay": 0.2,
+                "sustain": 0,
+                "release": 0.1,
+                "volume": -4,
+                "drive": 0.8
               }
             },
             "steps": {
               "grid": "16n",
               "notes": [
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x",
-                "x"
-              ]
-            }
-          },
-          {
-            "name": "Digital Clap",
-            "instrument": "NoiseSynth",
-            "pattern": "A syncopated, evolving pattern that adds rhythmic complexity, often playing on off-beats.",
-            "description": "Enters around 1:59 (119.1s). A sharper, more digital percussive layer that adds complexity to the groove. It sounds like a synthesized clap or a high-pitched woodblock, creating a call-and-response with the main snare.",
-            "synth": {
-              "type": "NoiseSynth",
-              "options": {
-                "volume": -13,
-                "filterType": "highpass",
-                "filterFrequency": 4000,
-                "filterQ": 1,
-                "reverbSend": 0.2882199287414551
-              }
-            },
-            "steps": {
-              "grid": "16n",
-              "notes": [
-                "",
-                "",
-                "x",
-                "",
-                "",
-                "x",
+                "C1",
                 "",
                 "",
                 "",
+                "C1",
                 "",
-                "x",
                 "",
                 "",
-                "x",
+                "C1",
+                "",
+                "",
+                "",
+                "C1",
+                "",
                 "",
                 ""
               ]
             }
           },
           {
-            "name": "Scraping Drone",
+            "name": "Noise Snare",
             "instrument": "NoiseSynth",
-            "pattern": "A continuous, evolving texture, not a repeating rhythmic pattern.",
-            "description": "A low-volume, resonant noise texture present in the intro (0.0s - 39.2s) and outro. It sounds like scraping metal or resonant feedback, creating a tense, atmospheric bed for the track to emerge from and fade into.",
+            "pattern": "A strong, consistent backbeat on beats 2 and 4.",
+            "description": "A sharp, digital snare sound that cuts through the dense mix. It has a noisy, almost bitcrushed quality and provides the main rhythmic counterpoint to the kick.",
             "synth": {
               "type": "NoiseSynth",
               "options": {
-                "volume": -30,
+                "oscillatorType": "white",
+                "attack": 0.001,
+                "decay": 0.15,
+                "sustain": 0,
+                "release": 0.1,
+                "volume": -8,
                 "filterType": "bandpass",
-                "filterFrequency": 800,
-                "filterQ": 6,
-                "reverbSend": 0.5
+                "filterFrequency": 3000,
+                "filterQ": 2,
+                "drive": 0.4
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "",
+                "",
+                "",
+                "x",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "x",
+                "",
+                "",
+                ""
+              ]
+            }
+          },
+          {
+            "name": "Digital Hats",
+            "instrument": "MetalSynth",
+            "pattern": "A constant, driving stream of 16th notes.",
+            "description": "This track provides the high-frequency energy and propels the track forward. The sound is metallic, trashy, and synthetic, characteristic of industrial electronic music.",
+            "synth": {
+              "type": "MetalSynth",
+              "options": {
+                "attack": 0.001,
+                "decay": 0.08,
+                "release": 0.05,
+                "volume": -15,
+                "harmonicity": 1.1,
+                "modulationIndex": 20,
+                "filterFrequency": 8000
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x"
+              ]
+            }
+          },
+          {
+            "name": "Scraping Texture",
+            "instrument": "FMSynth",
+            "pattern": "Sparse, long-held, arrhythmic events that swell and decay slowly.",
+            "description": "This atmospheric layer defines the intro (0:00-0:39) and reappears in breakdowns. It's a complex, resonant sound, like a bowed or scraped piece of metal, creating tension and a sense of vast, dark space. Heavily treated with reverb.",
+            "synth": {
+              "type": "FMSynth",
+              "options": {
+                "attack": 0.5,
+                "decay": 1,
+                "sustain": 0.5,
+                "release": 4,
+                "volume": -20,
+                "harmonicity": 3.2,
+                "modulationIndex": 15,
+                "reverbSend": 0.9
               }
             },
             "steps": {
               "grid": "1m",
               "notes": [
+                "A2"
+              ]
+            }
+          },
+          {
+            "name": "Ride Cymbal",
+            "instrument": "MetalSynth",
+            "pattern": "Steady quarter-note pattern, accenting the main pulse.",
+            "description": "A bright, metallic ride cymbal that layers on top of the hats in more intense sections (e.g., after 1:58). It adds a washy, sustained high-frequency layer that builds energy.",
+            "synth": {
+              "type": "MetalSynth",
+              "options": {
+                "attack": 0.01,
+                "decay": 0.5,
+                "release": 1.5,
+                "volume": -18,
+                "harmonicity": 5.1,
+                "modulationIndex": 12,
+                "reverbSend": 0.5
+              }
+            },
+            "steps": {
+              "grid": "4n",
+              "notes": [
+                "x",
+                "x",
+                "x",
                 "x"
+              ]
+            }
+          },
+          {
+            "name": "Glitch Perc",
+            "instrument": "PluckSynth",
+            "pattern": "Fast, syncopated, and repetitive rhythmic figures.",
+            "description": "A high-pitched, clicky percussive layer that adds nervous, complex energy to the groove. It appears in various sections, often playing a fast, stuttering pattern that contrasts with the main beat.",
+            "synth": {
+              "type": "PluckSynth",
+              "options": {
+                "attack": 0,
+                "decay": 1,
+                "sustain": 0,
+                "release": 0.1,
+                "volume": -16,
+                "drive": 0.2
+              }
+            },
+            "steps": {
+              "grid": "16n",
+              "notes": [
+                "",
+                "",
+                "x",
+                "x",
+                "",
+                "x",
+                "",
+                "",
+                "",
+                "",
+                "x",
+                "x",
+                "",
+                "x",
+                "",
+                ""
               ]
             }
           }
         ],
-        "score_draft": "/* SPECULATIVE STARTER - The core of this track is a heavily processed industrial techno kit at 161 BPM. Start with Tone.Transport.bpm.value = 161. The kick is a tight, distorted Tone.MembraneSynth. Try { pitchDecay: 0.01, attack: 0.001, decay: 0.1, sustain: 0, drive: 0.7 }. Sequence it on a '4n' grid: ['C1', 'C1', 'C1', 'C1']. The snare is a Tone.NoiseSynth with a very fast envelope and a bandpass filter to give it a sharp 'crack'. Try { noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 }, filter: { type: 'bandpass', frequency: 3000, Q: 2 } }. Sequence on beats 2 and 4: ['', 'x', '', 'x']. The hi-hats are a Tone.MetalSynth playing constant 16ths. Use high harmonicity and modulationIndex for a bright, sizzling texture, e.g., { harmonicity: 8, modulationIndex: 20, envelope: { attack: 0.001, decay: 0.05 } }. The atmospheric intro/outro is a Tone.NoiseSynth with a resonant bandpass filter and a very long envelope, e.g., { filter: { type: 'bandpass', frequency: 800, Q: 5 }, envelope: { attack: 5, release: 10 } }. Heavy saturation/distortion via Tone.Distortion is key on the kick and snare channels. */"
+        "score_draft": "/* SPECULATIVE SCORE-DRAFT STARTER */\n\nconst bpm = 161;\n\n// Main Kick: Use a MembraneSynth with a sharp attack (0.001) and heavy drive (~0.8) to get the punch and grit.\n// Pattern: ['C1', null, null, null, 'C1', null, null, null, ...]\n\n// Snare: A NoiseSynth with 'white' noise, a very fast envelope (attack: 0.001, decay: 0.15), and a bandpass filter around 3kHz with some Q.\n// Pattern: [null, null, null, null, 'x', null, null, null, ...]\n\n// Hats: MetalSynth is key. For the main 16ths, use a high frequency, low harmonicity (e.g., 1.1), and a very short decay (~0.08). \n// Pattern: ['x', 'x', 'x', 'x', ...]\n\n// Textures: FMSynth for the atmospheric scrapes. Use a long ADSR (release ~4s), high modulationIndex (~15) and harmonicity (~3.2) for a complex, inharmonic tone. Drench in reverb (reverbSend > 0.8).\n\n// Effects: Route most percussion tracks through a master distortion or bitcrusher effect with a moderate wet/dry mix to glue them together and add overall grit. A master reverb can provide the sense of space."
       }
     },
     {
@@ -277,7 +340,7 @@
         "bpm": 161.4990234375,
         "key": "C#",
         "mode": "major",
-        "key_confidence": 0.858601131333558,
+        "key_confidence": 0.8626084249458965,
         "duration_sec": 318.6009977324263,
         "sections": [
           {
@@ -287,155 +350,94 @@
             "start": 40.216961451247165
           },
           {
-            "start": 118.93260770975057
+            "start": 118.80489795918368
           },
           {
-            "start": 135.53487528344672
+            "start": 135.52326530612245
           },
           {
-            "start": 165.3144671201814
+            "start": 164.32761904761904
           },
           {
-            "start": 198.44934240362812
+            "start": 198.25197278911565
           },
           {
-            "start": 240.7677097505669
+            "start": 240.75609977324262
           },
           {
             "start": 285.5938321995465
           }
         ],
         "brightness": {
-          "mean_hz": 1825.8370522275745,
-          "min_hz": 565.0493647905358,
-          "max_hz": 3750.3637807436085
+          "mean_hz": 1827.664842573293,
+          "min_hz": 702.576165142525,
+          "max_hz": 3629.4106038919344
         },
         "dynamics": {
-          "rms_mean": 0.02059413120150566,
-          "rms_range_db": 46.19555849460414
+          "rms_mean": 0.020480340346693993,
+          "rms_range_db": 46.46922403426295
         },
         "timbre": {
-          "rolloff_hz": 2664.973441377171,
-          "flatness": 0.00031830600346438587,
-          "contrast": 18.876651818871952,
-          "zcr": 0.041715708895483365,
-          "harmonic_ratio": 0.8910815218579474
+          "rolloff_hz": 2662.275371401329,
+          "flatness": 0.000308237096760422,
+          "contrast": 18.867456986374723,
+          "zcr": 0.04206154290256167,
+          "harmonic_ratio": 0.8903799831586212
         },
         "midi_path": null
       },
       "interpretation": {
-        "summary": "An industrial electronic track built from heavily processed and distorted vocal-like synth textures. A low, ominous drone pad establishes the atmosphere, which is then driven by a relentless, syncopated, percussive chant pattern. A high-pitched siren pad adds layers of tension later in the piece, all within a vast, cavernous reverb space.",
+        "summary": "An isolated vocal stem featuring a single, heavily processed male spoken-word track. The voice is transformed into a rhythmic, industrial chant with extreme distortion, vocoder-like effects, and cavernous reverb, serving as both a lead element and a percussive driver.",
         "vocabulary": {
-          "timbre": "Heavily distorted and filtered vocal-like synth textures, combining tonal components with digital noise and grit.",
-          "brightness": "Moderately bright with a focus on gritty low-mids and harsh, resonant high frequencies from distortion.",
-          "envelope": "A mix of very slow-attack, long-release pads and tight, percussive, short-decay plucks.",
-          "register_density": "Starts with a low-register drone, then builds density by adding a driving mid-register rhythmic layer and a high-register tension pad.",
-          "harmony_mode": "Dark, tense, and modal, centered around A# minor, despite the measured C# major key. Static harmony with tension created through dissonance and texture.",
-          "groove": "A mechanical, relentless, syncopated 16th-note pulse driven by a percussive synth chant, not traditional drums.",
-          "space_grit": "Extreme grit from heavy distortion and drive, combined with a vast, cavernous space created by long reverb tails."
+          "timbre": "Heavily processed, distorted, and vocoded-sounding male voice. It has a metallic, robotic character with significant digital artifacts and rich harmonic saturation.",
+          "brightness": "Generally dark and muffled, but punctuated by sharp, bright transients from the distortion and percussive edits. The overall character is gritty rather than purely bright.",
+          "envelope": "The main vocal phrases have a clear attack and a long, reverberant release. The rhythmic vocal chops are extremely tight and percussive, with a fast attack and very short decay, almost like a gate.",
+          "register_density": "Low to mid-register spoken word. The density is initially sparse, building with the introduction of rhythmic vocal chops and layered phrases into a hypnotic, dense texture.",
+          "harmony_mode": "Monotonic and chant-like, centered on a narrow pitch range. Despite the measured C# major key, the feel is dark, industrial, and minor, revolving around A# as a tonic.",
+          "groove": "A driving, syncopated 16th-note groove is established by the percussive vocal cuts and chanted phrases, creating a hypnotic, machine-like pulse.",
+          "space_grit": "The space is vast and cavernous, defined by heavy reverb with a long decay. The grit is extreme and foundational, achieved through layers of distortion, bitcrushing, and saturation."
         },
         "tracks": [
           {
-            "name": "Industrial Drone Pad",
-            "instrument": "PolySynth",
-            "pattern": "Single, sustained low notes (A#2) held for many bars, with slow filter modulation.",
-            "description": "Provides a low, rumbling, textural foundation. Present from the beginning, creating a dark, ominous atmosphere. Processed with heavy distortion and reverb.",
-            "synth": {
-              "type": "PolySynth",
-              "options": {
-                "oscillatorType": "fatsawtooth",
-                "count": 5,
-                "spread": 30,
-                "attack": 4,
-                "decay": 1,
-                "sustain": 0.9,
-                "release": 5,
-                "volume": -18,
-                "filterType": "lowpass",
-                "filterFrequency": 400,
-                "filterQ": 2,
-                "drive": 0.8,
-                "reverbSend": 0.7
-              }
-            },
-            "steps": {
-              "grid": "1m",
-              "notes": [
-                "A#2"
-              ]
-            }
-          },
-          {
-            "name": "Rhythmic Glitch Chant",
-            "instrument": "FMSynth",
-            "pattern": "A relentless, syncopated 16th-note pattern on a single pitch, creating a mechanical groove.",
-            "description": "The main rhythmic and melodic driver of the track, entering at 0:40. It's aggressive, percussive, and defines the track's industrial groove. It's distorted and sits in a large reverb space.",
+            "name": "Cyber-Chant",
+            "instrument": "FMSynth with heavy distortion and reverb to emulate a processed vocoder or robotic voice.",
+            "pattern": "A repetitive, syncopated 16th-note phrase, chanting on a near-monotone pitch. It alternates between longer, sustained words and short, staccato, percussive hits, creating a machine-like rhythm.",
+            "description": "The only element in this stem, this track provides the lead vocal, rhythmic drive, and main textural content. It's present throughout, defining the track's aggressive, industrial character with its hypnotic repetition and heavy processing.",
             "synth": {
               "type": "FMSynth",
               "options": {
+                "oscillatorType": "sine",
                 "harmonicity": 1.5,
-                "modulationIndex": 12,
-                "filterType": "bandpass",
-                "filterFrequency": 2000,
-                "filterQ": 4,
-                "drive": 0.6,
-                "reverbSend": 0.55
+                "modulationIndex": 15,
+                "drive": 0.8,
+                "chorus": 0.3,
+                "reverbSend": 0.75
               }
             },
             "steps": {
               "grid": "16n",
               "notes": [
-                "A#4",
+                "A#2",
                 "",
-                "A#4",
-                "A#4",
+                "A#2",
+                "A#2",
                 "",
-                "A#4",
-                "A#4",
+                "C#3",
                 "",
-                "A#4",
                 "",
-                "A#4",
-                "A#4",
+                "A#2",
                 "",
-                "A#4",
+                "A#2",
+                "A#2",
                 "",
-                "A#4"
-              ]
-            }
-          },
-          {
-            "name": "Siren Pad",
-            "instrument": "PolySynth",
-            "pattern": "Long, sustained, high-pitched notes with a slow attack, creating a tense, evolving layer.",
-            "description": "Enters around 1:35, adding a layer of high-frequency tension. It's a sustained, evolving sound that contrasts with the rhythmic chant. It has a wide stereo image from chorus and is soaked in reverb.",
-            "synth": {
-              "type": "PolySynth",
-              "options": {
-                "oscillatorType": "fatsquare",
-                "count": 4,
-                "spread": 25,
-                "attack": 2.5,
-                "decay": 1,
-                "sustain": 1,
-                "release": 3,
-                "volume": -15,
-                "filterType": "bandpass",
-                "filterFrequency": 2500,
-                "filterQ": 6,
-                "chorus": 0.6,
-                "reverbSend": 0.8
-              }
-            },
-            "steps": {
-              "grid": "1m",
-              "notes": [
-                "F5"
+                "A#2",
+                "",
+                ""
               ]
             }
           }
         ],
-        "score_draft": "SPECULATIVE STARTER: Create a sequence at 161 BPM. The foundation is a `PolySynth` ('Industrial Drone Pad') with a `fatsawtooth` oscillator, slow attack (4s), high release (5s), and a lowpass filter around 400Hz. Add heavy `drive: 0.8`. It plays a sustained `A#2`. The main groove comes from an `FMSynth` ('Rhythmic Glitch Chant') with high `modulationIndex: 12` and `harmonicity: 1.5` for metallic tones. Use a fast, plucky envelope (`attack: 0.01`, `decay: 0.2`) and a bandpass filter. Program a syncopated 16n pattern like `['A#4', '', 'A#4', 'A#4', '', 'A#4', 'A#4', '', 'A#4', '', 'A#4', 'A#4', '', 'A#4', '', 'A#4']`. Add a `PolySynth` ('Siren Pad') with `fatsquare` oscillators, slow attack (~2.5s), and a resonant bandpass filter (`filterQ: 6`). It plays sustained high notes like `F5`. Route all tracks to a master reverb with a long decay (~6s) and a `wet` value of around 0.4 to create the vast space. Add a `Distortion` effect on the master bus with `distortion: 0.4` for overall grit."
+        "score_draft": "SPECULATIVE STARTER: To approximate this sound, use an FMSynth or a MonoSynth with a 'sawtooth' oscillator. The key is heavy processing. Create a Tone.js effect chain: start with a Distortion({ distortion: 0.8 }), followed by a Filter({ type: 'lowpass', frequency: 2500, Q: 2 }), and then a Reverb({ decay: 8, wet: 0.75 }). The synth envelope should be tight for rhythmic parts (ADSR: [0.01, 0.1, 0.1, 0.2]). The main rhythmic feel comes from a syncopated 16th-note sequence, using rests extensively to mimic the chopped-up speech pattern. A sample loop could be: new Tone.Sequence( (time, note) => { synth.triggerAttackRelease(note, '16n', time) }, ['A#2', null, 'A#2', 'A#2', null, 'C#3', null, null] ). A Vocoder effect, with the synth as the carrier and a noise source as the modulator, would get even closer to the robotic timbre."
       }
     },
     {
@@ -444,23 +446,23 @@
         "bpm": 161.4990234375,
         "key": "C#",
         "mode": "minor",
-        "key_confidence": 0.912187852798098,
+        "key_confidence": 0.9102678918049243,
         "duration_sec": 318.6009977324263,
         "sections": [
           {
             "start": 0.0
           },
           {
-            "start": 7.859954648526077
+            "start": 8.02249433106576
           },
           {
-            "start": 39.21850340136054
+            "start": 39.31138321995465
           },
           {
             "start": 87.37668934240362
           },
           {
-            "start": 166.80054421768708
+            "start": 166.81215419501135
           },
           {
             "start": 198.60027210884354
@@ -469,58 +471,58 @@
             "start": 207.01750566893423
           },
           {
-            "start": 290.3655328798186
+            "start": 288.3802267573696
           }
         ],
         "brightness": {
-          "mean_hz": 1447.5453631948176,
-          "min_hz": 199.6599099370688,
-          "max_hz": 7999.027083380865
+          "mean_hz": 1450.455296684336,
+          "min_hz": 191.97067400964534,
+          "max_hz": 7999.413292723586
         },
         "dynamics": {
-          "rms_mean": 0.08004382252693176,
-          "rms_range_db": 15.400620621752724
+          "rms_mean": 0.08030694723129272,
+          "rms_range_db": 15.16418017423788
         },
         "timbre": {
-          "rolloff_hz": 2314.366480772845,
-          "flatness": 0.00023108329332899302,
-          "contrast": 19.643285080958616,
-          "zcr": 0.04522833406970812,
-          "harmonic_ratio": 0.9648960122546937
+          "rolloff_hz": 2324.975225227838,
+          "flatness": 0.00022455555154010653,
+          "contrast": 19.648584423325246,
+          "zcr": 0.04505122691806654,
+          "harmonic_ratio": 0.9645575352187109
         },
         "midi_path": null
       },
       "interpretation": {
-        "summary": "An atmospheric and textural stem, combining a vast, slowly evolving drone with sharp, aggressive, and rhythmic industrial elements. The piece builds in density, layering percussive noise and a distorted arpeggio over the foundational pad to create a sense of growing tension and unease.",
+        "summary": "An atmospheric and cinematic piece built on a massive, slow-moving choral pad. It gradually builds intensity by introducing a rigid, clock-like metallic pulse, which then gives way to a heavily distorted, highly syncopated, and propulsive synth bass/arp that drives the track's second half. The overall mood is dark, mechanical, and liturgical.",
         "vocabulary": {
-          "timbre": "A complex blend of a tonal, vocal-like synthetic drone and harsh, gritty digital noise textures. The sound is fundamentally synthetic, with significant saturation and artifacting.",
-          "brightness": "Mid-bright, with a strong presence in the midrange and a controlled high-end. The base drone is darker, punctuated by brighter, harsher rhythmic elements.",
-          "envelope": "A study in contrasts: the foundational drone has an extremely slow attack and release, creating a continuous wash, while rhythmic elements use sharp, percussive envelopes with fast attacks and short decays.",
-          "register_density": "Starts sparse in the low-mid register with a single drone, then builds to a dense, multi-layered texture across the entire mid-range as rhythmic synths and noise are added.",
-          "harmony_mode": "Static and modal, centered on a dark C# minor tonality. Harmony is established by the drone's root and shifting overtones, creating a tense, suspended feel rather than a traditional progression.",
-          "groove": "A nervous, driving industrial pulse emerges from the layering of fast, repetitive synth sequences and noise hits over the slow, non-rhythmic ambient drone.",
-          "space_grit": "The soundstage is a massive, cavernous hall, with heavy reverb applied to the drone. This is contrasted by the dry, aggressive distortion and digital grit on the foreground rhythmic elements."
+          "timbre": "Dominated by massive, detuned sawtooth pads and a gritty, resonant, filtered synth bass. Highly tonal but with significant synthetic grit and distortion.",
+          "brightness": "Moderately bright, with low, warm pads contrasted by a sharper, resonant synth lead that cuts through the mix later. The sound is full but not piercingly harsh.",
+          "envelope": "Pads have a very slow attack and long release, creating a continuous wash. The rhythmic synths have a tight, plucky envelope with near-instant attack and short decay, emphasizing their percussive nature.",
+          "register_density": "Starts with a wide but sparse pad in the low-to-mid registers. Becomes denser with the addition of a driving, syncopated low-mid range synth line that occupies the rhythmic space.",
+          "harmony_mode": "Dark, modal, and repetitive, centered on C# minor. The harmony moves slowly in large blocks, creating a liturgical or cinematic feel, reinforcing tension and solemnity.",
+          "groove": "Initially absent and free-flowing. A rigid, mechanical groove is introduced first by a simple clock-like pulse, then by a highly syncopated and driving 16th-note synth pattern at 161 BPM.",
+          "space_grit": "The space is vast and cavernous, created by immense reverb on the pads. Grit is introduced heavily in the second half via a distorted, overdriven synth bass with significant filter resonance."
         },
         "tracks": [
           {
-            "name": "Formant Drone",
+            "name": "Cathedral Pad",
             "instrument": "PolySynth",
-            "pattern": "A single, sustained minor chord that swells in and out with a very long attack and release. Slow, subtle filter modulation provides internal movement.",
-            "description": "The foundational atmospheric bed of the track, present almost throughout. It provides the dark, cavernous space and the main harmonic context of C# minor. Its resonant filter gives it a static, vocal-like quality.",
+            "pattern": "Slow-moving, sustained block chords, typically held for 4-8 bars, rooted in C# minor.",
+            "description": "Forms the atmospheric, harmonic foundation of the entire piece. Present from the start, it creates a massive, dark, and evolving soundscape. It's drenched in a very long, cavernous reverb.",
             "synth": {
               "type": "PolySynth",
               "options": {
                 "oscillatorType": "fatsawtooth",
                 "count": 5,
                 "spread": 30,
-                "attack": 8,
-                "decay": 2,
+                "attack": 4,
+                "decay": 0.5,
                 "sustain": 0.9,
-                "release": 10,
-                "volume": -15,
+                "release": 6,
+                "volume": -12,
                 "filterType": "lowpass",
-                "filterFrequency": 1200,
-                "filterQ": 4,
+                "filterFrequency": 2000,
+                "filterQ": 1.5,
                 "chorus": 0.4,
                 "reverbSend": 0.9
               }
@@ -528,128 +530,109 @@
             "steps": {
               "grid": "1m",
               "notes": [
-                "C#3+G#3+B3"
+                "C#3+G#3+E4"
               ]
             }
           },
           {
-            "name": "Rhythmic Noise Hit",
-            "instrument": "NoiseSynth",
-            "pattern": "A repetitive, syncopated rhythm of sharp noise bursts, accenting off-beats and creating a sense of forward motion.",
-            "description": "Enters around 39 seconds, introducing the first clear rhythmic pulse. It's a percussive, sharp noise hit that cuts through the drone and adds a nervous, industrial character.",
+            "name": "Clockwork Click",
+            "instrument": "MetalSynth",
+            "pattern": "A steady 16th-note pulse, sometimes with accents or slight variations, often panned.",
+            "description": "Enters around 0:39, acting as a high-frequency timekeeper. It introduces a mechanical, rigid feel against the fluid pad. It's processed with delay and panning, and eventually gives way to the main Engine Arp.",
             "synth": {
-              "type": "NoiseSynth",
+              "type": "MetalSynth",
               "options": {
-                "attack": 0.005,
-                "decay": 0.15,
-                "sustain": 0,
-                "volume": -18,
-                "reverbSend": 0.4
-              }
-            },
-            "steps": {
-              "grid": "8n",
-              "notes": [
-                "",
-                "x",
-                "",
-                "x",
-                "x",
-                "",
-                "x",
-                ""
-              ]
-            }
-          },
-          {
-            "name": "Glitch Arp",
-            "instrument": "MonoSynth",
-            "pattern": "A fast, driving 16th-note sequence playing a simple melodic fragment within the C# minor scale. The sound is heavily distorted.",
-            "description": "Enters around 87 seconds, dramatically increasing the track's tension and aggression. This raw, digital, and heavily driven arpeggio becomes a central driving force in the middle section of the piece.",
-            "synth": {
-              "type": "MonoSynth",
-              "options": {
-                "oscillatorType": "square",
-                "attack": 0.01,
-                "decay": 0.15,
-                "sustain": 0.1,
-                "release": 0.1,
-                "volume": -18,
-                "filterType": "lowpass",
-                "filterFrequency": 4000,
-                "filterQ": 2,
-                "drive": 0.8,
-                "reverbSend": 0.2
+                "harmonicity": 5.1,
+                "modulationIndex": 22,
+                "reverbSend": 0.5
               }
             },
             "steps": {
               "grid": "16n",
               "notes": [
-                "G#3",
-                "B3",
-                "C#4",
-                "B3",
-                "G#3",
-                "B3",
-                "C#4",
-                "B3",
-                "G#3",
-                "E4",
-                "C#4",
-                "B3",
-                "G#3",
-                "B3",
-                "C#4",
-                "G#3"
+                "C#6",
+                "",
+                "C#6",
+                "",
+                "C#6",
+                "",
+                "C#6",
+                "",
+                "C#6",
+                "",
+                "C#6",
+                "",
+                "C#6",
+                "",
+                "C#6",
+                ""
               ]
             }
           },
           {
-            "name": "Industrial Wind",
-            "instrument": "NoiseSynth",
-            "pattern": "A constant, high-frequency stream of noise, like static or rushing air.",
-            "description": "A subtle textural layer that appears in denser sections. It adds high-frequency energy and enhances the industrial, desolate atmosphere without being a primary focal point.",
+            "name": "Engine Arp",
+            "instrument": "MonoSynth",
+            "pattern": "A driving, highly syncopated 16th-note bass/lead line, forming a tight ostinato loop.",
+            "description": "The main driving force from 1:27 (87.4s) onwards. Its gritty, distorted, and resonant tone provides the track's aggression and momentum. It sits in the low-mid range, functioning as both a bass line and a rhythmic lead.",
             "synth": {
-              "type": "NoiseSynth",
+              "type": "MonoSynth",
               "options": {
-                "attack": 0.2,
-                "decay": 0.1,
-                "sustain": 1,
-                "volume": -28,
-                "reverbSend": 0.6
+                "oscillatorType": "sawtooth",
+                "attack": 0.01,
+                "decay": 0.2,
+                "sustain": 0.1,
+                "release": 0.1,
+                "volume": -6,
+                "filterType": "lowpass",
+                "filterFrequency": 800,
+                "filterQ": 6,
+                "drive": 0.7,
+                "reverbSend": 0.4
               }
             },
             "steps": {
-              "grid": "4n",
+              "grid": "16n",
               "notes": [
-                "x",
-                "x",
-                "x",
-                "x"
+                "C#2",
+                "",
+                "C#2",
+                "",
+                "",
+                "",
+                "G#1",
+                "",
+                "C#2",
+                "",
+                "C#2",
+                "",
+                "",
+                "",
+                "G#1",
+                ""
               ]
             }
           }
         ],
-        "score_draft": "SPECULATIVE STARTER: The core of this track is the contrast between a massive ambient drone and aggressive rhythmic elements. Start with a PolySynth for the drone, using a 'fatsawtooth' oscillator with 5+ voices and a spread of 30. Use a very long attack (~8s) and release (~10s) on the amp envelope. Add a lowpass filter around 1200Hz with a Q of 4 to get a resonant, vocal quality. Send it to a large reverb (0.9 send). For the 'Glitch Arp', use a MonoSynth with a 'square' wave and a short, plucky envelope (decay ~0.15). The key is distortion: set the 'drive' to 0.8 or higher. Sequence a fast 16th-note pattern in C# minor, like ['G#3', 'B3', 'C#4', 'B3']. Layer in a NoiseSynth for percussive hits, using a very fast attack and short decay (~0.15s), triggered in a syncopated '8n' pattern. The tension comes from layering these dry, aggressive elements over the vast, wet pad."
+        "score_draft": "Start with the main pad: a PolySynth with a 'fatsawtooth' oscillator (count: 5, spread: 30). Give it a very slow attack (~4s) and long release (~6s). Use heavy reverb (decay ~7s) and chorus (~0.4). Play slow C# minor chords, e.g., ['C#3','G#3','E4']. The driving rhythm is a MonoSynth (oscillator: 'sawtooth', drive: 0.7) through a resonant lowpass filter (frequency: 800, Q: 6). Sequence a syncopated 16th-note pattern like ['C#2', null, 'C#2', null, null, null, 'G#1', null, ...]. A subtle LFO on the filter cutoff can add movement. The clock percussion can be a MetalSynth with a short envelope, high harmonicity (~5), and some stereo delay. Set tempo to 161 BPM."
       }
     },
     {
       "stem": "bass",
       "mir": {
         "bpm": 161.4990234375,
-        "key": "C",
-        "mode": "major",
-        "key_confidence": 0.6541571013697414,
+        "key": "C#",
+        "mode": "minor",
+        "key_confidence": 0.6680615649604891,
         "duration_sec": 318.6009977324263,
         "sections": [
           {
             "start": 0.0
           },
           {
-            "start": 87.37668934240362
+            "start": 87.38829931972789
           },
           {
-            "start": 118.43337868480725
+            "start": 117.78321995464853
           },
           {
             "start": 135.53487528344672
@@ -661,146 +644,85 @@
             "start": 278.7439455782313
           },
           {
-            "start": 283.2137868480726
+            "start": 283.2370068027211
           },
           {
-            "start": 293.87174603174606
+            "start": 293.604716553288
           }
         ],
         "brightness": {
-          "mean_hz": 414.7678807169835,
-          "min_hz": 149.35248912949652,
-          "max_hz": 2799.658942296989
+          "mean_hz": 404.3952540431286,
+          "min_hz": 149.66869150592075,
+          "max_hz": 3231.9577787206504
         },
         "dynamics": {
-          "rms_mean": 0.01924184523522854,
-          "rms_range_db": 47.283575799841195
+          "rms_mean": 0.019204920157790184,
+          "rms_range_db": 47.53161652771058
         },
         "timbre": {
-          "rolloff_hz": 365.85891440903987,
-          "flatness": 0.0007295824470929801,
-          "contrast": 14.838097363137518,
-          "zcr": 0.005497776783924863,
-          "harmonic_ratio": 0.8303054073985406
+          "rolloff_hz": 339.0316825132038,
+          "flatness": 0.0007635249639861286,
+          "contrast": 14.817284761162538,
+          "zcr": 0.0053444938713879675,
+          "harmonic_ratio": 0.8315456137558978
         },
         "midi_path": null
       },
       "interpretation": {
-        "summary": "An aggressive, industrial bass track composed of several heavily distorted and filtered synth layers. The foundation is a hypnotic, driving 16th-note rhythm, supplemented by a low sub-drone and a resonant, growling synth that provides textural variation. The overall feel is dark, mechanical, and propulsive.",
+        "summary": "A single, heavily processed bass instrument that evolves from an atmospheric drone into a complex, syncopated, and aggressive rhythmic engine. Its primary character comes from heavy distortion and a resonant, 'talking' filter that provides both timbral interest and a percussive quality.",
         "vocabulary": {
-          "timbre": "A tonal but complex, gritty sound created by heavy distortion and resonant low-pass filtering on saw and FM oscillators.",
-          "brightness": "Very dark and bass-heavy, with a low spectral centroid centered around 415 Hz, indicating a heavily filtered sound.",
-          "envelope": "Predominantly plucky and percussive, with fast attacks and quick decays, especially in the main rhythmic line, though sustained drones are also present.",
-          "register_density": "Operates in the low register (C1-C3), varying from sparse, single-note drones to dense, driving 16th-note patterns.",
-          "harmony_mode": "Hypnotic and minor, centered around a C minor tonic (Aeolian mode), with simple root-fifth movement creating a dark, driving feel.",
-          "groove": "A relentless, fast (161 BPM) industrial groove built on a 16th-note grid, creating a sense of mechanical, forward momentum.",
-          "space_grit": "Extremely gritty and distorted, with high drive settings creating saturation and aggression. The sound is dry and upfront with minimal reverb."
+          "timbre": "A complex, harmonically rich timbre created by distortion and resonant filtering, giving the bass a 'talking' or vocal-formant quality. It's fundamentally tonal but saturated with aggressive overtones.",
+          "brightness": "Dark overall, centered in the low and low-mid frequencies, but the distortion and filter resonance provide a cutting edge that allows it to punch through a mix without being overtly bright.",
+          "envelope": "The track begins with a very slow attack, swelling drone. The main body features a tight, percussive envelope with a fast attack and quick decay/release, emphasizing the rhythmic precision of the patterns.",
+          "register_density": "Operates in the low bass register (C#1-C#2). Density evolves from a single sustained note to dense, driving, and syncopated 16th-note patterns that form the rhythmic core.",
+          "harmony_mode": "Monophonic basslines firmly establish a dark C# minor tonality. The patterns revolve around the root (C#), fifth (G#), and minor seventh (B), creating a tense and driving harmonic foundation.",
+          "groove": "A driving, relentless industrial groove at 161 BPM. The core rhythm is built on syncopated 16th-note patterns that create a lurching, machine-like feel.",
+          "space_grit": "Extremely high grit. The sound is defined by heavy saturation, drive, and filter resonance. The spatial treatment is dry and direct, creating an aggressive, in-your-face presence with minimal reverb or ambient wash."
         },
         "tracks": [
           {
-            "name": "Sub Drone",
-            "instrument": "Synth",
-            "pattern": "A single, sustained root note held for long durations.",
-            "description": "Provides a continuous low-frequency foundation from the beginning of the track, establishing an ominous, weighty atmosphere.",
+            "name": "Talking Grit Bass",
+            "instrument": "FMSynth with a resonant filter and distortion",
+            "pattern": "A syncopated 16th-note pattern on a 1-bar loop, with rests creating a funky, lurching industrial groove. Evolves from a simple drone in the intro.",
+            "description": "This is the sole instrument, defining the piece's rhythm and aggression. It starts as a slow, ominous drone before erupting at 0:43 into its main character: a tight, distorted, rhythmic force. The 'talking' quality comes from a resonant low-pass filter being modulated, making the bass the central melodic and textural element.",
             "synth": {
-              "type": "Synth",
+              "type": "FMSynth",
               "options": {
-                "oscillatorType": "sine",
-                "attack": 1.5,
-                "decay": 0.5,
-                "sustain": 1,
-                "release": 2,
-                "volume": -18,
+                "oscillatorType": "square",
+                "harmonicity": 1.5,
+                "modulationIndex": 20,
                 "filterType": "lowpass",
-                "filterFrequency": 200,
-                "filterQ": 1,
-                "drive": 0.2
-              }
-            },
-            "steps": {
-              "grid": "1m",
-              "notes": [
-                "C1"
-              ]
-            }
-          },
-          {
-            "name": "Rhythmic Drive Bass",
-            "instrument": "MonoSynth",
-            "pattern": "A syncopated, driving 16th-note pattern primarily on the root note, with occasional jumps to the fifth.",
-            "description": "The main rhythmic engine of the track, entering around 0:40. It's heavily distorted and has a 'talky' quality from a plucky filter envelope, creating the core industrial groove.",
-            "synth": {
-              "type": "MonoSynth",
-              "options": {
-                "oscillatorType": "fatsawtooth",
-                "count": 4,
-                "spread": 30,
-                "attack": 0.01,
-                "decay": 0.3,
-                "sustain": 0.1,
-                "release": 0.2,
-                "volume": -9,
-                "filterType": "lowpass",
-                "filterFrequency": 1800,
+                "filterFrequency": 700,
                 "filterQ": 5,
-                "drive": 0.7
+                "drive": 0.8,
+                "chorus": 0,
+                "reverbSend": 0.15
               }
             },
             "steps": {
               "grid": "16n",
               "notes": [
-                "C2",
+                "C#2",
                 "",
-                "C2",
-                "C2",
+                "C#2",
                 "",
-                "C2",
+                "G#1",
+                "G#1",
                 "",
-                "G1",
-                "C2",
                 "",
-                "C2",
-                "C2",
+                "B1",
                 "",
-                "C2",
+                "B1",
                 "",
-                "G1"
-              ]
-            }
-          },
-          {
-            "name": "Growl Bass",
-            "instrument": "FMSynth",
-            "pattern": "A syncopated, repeating 8th-note phrase with heavy filter modulation, creating a 'wub' or 'growl' effect.",
-            "description": "An aggressive textural layer that enters in sections (e.g., around 1:20) to add variation. Its metallic timbre and resonant filter sweeps contrast with the main drive bass.",
-            "synth": {
-              "type": "FMSynth",
-              "options": {
-                "harmonicity": 1.5,
-                "modulationIndex": 10,
-                "filterType": "lowpass",
-                "filterFrequency": 900,
-                "filterQ": 7,
-                "drive": 0.9,
-                "reverbSend": 0.15
-              }
-            },
-            "steps": {
-              "grid": "8n",
-              "notes": [
-                "C2",
-                "",
-                "C2",
-                "G1",
-                "C2",
-                "",
+                "C#2",
+                "C#2",
                 "",
                 ""
               ]
             }
           }
         ],
-        "score_draft": "SPECULATIVE STARTER: The core is a MonoSynth for the 'Rhythmic Drive Bass'. Use a 'fatsawtooth' oscillator (count: 4, spread: 30) into a resonant lowpass filter (freq: ~1800Hz, Q: 5). The key is a plucky envelope (attack: 0.01, decay: 0.3, sustain: 0.1) and heavy drive (~0.7). Program a driving 16th-note sequence like ['C2', '', 'C2', 'C2', '', 'C2', '', 'G1', ...]. Layer this with an aggressive 'Growl Bass' using FMSynth (harmonicity: 1.5, modIndex: 10, drive: 0.9) with its own lowpass filter being modulated. A simple 'sine' Synth provides the 'Sub Drone' foundation with a very low filter cutoff (~200Hz) and long release."
+        "score_draft": "SPECULATIVE STARTER: The core of this track is a single, evolving bass part. Start with a `Tone.FMSynth`. For the main distorted sound, set a high `modulationIndex` (15-25) and `harmonicity` around 1.5 to get a complex, gritty base tone. The carrier could be a 'square' or 'sawtooth' wave. The key is to pipe this through a `Tone.Filter` and `Tone.Distortion`. Set the filter to 'lowpass' with a frequency around 600-900 Hz and a high `Q` (4-6) to get the resonant peak. Modulate this filter's frequency with a `Tone.LFO` or `Tone.EnvelopeFollower` to achieve the 'talking' effect. Apply significant distortion with `drive` around 0.7-0.9. The main pattern is a syncopated 16th-note sequence, like: `['C#2', null, 'C#2', null, 'G#1', 'G#1', null, null, 'B1', null, 'B1', null, 'C#2', 'C#2', null, null]`. For the intro, use the same synth but with a very slow attack (e.g., `attack: 5`) and remove the rhythmic sequencing, holding a single low note like `C#1`."
       }
     }
   ],
@@ -812,85 +734,171 @@
       {
         "name": "Industrial Kick",
         "instrument": "MembraneSynth",
-        "pattern": "A driving and relentless four-on-the-floor quarter-note pattern.",
-        "description": "The foundational element of the track, entering at 0:39. This is a tight, punchy, and distorted kick drum that provides the main propulsive force, characteristic of industrial techno. It remains constant through most of the beat-driven sections.",
+        "pattern": "A driving, mostly four-on-the-floor pattern at 161 BPM, providing the core pulse of the track.",
+        "description": "The foundational element of the beat, entering at 0:39. It's a heavily distorted, punchy kick with a sharp attack and significant low-end weight, defining the track's aggressive character.",
         "synth": {
           "type": "MembraneSynth",
           "options": {
-            "volume": -6,
-            "drive": 0.7,
-            "reverbSend": 0.15220038890838625
+            "attack": 0.001,
+            "decay": 0.2,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -4,
+            "drive": 0.8
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C1",
+            "",
+            "",
+            "",
+            "C1",
+            "",
+            "",
+            "",
+            "C1",
+            "",
+            "",
+            "",
+            "C1",
+            "",
+            "",
+            ""
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Noise Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "A strong, consistent backbeat on beats 2 and 4.",
+        "description": "A sharp, digital snare sound that cuts through the dense mix. It has a noisy, almost bitcrushed quality and provides the main rhythmic counterpoint to the kick.",
+        "synth": {
+          "type": "NoiseSynth",
+          "options": {
+            "oscillatorType": "white",
+            "attack": 0.001,
+            "decay": 0.15,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -8,
+            "filterType": "bandpass",
+            "filterFrequency": 3000,
+            "filterQ": 2,
+            "drive": 0.4
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "x",
+            "",
+            "",
+            ""
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Digital Hats",
+        "instrument": "MetalSynth",
+        "pattern": "A constant, driving stream of 16th notes.",
+        "description": "This track provides the high-frequency energy and propels the track forward. The sound is metallic, trashy, and synthetic, characteristic of industrial electronic music.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "attack": 0.001,
+            "decay": 0.08,
+            "release": 0.05,
+            "volume": -15,
+            "harmonicity": 1.1,
+            "modulationIndex": 20,
+            "filterFrequency": 8000
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Scraping Texture",
+        "instrument": "FMSynth",
+        "pattern": "Sparse, long-held, arrhythmic events that swell and decay slowly.",
+        "description": "This atmospheric layer defines the intro (0:00-0:39) and reappears in breakdowns. It's a complex, resonant sound, like a bowed or scraped piece of metal, creating tension and a sense of vast, dark space. Heavily treated with reverb.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "attack": 0.5,
+            "decay": 1,
+            "sustain": 0.5,
+            "release": 4,
+            "volume": -20,
+            "harmonicity": 3.2,
+            "modulationIndex": 15,
+            "reverbSend": 0.9
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "A2"
+          ]
+        },
+        "stem": "drums"
+      },
+      {
+        "name": "Ride Cymbal",
+        "instrument": "MetalSynth",
+        "pattern": "Steady quarter-note pattern, accenting the main pulse.",
+        "description": "A bright, metallic ride cymbal that layers on top of the hats in more intense sections (e.g., after 1:58). It adds a washy, sustained high-frequency layer that builds energy.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "attack": 0.01,
+            "decay": 0.5,
+            "release": 1.5,
+            "volume": -18,
+            "harmonicity": 5.1,
+            "modulationIndex": 12,
+            "reverbSend": 0.5
           }
         },
         "steps": {
           "grid": "4n",
           "notes": [
-            "C1",
-            "C1",
-            "C1",
-            "C1"
-          ]
-        },
-        "stem": "drums"
-      },
-      {
-        "name": "Gated Noise Snare",
-        "instrument": "NoiseSynth",
-        "pattern": "A solid, cracking backbeat on counts 2 and 4.",
-        "description": "A sharp, distorted white noise snare that provides the main backbeat, entering at 0:39. Its character is harsh, digital, and percussive, cutting through the mix to define the groove alongside the kick.",
-        "synth": {
-          "type": "NoiseSynth",
-          "options": {
-            "volume": -9,
-            "drive": 0.4,
-            "chorus": 0,
-            "reverbSend": 0.23126588761806488
-          }
-        },
-        "steps": {
-          "grid": "8n",
-          "notes": [
-            "",
-            "x",
-            "",
-            "x",
-            "",
-            "x",
-            "",
-            "x"
-          ]
-        },
-        "stem": "drums"
-      },
-      {
-        "name": "Sizzle Hats",
-        "instrument": "MetalSynth",
-        "pattern": "A constant, driving stream of 16th notes.",
-        "description": "A very bright, fast, and metallic-sounding hi-hat pattern that enters at 0:39. It provides the high-frequency energy and rhythmic density for the track, maintaining a relentless pace throughout the main sections.",
-        "synth": {
-          "type": "MetalSynth",
-          "options": {
-            "volume": -22,
-            "harmonicity": 8.1,
-            "modulationIndex": 22,
-            "reverbSend": 0.3204919993877411
-          }
-        },
-        "steps": {
-          "grid": "16n",
-          "notes": [
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
-            "x",
             "x",
             "x",
             "x",
@@ -900,18 +908,19 @@
         "stem": "drums"
       },
       {
-        "name": "Digital Clap",
-        "instrument": "NoiseSynth",
-        "pattern": "A syncopated, evolving pattern that adds rhythmic complexity, often playing on off-beats.",
-        "description": "Enters around 1:59 (119.1s). A sharper, more digital percussive layer that adds complexity to the groove. It sounds like a synthesized clap or a high-pitched woodblock, creating a call-and-response with the main snare.",
+        "name": "Glitch Perc",
+        "instrument": "PluckSynth",
+        "pattern": "Fast, syncopated, and repetitive rhythmic figures.",
+        "description": "A high-pitched, clicky percussive layer that adds nervous, complex energy to the groove. It appears in various sections, often playing a fast, stuttering pattern that contrasts with the main beat.",
         "synth": {
-          "type": "NoiseSynth",
+          "type": "PluckSynth",
           "options": {
-            "volume": -13,
-            "filterType": "highpass",
-            "filterFrequency": 4000,
-            "filterQ": 1,
-            "reverbSend": 0.2882199287414551
+            "attack": 0,
+            "decay": 1,
+            "sustain": 0,
+            "release": 0.1,
+            "volume": -16,
+            "drive": 0.2
           }
         },
         "steps": {
@@ -920,7 +929,7 @@
             "",
             "",
             "x",
-            "",
+            "x",
             "",
             "x",
             "",
@@ -928,7 +937,7 @@
             "",
             "",
             "x",
-            "",
+            "x",
             "",
             "x",
             "",
@@ -938,33 +947,49 @@
         "stem": "drums"
       },
       {
-        "name": "Scraping Drone",
-        "instrument": "NoiseSynth",
-        "pattern": "A continuous, evolving texture, not a repeating rhythmic pattern.",
-        "description": "A low-volume, resonant noise texture present in the intro (0.0s - 39.2s) and outro. It sounds like scraping metal or resonant feedback, creating a tense, atmospheric bed for the track to emerge from and fade into.",
+        "name": "Cyber-Chant",
+        "instrument": "FMSynth with heavy distortion and reverb to emulate a processed vocoder or robotic voice.",
+        "pattern": "A repetitive, syncopated 16th-note phrase, chanting on a near-monotone pitch. It alternates between longer, sustained words and short, staccato, percussive hits, creating a machine-like rhythm.",
+        "description": "The only element in this stem, this track provides the lead vocal, rhythmic drive, and main textural content. It's present throughout, defining the track's aggressive, industrial character with its hypnotic repetition and heavy processing.",
         "synth": {
-          "type": "NoiseSynth",
+          "type": "FMSynth",
           "options": {
-            "volume": -30,
-            "filterType": "bandpass",
-            "filterFrequency": 800,
-            "filterQ": 6,
-            "reverbSend": 0.5
+            "oscillatorType": "sine",
+            "harmonicity": 1.5,
+            "modulationIndex": 15,
+            "drive": 0.8,
+            "chorus": 0.3,
+            "reverbSend": 0.75
           }
         },
         "steps": {
-          "grid": "1m",
+          "grid": "16n",
           "notes": [
-            "x"
+            "A#2",
+            "",
+            "A#2",
+            "A#2",
+            "",
+            "C#3",
+            "",
+            "",
+            "A#2",
+            "",
+            "A#2",
+            "A#2",
+            "",
+            "A#2",
+            "",
+            ""
           ]
         },
-        "stem": "drums"
+        "stem": "vocals"
       },
       {
-        "name": "Industrial Drone Pad",
+        "name": "Cathedral Pad",
         "instrument": "PolySynth",
-        "pattern": "Single, sustained low notes (A#2) held for many bars, with slow filter modulation.",
-        "description": "Provides a low, rumbling, textural foundation. Present from the beginning, creating a dark, ominous atmosphere. Processed with heavy distortion and reverb.",
+        "pattern": "Slow-moving, sustained block chords, typically held for 4-8 bars, rooted in C# minor.",
+        "description": "Forms the atmospheric, harmonic foundation of the entire piece. Present from the start, it creates a massive, dark, and evolving soundscape. It's drenched in a very long, cavernous reverb.",
         "synth": {
           "type": "PolySynth",
           "options": {
@@ -972,115 +997,13 @@
             "count": 5,
             "spread": 30,
             "attack": 4,
-            "decay": 1,
+            "decay": 0.5,
             "sustain": 0.9,
-            "release": 5,
-            "volume": -18,
+            "release": 6,
+            "volume": -12,
             "filterType": "lowpass",
-            "filterFrequency": 400,
-            "filterQ": 2,
-            "drive": 0.8,
-            "reverbSend": 0.7
-          }
-        },
-        "steps": {
-          "grid": "1m",
-          "notes": [
-            "A#2"
-          ]
-        },
-        "stem": "vocals"
-      },
-      {
-        "name": "Rhythmic Glitch Chant",
-        "instrument": "FMSynth",
-        "pattern": "A relentless, syncopated 16th-note pattern on a single pitch, creating a mechanical groove.",
-        "description": "The main rhythmic and melodic driver of the track, entering at 0:40. It's aggressive, percussive, and defines the track's industrial groove. It's distorted and sits in a large reverb space.",
-        "synth": {
-          "type": "FMSynth",
-          "options": {
-            "harmonicity": 1.5,
-            "modulationIndex": 12,
-            "filterType": "bandpass",
             "filterFrequency": 2000,
-            "filterQ": 4,
-            "drive": 0.6,
-            "reverbSend": 0.55
-          }
-        },
-        "steps": {
-          "grid": "16n",
-          "notes": [
-            "A#4",
-            "",
-            "A#4",
-            "A#4",
-            "",
-            "A#4",
-            "A#4",
-            "",
-            "A#4",
-            "",
-            "A#4",
-            "A#4",
-            "",
-            "A#4",
-            "",
-            "A#4"
-          ]
-        },
-        "stem": "vocals"
-      },
-      {
-        "name": "Siren Pad",
-        "instrument": "PolySynth",
-        "pattern": "Long, sustained, high-pitched notes with a slow attack, creating a tense, evolving layer.",
-        "description": "Enters around 1:35, adding a layer of high-frequency tension. It's a sustained, evolving sound that contrasts with the rhythmic chant. It has a wide stereo image from chorus and is soaked in reverb.",
-        "synth": {
-          "type": "PolySynth",
-          "options": {
-            "oscillatorType": "fatsquare",
-            "count": 4,
-            "spread": 25,
-            "attack": 2.5,
-            "decay": 1,
-            "sustain": 1,
-            "release": 3,
-            "volume": -15,
-            "filterType": "bandpass",
-            "filterFrequency": 2500,
-            "filterQ": 6,
-            "chorus": 0.6,
-            "reverbSend": 0.8
-          }
-        },
-        "steps": {
-          "grid": "1m",
-          "notes": [
-            "F5"
-          ]
-        },
-        "stem": "vocals"
-      },
-      {
-        "name": "Formant Drone",
-        "instrument": "PolySynth",
-        "pattern": "A single, sustained minor chord that swells in and out with a very long attack and release. Slow, subtle filter modulation provides internal movement.",
-        "description": "The foundational atmospheric bed of the track, present almost throughout. It provides the dark, cavernous space and the main harmonic context of C# minor. Its resonant filter gives it a static, vocal-like quality.",
-        "synth": {
-          "type": "PolySynth",
-          "options": {
-            "oscillatorType": "fatsawtooth",
-            "count": 5,
-            "spread": 30,
-            "attack": 8,
-            "decay": 2,
-            "sustain": 0.9,
-            "release": 10,
-            "volume": -15,
-            "filterType": "lowpass",
-            "filterFrequency": 1200,
-            "filterQ": 4,
+            "filterQ": 1.5,
             "chorus": 0.4,
             "reverbSend": 0.9
           }
@@ -1088,46 +1011,218 @@
         "steps": {
           "grid": "1m",
           "notes": [
-            "C#3+G#3+B3"
+            "C#3+G#3+E4"
           ]
         },
         "stem": "other"
       },
       {
-        "name": "Rhythmic Noise Hit",
-        "instrument": "NoiseSynth",
-        "pattern": "A repetitive, syncopated rhythm of sharp noise bursts, accenting off-beats and creating a sense of forward motion.",
-        "description": "Enters around 39 seconds, introducing the first clear rhythmic pulse. It's a percussive, sharp noise hit that cuts through the drone and adds a nervous, industrial character.",
+        "name": "Clockwork Click",
+        "instrument": "MetalSynth",
+        "pattern": "A steady 16th-note pulse, sometimes with accents or slight variations, often panned.",
+        "description": "Enters around 0:39, acting as a high-frequency timekeeper. It introduces a mechanical, rigid feel against the fluid pad. It's processed with delay and panning, and eventually gives way to the main Engine Arp.",
         "synth": {
-          "type": "NoiseSynth",
+          "type": "MetalSynth",
           "options": {
-            "attack": 0.005,
-            "decay": 0.15,
-            "sustain": 0,
-            "volume": -18,
-            "reverbSend": 0.4
+            "harmonicity": 5.1,
+            "modulationIndex": 22,
+            "reverbSend": 0.5
           }
         },
         "steps": {
-          "grid": "8n",
+          "grid": "16n",
           "notes": [
+            "C#6",
             "",
-            "x",
+            "C#6",
             "",
-            "x",
-            "x",
+            "C#6",
             "",
-            "x",
+            "C#6",
+            "",
+            "C#6",
+            "",
+            "C#6",
+            "",
+            "C#6",
+            "",
+            "C#6",
             ""
           ]
         },
         "stem": "other"
       },
       {
-        "name": "Glitch Arp",
+        "name": "Engine Arp",
         "instrument": "MonoSynth",
-        "pattern": "A fast, driving 16th-note sequence playing a simple melodic fragment within the C# minor scale. The sound is heavily distorted.",
-        "description": "Enters around 87 seconds, dramatically increasing the track's tension and aggression. This raw, digital, and heavily driven arpeggio becomes a central driving force in the middle section of the piece.",
+        "pattern": "A driving, highly syncopated 16th-note bass/lead line, forming a tight ostinato loop.",
+        "description": "The main driving force from 1:27 (87.4s) onwards. Its gritty, distorted, and resonant tone provides the track's aggression and momentum. It sits in the low-mid range, functioning as both a bass line and a rhythmic lead.",
+        "synth": {
+          "type": "MonoSynth",
+          "options": {
+            "oscillatorType": "sawtooth",
+            "attack": 0.01,
+            "decay": 0.2,
+            "sustain": 0.1,
+            "release": 0.1,
+            "volume": -6,
+            "filterType": "lowpass",
+            "filterFrequency": 800,
+            "filterQ": 6,
+            "drive": 0.7,
+            "reverbSend": 0.4
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C#2",
+            "",
+            "C#2",
+            "",
+            "",
+            "",
+            "G#1",
+            "",
+            "C#2",
+            "",
+            "C#2",
+            "",
+            "",
+            "",
+            "G#1",
+            ""
+          ]
+        },
+        "stem": "other"
+      },
+      {
+        "name": "Talking Grit Bass",
+        "instrument": "FMSynth with a resonant filter and distortion",
+        "pattern": "A syncopated 16th-note pattern on a 1-bar loop, with rests creating a funky, lurching industrial groove. Evolves from a simple drone in the intro.",
+        "description": "This is the sole instrument, defining the piece's rhythm and aggression. It starts as a slow, ominous drone before erupting at 0:43 into its main character: a tight, distorted, rhythmic force. The 'talking' quality comes from a resonant low-pass filter being modulated, making the bass the central melodic and textural element.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "oscillatorType": "square",
+            "harmonicity": 1.5,
+            "modulationIndex": 20,
+            "filterType": "lowpass",
+            "filterFrequency": 700,
+            "filterQ": 5,
+            "drive": 0.8,
+            "chorus": 0,
+            "reverbSend": 0.15
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C#2",
+            "",
+            "C#2",
+            "",
+            "G#1",
+            "G#1",
+            "",
+            "",
+            "B1",
+            "",
+            "B1",
+            "",
+            "C#2",
+            "C#2",
+            "",
+            ""
+          ]
+        },
+        "stem": "bass"
+      }
+    ]
+  },
+  "overview": {
+    "summary": "A dark, industrial electronic track at 161 BPM in C# minor. It begins with an ambient, evolving drone pad before introducing a powerful, driving four-on-the-floor rhythm section. The arrangement builds layers of distorted, arpeggiated synths, creating a dense and hypnotic texture. The structure features buildups, breakdowns, and periods of intense, layered rhythm, all characterized by a blend of vast reverb and aggressive digital distortion.",
+    "vocabulary": {
+      "timbre": "Primarily synthetic and electronic, featuring smooth, heavily reverberated pads contrasted with aggressive, distorted bass and sharp, plucky arpeggios. Percussion is a mix of deep, punchy kicks and crisp, metallic hi-hats. The overall sound is tonal but heavily processed with significant grit.",
+      "brightness": "Mid-focused, with a measured mean spectral centroid of 1929 Hz. The track balances dark, low-pass filtered pads and bass with brighter, cutting synth plucks and metallic percussion, occupying a full but not piercingly bright frequency spectrum.",
+      "envelope": "A study in contrasts: the foundational pad has a very slow attack and long release, creating a continuous wash. In contrast, the bass, drums, and melodic arpeggios all use very short, percussive envelopes with fast attacks and quick decays to emphasize the driving rhythm.",
+      "register_density": "The track builds from a sparse, low-mid drone into a very dense texture. The core rhythm section occupies the low and high frequencies (kick/bass, hats), while multiple interlocking synth arpeggios fill the mid-range, creating a thick, rhythmically complex wall of sound during its peaks.",
+      "harmony_mode": "Anchored in C# minor, the harmony is static and modal, relying on drones and repetitive melodic fragments rather than functional chord progressions. The persistent root-note bassline and minor-key arpeggios create a tense, dark, and hypnotic atmosphere.",
+      "groove": "A relentless and mechanical groove based on a straight 16th-note grid at 161 BPM. A four-on-the-floor kick provides the pulse, a strong backbeat defines the measure, and interlocking 16th-note patterns in the bass and synths create a driving, propulsive feel.",
+      "space_grit": "The track heavily utilizes both space and grit. Expansive reverb is applied generously to the pads and some synth accents, creating a sense of vastness. This is juxtaposed with significant distortion and drive on the bass and other synth elements, adding a layer of aggressive, industrial texture."
+    },
+    "tracks": [
+      {
+        "name": "Drone Pad",
+        "instrument": "PolySynth",
+        "pattern": "Sustained, slowly shifting minor chords forming a two-chord progression over several bars.",
+        "description": "An atmospheric pad that establishes the harmonic foundation and dark mood from the very beginning. It's washed in a large hall reverb and provides a continuous textural bed underneath the rhythmic elements.",
+        "synth": {
+          "type": "PolySynth",
+          "options": {
+            "oscillatorType": "fatsawtooth",
+            "count": 5,
+            "spread": 30,
+            "attack": 2.5,
+            "decay": 0.5,
+            "sustain": 1,
+            "release": 4,
+            "volume": -18,
+            "filterType": "lowpass",
+            "filterFrequency": 1200,
+            "filterQ": 1,
+            "chorus": 0.6,
+            "reverbSend": 0.8
+          }
+        },
+        "steps": {
+          "grid": "1m",
+          "notes": [
+            "C#4+E4+G#4"
+          ]
+        }
+      },
+      {
+        "name": "Distorted Arp Bass",
+        "instrument": "FMSynth",
+        "pattern": "A driving, repetitive 16th-note pattern, primarily on the root note, with occasional passing tones.",
+        "description": "The main rhythmic driving force of the track, entering at 0:08. Its aggressive, distorted tone provides both the fundamental bass and a significant amount of the track's industrial grit. It's tightly locked to the kick.",
+        "synth": {
+          "type": "FMSynth",
+          "options": {
+            "harmonicity": 3,
+            "modulationIndex": 10,
+            "drive": 0.8,
+            "reverbSend": 0.25
+          }
+        },
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "C#2",
+            "",
+            "C#2",
+            "C#2",
+            "C#2",
+            "",
+            "C#2",
+            "",
+            "C#2",
+            "",
+            "C#2",
+            "C#2",
+            "C#2",
+            "B1",
+            "C#2",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "Pluck Arp",
+        "instrument": "MonoSynth",
+        "pattern": "A syncopated 16th-note arpeggio playing a repeating melodic figure from the C# minor scale.",
+        "description": "A primary melodic hook that sits in the mid-high register. Its sharp, plucky sound cuts through the dense mix and creates a rhythmic counterpoint to the driving bassline.",
         "synth": {
           "type": "MonoSynth",
           "options": {
@@ -1136,168 +1231,154 @@
             "decay": 0.15,
             "sustain": 0.1,
             "release": 0.1,
-            "volume": -18,
+            "volume": -14,
             "filterType": "lowpass",
             "filterFrequency": 4000,
-            "filterQ": 2,
-            "drive": 0.8,
-            "reverbSend": 0.2
+            "filterQ": 4,
+            "reverbSend": 0.4
           }
         },
         "steps": {
           "grid": "16n",
           "notes": [
-            "G#3",
-            "B3",
-            "C#4",
-            "B3",
-            "G#3",
-            "B3",
-            "C#4",
-            "B3",
-            "G#3",
-            "E4",
-            "C#4",
-            "B3",
-            "G#3",
-            "B3",
-            "C#4",
-            "G#3"
+            "",
+            "G#4",
+            "",
+            "E5",
+            "",
+            "G#4",
+            "C#5",
+            "",
+            "",
+            "G#4",
+            "",
+            "E5",
+            "",
+            "G#4",
+            "B4",
+            ""
           ]
-        },
-        "stem": "other"
+        }
       },
       {
-        "name": "Industrial Wind",
-        "instrument": "NoiseSynth",
-        "pattern": "A constant, high-frequency stream of noise, like static or rushing air.",
-        "description": "A subtle textural layer that appears in denser sections. It adds high-frequency energy and enhances the industrial, desolate atmosphere without being a primary focal point.",
+        "name": "Kick",
+        "instrument": "MembraneSynth",
+        "pattern": "A steady four-on-the-floor quarter-note pulse.",
+        "description": "The foundation of the beat. A deep, punchy kick drum that drives the track forward relentlessly.",
         "synth": {
-          "type": "NoiseSynth",
+          "type": "MembraneSynth",
           "options": {
-            "attack": 0.2,
-            "decay": 0.1,
-            "sustain": 1,
-            "volume": -28,
-            "reverbSend": 0.6
+            "attack": 0.001,
+            "decay": 0.4,
+            "sustain": 0.01,
+            "release": 0.1,
+            "volume": -4
           }
         },
         "steps": {
           "grid": "4n",
           "notes": [
-            "x",
-            "x",
-            "x",
-            "x"
+            "C2",
+            "C2",
+            "C2",
+            "C2"
           ]
-        },
-        "stem": "other"
+        }
       },
       {
-        "name": "Sub Drone",
-        "instrument": "Synth",
-        "pattern": "A single, sustained root note held for long durations.",
-        "description": "Provides a continuous low-frequency foundation from the beginning of the track, establishing an ominous, weighty atmosphere.",
+        "name": "Snare",
+        "instrument": "NoiseSynth",
+        "pattern": "A sharp backbeat on beats 2 and 4.",
+        "description": "A cracking, noisy snare sound that defines the main groove against the kick.",
         "synth": {
-          "type": "Synth",
+          "type": "NoiseSynth",
           "options": {
-            "oscillatorType": "sine",
-            "attack": 1.5,
-            "decay": 0.5,
-            "sustain": 1,
-            "release": 2,
-            "volume": -18,
-            "filterType": "lowpass",
-            "filterFrequency": 200,
-            "filterQ": 1,
-            "drive": 0.2
-          }
-        },
-        "steps": {
-          "grid": "1m",
-          "notes": [
-            "C1"
-          ]
-        },
-        "stem": "bass"
-      },
-      {
-        "name": "Rhythmic Drive Bass",
-        "instrument": "MonoSynth",
-        "pattern": "A syncopated, driving 16th-note pattern primarily on the root note, with occasional jumps to the fifth.",
-        "description": "The main rhythmic engine of the track, entering around 0:40. It's heavily distorted and has a 'talky' quality from a plucky filter envelope, creating the core industrial groove.",
-        "synth": {
-          "type": "MonoSynth",
-          "options": {
-            "oscillatorType": "fatsawtooth",
-            "count": 4,
-            "spread": 30,
-            "attack": 0.01,
-            "decay": 0.3,
-            "sustain": 0.1,
-            "release": 0.2,
-            "volume": -9,
-            "filterType": "lowpass",
+            "attack": 0.005,
+            "decay": 0.12,
+            "sustain": 0,
+            "volume": -8,
+            "filterType": "bandpass",
             "filterFrequency": 1800,
-            "filterQ": 5,
-            "drive": 0.7
-          }
-        },
-        "steps": {
-          "grid": "16n",
-          "notes": [
-            "C2",
-            "",
-            "C2",
-            "C2",
-            "",
-            "C2",
-            "",
-            "G1",
-            "C2",
-            "",
-            "C2",
-            "C2",
-            "",
-            "C2",
-            "",
-            "G1"
-          ]
-        },
-        "stem": "bass"
-      },
-      {
-        "name": "Growl Bass",
-        "instrument": "FMSynth",
-        "pattern": "A syncopated, repeating 8th-note phrase with heavy filter modulation, creating a 'wub' or 'growl' effect.",
-        "description": "An aggressive textural layer that enters in sections (e.g., around 1:20) to add variation. Its metallic timbre and resonant filter sweeps contrast with the main drive bass.",
-        "synth": {
-          "type": "FMSynth",
-          "options": {
-            "harmonicity": 1.5,
-            "modulationIndex": 10,
-            "filterType": "lowpass",
-            "filterFrequency": 900,
-            "filterQ": 7,
-            "drive": 0.9,
-            "reverbSend": 0.15
+            "filterQ": 1.5
           }
         },
         "steps": {
           "grid": "8n",
           "notes": [
-            "C2",
-            "",
-            "C2",
-            "G1",
-            "C2",
             "",
             "",
+            "x",
+            "",
+            "",
+            "",
+            "x",
             ""
           ]
+        }
+      },
+      {
+        "name": "Hi-Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Continuous straight 16th notes.",
+        "description": "A crisp, metallic hi-hat pattern that provides constant high-frequency rhythmic energy and subdivision.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 5.1,
+            "modulationIndex": 32,
+            "reverbSend": 0.15
+          }
         },
-        "stem": "bass"
+        "steps": {
+          "grid": "16n",
+          "notes": [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      },
+      {
+        "name": "Open Hat",
+        "instrument": "MetalSynth",
+        "pattern": "Syncopated off-beat 8th notes.",
+        "description": "A longer, sizzling open hi-hat sound that adds a layer of syncopation and fills out the groove.",
+        "synth": {
+          "type": "MetalSynth",
+          "options": {
+            "harmonicity": 8.1,
+            "modulationIndex": 20,
+            "reverbSend": 0.3
+          }
+        },
+        "steps": {
+          "grid": "8n",
+          "notes": [
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x",
+            "",
+            "x"
+          ]
+        }
       }
-    ]
+    ],
+    "score_draft": "SPECULATIVE STARTER: Set tempo to 161 BPM. Start with a PolySynth for the 'Drone Pad', using a 'fatsawtooth' oscillator, a long attack (~2.5s) and release (~4s), and a low-pass filter around 1.2kHz. Send it heavily to a master Reverb (e.g., 0.8 send). For drums, use a MembraneSynth for a 4/4 'Kick' and a NoiseSynth with a fast envelope for the 'Snare' on 2 & 4. A MetalSynth can play constant 16th notes for the 'Hi-Hat'. The core is the 'Distorted Arp Bass', an FMSynth with harmonicity ~3 and drive ~0.8, playing a tight 16th-note loop on C#2. Layer this with the 'Pluck Arp', a MonoSynth with a 'square' wave, plucky envelope (fast attack, short decay), and a resonant low-pass filter, playing a syncopated C# minor melody like ['', 'G#4', '', 'E5', '', 'G#4', 'C#5', ''...]. Route the bass and pluck through a master Distortion effect for extra grit."
   }
 }

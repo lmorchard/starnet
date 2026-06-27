@@ -1,5 +1,7 @@
 # Kite — Step Forward
 
+> An anthemic, driving synth-pop track with a distinct 80s aesthetic. The song is built around a powerful four-on-the-floor drum beat, a gritty eighth-note bassline, and massive sawtooth synth chords. A strong male vocal performance delivers the main melody, supported by syncopated synth leads and dramatic transitions marked by noise sweeps. The overall mood is epic and slightly melancholic, with a propulsive energy suitable for a stadium.
+
 *Source: `Kite Step Forward (Kite In China) Official Video.mp3` · Model: gemini-2.5-pro · stem-separated*
 
 ## Measured facts (MIR ground truth)
@@ -12,47 +14,56 @@
 - **Dynamics:** RMS mean 0.175, range 19.6 dB
 - **Timbre:** rolloff 5028 Hz, flatness 0.00, contrast 20.8, ZCR 0.060, harmonic ratio 0.82
 
+## Overview (full-mix read)
+
+| Dimension | Reading |
+|---|---|
+| Timbre | Dominated by classic analog synthesizer waveforms, primarily thick, detuned sawtooths for chords and a grittier, filtered sawtooth for the bass. Percussion is synthetic and punchy, characteristic of 80s drum machines. The lead synths have a brighter, slightly metallic FM quality. |
+| Brightness | Moderately bright and clear. The persistent hi-hats, crisp snare, and the high-frequency content of the synth leads place the spectral energy in the upper-mids and highs, while the bass and chord fundamentals provide a solid, warm foundation. |
+| Envelope | A mix of tight and loose envelopes. The bass and percussion are very tight and plucky (short attack/decay). In contrast, the main synth chords have a slower attack and a long release, creating a continuous harmonic wash. |
+| Register/density | The arrangement is dense, particularly during the chorus sections. The low register is occupied by the driving bassline, the mid-range is filled with thick chords and vocals, and the high-end is defined by hi-hats and melodic synth flourishes. |
+| Harmony/mode | The track is firmly in a minor key (E minor), using a powerful and anthemic progression (i-VI-VII). This creates a feeling of dramatic tension and emotional release, common in stadium rock and epic pop music. |
+| Groove | A propulsive and straightforward four-on-the-floor groove at 136 BPM. The constant eighth-note bassline provides relentless forward momentum, while the strong backbeat on the snare creates an insistent, danceable rhythm. |
+| Space/grit | The production features a large, cavernous reverb, most noticeable on the snare drum and vocals, creating a sense of immense space. Significant grit and saturation are applied to the bass synth, giving it a distorted, aggressive character that cuts through the mix. |
+
+> Model-guessed song-level synth direction — speculative, tune by ear.
+
+SPECULATIVE STARTER: Set Tone.Transport.bpm.value = 136. The core is a four-part rhythm section: a `MembraneSynth` kick on `['C1', 'C1', 'C1', 'C1']` in a `4n` loop; a `NoiseSynth` snare on `['', 'x', '', 'x']` sent to a `Reverb` with a long decay (~4s) and high wet level (~0.8); `MetalSynth` hi-hats on a constant `8n` pattern; and a driving `MonoSynth` bass with `oscillator.type = 'sawtooth'`, `drive = 0.6`, playing 8th notes like `['E2', 'E2', ...]`. The main harmony comes from a `PolySynth` with `oscillator.type = 'fatsawtooth'`, `count = 6`, and `spread = 30`. Add a `Chorus` for width. It plays sustained chords like `E3+B3`. A brighter `FMSynth` with `harmonicity = 2` plays a syncopated lead melody in E minor pentatonic. Build tension into choruses with a `NoiseSynth` automated through a `AutoFilter` with its base frequency sweeping from 200 to 8000 Hz.
+
 ## drums
 
-> A driving and complex percussive track built from a mixture of synthesized and acoustic-emulating drum sounds. The piece begins sparsely with atmospheric noise and syncopated toms, then systematically builds layers—a powerful four-on-the-floor kick, a sharp backbeat snare, and a constant 16th-note shaker—into a dense, powerful groove. The arrangement evolves through sectional changes, increasing and decreasing in density before finishing with an extended atmospheric noise fade-out.
+> This is a driving, intricate drum stem featuring a mix of electronic and acoustic-style percussion. The foundation is a powerful, often syncopated kick and a gritty snare backbeat. The rhythmic complexity is driven by a prominent layer of syncopated mid-range percussion, reminiscent of congas or djembes, which provides a constant sense of forward motion. High-frequency energy is supplied by busy hi-hat patterns and a continuous 16th-note shaker texture. The overall feel is dynamic and energetic, suitable for an indie dance or synth-pop track.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Syncopated Toms | MetalSynth | A highly syncopated, repeating 1-bar 16th-note pattern that serves as the main rhythmic hook. It has a pitched, resonant character. | This is the most defining element of the track, entering early and continuing throughout most of the arrangement. Its metallic, tuned quality gives the drum part a melodic feel. It's the core of the main percussion loop. |
-| Power Kick | MembraneSynth | A heavy four-on-the-floor pattern on quarter notes, with occasional variations and syncopated hits to add drive. | The rhythmic foundation of the track, entering after the initial tom loop is established. Its sound is deep, punchy, and slightly distorted, providing the main pulse and weight. |
-| Backbeat Snare | NoiseSynth | A solid backbeat on beats 2 and 4, with occasional ghost notes and simple fills. | Provides the sharp, cracking snare sound that defines the backbeat. It has a quick, noisy character with a noticeable reverb tail that sets it apart from the drier elements. |
-| 16th Shaker | NoiseSynth | Continuous 16th notes with subtle dynamic variations. | A high-frequency textural layer that provides constant motion and energy. It's mixed relatively low, acting as a rhythmic 'glue' for the entire groove. |
-| Metallic Accent | MetalSynth | A syncopated, off-beat accent on the 'a' of 1 and 3. | A high-pitched, resonant metallic hit that cuts through the mix to add rhythmic complexity and punctuation. It sounds like a sharp, muted cowbell or woodblock. |
-| Texture Noise | NoiseSynth with LFO-modulated filter | A continuous, evolving soundscape without a fixed rhythm. | This atmospheric element is present in the intro and dominates the outro. It's a complex, crackling noise texture that sounds like a manipulated field recording, providing a non-rhythmic, atmospheric bed. |
+| Power Kick | MembraneSynth | A heavy, resonant kick drum playing a driving, syncopated pattern that often lands just off the main beat, creating tension and forward motion. | The fundamental low-end driver of the track. It's present through most of the song, dropping out for breakdowns and re-entering with impact. |
+| Gritty Snare | NoiseSynth | A sharp backbeat on counts 2 and 4, with occasional ghost notes and fills. The sound is a composite of a sharp crack and a noisy body. | The main rhythmic anchor, providing a consistent backbeat. Its slightly distorted and layered texture adds to the track's edgy character. |
+| Afro-Percussion | FMSynth | A highly syncopated and continuous melodic-percussive line, resembling congas or djembes, playing a repeating rhythmic motif. | A defining feature of the track's groove, this layer adds a tribal, world-music feel and significant rhythmic complexity. Its tonal nature contributes to the track's unique timbre. |
+| Driving Hats | MetalSynth | A busy, metallic hi-hat pattern with a mix of 8th and 16th notes, providing high-frequency energy. | This hi-hat pattern works with the shaker to create a dense, shimmering top-end that propels the track forward. It's clean and synthetic in character. |
+| 16th Shaker | NoiseSynth | A constant, unwavering stream of 16th notes, providing a textural bed. | This subtle but crucial layer acts as rhythmic glue, filling in all the gaps and maintaining a constant sense of high-energy motion. It sits high in the mix, but low in volume. |
 
 ## vocals
 
-> This is an isolated vocal stem featuring a dramatic and powerful male lead vocal, heavily layered with harmonies and aggressive, distorted shouted backing chants. The production is epic and spacious, using extensive reverb, delay, and saturation to create a synthetic yet emotionally charged performance.
+> A heavily processed male tenor vocal stem featuring a clean, reverb-drenched verse melody and a powerful, multi-layered, and distorted gang-vocal chorus. The performance is anthemic and emotional, with a vast sense of space.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Lead Vocal | PolySynth | A soaring, melodic line in E minor, sung with long, sustained notes. Follows a 4-bar phrase structure. | The main melodic element of the track, present throughout. It carries the primary lyrics and melody, treated with significant reverb and a touch of delay. |
-| Chorus Harmonies | PolySynth | Block chords and harmony lines that support the lead vocal during the chorus sections. Typically a third or a fifth above the main melody. | Enters during the chorus sections (e.g., around 0:29) to add width and power. This layer is wider in the stereo field and has even more reverb than the lead. |
-| Shouted Chants | MonoSynth | Rhythmic, percussive stabs on the off-beats and strong beats, creating a call-and-response with the lead vocal. A simple, repetitive 1-bar pattern. | A highly aggressive, rhythmic element that defines the chorus. It sounds like a heavily distorted and bitcrushed vocal sample, functioning like a percussive synth stab. |
-| Atmospheric Crackle | NoiseSynth | A low-level, continuous texture with occasional pops and clicks. | A subtle textural element throughout, becoming prominent at the end of the track (around 2:30) where it simulates the sound of vinyl runout groove and tape stop effects. |
+| Anthemic Lead Vocals | PolySynth with fat oscillators, filter, and heavy effects to simulate layered, processed vocals. | Melody follows the lyrical phrasing, alternating between sparser verse lines and a powerful, descending chorus motif held over multiple bars. Rhythm is mostly straight quarter and eighth notes. | The only element in the stem. Carries the entire melodic and emotional content of the song. The processing transforms it from a single voice in the verses to a massive choir in the choruses, drenched in reverb and distortion throughout. |
 
 ## other
 
-> An epic, driving synth-wave track built from layered analog-style synthesizers. The piece is characterized by powerful, sustained supersaw chords, a relentless 16th-note arpeggiated bassline, and soaring melodic leads, all saturated in a large reverb space. The arrangement builds in density, adding layers and increasing filter brightness to create dramatic tension and release.
+> An epic, cinematic synth track built from three primary layers: massive, sustained supersaw pads providing the harmony, a relentless 16th-note arpeggio driving the rhythm, and dramatic filtered noise sweeps for transitions and texture. The piece evolves from sparse chords into a dense, driving wall of sound.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Supersaw Chords | PolySynth | Plays large, sustained block chords on major beats, typically holding for one or two measures. Follows the main harmonic progression. | This is the primary harmonic and emotional core of the track. It establishes the epic, anthemic feel from the very beginning. Its sound is massive and drenched in reverb. |
-| Arp Bass | MonoSynth | A continuous, driving 16th-note arpeggio that outlines the chord changes. The pattern is typically a root-fifth-octave figure. | The rhythmic engine of the song, entering after the initial intro (around 0:19). It provides constant motion and bass-level harmonic information. It has a tight, focused, and slightly aggressive sound. |
-| Echo Lead | Synth | A simple, sparse, high-register melodic phrase. It plays a memorable motif with lots of space between notes. | This lead melody appears in the intro and returns in later sections to add a soaring, hopeful counterpoint to the main chords. It is heavily processed with delay and reverb, making it feel distant and ethereal. |
-| Atmosphere Pad | PolySynth | Extremely slow-swelling chords or single notes that follow the root harmony, holding for many measures. | A background textural layer that fills out the soundscape. Its very slow attack and release cause it to 'breathe' with the music, subtly reinforcing the harmony and adding depth. |
-| Noise Riser | NoiseSynth | A long filtered noise sweep, rising in pitch and volume over 4 or 8 bars to build tension into a new section. | A classic transitional effect used to create energy and anticipation. It appears periodically throughout the arrangement, particularly before a chorus or major structural change. |
+| SuperSaw Pad | PolySynth | Sustained whole-note block chords playing a slow-moving progression. Swells in and out, forming the harmonic foundation. | The core harmonic and atmospheric element of the track. Enters at the beginning and provides a continuous, swelling backdrop. It's very wide, chorused, and washed in reverb. |
+| Driving Arp | MonoSynth | A relentless, driving 16th-note arpeggio that outlines the chord changes. The pattern often involves octave jumps and movement between the 1st, 3rd, and 5th of the chord. | Enters around 0:29 and acts as the main rhythmic engine. Its constant motion creates tension and energy. It has its own sense of space from delay and reverb, but is more focused than the pads. |
+| Noise Riser | NoiseSynth | A single, long textural event characterized by a filter sweep. Typically used to build tension into a new section. | A transitional and textural effect, most prominent in the long, chaotic outro after 2:00. It's a wash of white/pink noise processed through a sweeping resonant filter and heavy reverb/delay, creating a massive sense of arrival or collapse. |
 
 ## bass
 
-> A powerful, two-part synth bass piece that alternates between deep, sustained sub-bass drones and a driving, gritty, melodic 16th-note riff in E minor, forming the track's primary rhythmic and harmonic foundation.
+> A driving, gritty synth bass track built on a foundational 8th-note ostinato in E minor. The arrangement builds from sparse, long notes into a relentless motorik groove, characterized by a dark, filtered, and saturated timbre.
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Riff Bass | MonoSynth | A continuous, driving 16th-note arpeggiated sequence outlining chords, primarily in the E2-C3 range. It's the main melodic and rhythmic hook, forming a 2 or 4-bar loop. | Enters at 0:47, serves as the core element for most of the track. It's heavily distorted and filtered, providing both rhythm and harmony with a relentless, machine-like quality. |
-| Sub Drone | MonoSynth | Extremely long, sustained single notes in the sub-bass register (E1, D1, C1), each lasting for many bars with slow swells. | Appears in the intro (0:00-0:47), breakdown (198.4s), and outro. It provides a dark, atmospheric foundation with a slow, swelling and receding character. |
+| Motorik Bass | MonoSynth | Begins with sparse whole notes, then transitions at 0:47 to a driving, continuous 8th-note ostinato. The pattern is mostly built on root notes of a 4-bar progression (E-B-D-A) but includes more melodic figures. | The sole instrument in this stem, this bass provides the rhythmic and harmonic foundation. Its character shifts from a sparse presence to a relentless driving force, defined by its gritty, filtered tone. A long, sustained drone appears in the final section (from 217.2s). |

@@ -11,8 +11,9 @@ PROGRESS="$SESSION_DIR/rerun_progress.log"
 DL="$HOME/Downloads"
 PROJECT="moz-fx-tabs-nonprod"
 LOCATION="us-central1"
-STEMS_MODEL="htdemucs"
-MODEL="gemini-2.5-flash"
+# Override via env, e.g. STEMS_MODEL=htdemucs_ft MODEL=gemini-2.5-pro bash rerun_all.sh
+STEMS_MODEL="${STEMS_MODEL:-htdemucs}"
+MODEL="${MODEL:-gemini-2.5-flash}"
 
 # audiofile | artist | title | slug   (all 11 corpus tracks)
 TRACKS=(
@@ -50,7 +51,7 @@ print(f"mel={mel} perc={perc} total={len(ts)}  [{stems}]")
 PY
 }
 
-echo "=== re-run (htdemucs + gemini-2.5-flash): ${#TRACKS[@]} tracks ===" > "$PROGRESS"
+echo "=== re-run ($STEMS_MODEL + $MODEL): ${#TRACKS[@]} tracks ===" > "$PROGRESS"
 : > "$PROGRESS.stderr"
 i=0
 for entry in "${TRACKS[@]}"; do
