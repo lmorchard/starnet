@@ -30,6 +30,22 @@ def _measured_lines(mir: dict) -> list:
     return lines
 
 
+def _vocab_grid(v: dict) -> list:
+    """The 7-dimension vocabulary grid as markdown lines."""
+    return [
+        "| Dimension | Reading |",
+        "|---|---|",
+        f"| Timbre | {v['timbre']} |",
+        f"| Brightness | {v['brightness']} |",
+        f"| Envelope | {v['envelope']} |",
+        f"| Register/density | {v['register_density']} |",
+        f"| Harmony/mode | {v['harmony_mode']} |",
+        f"| Groove | {v['groove']} |",
+        f"| Space/grit | {v['space_grit']} |",
+        "",
+    ]
+
+
 def _track_table(tracks: list) -> list:
     """A Track | Instrument | Pattern | Notes table as markdown lines."""
     lines = ["| Track | Instrument | Pattern | Notes |", "|---|---|---|---|"]
@@ -40,11 +56,21 @@ def _track_table(tracks: list) -> list:
     return lines
 
 
-def render_stems_markdown(meta: dict, mir_global: dict, stem_results: list) -> str:
-    """Markdown for stems mode: global measured facts + a section per analyzed stem."""
-    lines = [f"# {meta['artist']} — {meta['title']}", "",
-             f"*Source: `{meta['source_file']}` · Model: {meta['model']} · stem-separated*", ""]
+def render_stems_markdown(meta: dict, mir_global: dict, stem_results: list, overview: dict = None) -> str:
+    """Markdown for stems mode: a whole-song overview (when provided) + global measured facts
+    + a section per analyzed stem."""
+    lines = [f"# {meta['artist']} — {meta['title']}", ""]
+    if overview and overview.get("summary"):
+        lines += [f"> {overview['summary']}", ""]
+    lines += [f"*Source: `{meta['source_file']}` · Model: {meta['model']} · stem-separated*", ""]
     lines += _measured_lines(mir_global)
+    if overview:
+        lines += ["## Overview (full-mix read)", ""]
+        if overview.get("vocabulary"):
+            lines += _vocab_grid(overview["vocabulary"])
+        if overview.get("score_draft"):
+            lines += ["> Model-guessed song-level synth direction — speculative, tune by ear.", "",
+                      overview["score_draft"], ""]
     for sr in stem_results:
         interp = sr.get("interpretation", {})
         lines.append(f"## {sr['stem']}")
@@ -88,16 +114,7 @@ def render_markdown(meta: dict, mir: dict, llm: dict) -> str:
     # --- Vocabulary grid (interpretation) ---
     lines.append("## Vocabulary grid (model interpretation)")
     lines.append("")
-    lines.append("| Dimension | Reading |")
-    lines.append("|---|---|")
-    lines.append(f"| Timbre | {v['timbre']} |")
-    lines.append(f"| Brightness | {v['brightness']} |")
-    lines.append(f"| Envelope | {v['envelope']} |")
-    lines.append(f"| Register/density | {v['register_density']} |")
-    lines.append(f"| Harmony/mode | {v['harmony_mode']} |")
-    lines.append(f"| Groove | {v['groove']} |")
-    lines.append(f"| Space/grit | {v['space_grit']} |")
-    lines.append("")
+    lines += _vocab_grid(v)
 
     # --- Track breakdown (interpretation): instrument + pattern per track ---
     lines.append("## Tracks (model interpretation)")

@@ -86,3 +86,35 @@ def test_render_stems_markdown_groups_by_stem():
     assert "## drums" in md and "## bass" in md
     assert "punchy kit" in md and "growl bass" in md
     assert "Kick" in md and "Sub" in md
+
+
+def test_render_stems_markdown_includes_overview_when_provided():
+    from audio_reference.render import render_stems_markdown
+    overview = {
+        "summary": "Brooding analog synthpop with a relentless pulse.",
+        "vocabulary": LLM["vocabulary"],
+        "tracks": [],
+        "score_draft": "fatsawtooth drone, square bass at A1.",
+    }
+    stem_results = [
+        {"stem": "drums", "mir": {}, "interpretation": {"summary": "punchy kit",
+            "tracks": [{"name": "Kick", "instrument": "MembraneSynth", "pattern": "1/4", "description": "boom"}]}},
+    ]
+    md = render_stems_markdown(META, MIR, stem_results, overview)
+    # whole-song summary surfaces near the top
+    assert "Brooding analog synthpop" in md
+    # an Overview section with the full 7-dimension vocabulary grid
+    assert "Overview" in md
+    for label in ["Timbre", "Brightness", "Envelope", "Register", "Harmony", "Groove", "Space"]:
+        assert label in md
+    # song-level score draft, flagged speculative
+    assert "speculative" in md.lower() and "fatsawtooth drone" in md
+    # and the per-stem section is still present
+    assert "## drums" in md and "punchy kit" in md
+
+
+def test_render_stems_markdown_without_overview_has_no_overview_section():
+    from audio_reference.render import render_stems_markdown
+    stem_results = [{"stem": "drums", "mir": {}, "interpretation": {"summary": "punchy kit", "tracks": []}}]
+    md = render_stems_markdown(META, MIR, stem_results)
+    assert "Overview (full-mix read)" not in md

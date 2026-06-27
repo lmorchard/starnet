@@ -78,9 +78,20 @@ def _analyze_stems(args, meta, mir, md_path, json_path) -> int:
                                    args.model, project, location)
             stem_results.append({"stem": stem, "mir": smir, "interpretation": interp})
 
+        # Whole-song overview: the per-stem passes are each blind to the others, so nothing
+        # describes the track as a whole. One full-mix pass gives a holistic read (summary +
+        # 7-dimension vocabulary + score_draft). Its tracks are ignored — score_spec uses stems.
+        print("[stems] analyzing full mix (overview) ...", file=sys.stderr)
+        mix16 = os.path.join(tmp, "fullmix.16k.wav")
+        to_16k_mono(args.audio, mix16)
+        with open(mix16, "rb") as fh:
+            mix_bytes = fh.read()
+        overview = analyze_audio(mix_bytes, "audio/wav", build_prompt(meta, mir), RESPONSE_SCHEMA,
+                                 args.model, project, location)
+
     print("[stems] rendering artifacts ...", file=sys.stderr)
-    sidecar = sanitize_numbers(assemble_stems(meta, mir, stem_results))
-    md = render_stems_markdown(meta, mir, stem_results)
+    sidecar = sanitize_numbers(assemble_stems(meta, mir, stem_results, overview))
+    md = render_stems_markdown(meta, mir, stem_results, overview)
     with open(md_path, "w") as fh:
         fh.write(md)
     with open(json_path, "w") as fh:

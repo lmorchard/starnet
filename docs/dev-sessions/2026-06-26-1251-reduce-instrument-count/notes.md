@@ -18,8 +18,25 @@ The over-split is **melodic, not percussive** (melodic mean 8.1 vs target 2–6;
 4. Re-run overwrites `docs/` (default `--out`).
 
 ## Verification status
-- `uv run --extra dev pytest -q` → **63 passed**.
-- NOT yet verified against real Gemini output — no source audio in repo; needs Les's re-run.
+- `uv run --extra dev pytest -q` → **67 passed** (after the overview addition).
+- **Corpus re-run DONE** (all 11, `htdemucs` + `gemini-2.5-flash` — Les chose fast settings for speed):
+  melodic mean **8.1 → 4.6** (every track now in 2–6 target), perc **5.9 → 5.5**.
+  Worst offenders fixed: gruesome-twosome 10→6, icabod 11→4, dressed-for-space 8→5 (bass→1).
+  Audio in `~/Downloads`; gcloud project `moz-fx-tabs-nonprod`. Driver: `rerun_all.sh`.
+- **Quality caveat:** flash leans heavily on FMSynth (timbrally monotone vs a pro run). Counts
+  are the validated thing; the regenerated flash artifacts are coarser than pro would produce.
+
+## 2nd change (same session): whole-song overview in stems mode
+Stems mode produced NO song-level description — only per-stem reads (Les noticed via the .md).
+Added a full-mix `build_prompt` overview pass (reuses existing prompt + RESPONSE_SCHEMA):
+- `cli._analyze_stems` runs one extra full-mix Gemini call → `overview` interpretation.
+- `scorespec.assemble_stems(..., overview=None)` stores it under top-level `overview`
+  (score_spec tracks still come from stems; overview's tracks are ignored).
+- `render.render_stems_markdown(..., overview=None)` renders `> summary` + an
+  "Overview (full-mix read)" 7-dim vocabulary grid + speculative score-draft. Factored
+  `_vocab_grid()` shared with `render_markdown`.
+- Tests: +4 (assemble_stems with/without overview; render with/without overview). 63→67.
+- Player does NOT yet surface the overview summary — possible quick follow-up if wanted.
 
 ## Follow-ups / open
 - **Les re-runs the corpus** (`analyze … --stems` on the real audio), then `python3 count_tracks.py` to confirm melodic ≤ ~6. If still high, tighten `other`/`vocals` budgets — cheap.
