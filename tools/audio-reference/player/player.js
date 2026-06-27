@@ -172,7 +172,7 @@ function ensureBus() {
     const comp = new Tone.Compressor({ threshold: -18, ratio: 2.5, attack: 0.025, release: 0.18 });
     const limiter = new Tone.Limiter(-1);
     masterGain.connect(eq); eq.connect(comp); comp.connect(limiter); limiter.toDestination();
-    const reverb = new Tone.Reverb({ decay: 2.4, wet: 1 });
+    const reverb = new Tone.Reverb({ decay: 4.5, wet: 1 });   // long cathedral tail
     await reverb.generate();
     reverb.connect(masterGain);
     bus = { masterGain, eq, comp, limiter, reverb };
