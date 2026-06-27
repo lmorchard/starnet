@@ -26,11 +26,26 @@ TRACK = "Goth Lead Synth"
 # Guitar with lots of reverb, voiced as a MonoSynth (PluckSynth's decay/ring isn't dialable;
 # its pluck was too short/plucky). Sawtooth through a soft lowpass + a long-ish decay/release
 # so it RINGS like a reverby guitar rather than a short stab. A touch of drive for body.
-SYNTH = {"type": "MonoSynth", "options": {
-    "oscillatorType": "sawtooth",
-    "attack": 0.01, "decay": 0.35, "sustain": 0.25, "release": 1.2,
-    "volume": 0, "filterType": "lowpass", "filterFrequency": 1600, "filterQ": 3.5,
-    "drive": 0.15, "reverbSend": 0.8,
+# FM electric-piano / vibraphone keyboard: a struck key with a metallic bell-tine attack that
+# rings into a long reverb. harmonicity+modulationIndex set the "vibraphone vs bell" character
+# (more = clangier bell, less = purer/warmer); a touch of drive adds the guitar-ish bite.
+# (FMSynth has no filter, so no lowpass — brightness lives in the FM params.)
+# Jangly FM electric piano: bright chiming sidebands (high modulationIndex/harmonicity) + a
+# little chorus for shimmer-width = the "jangle"/guitar quality. Struck with a touch of sustain.
+SYNTH = {"type": "FMSynth", "options": {
+    "oscillatorType": "sine", "harmonicity": 5, "modulationIndex": 16,   # more chime/jangle on the attack
+    "attack": 0.001, "decay": 1.1, "sustain": 0.15, "release": 1.6,
+    "volume": 6, "drive": 0.5, "reverbSend": 1.0,   # no chorus: it was comb-filtering -> phasey + muddy
+}}
+
+# A WISPY, quiet, wide drone doubling the lead in unison — an atmospheric bed, not a second
+# voice. Soft triangle, slow swell, very quiet, chorus for stereo width, long reverb wash.
+DRONE_NAME = "Lead Drone (unison double)"
+DRONE_SYNTH = {"type": "MonoSynth", "options": {
+    "oscillatorType": "triangle",
+    "attack": 0.2, "decay": 0.6, "sustain": 0.6, "release": 3.0,
+    "volume": -12, "filterType": "lowpass", "filterFrequency": 1000, "filterQ": 1,
+    "drive": 0.0, "reverbSend": 0.8,   # dropped chorus (phasey/muddy against the unison lead)
 }}
 GRID = "8n"
 
@@ -73,6 +88,23 @@ for sr in stems:
             t["description"] = DESCRIPTION
             updated += 1
 assert updated == 1, f"expected 1 '{TRACK}' track, updated {updated}"
+
+# Add/refresh the unison drone double (idempotent: drop any prior copy first so re-runs don't pile up).
+for sr in stems:
+    sr["interpretation"]["tracks"] = [t for t in sr["interpretation"]["tracks"] if t.get("name") != DRONE_NAME]
+drone = {
+    "name": DRONE_NAME,
+    "instrument": "warm saw synth pad, in unison with the lead",
+    "pattern": "Sustained synth drone doubling the lead melody in unison (same notes, held/legato).",
+    "description": "Layered under the e-piano lead to fatten it and fill the gaps where the "
+                   "plucked tone decays. Same 16-bar melody as the Goth Lead.",
+    "synth": DRONE_SYNTH,
+    "steps": {"grid": GRID, "notes": NOTES},
+}
+for sr in stems:   # append to the same stem the lead lives in
+    if any(t.get("name") == TRACK for t in sr["interpretation"]["tracks"]):
+        sr["interpretation"]["tracks"].append(drone)
+        break
 
 sidecar = sanitize_numbers(assemble_stems(meta, mir, stems, overview))
 with open(f"docs/{SLUG}.json", "w") as fh:
