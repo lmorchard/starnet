@@ -17,8 +17,18 @@ and refresh the player (http://127.0.0.1:8778/player/). Re-running `analyze` wou
 this track (hand-tuned tracks are authored), so this script re-applies it.
 """
 import json
+import re
 from audio_reference.scorespec import assemble_stems, sanitize_numbers
 from audio_reference.render import render_stems_markdown
+
+
+def _oct_up(notes):
+    """Transpose pitched tokens up one octave (rests/unknowns pass through)."""
+    out = []
+    for n in notes:
+        m = re.match(r"^([A-G]#?)(\d)$", n or "")
+        out.append(f"{m.group(1)}{int(m.group(2)) + 1}" if m else n)
+    return out
 
 SLUG = "agent-side-grinder-stripdown"
 TRACK = "Goth Lead Synth"
@@ -33,23 +43,26 @@ TRACK = "Goth Lead Synth"
 # Jangly FM electric piano: bright chiming sidebands (high modulationIndex/harmonicity) + a
 # little chorus for shimmer-width = the "jangle"/guitar quality. Struck with a touch of sustain.
 SYNTH = {"type": "FMSynth", "options": {
-    "oscillatorType": "sine", "harmonicity": 5, "modulationIndex": 16,   # more chime/jangle on the attack
-    # punchy ADSR: instant attack to peak, fast decay DROP (the punch), a bit of sustain, short release
-    "attack": 0.001, "decay": 0.15, "sustain": 0.25, "release": 0.7,
+    "oscillatorType": "sine", "harmonicity": 5, "modulationIndex": 20,   # more chime/jangle on the attack
+    # punchy ADSR: instant attack to peak, fast decay DROP (the punch), a bit more sustain, short release
+    "attack": 0.001, "decay": 0.15, "sustain": 0.5, "release": 0.7,
     # FM mod envelope: fast attack so the tine is bright AT the strike (not a reverse "mwoop" swell),
     # then it decays to a low sustain so the body mellows = a struck "dunng".
     "modAttack": 0.005, "modDecay": 0.4, "modSustain": 0.2,
-    "volume": 6, "drive": 0.5, "reverbSend": 1.0,   # no chorus: it was comb-filtering -> phasey + muddy
+    "volume": 6, "drive": 0.5, "delay": 0.2, "reverbSend": 1.0,   # delay = a little rhythmic echo
 }}
 
 # A WISPY, quiet, wide drone doubling the lead in unison — an atmospheric bed, not a second
 # voice. Soft triangle, slow swell, very quiet, chorus for stereo width, long reverb wash.
 DRONE_NAME = "Lead Drone (unison double)"
+# Open, sweeping, breathy background pad (like the Cathedral Pad but with a SHORT attack), an
+# octave ABOVE the lead — airy wash, not a muddy unison ring. Short attack so it speaks, then
+# sustains; wide-open filter for air, no resonance, lots of reverb.
 DRONE_SYNTH = {"type": "MonoSynth", "options": {
     "oscillatorType": "triangle",
-    "attack": 0.2, "decay": 0.6, "sustain": 0.6, "release": 3.0,
-    "volume": -12, "filterType": "lowpass", "filterFrequency": 1000, "filterQ": 1,
-    "drive": 0.0, "reverbSend": 0.8,   # dropped chorus (phasey/muddy against the unison lead)
+    "attack": 0.02, "decay": 0.6, "sustain": 0.7, "release": 2.5,   # short attack, then a sustained wash
+    "volume": -4, "filterType": "lowpass", "filterFrequency": 6000, "filterQ": 1.0,  # wide open = airy/breathy
+    "drive": 0.0, "reverbSend": 0.85,
 }}
 GRID = "8n"
 
@@ -103,7 +116,7 @@ drone = {
     "description": "Layered under the e-piano lead to fatten it and fill the gaps where the "
                    "plucked tone decays. Same 16-bar melody as the Goth Lead.",
     "synth": DRONE_SYNTH,
-    "steps": {"grid": GRID, "notes": NOTES},
+    "steps": {"grid": GRID, "notes": _oct_up(NOTES)},   # an octave above the lead = airy background
 }
 for sr in stems:   # append to the same stem the lead lives in
     if any(t.get("name") == TRACK for t in sr["interpretation"]["tracks"]):

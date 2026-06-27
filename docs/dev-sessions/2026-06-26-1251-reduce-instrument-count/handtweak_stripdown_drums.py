@@ -19,37 +19,25 @@ SLUG = "agent-side-grinder-stripdown"
 # tail + loud + bright broadband noise.
 OVERRIDES = {
     "Gated Snare": {
-        "reverbSend": 0.7,        # big crash tail in the 4.5s cathedral
-        "volume": 4,              # loud, up front
+        "reverbSend": 0.8,        # big crash tail in the 4.5s cathedral (the snare's "release")
+        "volume": 15,             # well up in the mix
+        "drive": 0.2,             # a little saturation = more punch/crack
         "decay": 0.2,             # as long as the PERC clamp allows
-        "filterType": "lowpass",  # KEEP the body (highpass left only hiss = "tsss"); lowpass = "smash"
-        "filterFrequency": 400,   # way down (was 4000->1500->400): kills the "tss", low "smaash"
-        "filterQ": 1,
+        "noiseType": "brown",     # THE real fix: brown noise is low/dark (white = the "tss" hiss)
+        "filterType": "lowpass", "filterFrequency": 400, "filterQ": 1,   # (NoiseSynth ignores filter; noiseType does the work)
     },
-    "Industrial Kick": {          # straight "thump": low octaves kills MembraneSynth's pitch-chirp ("thwip")
+    "Industrial Kick": {          # audible straight thump: low-ish octaves = punch without the "thwip" chirp
         "attack": 0.001, "decay": 0.8, "sustain": 0, "release": 0.12,
-        "octaves": 1.0,           # NEW player option: tiny pitch sweep = straight thump, not a chirp
+        "octaves": 2.5,           # some attack punch (so it's audible) but far from the default-10 chirp
         "pitchDecay": 0.05,
         "drive": 0.0,
-        "volume": 2,
+        "volume": 5,              # was nearly inaudible
     },
 }
 
-# A tonal snare BODY layered under the noise (NoiseSynth alone = no pitch = reads as a hat).
-# A short MembraneSynth "tok" at a snare-body pitch, low octaves so it's a clean tone not a chirp.
+# Snare Body was tried as a tonal layer under the noise, but Les found it doesn't contribute —
+# removed below (kept the name so re-runs clean it up).
 SNARE_BODY_NAME = "Snare Body"
-SNARE_BODY = {
-    "name": SNARE_BODY_NAME,
-    "instrument": "tonal snare body (membrane tok) under the noise",
-    "pattern": "Backbeat on 2 & 4, doubling the Gated Snare with a pitched body for weight.",
-    "description": "Layered with the Gated Snare: noise = the 'snares', this tonal hit = the drum body.",
-    "synth": {"type": "MembraneSynth", "options": {
-        "oscillatorType": "sine", "octaves": 1.5, "pitchDecay": 0.03,
-        "attack": 0.001, "decay": 0.2, "sustain": 0, "release": 0.1,
-        "volume": -1, "drive": 0.1, "reverbSend": 0.4,
-    }},
-    "steps": {"grid": "4n", "notes": ["", "D3", "", "D3"]},   # D3 ~ snare-body fundamental, on 2 & 4
-}
 
 # Step (rhythm) overrides — {grid, notes}. The groove Les hears:
 #   thump-smash 4/4 backbone (kick on 1 & 3, snare on 2 & 4) + a 16th-note synth hat "orbital"
@@ -60,7 +48,7 @@ SNARE_BODY = {
 _HAT_FILL = ["C6", "B5", "A#5", "A5", "G#5", "G5", "F#5", "F5",
              "E5", "D#5", "D5", "C#5", "C5", "B4", "A#4", "A4"]
 STEPS_OVERRIDES = {
-    "Industrial Kick":   {"grid": "4n",  "notes": ["A0", "", "A0", ""]},   # deep thump on 1 & 3
+    "Industrial Kick":   {"grid": "4n",  "notes": ["B1", "", "B1", ""]},   # audible thump on 1 & 3 (A0 was subsonic)
     # (Gated Snare already hits 2 & 4 — the smash backbeat — so it's left as-is.)
     "8th Note Hi-Hat":   {"grid": "16n", "notes": _HAT_FILL + [""] * 112},  # 1-bar descending fill, 7 off
     "Off-beat Open Hat": {"grid": "8n",  "notes": [""] * 8},                 # silenced (no constant hat)
@@ -83,13 +71,9 @@ for sr in stems:
 missing = (set(OVERRIDES) | set(STEPS_OVERRIDES)) - applied
 assert not missing, f"tracks not found: {missing}"
 
-# Add/refresh the tonal snare body (idempotent: drop any prior copy first), in the drums stem.
+# Remove the Snare Body (Les: doesn't contribute). Idempotent — drops it if present.
 for sr in stems:
     sr["interpretation"]["tracks"] = [t for t in sr["interpretation"]["tracks"] if t.get("name") != SNARE_BODY_NAME]
-for sr in stems:
-    if any(t.get("name") == "Gated Snare" for t in sr["interpretation"]["tracks"]):
-        sr["interpretation"]["tracks"].append(SNARE_BODY)
-        break
 
 sidecar = sanitize_numbers(assemble_stems(meta, mir, stems, overview))
 with open(f"docs/{SLUG}.json", "w") as fh:

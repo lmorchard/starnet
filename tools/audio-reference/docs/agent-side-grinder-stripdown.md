@@ -67,8 +67,6 @@ Tone.Transport.bpm.value = 120;
 | Gated Snare | A NoiseSynth processed with a very short reverb or a dedicated Gated Reverb effect. | A powerful, unwavering backbeat on counts 2 and 4. | The most character-defining element. Its explosive, reverberant, yet abruptly cut-off sound gives the track its classic 80s industrial feel. It is present almost throughout. |
 | 8th Note Hi-Hat | MetalSynth | A constant, machine-like 8th note pattern. | Enters after the initial kick/snare intro, providing the main high-frequency energy and driving the rhythm forward. Its metallic and consistent nature adds to the industrial feel. |
 | Off-beat Open Hat | MetalSynth | Syncopated off-beat hits, typically on the '+' of each quarter note, creating a classic disco/EBM feel. | This track adds a 'breathing' quality and syncopation to the otherwise rigid groove. Its longer decay contrasts with the tight closed hat. |
-| Digital Clap/Rim | NoiseSynth | Syncopated 16th-note accent patterns that evolve throughout the track. | A dry, sharp percussive layer that adds rhythmic complexity and density, particularly in the track's middle and later sections. It sounds like a digital clap or a sharp rimshot. |
-| Snare Body | tonal snare body (membrane tok) under the noise | Backbeat on 2 & 4, doubling the Gated Snare with a pitched body for weight. | Layered with the Gated Snare: noise = the 'snares', this tonal hit = the drum body. |
 
 ## vocals
 
@@ -76,8 +74,6 @@ Tone.Transport.bpm.value = 120;
 
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
-| Declamatory Lead Vocal | MonoSynth | Rhythmic, spoken-word-like phrases in verses, transitioning to longer, sustained melodic lines in choruses. Features multi-tracked harmonies in chorus sections. | The central narrative element of the track, present from the beginning. It delivers the lyrics with a mix of rhythmic precision and melodic contour. In choruses, it's supported by wide, reverb-heavy harmonies. The synth approximation aims for the baritone weight and raspy character. |
-| Wailing Sax Solo | MonoSynth | A fast, virtuosic, and blues-inflected melodic solo with rapid runs, long-held notes, and expressive bends, occurring in the latter half of the track. | Takes over the lead role from the vocal for an extended instrumental section (approx. 2:03-2:35). The part is wild and expressive, full of fast passages and screaming high notes. The synth patch aims to capture the reedy bite and resonant quality of a saxophone. |
 
 ## other
 
@@ -87,7 +83,6 @@ Tone.Transport.bpm.value = 120;
 |---|---|---|---|
 | Goth Lead Synth | MonoSynth | (REWORK) Sultry, melancholic, spooky-60s guitar lead (reverb-drenched) — NOT the model's frantic 16th arpeggio. Mostly E Dorian (raised 6th = C#) with chromatic/tritone spice. Two-phrase melody by ear: P1 = E | G E G G# A D | D A G; P2 = E F# G D | F# G C# (G->C# tritone) | F# G F# A G. | Re-voiced from a bright distorted saw to a reverb-drenched ringing guitar (MonoSynth, long decay/release). Melody hand-transcribed by ear (first phrase; rhythm being refined). |
 | Cathedral Pad | PolySynth | Sustained whole-note or half-note chords, typically playing minor triads or open fifths. The harmonic rhythm is very slow, with chords held for one or two bars. | Provides the atmospheric, harmonic foundation. It's present throughout most of the track, swelling and receding. It starts smooth but becomes much louder, brighter, and more distorted around 1:40, creating a massive wall of sound. It's very wide and washed in reverb. |
-| Overdriven Chords | PolySynth | Rhythmic power chord stabs, often landing on downbeats or playing a simple quarter-note pattern. Provides rhythmic weight and aggression. | This powerful layer enters in the more intense sections (e.g., 1:40) to create a climactic, industrial-tinged texture. It's a thick, heavily distorted synth playing simple chords, layered on top of the pad but with a much sharper attack and more grit. |
 | Lead Drone (unison double) | warm saw synth pad, in unison with the lead | Sustained synth drone doubling the lead melody in unison (same notes, held/legato). | Layered under the e-piano lead to fatten it and fill the gaps where the plucked tone decays. Same 16-bar melody as the Goth Lead. |
 
 ## bass
