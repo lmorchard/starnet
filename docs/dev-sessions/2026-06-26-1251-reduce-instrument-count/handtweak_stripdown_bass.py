@@ -50,8 +50,8 @@ DESCRIPTION = ("The harmonic + rhythmic engine: a chromatic descending pedal bas
 SYNTH_OPTIONS = {
     "oscillatorType": "sawtooth",
     "attack": 0.01, "decay": 0.34, "sustain": 0.0, "release": 0.1,
-    "volume": 8, "filterType": "lowpass", "filterFrequency": 250, "filterQ": 2.5,
-    "drive": 0.6, "reverbSend": 0.3,
+    "volume": 8, "filterType": "lowpass", "filterFrequency": 400, "filterQ": 2.5,
+    "drive": 0.8, "reverbSend": 0.3,   # higher base + more drive = punchier attack (still some "ow" sweep)
 }
 
 d = json.load(open(f"docs/{SLUG}.json"))

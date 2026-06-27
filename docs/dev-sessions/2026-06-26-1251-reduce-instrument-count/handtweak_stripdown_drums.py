@@ -20,8 +20,8 @@ SLUG = "agent-side-grinder-stripdown"
 OVERRIDES = {
     "Gated Snare": {
         "reverbSend": 0.8,        # big crash tail in the 4.5s cathedral (the snare's "release")
-        "volume": 15,             # well up in the mix
-        "drive": 0.2,             # a little saturation = more punch/crack
+        "volume": 15,             # up front in the mix (20 was a touch hot)
+        "drive": 0.0,             # dropped: the drive was making it read as a handclap
         "decay": 0.2,             # as long as the PERC clamp allows
         "noiseType": "brown",     # THE real fix: brown noise is low/dark (white = the "tss" hiss)
         "filterType": "lowpass", "filterFrequency": 400, "filterQ": 1,   # (NoiseSynth ignores filter; noiseType does the work)

@@ -59,10 +59,12 @@ DRONE_NAME = "Lead Drone (unison double)"
 # octave ABOVE the lead — airy wash, not a muddy unison ring. Short attack so it speaks, then
 # sustains; wide-open filter for air, no resonance, lots of reverb.
 DRONE_SYNTH = {"type": "MonoSynth", "options": {
-    "oscillatorType": "triangle",
-    "attack": 0.02, "decay": 0.6, "sustain": 0.7, "release": 2.5,   # short attack, then a sustained wash
-    "volume": -4, "filterType": "lowpass", "filterFrequency": 6000, "filterQ": 1.0,  # wide open = airy/breathy
-    "drive": 0.0, "reverbSend": 0.85,
+    # fat (gently-detuned) saw, not a pure triangle: a little detune = "air", but keep spread low
+    # so it doesn't get phasey; warm lowpass to take the saw edge off.
+    "oscillatorType": "fatsawtooth", "count": 3, "spread": 6,
+    "attack": 0.05, "decay": 0.7, "sustain": 0.65, "release": 2.8,
+    "volume": -6, "filterType": "lowpass", "filterFrequency": 1900, "filterQ": 1.0,  # softer, no resonance
+    "drive": 0.0, "reverbSend": 0.9,
 }}
 GRID = "8n"
 
@@ -116,7 +118,7 @@ drone = {
     "description": "Layered under the e-piano lead to fatten it and fill the gaps where the "
                    "plucked tone decays. Same 16-bar melody as the Goth Lead.",
     "synth": DRONE_SYNTH,
-    "steps": {"grid": GRID, "notes": _oct_up(NOTES)},   # an octave above the lead = airy background
+    "steps": {"grid": GRID, "notes": NOTES},   # same register as the lead (dropped the octave-up: too flutey)
 }
 for sr in stems:   # append to the same stem the lead lives in
     if any(t.get("name") == TRACK for t in sr["interpretation"]["tracks"]):
