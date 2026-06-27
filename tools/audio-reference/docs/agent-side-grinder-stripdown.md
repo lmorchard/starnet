@@ -68,6 +68,7 @@ Tone.Transport.bpm.value = 120;
 | 8th Note Hi-Hat | MetalSynth | A constant, machine-like 8th note pattern. | Enters after the initial kick/snare intro, providing the main high-frequency energy and driving the rhythm forward. Its metallic and consistent nature adds to the industrial feel. |
 | Off-beat Open Hat | MetalSynth | Syncopated off-beat hits, typically on the '+' of each quarter note, creating a classic disco/EBM feel. | This track adds a 'breathing' quality and syncopation to the otherwise rigid groove. Its longer decay contrasts with the tight closed hat. |
 | Digital Clap/Rim | NoiseSynth | Syncopated 16th-note accent patterns that evolve throughout the track. | A dry, sharp percussive layer that adds rhythmic complexity and density, particularly in the track's middle and later sections. It sounds like a digital clap or a sharp rimshot. |
+| Snare Body | tonal snare body (membrane tok) under the noise | Backbeat on 2 & 4, doubling the Gated Snare with a pitched body for weight. | Layered with the Gated Snare: noise = the 'snares', this tonal hit = the drum body. |
 
 ## vocals
 

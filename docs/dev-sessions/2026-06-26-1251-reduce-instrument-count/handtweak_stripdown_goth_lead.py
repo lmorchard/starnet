@@ -34,7 +34,11 @@ TRACK = "Goth Lead Synth"
 # little chorus for shimmer-width = the "jangle"/guitar quality. Struck with a touch of sustain.
 SYNTH = {"type": "FMSynth", "options": {
     "oscillatorType": "sine", "harmonicity": 5, "modulationIndex": 16,   # more chime/jangle on the attack
-    "attack": 0.001, "decay": 1.1, "sustain": 0.15, "release": 1.6,
+    # punchy ADSR: instant attack to peak, fast decay DROP (the punch), a bit of sustain, short release
+    "attack": 0.001, "decay": 0.15, "sustain": 0.25, "release": 0.7,
+    # FM mod envelope: fast attack so the tine is bright AT the strike (not a reverse "mwoop" swell),
+    # then it decays to a low sustain so the body mellows = a struck "dunng".
+    "modAttack": 0.005, "modDecay": 0.4, "modSustain": 0.2,
     "volume": 6, "drive": 0.5, "reverbSend": 1.0,   # no chorus: it was comb-filtering -> phasey + muddy
 }}
 

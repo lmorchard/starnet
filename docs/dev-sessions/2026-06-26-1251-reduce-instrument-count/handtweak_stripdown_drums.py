@@ -23,26 +23,47 @@ OVERRIDES = {
         "volume": 4,              # loud, up front
         "decay": 0.2,             # as long as the PERC clamp allows
         "filterType": "lowpass",  # KEEP the body (highpass left only hiss = "tsss"); lowpass = "smash"
-        "filterFrequency": 1500,  # down ~an octave from 4000: deeper, less hissy smash
+        "filterFrequency": 400,   # way down (was 4000->1500->400): kills the "tss", low "smaash"
         "filterQ": 1,
     },
-    "Industrial Kick": {          # "thwipp" -> deep "thump" with sub: kill the synthy edge, long boom
+    "Industrial Kick": {          # straight "thump": low octaves kills MembraneSynth's pitch-chirp ("thwip")
         "attack": 0.001, "decay": 0.8, "sustain": 0, "release": 0.12,
-        "drive": 0.0,             # the drive was the synthy "thwip"
+        "octaves": 1.0,           # NEW player option: tiny pitch sweep = straight thump, not a chirp
+        "pitchDecay": 0.05,
+        "drive": 0.0,
         "volume": 2,
     },
+}
+
+# A tonal snare BODY layered under the noise (NoiseSynth alone = no pitch = reads as a hat).
+# A short MembraneSynth "tok" at a snare-body pitch, low octaves so it's a clean tone not a chirp.
+SNARE_BODY_NAME = "Snare Body"
+SNARE_BODY = {
+    "name": SNARE_BODY_NAME,
+    "instrument": "tonal snare body (membrane tok) under the noise",
+    "pattern": "Backbeat on 2 & 4, doubling the Gated Snare with a pitched body for weight.",
+    "description": "Layered with the Gated Snare: noise = the 'snares', this tonal hit = the drum body.",
+    "synth": {"type": "MembraneSynth", "options": {
+        "oscillatorType": "sine", "octaves": 1.5, "pitchDecay": 0.03,
+        "attack": 0.001, "decay": 0.2, "sustain": 0, "release": 0.1,
+        "volume": -1, "drive": 0.1, "reverbSend": 0.4,
+    }},
+    "steps": {"grid": "4n", "notes": ["", "D3", "", "D3"]},   # D3 ~ snare-body fundamental, on 2 & 4
 }
 
 # Step (rhythm) overrides — {grid, notes}. The groove Les hears:
 #   thump-smash 4/4 backbone (kick on 1 & 3, snare on 2 & 4) + a 16th-note synth hat "orbital"
 #   that plays for 4 bars then drops out for 4 bars ("every other 4 bars" = an 8-bar cycle).
-_BAR16 = ["x"] * 16                  # one bar of straight 16th-note hat hits
-_OFFBEATS = ["", "x"] * 4            # one bar of 8th-note offbeats (the open hat)
+# The hi-hat is an ACCENT/FILL, not a constant beat: a descending-pitch 16th-note metallic run
+# (MetalSynth is pitched) for 1 bar, then 7 bars off. The descent gives the "orbital" motion.
+# (True L->R pan-sweep isn't possible — no per-track pan / automation in the harness.)
+_HAT_FILL = ["C6", "B5", "A#5", "A5", "G#5", "G5", "F#5", "F5",
+             "E5", "D#5", "D5", "C#5", "C5", "B4", "A#4", "A4"]
 STEPS_OVERRIDES = {
     "Industrial Kick":   {"grid": "4n",  "notes": ["A0", "", "A0", ""]},   # deep thump on 1 & 3
     # (Gated Snare already hits 2 & 4 — the smash backbeat — so it's left as-is.)
-    "8th Note Hi-Hat":   {"grid": "16n", "notes": _BAR16 * 4 + [""] * 64},  # 16ths: 4 bars on, 4 off
-    "Off-beat Open Hat": {"grid": "8n",  "notes": _OFFBEATS * 4 + [""] * 32},  # offbeats: 4 on, 4 off
+    "8th Note Hi-Hat":   {"grid": "16n", "notes": _HAT_FILL + [""] * 112},  # 1-bar descending fill, 7 off
+    "Off-beat Open Hat": {"grid": "8n",  "notes": [""] * 8},                 # silenced (no constant hat)
 }
 
 d = json.load(open(f"docs/{SLUG}.json"))
@@ -61,6 +82,14 @@ for sr in stems:
             applied.add(name)
 missing = (set(OVERRIDES) | set(STEPS_OVERRIDES)) - applied
 assert not missing, f"tracks not found: {missing}"
+
+# Add/refresh the tonal snare body (idempotent: drop any prior copy first), in the drums stem.
+for sr in stems:
+    sr["interpretation"]["tracks"] = [t for t in sr["interpretation"]["tracks"] if t.get("name") != SNARE_BODY_NAME]
+for sr in stems:
+    if any(t.get("name") == "Gated Snare" for t in sr["interpretation"]["tracks"]):
+        sr["interpretation"]["tracks"].append(SNARE_BODY)
+        break
 
 sidecar = sanitize_numbers(assemble_stems(meta, mir, stems, overview))
 with open(f"docs/{SLUG}.json", "w") as fh:
