@@ -44,3 +44,38 @@ Added a full-mix `build_prompt` overview pass (reuses existing prompt + RESPONSE
 - **Les re-runs the corpus** (`analyze … --stems` on the real audio), then `python3 count_tracks.py` to confirm melodic ≤ ~6. If still high, tighten `other`/`vocals` budgets — cheap.
 - **Deferred (out of scope):** revisit player `TRACK_CAPS` (4 melodic) once arrangements are leaner — may bump melodic cap to 5–6 so the default mix shows the whole song. Player change, separate session.
 - Existing `docs/*.json` still carry the OLD (over-split) arrangements + hand-tweaks until the re-run.
+
+## Retrospective (Stripdown by-ear reconstruction)
+
+After the prompt/overview/corpus work, the session turned into a long by-ear
+reconstruction of Agent Side Grinder "Stripdown" — correcting what the analyzer
+got wrong, instrument by instrument, via per-instrument idempotent hand-tweak
+scripts (`handtweak_stripdown_{bass,goth_lead,drums,arrangement}.py`).
+
+### Process learnings (what would make it faster)
+- **Division of labor:** the player rebuilds a track live on every control change,
+  so TIMBRE is fastest dialed by the user at the controls; the assistant/scripts
+  are for NOTES / rhythm / octaves / structure / add-remove tracks (which the UI
+  can't edit). The text round-trip (describe → guess params → script → reload) was
+  the main bottleneck for timbre.
+- Lock melody/rhythm FIRST, then voice timbre once (we re-judged timbre against
+  placeholder notes a few times).
+- Audit the tool's ceiling up front — we hit "harness can't do X" ~5× and extended
+  the player reactively (filter env, kick pitch-chirp, FM mod-env, noise color, pan).
+- Smaller per-iteration deltas isolate cause faster; ask about octaves vs guessing.
+
+### Player capabilities added this session
+longer reverb tail (4.5s); `octaves`/`pitchDecay` (MembraneSynth); `modAttack`/
+`modDecay`/`modSustain` (FM mod-env); `noiseType` (white/pink/brown); `pan`; `delay`.
+All wired into the live tweaker. NOTE: these are PLAYER-only — not yet in the
+analyzer schema/prompt (issue #248).
+
+### Analysis-system lessons → follow-up issues
+- #248 sync new player options into analyzer schema/prompt
+- #249 steps loop can't express multi-bar form / phrase structure (biggest gap)
+- #250 prompt should pin instrument identity + avoid "synthy" defaults + drum synthesis
+- #251 player: step/pattern editor in the live UI (input melodies by ear)
+- #252 player: usable tweaker (labeled range sliders, ranges, grouping)
+
+The hand-tweak scripts are a literal record of "analyzer said X, truth was Y" —
+training signal for prompt improvement.

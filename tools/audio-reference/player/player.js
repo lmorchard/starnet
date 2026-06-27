@@ -443,11 +443,12 @@ function renderTracks() {
     const ctls = document.createElement("div"); ctls.className = "ctls";
     const setOpt = (field, raw) => {
       if (raw === "" || raw == null) delete row.opts[field];
-      else row.opts[field] = field === "oscillatorType" || field === "filterType" ? raw : Number(raw);
+      else row.opts[field] = ["oscillatorType", "filterType", "noiseType"].includes(field) ? raw : Number(raw);
       rebuildTrack(row);
     };
     ctls.append(selectCtl(SHORT.oscillatorType, OSC_TYPES, row.opts.oscillatorType, (v) => setOpt("oscillatorType", v)));
     ctls.append(selectCtl(SHORT.filterType, FILTER_TYPES, row.opts.filterType, (v) => setOpt("filterType", v)));
+    ctls.append(selectCtl("noise", NOISE_TYPES, row.opts.noiseType, (v) => setOpt("noiseType", v)));
     NUM_FIELDS.forEach((f) => ctls.append(numCtl(SHORT[f] || f, row.opts[f], (v) => setOpt(f, v))));
     card.append(ctls);
     host.append(card);
