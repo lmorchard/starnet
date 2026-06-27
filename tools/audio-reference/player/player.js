@@ -17,7 +17,8 @@ const FILTER_TYPES = ["", "lowpass", "highpass", "bandpass", "notch"];
 const NUM_FIELDS = ["attack", "decay", "sustain", "release", "filterFrequency", "filterQ",
                     "drive", "chorus", "reverbSend", "volume", "harmonicity", "modulationIndex",
                     "count", "spread", "octaves", "pitchDecay", "pan",
-                    "modAttack", "modDecay", "modSustain"];
+                    "modAttack", "modDecay", "modSustain", "delay"];
+const NOISE_TYPES = ["", "white", "pink", "brown"];
 const SHORT = { filterFrequency: "freq", filterQ: "Q", reverbSend: "rev", modulationIndex: "mod",
                 oscillatorType: "osc", filterType: "filt", pitchDecay: "pdec", octaves: "oct" };
 
@@ -61,6 +62,7 @@ function expandOptions(o = {}) {
     if (o.count != null) out.oscillator.count = Math.min(o.count, MAX_OSC_VOICES);   // chiptune clamp
     if (o.spread != null) out.oscillator.spread = o.spread;
   }
+  if (o.noiseType) out.noise = { type: o.noiseType };   // NoiseSynth color: white(hiss)/pink/brown(dark)
   if (o.attack != null || o.decay != null || o.sustain != null || o.release != null) {
     out.envelope = {};
     if (o.attack != null) out.envelope.attack = o.attack;
@@ -212,6 +214,7 @@ function buildInstrument(row) {
   if (o.drive > 0) inserts.push(new Tone.Distortion(Math.min(1, o.drive)));
   if (o.chorus > 0) inserts.push(new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: Math.min(1, o.chorus) }).start());
   if (o.pan != null) inserts.push(new Tone.Panner(Math.max(-1, Math.min(1, o.pan))));   // static L/R position (-1..1)
+  if (o.delay > 0) inserts.push(new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.35, wet: Math.min(1, o.delay) }));   // rhythmic echo
   const chain = [...inserts, row.gain];
   for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
   const synth = makeSynth(row.renderType, o);
