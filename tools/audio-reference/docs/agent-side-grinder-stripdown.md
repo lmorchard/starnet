@@ -66,7 +66,21 @@ Tone.Transport.bpm.value = 120;
 | Industrial Kick | MembraneSynth | A relentless and driving four-on-the-floor 1/4 note pattern. | The foundation of the track, providing a constant, powerful pulse from the very beginning. The sound is a deep, slightly boomy electronic kick with a sharp attack. |
 | Gated Snare | A NoiseSynth processed with a very short reverb or a dedicated Gated Reverb effect. | A powerful, unwavering backbeat on counts 2 and 4. | The most character-defining element. Its explosive, reverberant, yet abruptly cut-off sound gives the track its classic 80s industrial feel. It is present almost throughout. |
 | 8th Note Hi-Hat | MetalSynth | A constant, machine-like 8th note pattern. | Enters after the initial kick/snare intro, providing the main high-frequency energy and driving the rhythm forward. Its metallic and consistent nature adds to the industrial feel. |
-| Off-beat Open Hat | MetalSynth | Syncopated off-beat hits, typically on the '+' of each quarter note, creating a classic disco/EBM feel. | This track adds a 'breathing' quality and syncopation to the otherwise rigid groove. Its longer decay contrasts with the tight closed hat. |
+
+**Industrial Kick**
+```strudel
+sound("bd ~ bd ~").gain(1.1)
+```
+
+**Gated Snare**
+```strudel
+sound("~ sd ~ sd").room(0.6).gain(0.9)
+```
+
+**8th Note Hi-Hat**
+```strudel
+cat(note("c6 b5 a#5 a5 g#5 g5 f#5 f5 e5 d#5 d5 c#5 c5 b4 a#4 a4").s("hh").gain(0.5), silence, silence, silence, silence, silence, silence, silence)
+```
 
 ## vocals
 
@@ -85,6 +99,21 @@ Tone.Transport.bpm.value = 120;
 | Cathedral Pad | PolySynth | Sustained whole-note or half-note chords, typically playing minor triads or open fifths. The harmonic rhythm is very slow, with chords held for one or two bars. | Provides the atmospheric, harmonic foundation. It's present throughout most of the track, swelling and receding. It starts smooth but becomes much louder, brighter, and more distorted around 1:40, creating a massive wall of sound. It's very wide and washed in reverb. |
 | Lead Drone (unison double) | warm saw synth pad, in unison with the lead | Sustained synth drone doubling the lead melody in unison (same notes, held/legato). | Layered under the e-piano lead to fatten it and fill the gaps where the plucked tone decays. Same 16-bar melody as the Goth Lead. |
 
+**Goth Lead Synth**
+```strudel
+note("e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~").slow(16).s("sine").fm(6).fmh(2).fmattack(0.001).fmdecay(0.6).fmsustain(0.35).attack(0.002).decay(0.3).sustain(0.45).release(0.6).lpf(4500).room(0.5).delay(0.12).gain(0.85)
+```
+
+**Cathedral Pad**
+```strudel
+note("[e3,g3,b3] [c4,e4,g4]").slow(2).s("sawtooth").attack(2.5).release(5).lpf(1200).room(0.8).gain(0.4)
+```
+
+**Lead Drone (unison double)**
+```strudel
+note("e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~").slow(16).s("sawtooth").lpf(1900).attack(0.05).release(2.8).room(0.9).gain(0.4)
+```
+
 ## bass
 
 > A driving, motorik-style synth bass track that forms the relentless rhythmic and harmonic foundation of the song. A single, gritty monophonic synth plays a continuous stream of eighth notes, outlining E minor arpeggios and scale fragments. The timbre is that of a sawtooth wave passed through a resonant low-pass filter and a distortion/drive effect, giving it a dark, buzzy, and powerful character. The sound is direct and upfront, with a tight, percussive envelope and very little spatial effect.
@@ -92,3 +121,8 @@ Tone.Transport.bpm.value = 120;
 | Track | Instrument | Pattern | Notes |
 |---|---|---|---|
 | Motorik Bass | MonoSynth | 16-bar bass form in driving straight 8th-notes: a 4-bar chromatic descending pedal phrase (E->D->C#->C, connecting Em(i) to C(VI)) played 3x, then a 4-bar answer phrase that dips to A and climbs back A->B->C->D. Each root is pedaled, and the last 8th of most bars anticipates the next root (pickup) ahead of the bar line. | The harmonic + rhythmic engine: a chromatic descending pedal bass with an antecedent/consequent shape (3 descending statements + 1 dip-and-rise answer). Anticipation pickups pull each change ahead of the downbeat. (Hand-transcribed by ear; replaces the model's 1-bar arpeggio guess.) |
+
+**Motorik Bass**
+```strudel
+note("e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 a1 a1 a1 a1 b1 b1 b1 b1 c2 c2 c2 c2 d2 d2 d2 d2 d2").slow(16).s("sawtooth").lpf(1500).resonance(3).distort(0.6).attack(0.004).decay(0.16).sustain(0.3).release(0.08).gain(0.95)
+```

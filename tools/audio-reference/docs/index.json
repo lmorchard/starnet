@@ -5,8 +5,8 @@
     "title": "Stripdown",
     "root": "A",
     "mode": "major",
-    "bpm": 120.18531976744185,
-    "tracks": 11
+    "bpm": 240.3706395348837,
+    "tracks": 7
   },
   {
     "slug": "black-lung-the-unreality-industry",
@@ -69,7 +69,7 @@
     "root": "C",
     "mode": "minor",
     "bpm": 87.5926906779661,
-    "tracks": 10
+    "tracks": 11
   },
   {
     "slug": "the-knife-silent-shout",

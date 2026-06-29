@@ -55,38 +55,38 @@ def test_response_schema_track_items_require_instrument_and_pattern():
         assert field in item["required"]
 
 
-def test_response_schema_track_requires_synth_and_steps():
+def test_response_schema_track_requires_strudel():
     item = RESPONSE_SCHEMA["properties"]["tracks"]["items"]
-    for field in ["synth", "steps"]:
-        assert field in item["properties"]
-        assert field in item["required"]
-    synth = item["properties"]["synth"]
-    assert "type" in synth["properties"] and "options" in synth["properties"]
-    steps = item["properties"]["steps"]
-    assert "grid" in steps["properties"] and "notes" in steps["properties"]
-    # notes is an array of plain strings (Vertex-safe token grammar)
-    assert steps["properties"]["notes"]["type"] == "array"
-    assert steps["properties"]["notes"]["items"]["type"] == "string"
+    assert "strudel" in item["properties"]
+    assert item["properties"]["strudel"]["type"] == "string"
+    assert "strudel" in item["required"]
+    # the old Tone-shaped playable fields are gone from the emitted schema
+    assert "synth" not in item["properties"] and "steps" not in item["properties"]
+    assert "synth" not in item["required"] and "steps" not in item["required"]
 
 
-def test_prompt_explains_synth_steps_and_token_grammar():
+def test_prompt_explains_strudel_and_embeds_reference():
+    p = build_prompt(META, MIR)
+    assert "strudel" in p.lower()
+    assert "note(" in p and "sound(" in p          # an example pattern is shown
+    # the curated reference is embedded: a function, stack(), a drum sound, and the version pin
+    assert ".lpf(" in p and "stack(" in p
+    assert "bd" in p and "1.0.3" in p
+
+
+def test_build_repair_prompt_includes_error_code_and_reference():
+    from audio_reference.prompt import build_repair_prompt
+    p = build_repair_prompt('<note("e2"), note("a2")>.sound("sawtooth")', "Unexpected token (1:0)")
+    assert '<note("e2"), note("a2")>.sound("sawtooth")' in p   # the broken code is shown
+    assert "Unexpected token (1:0)" in p                        # the validator's exact error
+    assert "cat(" in p and ".lpf(" in p                         # the curated reference is embedded
+    assert '"strudel"' in p                                     # JSON response instruction
+
+
+def test_prompt_asks_for_body_and_grit():
     p = build_prompt(META, MIR).lower()
-    assert "synth" in p and "steps" in p
-    assert "grid" in p
-    # the token grammar must be spelled out for the model
-    assert "rest" in p and "chord" in p
-
-
-def test_response_schema_synth_options_has_body_fields():
-    opts = RESPONSE_SCHEMA["properties"]["tracks"]["items"]["properties"]["synth"]["properties"]["options"]["properties"]
-    for field in ["drive", "chorus", "reverbSend", "filterQ"]:
-        assert field in opts
-
-
-def test_prompt_asks_for_body_and_drive():
-    p = build_prompt(META, MIR).lower()
-    assert "drive" in p
-    assert "body" in p or "thin" in p
+    assert "body" in p
+    assert "grit" in p or "shape" in p             # distortion/grit via Strudel .shape/.crush
 
 
 def test_prompt_includes_timbre_facts():
@@ -101,7 +101,7 @@ def test_build_stem_prompt_frames_isolation():
     p = build_stem_prompt(META, MIR, "drums")
     assert "drums" in p
     assert "isolated" in p.lower() or "only" in p.lower()
-    assert "synth" in p.lower() and "steps" in p.lower()
+    assert "strudel" in p.lower()
 
 
 def test_prompt_has_budget_and_consolidation_rule():

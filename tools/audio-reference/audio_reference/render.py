@@ -56,6 +56,20 @@ def _track_table(tracks: list) -> list:
     return lines
 
 
+def _strudel_blocks(tracks: list) -> list:
+    """Per-track Strudel code as fenced blocks — the playable, human-editable patterns. A track
+    the validator flagged is marked so the reader knows to check it."""
+    lines = []
+    for t in tracks:
+        code = t.get("strudel")
+        if not code:
+            continue
+        flag = "" if t.get("_strudel_valid", True) else "  ⚠ did not validate"
+        lines.append(f"**{t.get('name','')}**{flag}")
+        lines += ["```strudel", code, "```", ""]
+    return lines
+
+
 def render_stems_markdown(meta: dict, mir_global: dict, stem_results: list, overview: dict = None) -> str:
     """Markdown for stems mode: a whole-song overview (when provided) + global measured facts
     + a section per analyzed stem."""
@@ -79,6 +93,7 @@ def render_stems_markdown(meta: dict, mir_global: dict, stem_results: list, over
             lines.append(f"> {interp['summary']}")
             lines.append("")
         lines += _track_table(interp.get("tracks", []))
+        lines += _strudel_blocks(interp.get("tracks", []))
     return "\n".join(lines)
 
 
@@ -128,6 +143,11 @@ def render_markdown(meta: dict, mir: dict, llm: dict) -> str:
     for t in llm["tracks"]:
         lines.append(f"| {t['name']} | {t['instrument']} | {t['pattern']} | {t['description']} |")
     lines.append("")
+
+    # --- Strudel patterns (playable) ---
+    lines.append("## Strudel patterns (playable)")
+    lines.append("")
+    lines += _strudel_blocks(llm["tracks"])
 
     # --- Score draft (speculative) ---
     lines.append("## Score-draft starter (speculative)")

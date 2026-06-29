@@ -19,15 +19,54 @@ import librosa
 
 from .separate import separate
 from .features import select_stems
-from .prompt import build_prompt, build_stem_prompt, RESPONSE_SCHEMA
-from .gemini import analyze_audio
+from .prompt import build_prompt, build_stem_prompt, build_repair_prompt, RESPONSE_SCHEMA
+from .gemini import analyze_audio, repair_strudel
 from .render import render_markdown, render_stems_markdown
 from .scorespec import build_sidecar, sanitize_numbers, assemble_stems
 from .index import build_index
 from .save import safe_slug, apply_score_spec
+from .validate import validate_strudel
 
 DEFAULT_MODEL = "gemini-2.5-pro"
 DEFAULT_PORT = 8777
+
+
+REPAIR_ATTEMPTS = 2   # fix-it turns per invalid track before giving up + tagging it
+
+
+def _validate_and_repair_tracks(tracks: list, model: str, project, location) -> None:
+    """Validate each track's `strudel`; on failure feed the exact error back to the model for up to
+    REPAIR_ATTEMPTS fix-it turns, re-validating each. Tracks still invalid after that are tagged
+    `_strudel_valid:false` (kept, never dropped). Repair is text-only (no audio) and only runs for
+    tracks that actually failed, so it's cheap."""
+    if not tracks:
+        return
+    results = validate_strudel([t.get("strudel", "") for t in tracks])
+    for t, r in zip(tracks, results):
+        name = t.get("name")
+        if r["ok"]:
+            if r["events"] == 0:
+                print(f"[validate] track {name!r}: parses but 0 events (silent?)", file=sys.stderr)
+            continue
+        err = r["error"]
+        repaired = False
+        for attempt in range(REPAIR_ATTEMPTS):
+            print(f"[validate] track {name!r}: {err} — repair {attempt + 1}/{REPAIR_ATTEMPTS}", file=sys.stderr)
+            try:
+                fixed = repair_strudel(build_repair_prompt(t.get("strudel", ""), err), model, project, location)
+            except Exception as exc:  # noqa: BLE001 — repair is best-effort; fall through to tagging
+                print(f"[validate] track {name!r}: repair call failed: {exc}", file=sys.stderr)
+                break
+            (fr,) = validate_strudel([fixed])
+            if fr["ok"]:
+                t["strudel"] = fixed
+                print(f"[validate] track {name!r}: repaired ✓", file=sys.stderr)
+                repaired = True
+                break
+            err = fr["error"]
+        if not repaired:
+            t["_strudel_valid"] = False
+            print(f"[validate] track {name!r}: still invalid after repair — tagged", file=sys.stderr)
 
 
 def write_index(out_dir: str) -> int:
@@ -76,6 +115,7 @@ def _analyze_stems(args, meta, mir, md_path, json_path) -> int:
             prompt = build_stem_prompt(meta, smir, stem)
             interp = analyze_audio(audio_bytes, "audio/wav", prompt, RESPONSE_SCHEMA,
                                    args.model, project, location)
+            _validate_and_repair_tracks(interp.get("tracks", []), args.model, project, location)
             stem_results.append({"stem": stem, "mir": smir, "interpretation": interp})
 
         # Whole-song overview: the per-stem passes are each blind to the others, so nothing
@@ -133,6 +173,7 @@ def cmd_analyze(args) -> int:
     location = resolve_setting(args.location, os.environ, "GOOGLE_CLOUD_LOCATION")
     llm = analyze_audio(audio_bytes, "audio/wav", prompt, RESPONSE_SCHEMA,
                         args.model, project, location)
+    _validate_and_repair_tracks(llm.get("tracks", []), args.model, project, location)
 
     print("[4/4] rendering artifacts ...", file=sys.stderr)
     md = render_markdown(meta, mir, llm)

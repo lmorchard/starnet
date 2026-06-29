@@ -18,8 +18,7 @@ INTERP = {
     "summary": "s", "vocabulary": {}, "score_draft": "d",
     "tracks": [
         {"name": "Kick", "instrument": "MembraneSynth", "pattern": "1/4s", "description": "",
-         "synth": {"type": "MembraneSynth", "options": {"volume": -5}},
-         "steps": {"grid": "4n", "notes": ["C1", "C1", "C1", "C1"]}},
+         "strudel": 'sound("bd*4")'},
     ],
 }
 
@@ -64,7 +63,7 @@ def test_build_score_spec_maps_root_mode_bpm_and_passes_tracks():
     assert spec["mode"] == "minor"
     assert spec["bpm"] == 129.0
     assert spec["tracks"] == INTERP["tracks"]      # tracks passed through verbatim
-    assert spec["tracks"][0]["synth"]["type"] == "MembraneSynth"
+    assert spec["tracks"][0]["strudel"] == 'sound("bd*4")'
 
 
 def test_build_score_spec_tolerates_missing_tracks():
@@ -90,10 +89,10 @@ MIR_GLOBAL = {"bpm": 129.0, "key": "F#", "mode": "minor", "key_confidence": 0.9,
 STEM_RESULTS = [
     {"stem": "drums", "mir": {}, "interpretation": {"tracks": [
         {"name": "Kick", "instrument": "MembraneSynth", "pattern": "1/4", "description": "",
-         "synth": {"type": "MembraneSynth", "options": {}}, "steps": {"grid": "4n", "notes": ["C1"]}}]}},
+         "strudel": 'sound("bd*4")'}]}},
     {"stem": "bass", "mir": {}, "interpretation": {"tracks": [
         {"name": "Sub", "instrument": "MonoSynth", "pattern": "1/8", "description": "",
-         "synth": {"type": "MonoSynth", "options": {}}, "steps": {"grid": "8n", "notes": ["F#1"]}}]}},
+         "strudel": 'note("f#1*8").s("sawtooth")'}]}},
 ]
 
 
@@ -117,8 +116,7 @@ OVERVIEW = {
     "vocabulary": {"timbre": "x", "brightness": "x", "envelope": "x",
                    "register_density": "x", "harmony_mode": "x", "groove": "x", "space_grit": "x"},
     "tracks": [{"name": "ignored full-mix track", "instrument": "PolySynth", "pattern": "x",
-                "description": "", "synth": {"type": "PolySynth", "options": {}},
-                "steps": {"grid": "4n", "notes": ["A1"]}}],
+                "description": "", "strudel": 'note("a1").s("sawtooth")'}],
     "score_draft": "speculative whole-song direction",
 }
 

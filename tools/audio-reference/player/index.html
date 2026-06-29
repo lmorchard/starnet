@@ -3,15 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>audio-reference player</title>
-  <script src="https://cdn.jsdelivr.net/npm/tone@15/build/Tone.js"></script>
+  <title>audio-reference player (Strudel)</title>
+  <!-- @strudel/web: global script — initStrudel(), the pattern fns, evaluate(), hush(). Pinned. -->
+  <script src="https://unpkg.com/@strudel/web@1.0.3"></script>
   <style>
-    body { font: 14px/1.5 system-ui, sans-serif; margin: 2rem; max-width: 720px; }
+    body { font: 14px/1.5 system-ui, sans-serif; margin: 2rem; max-width: 760px; }
     h1 { font-size: 1.2rem; }
-    .controls { margin: 1rem 0; display: flex; gap: .5rem; align-items: center; }
+    .controls { margin: 1rem 0; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
     button { font: inherit; padding: .3rem .8rem; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-    th, td { text-align: left; padding: .25rem .5rem; border-bottom: 1px solid #ddd; }
     .muted { opacity: .4; }
     #warnings { color: #b00; white-space: pre-wrap; }
     #status { color: #197; }
@@ -21,30 +20,30 @@
     #library li { margin: .15rem 0; }
     #library button { width: 100%; text-align: left; cursor: pointer; }
     #library button.playing { font-weight: 600; outline: 2px solid #39c; }
-    .track { border: 1px solid #ddd; border-radius: 4px; padding: .4rem .6rem; margin: .35rem 0; }
-    .track.skipped { opacity: .4; }
-    details.track > summary { list-style: none; cursor: pointer; }
-    details.track > summary::-webkit-details-marker { display: none; }
-    details.track > summary::before { content: "▸"; color: #999; margin-right: .25rem; }
-    details.track[open] > summary::before { content: "▾"; }
-    .track-head { display: inline-flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .track { border: 1px solid #ddd; border-radius: 4px; padding: .5rem .6rem; margin: .4rem 0; }
+    .track-head { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
     .track-name { font-weight: 600; min-width: 9rem; }
-    .ctls { display: flex; gap: .4rem .7rem; flex-wrap: wrap; margin-top: .5rem; padding-top: .5rem; border-top: 1px solid #eee; }
+    .stem-badge { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .04em; }
+    .invalid { color: #b00; font-size: 11px; }
+    .track textarea {
+      width: 100%; box-sizing: border-box; min-height: 2.6rem; margin-top: .4rem;
+      font: 12px/1.4 ui-monospace, Menlo, monospace; padding: .4rem; border: 1px solid #ccc; border-radius: 3px;
+    }
     .ctl { display: inline-flex; gap: .25rem; align-items: center; font-size: 12px; color: #555; }
-    .ctl input { width: 4.2rem; font: inherit; }
-    .ctl select { font: inherit; }
   </style>
 </head>
 <body>
-  <h1>audio-reference player</h1>
-  <p>Pick an analyzed track below, or load a <code>docs/&lt;slug&gt;.json</code> file directly.
-     The library + <strong>Save</strong> need the served player (<code>uv run audio-reference play</code>);
-     the file picker also works over <code>file://</code>.</p>
+  <h1>audio-reference player <small style="font-weight:400;color:#999">· Strudel</small></h1>
+  <p>Pick an analyzed track below, or load a <code>docs/&lt;slug&gt;.json</code> file directly. Each track
+     is an editable Strudel pattern; <strong>Play</strong> layers the un-muted tracks into a
+     <code>stack(...)</code>. The library + <strong>Save</strong> need the served player
+     (<code>uv run audio-reference play</code>). The old Tone player is at
+     <a href="./tone-player.html">./tone-player.html</a> (reference only).</p>
   <div class="controls">
     <input type="file" id="file" accept="application/json,.json" />
     <button id="play" disabled>▶ Play</button>
     <button id="stop" disabled>■ Stop</button>
-    <button id="save" disabled title="write tweaks back to docs/<slug>.json">💾 Save</button>
+    <button id="save" disabled title="write edited Strudel back to docs/<slug>.json">💾 Save</button>
     <span id="meta"></span>
     <span id="status"></span>
   </div>
@@ -54,8 +53,7 @@
   </section>
   <div id="warnings"></div>
   <div id="tracks"></div>
-  <!-- Classic script (not type=module): ES modules are CORS-blocked over file:// in
-       Chrome/Firefox, and player.js uses no import/export, so a classic script works. -->
+  <!-- Classic script (no import/export) so it also works over file://. -->
   <script src="./player.js"></script>
 </body>
 </html>
