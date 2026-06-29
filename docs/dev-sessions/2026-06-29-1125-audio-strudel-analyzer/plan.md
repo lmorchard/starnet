@@ -43,13 +43,13 @@ async function check(code) {
 > **De-risk first (record in notes.md).** Before building the wrapper, confirm the transpile+query incantation against the actually-installed `@strudel/*` versions with two hand-written strings — one valid (`note("c3 e3 g3").s("sawtooth")`), one bogus (`notez("c3").bogus()`). If the node `evalScope`/`transpiler` API differs from the sketch, pin it to what the installed package exposes. **Fallback if node proves too fiddly within ~1h:** a single-launch headless-browser validator (Playwright loads `@strudel/web`, calls `evaluate()` per code, collects thrown errors) — proven to surface errors in the spike. The `validate_strudel` Python signature stays identical either way.
 
 **Verification — automated:**
-- [ ] `cd tools/audio-reference/validator && npm install` succeeds
-- [ ] `node --check validator/validate.mjs`
-- [ ] `uv run --extra dev pytest -q tests/test_validate.py` — asserts a valid string → `ok:True, events>0`; a bogus string → `ok:False, error` non-null
+- [x] `cd tools/audio-reference/validator && npm install` succeeds (pinned @strudel/* 1.2.5)
+- [x] `node --check validator/validate.mjs`
+- [x] `uv run --extra dev pytest -q tests/test_validate.py` — 4 passed (valid→ok+events; bogus→not ok+error; batch order)
 
 **Verification — manual:**
-- [ ] De-risk run logged in notes.md: did the node incantation work, or did we fall back to the browser validator?
-- [ ] Ad-hoc Gemini call (minimal prompt) for "a driven sawtooth bassline in A minor" piped through `validate_strudel` — does Gemini produce evaluatable Strudel at all? Note the verdict; it informs how heavy the phase-2 reference must be.
+- [x] De-risk run logged in notes.md: node incantation works (no browser fallback); kabelsalat/1.2.5 pin + sentinel-output findings recorded.
+- [ ] Ad-hoc Gemini call (minimal prompt) for "a driven sawtooth bassline in A minor" piped through `validate_strudel` — does Gemini produce evaluatable Strudel at all? Note the verdict; it informs how heavy the phase-2 reference must be. **(Deferred — needs Les's GCP creds; non-blocking.)**
 
 ---
 

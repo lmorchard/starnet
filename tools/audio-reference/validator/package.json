@@ -1,0 +1,12 @@
+{
+  "name": "audio-reference-strudel-validator",
+  "private": true,
+  "type": "module",
+  "description": "Headless Strudel validator: transpile + query one cycle to confirm generated patterns evaluate. No audio.",
+  "comment": "Versions PINNED exactly (no caret): @strudel/core@1.2.6 adds a @kabelsalat/web dep that breaks under node ESM. 1.2.5 is the last clean release.",
+  "dependencies": {
+    "@strudel/core": "1.2.5",
+    "@strudel/mini": "1.2.5",
+    "@strudel/transpiler": "1.2.5"
+  }
+}
