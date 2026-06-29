@@ -273,7 +273,7 @@
             "instrument": "MonoSynth",
             "pattern": "(REWORK) Sultry, melancholic, spooky-60s guitar lead (reverb-drenched) \u2014 NOT the model's frantic 16th arpeggio. Mostly E Dorian (raised 6th = C#) with chromatic/tritone spice. Two-phrase melody by ear: P1 = E | G E G G# A D | D A G; P2 = E F# G D | F# G C# (G->C# tritone) | F# G F# A G.",
             "description": "Re-voiced from a bright distorted saw to a reverb-drenched ringing guitar (MonoSynth, long decay/release). Melody hand-transcribed by ear (first phrase; rhythm being refined).",
-            "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sawtooth\").lpf(2200).shape(0.3).delay(0.2).room(0.8).attack(0.001).release(0.3).gain(0.5)"
+            "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sine\").fm(20).fmh(5).fmattack(0.005).fmdecay(0.4).fmsustain(0.2).attack(0.001).decay(0.15).sustain(0.5).release(0.7).distort(0.5).delay(0.2).room(1).gain(0.5)"
           },
           {
             "name": "Cathedral Pad",
@@ -359,7 +359,7 @@
             "instrument": "MonoSynth",
             "pattern": "16-bar bass form in driving straight 8th-notes: a 4-bar chromatic descending pedal phrase (E->D->C#->C, connecting Em(i) to C(VI)) played 3x, then a 4-bar answer phrase that dips to A and climbs back A->B->C->D. Each root is pedaled, and the last 8th of most bars anticipates the next root (pickup) ahead of the bar line.",
             "description": "The harmonic + rhythmic engine: a chromatic descending pedal bass with an antecedent/consequent shape (3 descending statements + 1 dip-and-rise answer). Anticipation pickups pull each change ahead of the downbeat. (Hand-transcribed by ear; replaces the model's 1-bar arpeggio guess.)",
-            "strudel": "note(\"e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 a1 a1 a1 a1 b1 b1 b1 b1 c2 c2 c2 c2 d2 d2 d2 d2 d2\").slow(16).s(\"sawtooth\").lpf(400).resonance(2.5).shape(0.6).attack(0.01).decay(0.34).sustain(0).gain(0.7)"
+            "strudel": "note(\"e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 a1 a1 a1 a1 b1 b1 b1 b1 c2 c2 c2 c2 d2 d2 d2 d2 d2\").slow(16).s(\"sawtooth\").lpf(400).resonance(2.5).distort(0.8).attack(0.01).decay(0.34).sustain(0).release(0.1).gain(0.7)"
           }
         ],
         "score_draft": "SPECULATIVE STARTER: Use a Tone.MonoSynth. Set the oscillator to 'sawtooth'. The envelope should be percussive: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }. Use a 'lowpass' filter with a cutoff around 800 Hz and a resonance (Q) of 2 to add character. The key ingredient is grit: set the synth's `drive` to around 0.5. Sequence a continuous 8th-note pattern in E minor, like ['E2', 'G2', 'B2', 'G2', 'A2', 'G2', 'F#2', 'E2'], to capture the motorik feel."
@@ -369,7 +369,7 @@
   "score_spec": {
     "root": "A",
     "mode": "major",
-    "bpm": 120.18531976744185,
+    "bpm": 240.3706395348837,
     "tracks": [
       {
         "name": "Industrial Kick",
@@ -401,7 +401,7 @@
         "pattern": "(REWORK) Sultry, melancholic, spooky-60s guitar lead (reverb-drenched) \u2014 NOT the model's frantic 16th arpeggio. Mostly E Dorian (raised 6th = C#) with chromatic/tritone spice. Two-phrase melody by ear: P1 = E | G E G G# A D | D A G; P2 = E F# G D | F# G C# (G->C# tritone) | F# G F# A G.",
         "description": "Re-voiced from a bright distorted saw to a reverb-drenched ringing guitar (MonoSynth, long decay/release). Melody hand-transcribed by ear (first phrase; rhythm being refined).",
         "stem": "other",
-        "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sawtooth\").lpf(2200).shape(0.3).delay(0.2).room(0.8).attack(0.001).release(0.3).gain(0.5)"
+        "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sine\").fm(20).fmh(5).fmattack(0.005).fmdecay(0.4).fmsustain(0.2).attack(0.001).decay(0.15).sustain(0.5).release(0.7).distort(0.5).delay(0.2).room(1).gain(0.5)"
       },
       {
         "name": "Cathedral Pad",
@@ -425,7 +425,7 @@
         "pattern": "16-bar bass form in driving straight 8th-notes: a 4-bar chromatic descending pedal phrase (E->D->C#->C, connecting Em(i) to C(VI)) played 3x, then a 4-bar answer phrase that dips to A and climbs back A->B->C->D. Each root is pedaled, and the last 8th of most bars anticipates the next root (pickup) ahead of the bar line.",
         "description": "The harmonic + rhythmic engine: a chromatic descending pedal bass with an antecedent/consequent shape (3 descending statements + 1 dip-and-rise answer). Anticipation pickups pull each change ahead of the downbeat. (Hand-transcribed by ear; replaces the model's 1-bar arpeggio guess.)",
         "stem": "bass",
-        "strudel": "note(\"e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 a1 a1 a1 a1 b1 b1 b1 b1 c2 c2 c2 c2 d2 d2 d2 d2 d2\").slow(16).s(\"sawtooth\").lpf(400).resonance(2.5).shape(0.6).attack(0.01).decay(0.34).sustain(0).gain(0.7)"
+        "strudel": "note(\"e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 a1 a1 a1 a1 b1 b1 b1 b1 c2 c2 c2 c2 d2 d2 d2 d2 d2\").slow(16).s(\"sawtooth\").lpf(400).resonance(2.5).distort(0.8).attack(0.01).decay(0.34).sustain(0).release(0.1).gain(0.7)"
       }
     ]
   },
