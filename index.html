@@ -16,6 +16,8 @@
   </script>
   <!-- Cytoscape.js + layout extensions (vendor bundle built by: make bundle-vendor) -->
   <script src="dist/vendor.js"></script>
+  <!-- SPIKE (de-risk, throwaway): Strudel + superdough engine. Idle until strudelSpike.start(). -->
+  <script src="https://unpkg.com/@strudel/web@1.0.3"></script>
 </head>
 <body>
   <div id="app">
@@ -87,5 +89,7 @@
   <script type="module" src="js/ui/components/starnet-level-select.js"></script>
   <script type="module" src="js/ui/components/starnet-hub.js"></script>
   <script type="module" src="js/ui/main.js"></script>
+  <!-- SPIKE (de-risk, throwaway): in-game Strudel SFX + reactive music. Gated; call strudelSpike.start(). -->
+  <script type="module" src="js/audio/strudel-spike.js"></script>
 </body>
 </html>
