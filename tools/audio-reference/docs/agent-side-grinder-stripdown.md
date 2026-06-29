@@ -101,7 +101,7 @@ cat(note("c6 b5 a#5 a5 g#5 g5 f#5 f5 e5 d#5 d5 c#5 c5 b4 a#4 a4").s("hh").gain(0
 
 **Goth Lead Synth**
 ```strudel
-note("e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~").slow(16).s("sine").fm(20).fmh(5).fmattack(0.005).fmdecay(0.4).fmsustain(0.2).attack(0.001).decay(0.15).sustain(0.5).release(0.7).distort(0.5).delay(0.2).room(1).gain(0.5)
+note("e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~").slow(16).s("sine").fm(4).fmh(1).fmattack(0.001).fmdecay(0.28).fmsustain(0.08).attack(0.002).decay(0.5).sustain(0.25).release(0.7).lpf(2600).room(0.7).delay(0.15).gain(0.6)
 ```
 
 **Cathedral Pad**
@@ -124,5 +124,5 @@ note("e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#
 
 **Motorik Bass**
 ```strudel
-note("e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 a1 a1 a1 a1 b1 b1 b1 b1 c2 c2 c2 c2 d2 d2 d2 d2 d2").slow(16).s("sawtooth").lpf(400).resonance(2.5).distort(0.8).attack(0.01).decay(0.34).sustain(0).release(0.1).gain(0.7)
+note("e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 e2 e2 e2 e2 d2 d2 d2 d2 c#2 c#2 c#2 c#2 c2 c2 c2 c2 c2 e2 e2 e2 e2 e2 e2 e2 d2 d2 d2 d2 d2 d2 d2 d2 a1 a1 a1 a1 b1 b1 b1 b1 c2 c2 c2 c2 d2 d2 d2 d2 d2").slow(16).s("sawtooth").lpf(1500).resonance(3).distort(0.6).attack(0.004).decay(0.16).sustain(0.3).release(0.08).gain(0.95)
 ```
