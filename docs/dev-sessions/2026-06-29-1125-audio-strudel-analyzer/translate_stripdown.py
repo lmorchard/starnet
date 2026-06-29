@@ -28,9 +28,9 @@ MELODIC = {
     # Electric-piano-ish FM: harmonicity 1 (1:1, warm) + a MODERATE index that DECAYS fast via the
     # mod-envelope = bright "tine" attack then mellow body (jangly EP/guitar). No distortion (it was
     # the harsh/shrill part); lowpass tames the top; room+delay for melancholic space.
-    "Goth Lead Synth": '.s("sine").fm(4).fmh(1).fmattack(0.001).fmdecay(0.28).fmsustain(0.08)'
-                       '.attack(0.002).decay(0.5).sustain(0.25).release(0.7)'
-                       '.lpf(2600).room(0.7).delay(0.15).gain(0.6)',
+    "Goth Lead Synth": '.s("sine").fm(6).fmh(2).fmattack(0.001).fmdecay(0.6).fmsustain(0.35)'
+                       '.attack(0.002).decay(0.3).sustain(0.45).release(0.6)'
+                       '.lpf(4500).room(0.5).delay(0.12).gain(0.85)',
     "Cathedral Pad": '.s("sawtooth").attack(2.5).release(5).lpf(1200).room(0.8).gain(0.4)',
     "Lead Drone (unison double)": '.s("sawtooth").lpf(1900).attack(0.05).release(2.8).room(0.9).gain(0.4)',
     # Punchy analog bass, up front: open the lowpass so harmonics/grit come through (de-mud),

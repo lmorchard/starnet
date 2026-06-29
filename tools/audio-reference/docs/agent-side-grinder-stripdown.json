@@ -273,7 +273,7 @@
             "instrument": "MonoSynth",
             "pattern": "(REWORK) Sultry, melancholic, spooky-60s guitar lead (reverb-drenched) \u2014 NOT the model's frantic 16th arpeggio. Mostly E Dorian (raised 6th = C#) with chromatic/tritone spice. Two-phrase melody by ear: P1 = E | G E G G# A D | D A G; P2 = E F# G D | F# G C# (G->C# tritone) | F# G F# A G.",
             "description": "Re-voiced from a bright distorted saw to a reverb-drenched ringing guitar (MonoSynth, long decay/release). Melody hand-transcribed by ear (first phrase; rhythm being refined).",
-            "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sine\").fm(4).fmh(1).fmattack(0.001).fmdecay(0.28).fmsustain(0.08).attack(0.002).decay(0.5).sustain(0.25).release(0.7).lpf(2600).room(0.7).delay(0.15).gain(0.6)"
+            "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sine\").fm(6).fmh(2).fmattack(0.001).fmdecay(0.6).fmsustain(0.35).attack(0.002).decay(0.3).sustain(0.45).release(0.6).lpf(4500).room(0.5).delay(0.12).gain(0.85)"
           },
           {
             "name": "Cathedral Pad",
@@ -401,7 +401,7 @@
         "pattern": "(REWORK) Sultry, melancholic, spooky-60s guitar lead (reverb-drenched) \u2014 NOT the model's frantic 16th arpeggio. Mostly E Dorian (raised 6th = C#) with chromatic/tritone spice. Two-phrase melody by ear: P1 = E | G E G G# A D | D A G; P2 = E F# G D | F# G C# (G->C# tritone) | F# G F# A G.",
         "description": "Re-voiced from a bright distorted saw to a reverb-drenched ringing guitar (MonoSynth, long decay/release). Melody hand-transcribed by ear (first phrase; rhythm being refined).",
         "stem": "other",
-        "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sine\").fm(4).fmh(1).fmattack(0.001).fmdecay(0.28).fmsustain(0.08).attack(0.002).decay(0.5).sustain(0.25).release(0.7).lpf(2600).room(0.7).delay(0.15).gain(0.6)"
+        "strudel": "note(\"e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c#3 ~ f#3 g3 f#3 a3 ~ g3 ~ e3 ~ g3 e3 g3 g#3 a3 d3 ~ d3 ~ d3 a3 ~ g3 ~ e3 f#3 g3 d3 ~ f#3 g3 c3 ~ f#3 g3 f#3 a3 ~ g3 ~\").slow(16).s(\"sine\").fm(6).fmh(2).fmattack(0.001).fmdecay(0.6).fmsustain(0.35).attack(0.002).decay(0.3).sustain(0.45).release(0.6).lpf(4500).room(0.5).delay(0.12).gain(0.85)"
       },
       {
         "name": "Cathedral Pad",
