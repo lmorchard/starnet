@@ -1,14 +1,15 @@
 """Pure: the playable score-spec + the JSON sidecar assembly.
 
-A score-spec is `{root, mode, bpm, tracks}` — the generalized, engine-shaped data the
-browser harness plays. `root`/`mode`/`bpm` come from the MIR ground truth; `tracks` are
-the LLM's enriched tracks (each carrying `synth` + `steps`) passed through verbatim.
+A score-spec is `{root, mode, bpm, tracks}` — the data the player plays. `root`/`mode`/`bpm`
+come from the MIR ground truth; `tracks` are the LLM's enriched tracks (each carrying a
+`strudel` pattern string) passed through verbatim. The assembly here is field-agnostic, so it
+needs no change as the per-track playable field evolves.
 """
 import math
 
-# Tone.js sources the harness can construct (ordered, for prompting). The single source of
-# truth for "playable" instruments — excludes sample-based sources (Sampler/Player/GrainPlayer)
-# which need audio assets. Keep in sync with player/player.js PALETTE.
+# Tone.js sources — RETAINED for the reference Tone player (player/tone-player.js) and the
+# pre-Strudel corpus. The live analyzer no longer emits `synth.type`; PALETTE is no longer in the
+# prompt path. Keep in sync with player/tone-player.js PALETTE.
 PLAYABLE_SOURCES = [
     "Synth", "MonoSynth", "DuoSynth", "FMSynth", "AMSynth", "PolySynth",
     "MembraneSynth", "MetalSynth", "NoiseSynth", "PluckSynth",

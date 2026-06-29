@@ -80,6 +80,9 @@ class SynthOptions(TypedDict, total=False):
     reverbSend: float   # 0..1 send to the shared reverb (space)
 
 
+# SynthSpec / Steps describe the OLD Tone-shaped playable projection. They are retained to
+# document the reference Tone player's data (player/tone-player.js) and the pre-Strudel corpus;
+# the live analyzer no longer emits them — a Track now carries `strudel` (see below).
 class SynthSpec(TypedDict):
     type: str               # a palette member (see scorespec.PALETTE)
     options: SynthOptions
@@ -95,9 +98,10 @@ class Track(TypedDict):
     instrument: str         # prose (doc + beyond-engine inspiration)
     pattern: str            # prose
     description: str        # prose
-    synth: SynthSpec        # playable
-    steps: Steps            # playable
-    stem: NotRequired[str]   # which separated stem this track came from (stems mode only)
+    strudel: str            # playable: one Strudel pattern expression — the editable source of truth
+    stem: NotRequired[str]              # which separated stem this track came from (stems mode only)
+    _strudel_valid: NotRequired[bool]   # tagged False by the analyze pipeline when the node
+                                        # validator can't evaluate `strudel`; absent = valid/unchecked
 
 
 class LlmInterp(TypedDict):

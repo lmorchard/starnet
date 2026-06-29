@@ -25,9 +25,24 @@ from .render import render_markdown, render_stems_markdown
 from .scorespec import build_sidecar, sanitize_numbers, assemble_stems
 from .index import build_index
 from .save import safe_slug, apply_score_spec
+from .validate import validate_strudel
 
 DEFAULT_MODEL = "gemini-2.5-pro"
 DEFAULT_PORT = 8777
+
+
+def _validate_tracks(tracks: list) -> None:
+    """Headlessly validate each track's `strudel`; warn + tag invalid ones. Never drops a track —
+    a hallucinated pattern is surfaced (stderr + `_strudel_valid:false`), not silently lost."""
+    if not tracks:
+        return
+    results = validate_strudel([t.get("strudel", "") for t in tracks])
+    for t, r in zip(tracks, results):
+        if not r["ok"]:
+            print(f"[validate] track {t.get('name')!r}: {r['error']}", file=sys.stderr)
+            t["_strudel_valid"] = False
+        elif r["events"] == 0:
+            print(f"[validate] track {t.get('name')!r}: parses but 0 events (silent?)", file=sys.stderr)
 
 
 def write_index(out_dir: str) -> int:
@@ -76,6 +91,7 @@ def _analyze_stems(args, meta, mir, md_path, json_path) -> int:
             prompt = build_stem_prompt(meta, smir, stem)
             interp = analyze_audio(audio_bytes, "audio/wav", prompt, RESPONSE_SCHEMA,
                                    args.model, project, location)
+            _validate_tracks(interp.get("tracks", []))
             stem_results.append({"stem": stem, "mir": smir, "interpretation": interp})
 
         # Whole-song overview: the per-stem passes are each blind to the others, so nothing
@@ -133,6 +149,7 @@ def cmd_analyze(args) -> int:
     location = resolve_setting(args.location, os.environ, "GOOGLE_CLOUD_LOCATION")
     llm = analyze_audio(audio_bytes, "audio/wav", prompt, RESPONSE_SCHEMA,
                         args.model, project, location)
+    _validate_tracks(llm.get("tracks", []))
 
     print("[4/4] rendering artifacts ...", file=sys.stderr)
     md = render_markdown(meta, mir, llm)

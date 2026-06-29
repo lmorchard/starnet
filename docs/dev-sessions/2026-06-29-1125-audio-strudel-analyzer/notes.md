@@ -47,3 +47,23 @@ not memory:
 
 `strudel_reference.py` is single-sourced from `AVAILABLE_SOUNDS`; the block is version-pinned
 ("pinned to @strudel/web 1.0.3"). Verification: `pytest tests/test_strudel_reference.py` 5 passed ✓.
+
+## Phase 3: Analyzer emits validated Strudel
+
+The surgical core slice — only the playable projection changed; the prose interpretation layer
+(summary, 7-dim vocabulary, instrument/pattern/description) is untouched.
+- `schema.py`: `Track` now carries `strudel: str` + `_strudel_valid: NotRequired[bool]` instead of
+  `synth`/`steps`. `SynthSpec`/`SynthOptions`/`Steps`/PALETTE kept + documented as reference-Tone-player-only.
+- `prompt.py`: `RESPONSE_SCHEMA` track requires `strudel` (string); the `synth`/`steps`/token-grammar
+  bullets became one `strudel` bullet + the injected `strudel_reference_block()`. 7-dim, budgets,
+  consolidation, harmonization, score-draft kept (harmonization/score-draft de-Tone'd). PROSE
+  `instrument` bullet still uses Tone source names as a familiar timbre vocabulary (interpretation layer).
+- `render.py`: per-track ```strudel fenced blocks (flagged "⚠ did not validate" when tagged) in both
+  the non-stems and stems markdown.
+- `cli.py`: `_validate_tracks()` runs `validate_strudel` after each scoring interp (per-stem + non-stems;
+  overview tracks skipped — they're not played), warns to stderr + tags `_strudel_valid:false`, never drops.
+- `scorespec.py`: docstrings only — assembly is field-agnostic, no logic change.
+
+Verification: full suite **76 passed**; end-to-end confirmed prompt embeds reference + schema requires
+strudel + validator flags garbage. Test churn: test_prompt (strudel schema + reference + body/grit, dropped
+synth-options test), test_scorespec (fixtures→strudel), test_render (strudel blocks), test_save (strudel round-trip).

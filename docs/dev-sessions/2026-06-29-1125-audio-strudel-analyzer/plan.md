@@ -117,11 +117,12 @@ for t, r in zip(interp.get("tracks", []), results):
 - `test_save.py`: add a track with `strudel` to the fixture; assert `apply_score_spec` round-trips it (it already replaces score_spec wholesale).
 
 **Verification — automated:**
-- [ ] `uv run --extra dev pytest -q` — full suite green
-- [ ] `uv run --extra dev pytest -q tests/test_prompt.py tests/test_scorespec.py tests/test_render.py tests/test_save.py`
+- [x] `uv run --extra dev pytest -q` — full suite green (76 passed)
+- [x] `uv run --extra dev pytest -q tests/test_prompt.py tests/test_scorespec.py tests/test_render.py tests/test_save.py`
+- [x] End-to-end: `build_prompt` embeds the reference (5929 chars), schema track `required` is `[name, instrument, pattern, description, strudel]`, `validate_strudel` flags garbage / passes real patterns.
 
 **Verification — manual:**
-- [ ] Decide `synth`/`steps`/`SynthOptions` typedef fate: keep (documents the reference player's data) vs delete. Default: keep, note "reference-player only" in the docstring.
+- [x] Typedef fate decided: **keep** `SynthSpec`/`SynthOptions`/`Steps`/PALETTE, documented as reference-Tone-player-only (schema.py + scorespec.py docstrings).
 
 ---
 

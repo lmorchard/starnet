@@ -23,11 +23,11 @@ LLM = {
     },
     "tracks": [
         {"name": "pad bed", "instrument": "PolySynth", "pattern": "whole-note swells, 8-bar arc",
-         "description": "detuned saw pad, slow attack"},
+         "description": "detuned saw pad, slow attack", "strudel": 'note("a3,c4,e4").s("sawtooth").room(0.6)'},
         {"name": "sub bass", "instrument": "MonoSynth", "pattern": "root-note 1/8s, side-chained",
-         "description": "square sub pulse at A1"},
+         "description": "square sub pulse at A1", "strudel": 'note("a1*8").s("square").lpf(400)'},
         {"name": "kick", "instrument": "MembraneSynth", "pattern": "four-on-the-floor 1/4s",
-         "description": "tight analog kick"},
+         "description": "tight analog kick", "strudel": 'sound("bd*4")'},
     ],
     "score_draft": "fatsawtooth drone, square bass at A1, lowpass ~600Hz.",
 }
@@ -65,6 +65,13 @@ def test_render_track_table_shows_instrument_and_pattern():
     assert "four-on-the-floor 1/4s" in md
 
 
+def test_render_includes_strudel_code_blocks():
+    md = render_markdown(META, MIR, LLM)
+    assert "## Strudel patterns" in md
+    assert "```strudel" in md
+    assert 'sound("bd*4")' in md          # a track's playable Strudel code surfaces
+
+
 def test_render_includes_score_draft_flagged_speculative():
     md = render_markdown(META, MIR, LLM)
     assert "Score-draft" in md or "Score Draft" in md
@@ -76,9 +83,11 @@ def test_render_stems_markdown_groups_by_stem():
     from audio_reference.render import render_stems_markdown
     stem_results = [
         {"stem": "drums", "mir": {}, "interpretation": {"summary": "punchy kit",
-            "tracks": [{"name": "Kick", "instrument": "MembraneSynth", "pattern": "1/4", "description": "boom"}]}},
+            "tracks": [{"name": "Kick", "instrument": "MembraneSynth", "pattern": "1/4", "description": "boom",
+                        "strudel": 'sound("bd*4")'}]}},
         {"stem": "bass", "mir": {}, "interpretation": {"summary": "growl bass",
-            "tracks": [{"name": "Sub", "instrument": "MonoSynth", "pattern": "1/8", "description": "low"}]}},
+            "tracks": [{"name": "Sub", "instrument": "MonoSynth", "pattern": "1/8", "description": "low",
+                        "strudel": 'note("a1*8").s("sawtooth")'}]}},
     ]
     md = render_stems_markdown(META, MIR, stem_results)
     assert "# TR/ST — Icabod" in md
@@ -86,6 +95,7 @@ def test_render_stems_markdown_groups_by_stem():
     assert "## drums" in md and "## bass" in md
     assert "punchy kit" in md and "growl bass" in md
     assert "Kick" in md and "Sub" in md
+    assert "```strudel" in md and 'sound("bd*4")' in md   # per-stem playable code surfaces
 
 
 def test_render_stems_markdown_includes_overview_when_provided():
