@@ -195,6 +195,25 @@ Update the tool docs to describe the Strudel output + player and the preserved T
 
 ---
 
+## Phase 7: Validation hardening — prevent + recover (added mid-Phase-5 from a real failure)
+
+Les's first regen surfaced an invalid track (`<note(...), note(...)>` — mini-notation `<>` as bare JS).
+The validator caught it; this phase makes the pipeline both avoid and self-heal such errors.
+
+**Files:**
+- `strudel_reference.py` — add `cat(p1,p2)`; add the rule that `< > [ ] * / ! , ~` are string-only / never start with `<`.
+- `prompt.py` — `build_repair_prompt(bad_code, error)` (fix-it turn, embeds the reference + JSON `{strudel}` instruction).
+- `gemini.py` — `repair_strudel(prompt, model, project, location)` (text-only, `_REPAIR_SCHEMA`, same retry as analyze).
+- `cli.py` — `_validate_and_repair_tracks(tracks, model, project, location)` replaces `_validate_tracks`: ≤`REPAIR_ATTEMPTS=2` fix-it turns per failed track, re-validate, tag if still bad. Both call sites pass model/project/location.
+- Tests: `test_prompt.py` `build_repair_prompt` test; reference test asserts `cat(` + the rule.
+
+**Verification — automated:**
+- [x] `uv run --extra dev pytest -q` — 78 passed
+- [x] `cat(...)` rewrite of the actual failed 'Motorik Bass' pattern validates (8 events)
+
+**Verification — manual:**
+- [ ] Les re-runs `regen.sh` — `[validate] … repaired ✓` lines show self-healing; final artifacts have no `_strudel_valid:false` tags (or the residue is reviewed).
+
 ## Plan self-review
 
 - **Spec coverage:** analyzer→Strudel (P3) ✓; no-compiler/code-as-truth (P3, save unchanged) ✓; curated reference (P2) ✓; node eval validation (P1, wired P3) ✓; per-track assemble-at-play (P4 play path) ✓; replace player + preserve Tone as reference (P4) ✓; reduced 3-track corpus (P5) ✓; empirical de-risk first (P1 manual) ✓; interpretation layer untouched (P3 leaves summary/vocabulary/prose) ✓; GCP project (P5) ✓.

@@ -74,6 +74,15 @@ def test_prompt_explains_strudel_and_embeds_reference():
     assert "bd" in p and "1.0.3" in p
 
 
+def test_build_repair_prompt_includes_error_code_and_reference():
+    from audio_reference.prompt import build_repair_prompt
+    p = build_repair_prompt('<note("e2"), note("a2")>.sound("sawtooth")', "Unexpected token (1:0)")
+    assert '<note("e2"), note("a2")>.sound("sawtooth")' in p   # the broken code is shown
+    assert "Unexpected token (1:0)" in p                        # the validator's exact error
+    assert "cat(" in p and ".lpf(" in p                         # the curated reference is embedded
+    assert '"strudel"' in p                                     # JSON response instruction
+
+
 def test_prompt_asks_for_body_and_grit():
     p = build_prompt(META, MIR).lower()
     assert "body" in p

@@ -60,3 +60,35 @@ def analyze_audio(
                 raise
             time.sleep(BASE_DELAY_SEC * (2 ** attempt))
     raise AssertionError("unreachable: loop returns or raises")  # pragma: no cover
+
+
+# Text-only repair turn: no audio, one tiny field. Used by the validation-repair loop to fix a
+# Strudel pattern that didn't evaluate.
+_REPAIR_SCHEMA = {
+    "type": "object",
+    "properties": {"strudel": {"type": "string"}},
+    "required": ["strudel"],
+}
+
+
+def repair_strudel(prompt: str, model: str, project: Optional[str], location: Optional[str]) -> str:
+    """Return a corrected Strudel string for the given fix-it prompt. Same retry policy / auth as
+    analyze_audio; structured output guarantees a clean string (no markdown fences)."""
+    client = genai.Client(vertexai=True, project=project, location=location)
+    for attempt in range(MAX_ATTEMPTS):
+        try:
+            resp = client.models.generate_content(
+                model=model,
+                contents=[prompt],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=_REPAIR_SCHEMA,
+                    max_output_tokens=4096,
+                ),
+            )
+            return json.loads(resp.text).get("strudel", "")
+        except Exception as exc:  # noqa: BLE001
+            if not is_transient(exc) or attempt == MAX_ATTEMPTS - 1:
+                raise
+            time.sleep(BASE_DELAY_SEC * (2 ** attempt))
+    raise AssertionError("unreachable: loop returns or raises")  # pragma: no cover

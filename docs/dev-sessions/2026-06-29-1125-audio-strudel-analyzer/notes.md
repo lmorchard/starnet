@@ -95,6 +95,21 @@ checks deferred to Les/Phase 5.
   preserved tone-player.html, Tests). schema.py/scorespec.py docstrings already mark Tone typedefs as
   reference-player-only. Full suite still **76 passed**.
 
+## Phase 7: Validation hardening (prevent + recover) — from a real regen failure
+
+Les's first regen (Agent Side Grinder — Stripdown) surfaced one invalid track: 'Motorik Bass' emitted
+`<note(...), note(...)>.sound(...)` — mini-notation `<>` alternation used as bare JS → "Unexpected token
+(1:0)". The validator caught it (working as intended). Two complementary fixes:
+- **PREVENT (reference):** added `cat(p1, p2)` for whole-pattern alternation + an explicit rule that
+  `< > [ ] * / ! , ~` are string-only and to never start an expression with `<`.
+- **RECOVER (repair loop):** `_validate_and_repair_tracks` (cli.py) feeds the validator's exact error
+  back to the model — `build_repair_prompt` (prompt.py) + `gemini.repair_strudel` (text-only, structured
+  `{strudel}` output) — for up to `REPAIR_ATTEMPTS=2` fix-it turns, re-validating each; still-invalid
+  tracks tagged `_strudel_valid:false` (kept). Repair only fires for failed tracks → cheap.
+Confirmed: the `cat(...)` rewrite of the actual failed pattern validates (8 events). Suite **78 passed**.
+Repair-loop call path is the gemini I/O boundary (not unit-tested, per repo convention); `build_repair_prompt`
+is unit-tested. **Re-running regen.sh now self-heals most errors.**
+
 ## Open / for Les
 - Run `regen.sh` (Phase 5) → audition the three tracks in the player → confirm listening quality.
 - Optional Phase-1 de-risk: ad-hoc "does Gemini write good Strudel" check (regen reveals this anyway).

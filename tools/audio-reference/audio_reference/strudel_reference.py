@@ -47,11 +47,12 @@ SOUNDS — synth (use with note()): {synth}
        — noise: {noise}
        — drums (use with sound()): {drums}
 
-STRUCTURE / TRANSFORMS:
-  stack(p1, p2, ...)  layer parts        .fast(n) / .slow(n)  speed up / down
-  .rev()              reverse (parens!)  .add(note(n))        transpose by n semitones
-  .struct("x ~ x x")  impose a rhythm    .euclid(3, 8)        euclidean rhythm
-  .ply(n)             repeat each event  .degradeBy(0..1)     randomly thin events
+STRUCTURE / TRANSFORMS (these COMBINE whole patterns — they are functions/methods, not string syntax):
+  stack(p1, p2, ...)  layer patterns together     cat(p1, p2, ...)  alternate, one per cycle
+  .fast(n) / .slow(n) speed up / down             .rev()            reverse (parens!)
+  .add(note(n))       transpose by n semitones    .struct("x ~ x x") impose a rhythm
+  .euclid(3, 8)       euclidean rhythm             .ply(n)          repeat each event
+  .degradeBy(0..1)    randomly thin events
 
 EFFECTS (chain after the sound):
   .lpf(hz) / .cutoff(hz)  low-pass cutoff    .hpf(hz)       high-pass
@@ -63,4 +64,8 @@ EFFECTS (chain after the sound):
 
 RULES: one expression per track; use ONLY the names above; no import/require; no sound names
 outside the lists. Voice pitches to the harmony/mode you described.
+MINI-NOTATION SYMBOLS (`< > [ ] * / ! , ~`) ARE ONLY VALID INSIDE A STRING passed to
+note()/sound()/n() — e.g. note("<e2 g2> a2"). They are NOT JavaScript: never start an
+expression with `<`, and never write `<note(...), note(...)>`. To alternate whole patterns
+one-per-cycle use cat(p1, p2); to layer them use stack(p1, p2).
 """.rstrip()

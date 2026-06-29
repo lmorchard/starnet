@@ -32,3 +32,11 @@ def test_reference_block_is_version_pinned():
 def test_reference_block_documents_rev_with_parens():
     # bare `.rev` is not a getter in 1.0.3 (confirmed against the runtime); document `.rev()`.
     assert ".rev()" in strudel_reference_block()
+
+
+def test_reference_warns_mininotation_is_string_only_and_offers_cat():
+    # the `<note(...), note(...)>` failure mode (mini-notation used as bare JS) — the reference must
+    # say `< > [ ]` etc. are string-only and point to cat()/stack() for whole-pattern combination.
+    block = strudel_reference_block()
+    assert "cat(" in block
+    assert "ONLY VALID INSIDE A STRING" in block

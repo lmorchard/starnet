@@ -169,3 +169,22 @@ def build_stem_prompt(meta: dict, mir: dict, stem: str) -> str:
         f"Ignore anything you'd expect from other stems.\n\n"
     )
     return intro + build_prompt(meta, mir, budget=STEM_BUDGETS.get(stem, GENERIC_STEM_BUDGET))
+
+
+def build_repair_prompt(bad_code: str, error: str) -> str:
+    """A focused fix-it turn: a generated Strudel pattern failed to evaluate — return a corrected
+    one. Fed the validator's exact error + the same curated reference the original was authored from."""
+    return f"""A Strudel pattern you wrote failed to evaluate and must be fixed.
+
+BROKEN PATTERN:
+{bad_code}
+
+EVALUATION ERROR: {error}
+
+Return a CORRECTED single Strudel pattern expression that preserves the musical intent as closely
+as possible (same notes / rhythm / sound where you can) but evaluates cleanly. Use ONLY the
+functions and sounds in the reference below. A common cause: mini-notation symbols like `< > [ ]`
+only work INSIDE a string — to alternate whole patterns use cat(...), to layer use stack(...).
+{strudel_reference_block()}
+
+Respond ONLY as JSON: {{"strudel": "<the corrected expression>"}}."""
