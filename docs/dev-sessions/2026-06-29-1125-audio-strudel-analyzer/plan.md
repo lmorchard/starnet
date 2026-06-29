@@ -68,10 +68,10 @@ A version-pinned reference block (functions + available sounds) injected into th
 - `strudel_reference_block() -> str` — returns the reference wrapped for prompt injection.
 
 **Verification — automated:**
-- [ ] `uv run --extra dev pytest -q tests/test_strudel_reference.py` — asserts the block names core fns (`note`, `sound`, `stack`, `.lpf`, `.room`), lists at least the synth sounds we use, and embeds `STRUDEL_VERSION`.
+- [x] `uv run --extra dev pytest -q tests/test_strudel_reference.py` — 5 passed (core fns, sounds, version pin, `.rev()` gotcha)
 
 **Verification — manual:**
-- [ ] Enumerate sounds from `@strudel/web` (browser console after `initStrudel()`, or the spike page) and confirm `AVAILABLE_SOUNDS` matches what the player can actually trigger — no sound listed that won't play.
+- [x] Enumerated sounds + validated every documented function against the live `@strudel/web@1.0.3` runtime (227 sounds registered; curated subset; `.rev()` needs parens). All listed names confirmed playable.
 
 ---
 
