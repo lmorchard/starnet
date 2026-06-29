@@ -1,15 +1,20 @@
 # audio-reference
 
-Analyze a reference track (MP3/FLAC/…) into a technical breakdown keyed to a
-**Tone.js synthesis vocabulary** — built to bridge an AI assistant's no-audio gap when
-authoring Tone.js synth music. Combo of deterministic MIR (librosa + optional
-basic-pitch) and a Gemini-via-Vertex "ears" pass.
+Analyze a reference track (MP3/FLAC/…) into a technical breakdown plus **playable
+[Strudel](https://strudel.cc) code** — built to bridge an AI assistant's no-audio gap when
+authoring reactive synth music. Combo of deterministic MIR (librosa + optional basic-pitch)
+and a Gemini-via-Vertex "ears" pass.
 
-The output is Tone.js-centric and reusable beyond any single project: the interpretation
-is organized as **tracks** — each one an *instrument* (a Tone.js source, or a described
-custom-synthesis approach) driven by a *pattern* — with track names the model invents to
-fit the analyzed piece. That makes it equally useful for drafting a new score and for
-informing *new* Tone.js instruments.
+The interpretation is organized as **tracks** — each one an *instrument* driven by a
+*pattern*, with names the model invents to fit the piece. Each track also carries a
+**`strudel`** field: one idiomatic Strudel pattern expression, authored from a curated,
+version-pinned reference and validated headlessly before write. The Strudel code is the
+editable source of truth (no compiler) — generate once, then tweak it by hand in the player.
+
+> The prose interpretation layer (summary, 7-dimension vocabulary, instrument/pattern/description)
+> uses Tone.js source names as a familiar *timbre vocabulary*; the **playable** output is Strudel.
+> The legacy Tone-shaped `score_spec` (`synth`/`steps`) is retired from the analyzer but its player
+> is preserved (see "Play a result").
 
 ## Setup
 
@@ -25,7 +30,14 @@ Cloud ADC.
 uv sync --extra dev                       # create env + install deps (core MIR + Gemini)
 gcloud auth application-default login     # one-time ADC setup
 cp .env.example .env                      # then edit: set GOOGLE_CLOUD_PROJECT / LOCATION
+
+(cd validator && npm install)             # one-time: the headless Strudel validator (node)
 ```
+
+The `validator/` directory is a small node package (`@strudel/* 1.2.5`, pinned — `1.2.6`
+breaks under node ESM) that `analyze` shells out to, transpiling each generated `strudel`
+pattern and querying one cycle to confirm it evaluates. If node or `validator/node_modules`
+is absent, validation degrades to a warning (the analysis still completes).
 
 Project/location resolve in this order: CLI flag → environment → `.env` (cwd + parents)
 → gcloud config default (inside the google-genai client). The `.env` file is gitignored;
@@ -78,31 +90,33 @@ player works unchanged. Costs ~one Gemini call per non-empty stem. Single-pass r
 ## Output
 
 - `docs/<slug>.md`   — the breakdown: measured facts (MIR ground truth) + 7-dimension
-  vocabulary grid + a **tracks** table (track / instrument / pattern / notes) + a
-  speculative score draft.
-- `docs/<slug>.json` — meta + raw MIR + the model's structured interpretation.
+  vocabulary grid + a **tracks** table + **per-track Strudel code blocks** + a speculative
+  score draft.
+- `docs/<slug>.json` — meta + raw MIR + the model's structured interpretation + a
+  `score_spec` whose tracks each carry a playable `strudel` pattern (a track the validator
+  couldn't evaluate is tagged `_strudel_valid: false` and flagged in the `.md`).
 - `docs/<slug>.mid`  — basic-pitch transcription (only with the `midi` extra, unless `--no-midi`).
 
 ## Play a result (browser harness)
 
-Each artifact's JSON carries a `score_spec` — a generalized, engine-shaped score
-(`{root, mode, bpm, tracks}`, each track an instrument + a step pattern). To hear an
-approximation of the analyzed piece:
+Each artifact's JSON carries a `score_spec` (`{root, mode, bpm, tracks}`, each track an
+instrument + a `strudel` pattern). To hear an approximation of the analyzed piece:
 
 ```bash
 uv run audio-reference play          # serves player/ + docs/ at http://127.0.0.1:8777/player/
                                      # (prints the URL; does NOT open a browser)
 ```
 
-Open the printed URL, click a track in the **Library** list, and press **Play**. Toggle
-per-track **Mute**/**Solo** to inspect the arrangement.
+Open the printed URL, click a track in the **Library** list, and press **Play** — the player
+layers every un-muted track's `strudel` into one `stack(...)` and runs it via
+[`@strudel/web`](https://strudel.cc). Toggle per-track **Mute**/**Solo** to inspect the
+arrangement; tempo follows the track's BPM (`.cpm(bpm/4)`, treating one cycle as one bar).
 
-**Tweak instruments live.** Each track card exposes its synth type + options (oscillator,
-ADSR, filter, drive, chorus, reverb send, FM harmonicity/modIndex, …). Changing a control
-rebuilds that track in place so you hear it immediately. Hit **Save** to write the tweaked
-`score_spec` back to `docs/<slug>.json` (the served `play` endpoint does this; the
-file-picker / `file://` path is read-only). Hand-tuned tracks become authored — re-running
-`analyze` on them would overwrite the tweaks.
+**Tweak patterns live.** Each track card is an editable **Strudel code box** — edit the
+pattern and it re-plays (or hit **Cmd/Ctrl+Enter** in the box). Hit **Save** to write the
+edited per-track `strudel` back to `docs/<slug>.json` (the served `play` endpoint does this;
+the file-picker / `file://` path is read-only). The code is the source of truth — re-running
+`analyze` regenerates it, overwriting hand edits.
 
 The library is driven by `docs/index.json`, a manifest that `analyze` refreshes
 automatically; rebuild it by hand with:
@@ -114,16 +128,19 @@ uv run audio-reference index         # rescans docs/*.json -> docs/index.json
 You can also open `player/index.html` directly over `file://` and use the **file picker**
 (the library list needs the served manifest, but the picker works without a server).
 
-The harness loads Tone.js from a CDN and only constructs instruments from a fixed palette
-(`Synth`, `MonoSynth`, `FMSynth`, `MetalSynth`, `NoiseSynth`, …) — it never executes the raw
-`score_draft` from the Markdown (that stays a read-only reference). Sample-based sources
-(`Sampler`/`Player`) are out of scope for now; those tracks emit a nearest-synth approximation.
+The harness loads `@strudel/web` from a CDN; it runs only the per-track `strudel` patterns and
+never executes the raw `score_draft` from the Markdown (that stays a read-only reference).
+
+**Legacy Tone player.** The previous Tone.js player is preserved at `player/tone-player.html`
+(served alongside the Strudel one) for replaying the pre-Strudel, Tone-shaped `score_spec`
+artifacts. It's reference-only — the analyzer no longer emits that format.
 
 ## Tests
 
 ```bash
-uv run pytest -v      # pure modules only (render, keyest, slug, transcode, prompt, config)
+uv run --extra dev pytest -q   # pure modules (render, prompt, scorespec, save, strudel_reference, validate, …)
 ```
 
-The I/O boundaries (ffmpeg, librosa extraction, Gemini call) are not unit-tested;
+The Strudel validator tests skip automatically when node / `validator/node_modules` is
+absent. The I/O boundaries (ffmpeg, librosa extraction, Gemini call) are not unit-tested;
 verify them by running `analyze` on a real track.

@@ -168,6 +168,8 @@ uv run audio-reference analyze "$SRC" --artist "..." --title "..." --stems \
 ```
 (Agent Side Grinder — Stripdown; Parallels — Dry Blood; The Knife — Heartbeats.)
 
+**Status:** `regen.sh` written (`docs/dev-sessions/2026-06-29-1125-audio-strudel-analyzer/regen.sh`, executable). **Awaiting Les to run** (Vertex API cost).
+
 **Verification — automated:**
 - [ ] For each regenerated `docs/{slug}.json`: every `score_spec.tracks[].strudel` passes `validate_strudel` (no `_strudel_valid:false` tags left), and `index.json` lists the three.
 
@@ -186,10 +188,10 @@ Update the tool docs to describe the Strudel output + player and the preserved T
 - Modify: `tools/audio-reference/audio_reference/schema.py` + `scorespec.py` docstrings — describe the `strudel` field; mark Tone typedefs/PALETTE as reference-player-only.
 
 **Verification — automated:**
-- [ ] `uv run --extra dev pytest -q` — still green (docstring-only changes)
+- [x] `uv run --extra dev pytest -q` — still green (76 passed; docstring/doc-only changes)
 
 **Verification — manual:**
-- [ ] README walks a new reader from `analyze` → Strudel sidecar → Strudel player → save, with no stale Tone-output claims.
+- [x] README rewritten: Strudel output + validator setup + Strudel player (edit code boxes, `.cpm` tempo, Save) + preserved `tone-player.html`; no stale Tone-output claims. schema.py/scorespec.py docstrings mark Tone typedefs reference-only.
 
 ---
 

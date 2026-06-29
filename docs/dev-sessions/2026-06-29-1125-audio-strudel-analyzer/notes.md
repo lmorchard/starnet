@@ -85,3 +85,17 @@ Verification: `node --check` both ✓. Drove the whole flow via Playwright again
 dir (symlinked player + a hand-written Strudel fixture): load→play(.cpm)→edit→mute(auto-replay)→Save→disk,
 all clean, meta/interpretation preserved on save. Listening-quality + real-track + old-artifact-playback
 checks deferred to Les/Phase 5.
+
+## Phase 5 (prep) + Phase 6 (docs)
+
+- **Phase 5 — awaiting Les.** `regen.sh` written + executable: analyzes the three tracks (Agent Side
+  Grinder — Stripdown, Parallels — Dry Blood, The Knife — Heartbeats) with `--stems --model gemini-2.5-pro
+  --project moz-fx-future-products-nonprod`. Les runs it (Vertex cost); watch `[validate]` lines.
+- **Phase 6 — done.** README rewritten (Strudel output, validator `npm install`, Strudel player + tempo +
+  preserved tone-player.html, Tests). schema.py/scorespec.py docstrings already mark Tone typedefs as
+  reference-player-only. Full suite still **76 passed**.
+
+## Open / for Les
+- Run `regen.sh` (Phase 5) → audition the three tracks in the player → confirm listening quality.
+- Optional Phase-1 de-risk: ad-hoc "does Gemini write good Strudel" check (regen reveals this anyway).
+- Spike server on :8791 + Playwright browser left running from this session (harmless; close at will).
