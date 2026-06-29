@@ -143,12 +143,13 @@ Replace the player with a Strudel one reusing the existing shell (library, `/sav
 - Save: POST to `/save/{slug}` a `score_spec` whose `tracks` carry the edited per-track `strudel` (reuse the old save wiring; the endpoint already replaces score_spec wholesale).
 
 **Verification — automated:**
-- [ ] `node --check tools/audio-reference/player/player.js`
-- [ ] `node --check tools/audio-reference/player/tone-player.js` (rename didn't break it)
+- [x] `node --check tools/audio-reference/player/player.js`
+- [x] `node --check tools/audio-reference/player/tone-player.js` (rename didn't break it)
 
 **Verification — manual:**
-- [ ] `uv run audio-reference play --port 8779`; open `/player/`. Load a phase-5 regenerated track → Play → hear a Strudel stack. Edit a track's code → Play → change is audible. Mute a track → it drops from the stack. Save → reload → edit persists.
-- [ ] `/player/tone-player.html` still loads and plays an old Tone score_spec artifact (reference intact).
+- [x] Drove the player end-to-end (Playwright, isolated temp serve dir + hand-written Strudel fixture): load → 3 editable cards; Play → `▶ playing`, ctx running, no warnings (tempo via `.cpm(bpm/4)`); edit a track + mute one → auto-replay clean; Save → `saved ✓` and disk reflects the edit with meta/interpretation preserved.
+- [x] `/player/tone-player.html` + `tone-player.js` serve (200); rename + script-src fix verified.
+- [ ] **Listening check (pending Les + Phase 5):** play a *real regenerated* track and confirm it sounds recognizable; play an old Tone artifact in `tone-player.html`.
 
 ---
 

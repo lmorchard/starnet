@@ -67,3 +67,21 @@ The surgical core slice — only the playable projection changed; the prose inte
 Verification: full suite **76 passed**; end-to-end confirmed prompt embeds reference + schema requires
 strudel + validator flags garbage. Test churn: test_prompt (strudel schema + reference + body/grit, dropped
 synth-options test), test_scorespec (fixtures→strudel), test_render (strudel blocks), test_save (strudel round-trip).
+
+## Phase 4: Minimal Strudel player
+
+- Tone player preserved: `player/player.js`→`tone-player.js`, `index.html`→`tone-player.html` (script-src
+  fixed, marked "reference only" with a link to the Strudel player). Still served.
+- New `player/index.html` (loads `@strudel/web@1.0.3`) + `player/player.js` (Strudel). Reuses the shell
+  (library, file picker, /save, mute/solo, focus-pause); each track card is an editable code box instead
+  of synth knobs. Play assembles `stack(<un-muted tracks>)` and runs `evaluate()`; edits/mute auto-replay
+  while playing; Cmd/Ctrl+Enter in a box replays.
+- **Tempo gotcha:** 1.0.3 exposes NO global `setcps`/`setcpm` (probed: only `cps`/`cpm` controls +
+  `scheduler`). Solution: append `.cpm(bpm/4)` to the program (1 cycle = 1 bar = 4 beats) — rides on the
+  pattern, no global needed. Confirmed `.cps()`/`.cpm()` evaluate cleanly in 1.0.3.
+- Old Tone sidecars (no `strudel`) load but show a "no Strudel patterns — regenerate" notice.
+
+Verification: `node --check` both ✓. Drove the whole flow via Playwright against an isolated temp serve
+dir (symlinked player + a hand-written Strudel fixture): load→play(.cpm)→edit→mute(auto-replay)→Save→disk,
+all clean, meta/interpretation preserved on save. Listening-quality + real-track + old-artifact-playback
+checks deferred to Les/Phase 5.
