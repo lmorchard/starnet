@@ -25,19 +25,27 @@ const DIM   = "#2a3a55";
 
 // ── SVG wrapper ───────────────────────────────────────────────────────────────
 
+// Single source for the indicator-glyph phosphene glow. Every glyph's baked-in glow is the
+// named "g" feDropShadow flood-colored to match its stroke — kept here so the blur radius
+// isn't re-specified (and allowed to drift) at each glyph site.
+const GLOW_BLUR = 1.6; // feDropShadow stdDeviation (px)
+
+/** Shared `<defs>` for the named "g" glow filter, flood-colored to the glyph's stroke. */
+const glowDefs = (/** @type {string} */ color) =>
+  `<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="${GLOW_BLUR}" flood-color="${color}"/></filter></defs>`;
+
 /**
- * Wrap an SVG body in a full standalone SVG element with stroke defaults and
- * a phosphene glow filter (feDropShadow on a named filter id "g").
+ * Wrap an SVG body in a full standalone SVG element with stroke defaults and the shared
+ * phosphene glow filter.
  *
  * @param {string} viewBox   - e.g. "16 16" -> becomes "0 0 16 16"
  * @param {string} body      - inner SVG elements (no fill overrides)
  * @param {string} color     - stroke color (also used as glow flood-color)
- * @param {number} [blur=1.6] - feDropShadow stdDeviation
  * @returns {string}
  */
-function svgWrap(viewBox, body, color, blur = 1.6) {
+function svgWrap(viewBox, body, color) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewBox}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">`
-    + `<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="${blur}" flood-color="${color}"/></filter></defs>`
+    + glowDefs(color)
     + `<g filter="url(#g)">${body}</g></svg>`;
 }
 
@@ -162,7 +170,7 @@ export function tickMeterSvg(frac, opts = {}) {
 
   // Build SVG manually to allow per-line stroke overrides (no top-level stroke override).
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill="none">`
-    + `<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="1.6" flood-color="${color}"/></filter></defs>`
+    + glowDefs(color)
     + `<g filter="url(#g)">${body}</g></svg>`;
 }
 
@@ -251,7 +259,7 @@ export function accessGlyphSvg(accessLevel) {
           + ` stroke-width="${isLit ? 1.8 : 1.4}"/>`;
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 18" fill="none" stroke-linecap="round" stroke-linejoin="round">`
-    + `<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="1.4" flood-color="${color}"/></filter></defs>`
+    + glowDefs(color)
     + `<g filter="url(#g)">${body}</g></svg>`;
 }
 

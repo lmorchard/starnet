@@ -479,6 +479,31 @@ or raster textures. This governs HUD/UI chrome, not just the graph.
 When in doubt: would an oscilloscope or a vector arcade cabinet draw it that way? If it
 needs a fill, a circle, or a dither, it's the wrong primitive.
 
+### Glow / bloom — one owner per layer, never stacked
+
+The phosphene glow is produced by three different rendering mechanisms (they can't be unified
+into one — different pipelines), so the rule is **one owner per layer, and never two glows on
+the same element**:
+
+- **Graph canvas (`#cy`)** → the heavy `#starnet-bloom` SVG filter (3-pass merge), defined once in
+  `graph.js` `ensureBloomFilter()`. It's suspended during pan/zoom and ramped back (re-rastering
+  a full-screen filter every frame is expensive).
+- **Graph overlays (`#overlay-layer > *`)** → the lighter single-pass `#overlay-bloom`, also in
+  `ensureBloomFilter()`. Overlays animate every frame, so they must use the cheap filter — and an
+  overlay element must **not** carry its own `filter="url(...)"` on top of the layer filter
+  (stacking re-rasterizes two filters per frame; this caused real fps drops — see the
+  `graph-perf` session).
+- **HUD / DOM chrome** → CSS `--glow-sm/--glow-md/--glow-lg` (`style.css`) via `text-shadow` /
+  `box-shadow`. Use these tokens, don't hand-roll blur radii.
+- **Indicator glyphs** (`indicator-glyphs.js`) → the shared `glowDefs()` / `GLOW_BLUR` baked-in
+  `feDropShadow`. One definition; don't re-specify the filter per glyph.
+- **Canvas vitals** (`starnet-waveform.js`) → `ctx.shadowBlur`/`shadowColor`.
+
+**Guardrails:** never apply a continuous `node.animate`/`cy.animate` loop or a heavy filter to an
+element that animates every frame — drive perpetual visual effects off the cy model and off the
+heavy bloom (overlays/canvas, cheap filter). New glow goes through one of the owners above, not a
+fresh ad-hoc filter.
+
 ## What's Shipped (Current Build)
 
 - Probe → Xploit → Dump → Fetch → Jack Out core loop
