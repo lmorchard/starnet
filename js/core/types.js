@@ -303,6 +303,21 @@
  * }} NodeTypeDef
  */
 
+// ── Flow substrate ────────────────────────────────────────
+
+/**
+ * A typed data flow traversing the edge from `from` to `to`. First-class,
+ * serializable state (authored in a network's `meta.flows`) — edges themselves
+ * are not serializable. "encrypted" is a render/concealment state, not a type.
+ * @typedef {{
+ *   from: string,
+ *   to: string,
+ *   type: ('money'|'data'|'audit'|'control'|'credential'),
+ *   rate: number,
+ *   encrypted?: boolean,
+ * }} Flow
+ */
+
 // ── Top-level state ───────────────────────────────────────
 
 /**
@@ -313,6 +328,7 @@
  *   moneyCost: Grade,
  *   nodes: Object.<string, NodeState>,
  *   adjacency: Object.<string, string[]>,
+ *   flows: Flow[],
  *   player: PlayerState,
  *   globalAlert: GlobalAlertLevel,
  *   traceSecondsRemaining: number|null,

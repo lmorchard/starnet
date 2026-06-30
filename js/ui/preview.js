@@ -17,6 +17,7 @@ import { initializeGraphOverlays } from "./overlays/index.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
 import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
+import { FLOW_TYPES } from "./flow-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
 import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation/index.js";
 
@@ -96,9 +97,17 @@ const NET_EDGES = [
   ["net-fs", "net-ids"], ["net-ids", "net-gw"], ["net-rt", "net-fs"],
 ];
 
+// Flow substrate demo — two owned nodes joined by one edge that the Flow Substrate
+// controls fill with typed packets (single, mixed, and encrypted).
+const FLOW_NODES = [
+  { id: "flow-src", label: "flow-src", type: "fileserver", grade: "B", x: 1000, y: 540 },
+  { id: "flow-dst", label: "flow-dst", type: "gateway",    grade: "C", x: 1320, y: 540 },
+];
+const FLOW_EDGE = ["flow-src", "flow-dst"];
+
 // ── Initialize Cytoscape ─────────────────────────────────────
 
-const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES, ...ACCESS_NODES, ...NET_NODES];
+const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES, ...ACCESS_NODES, ...NET_NODES, ...FLOW_NODES];
 const networkData = {
   nodes: allNodes.map(n => ({ id: n.id, label: n.label, type: n.type, grade: n.grade })),
   edges: [],
@@ -120,6 +129,9 @@ for (const n of allNodes) {
 for (const [source, target] of NET_EDGES) {
   cy.add({ data: { id: `edge-${source}-${target}`, source, target } });
 }
+
+// Neutral connection line for the flow demo (packets carry the semantics, not the line).
+cy.add({ data: { id: `edge-${FLOW_EDGE[0]}-${FLOW_EDGE[1]}`, source: FLOW_EDGE[0], target: FLOW_EDGE[1] } });
 
 // Apply shapes and styles via updateNodeStyle
 for (const n of allNodes) {
@@ -150,7 +162,7 @@ cy.userPanningEnabled(true);
 // pan/zoom — shared with the game via initializeGraphOverlays (#167). The layer
 // element is kept for the preview-only ICE-presence demo node mounted below.
 const overlayLayer = $("overlay-layer");
-const { overlays } = initializeGraphOverlays(overlayLayer);
+const { overlays, flowLayer } = initializeGraphOverlays(overlayLayer);
 
 // ── Animation helpers ────────────────────────────────────────
 
@@ -289,6 +301,32 @@ $("btn-reticle-toggle").addEventListener("click", () => {
   syncSelection(reticleOn ? "demo-select" : null);
   $("btn-reticle-toggle").classList.toggle("active", reticleOn);
 });
+
+// ── Flow substrate ───────────────────────────────────────────
+// Build a checkbox per packet type; rebuild the demo flow set (all between flow-src and
+// flow-dst) on any change. Multiple checked types = a mixed-type edge.
+const flowToggles = $("flow-type-toggles");
+for (const t of FLOW_TYPES) {
+  flowToggles.insertAdjacentHTML(
+    "beforeend",
+    `<label class="flow-type-label"><input type="checkbox" class="flow-type" value="${t}"${t === "money" ? " checked" : ""}> ${t}</label>`,
+  );
+}
+function rebuildFlows() {
+  const density = parseFloat($("flow-density").value) || 0;
+  $("flow-density-val").textContent = density.toFixed(2);
+  const encrypted = $("flow-encrypted").checked;
+  const types = [...document.querySelectorAll(".flow-type")]
+    .map((c) => /** @type {HTMLInputElement} */ (c))
+    .filter((c) => c.checked)
+    .map((c) => c.value);
+  const flows = types.map((type) => ({ from: "flow-src", to: "flow-dst", type, rate: density, encrypted }));
+  flowLayer.refresh(flows, cy);
+}
+flowToggles.addEventListener("change", rebuildFlows);
+$("flow-encrypted").addEventListener("change", rebuildFlows);
+$("flow-density").addEventListener("input", rebuildFlows);
+rebuildFlows();
 
 // ── Node flash ───────────────────────────────────────────────
 

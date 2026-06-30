@@ -160,6 +160,10 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     moneyCost: meta.moneyCost ?? "F",
     nodes,
     adjacency,
+    // First-class, serializable (rides ...rest in serializeState). Shallow-clone each flow so
+    // in-run mutation (future rerouting / encryption reveal) never writes back into the source
+    // network definition's meta.flows — same fresh-objects contract as the player hand above.
+    flows: (meta.flows ?? []).map((f) => ({ ...f })),
     nodeGraph: graph,
     player: {
       cash: meta.startCash ?? 1000,
@@ -381,6 +385,8 @@ export function deserializeState(snapshot, opts = {}) {
   // ?.-guarded, but the toggle setters write s.ui.x — without this they'd throw
   // on the first hamburger/hand toggle after loading an older save.
   if (!ctx.state.ui) ctx.state.ui = { menuOpen: false, handCollapsed: false };
+  // Heal saves that predate state.flows — the flow renderer reads getState().flows directly.
+  if (!ctx.state.flows) ctx.state.flows = [];
   deserializeTimers(_timers);   // writes into ctx.timers
   if (_rng) deserializeRng(_rng);
   else initRng(gameState.seed ?? undefined);
