@@ -172,8 +172,11 @@ html, body {
 #cy {
   filter: url(#starnet-bloom);
 }
+/* Overlays animate every frame (brackets, sweeps, reticle), so they use the lighter
+   single-pass #overlay-bloom rather than #cy's heavy 3-pass #starnet-bloom — the heavy one
+   re-rasterized per frame during an action animation was tanking the frame rate. */
 #overlay-layer > * {
-  filter: url(#starnet-bloom);
+  filter: url(#overlay-bloom);
 }
 
 #cy {

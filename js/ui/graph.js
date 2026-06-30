@@ -67,8 +67,6 @@ export function onViewport(fn) { viewportListeners.push(fn); }
 let _reticleOverlay = null;
 /** @param {any} el */
 export function setReticleOverlay(el) { _reticleOverlay = el; }
-const pulsingNodes = new Set();       // nodeIds running red-alert pulse
-const yellowPulsingNodes = new Set(); // nodeIds running yellow-alert pulse
 const rebootingNodes = new Set();     // nodeIds running reboot opacity pulse
 
 // Build a looping node-style pulse. All three pulses share the same shape —
@@ -104,28 +102,11 @@ function createPulseAnimator({ set, frames, clearStyle }) {
   };
 }
 
-// Thin strobe blink (not a fattening breathe): a thin constant-width border that
-// flickers bright→dim, so under the global bloom it reads as a vector alarm
-// strobe rather than a throbbing halo. Red strobes fast (urgent).
-const redPulse = createPulseAnimator({
-  set: pulsingNodes,
-  clearStyle: "border-color border-width",
-  frames: [
-    { style: { "border-color": "#ff3030", "border-width": 1.5 }, duration: 220 },
-    { style: { "border-color": "#5a1010", "border-width": 1.5 }, duration: 420 },
-  ],
-});
-
-// Yellow strobes slower/softer than red (lower urgency), same thin-blink idea.
-const yellowPulse = createPulseAnimator({
-  set: yellowPulsingNodes,
-  clearStyle: "border-color border-width",
-  frames: [
-    { style: { "border-color": "#ffcc00", "border-width": 1.5 }, duration: 480 },
-    { style: { "border-color": "#4a3800", "border-width": 1.5 }, duration: 720 },
-  ],
-});
-
+// Alert state (yellow/red) is shown as a STATIC colored border via the cy stylesheet
+// (node.accessible.alert-yellow / .alert-red), not a JS animation: a perpetual node.animate
+// pulse kept Cytoscape redrawing the whole canvas every frame for the rest of the run (alerts
+// don't clear below trace), which tanked the frame rate. A cheaper animated treatment
+// (CSS/overlay throb off the cy model) is a deferred follow-on.
 const rebootPulse = createPulseAnimator({
   set: rebootingNodes,
   clearStyle: "opacity",
@@ -187,6 +168,14 @@ function ensureBloomFilter() {
     `<feGaussianBlur in="SourceGraphic" stdDeviation="${BLOOM_WIDE * bloomIntensity}" result="b1"/>` +
     `<feGaussianBlur in="SourceGraphic" stdDeviation="${BLOOM_TIGHT * bloomIntensity}" result="b2"/>` +
     '<feMerge><feMergeNode in="b1"/><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge>' +
+    '</filter>' +
+    // Lighter, color-preserving glow for the OVERLAY layer: a single blur pass under the
+    // source, vs starnet-bloom's three. Overlays animate every frame (brackets, sweeps), so
+    // the filter is re-rasterized continuously — the cheaper one keeps that affordable. #cy
+    // keeps the heavy phosphor bloom (it's mostly static).
+    '<filter id="overlay-bloom" x="-60%" y="-60%" width="220%" height="220%">' +
+    '<feGaussianBlur in="SourceGraphic" stdDeviation="2" result="ob"/>' +
+    '<feMerge><feMergeNode in="ob"/><feMergeNode in="SourceGraphic"/></feMerge>' +
     '</filter>';
   document.body.appendChild(svg);
   // Expose for live experimentation / future deck-damage hookup.
@@ -528,20 +517,20 @@ function buildStylesheet() {
         "text-outline-width": 3,
       },
     },
-    // Alert state: yellow — thin amber border (strobe-blinked by JS animation)
+    // Alert state: yellow — static amber border (lit by the global bloom; no JS animation)
     {
       selector: "node.accessible.alert-yellow",
       style: {
-        "border-color": "#996600",
-        "border-width": 1.5,
+        "border-color": "#ffcc00",
+        "border-width": 2,
       },
     },
-    // Alert state: red — thin red border (strobe-blinked by JS animation)
+    // Alert state: red — static red border (lit by the global bloom; no JS animation)
     {
       selector: "node.accessible.alert-red",
       style: {
-        "border-color": "#cc1100",
-        "border-width": 1.5,
+        "border-color": "#ff3030",
+        "border-width": 2,
       },
     },
     // Obscured — identity hidden behind sig-N alias until probed. Keeps the
@@ -684,22 +673,11 @@ export function updateNodeStyle(nodeId, nodeState) {
       node.addClass(nodeState.accessLevel);
     }
 
-    // Alert state
+    // Alert state — static colored border via the stylesheet (see note at rebootPulse: the
+    // old perpetual node.animate pulse forced a full-canvas redraw every frame).
     node.removeClass("alert-yellow alert-red");
     if (nodeState.alertState === "yellow") node.addClass("alert-yellow");
     if (nodeState.alertState === "red") node.addClass("alert-red");
-
-    // Alert pulse animations (shadow-blur is invalid in Cytoscape; use bg/border instead)
-    if (nodeState.alertState === "red") {
-      if (yellowPulsingNodes.has(nodeId)) yellowPulse.stop(node);
-      redPulse.start(node);
-    } else if (nodeState.alertState === "yellow") {
-      if (pulsingNodes.has(nodeId)) redPulse.stop(node);
-      yellowPulse.start(node);
-    } else {
-      if (pulsingNodes.has(nodeId)) redPulse.stop(node);
-      if (yellowPulsingNodes.has(nodeId)) yellowPulse.stop(node);
-    }
 
     // Glyph by node type — but an obscured node shows the bare dodecagon (no
     // glyph) so its type isn't telegraphed before it's probed. The container
