@@ -517,6 +517,10 @@ fresh ad-hoc filter.
   Corporate variants, section-breakdown automation; see `docs/audio-direction.md`
 - Synthesized event SFX (Tone.js): one-shot cues on game events, own always-available bus +
   on/off toggle, independent of music; see `docs/audio-direction.md`
+- Alternate **Strudel + superdough audio engine** (AGPL) behind a boot flag (`audio engine
+  <tone|strudel>`, reload to apply; Tone is still the default): music + one-shot SFX + action
+  drones in one engine, same reactive signals. Phase 1 of the Tone→Strudel migration (issue #254);
+  the game is now AGPL-3.0. See `docs/audio-direction.md` + `js/audio/strudel/`.
 
 ## Out of Scope (Future)
 

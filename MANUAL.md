@@ -852,6 +852,20 @@ so you can have effects with the music off, and they play in the hub as well as 
 **SFX commands** (console): `sfx` shows on/off status, `sfx list` lists every cue,
 `sfx test <cue>` auditions one, `sfx on|off` toggles them.
 
+### Audio engine (experimental)
+
+The game ships with two audio engines. **Tone** (the default) is the established engine
+described above. **Strudel** is a newer engine built on [Strudel](https://strudel.cc/) +
+superdough — one engine for music *and* sound effects, the same reactive progress/threat
+design and the same per-action drones. It's behind a flag while it reaches full parity.
+
+**Engine command** (console): `audio` shows the active engine; `audio engine strudel` or
+`audio engine tone` switches it. **The change takes effect after you reload the page.** The
+music and SFX on/off toggles work the same with either engine.
+
+(Because the engine bundles Strudel/superdough, which are AGPL-3.0, the game is licensed
+AGPL-3.0 — see the **source** link in the corner and `LICENSE`.)
+
 **SFX: On / Off** lives in the hamburger menu (`[ ☰ ]`) next to the music toggle. The choice is
 remembered between sessions.
 

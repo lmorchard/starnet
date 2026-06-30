@@ -7,6 +7,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@strudel/web": "1.0.3",
     "cytoscape": "^3.33.1",
     "cytoscape-cola": "^2.5.1",
     "cytoscape-cose-bilkent": "^4.1.0",

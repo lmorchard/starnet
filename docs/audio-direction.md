@@ -36,6 +36,42 @@ Chosen over Elementary, SunVox, and Strudel. Rationale:
 SunVox stays a possible *later* hybrid (author set-piece tracks, drive reactive layers from JS)
 if the JS-synth timbre ceiling ever frustrates. Not for v1 — one engine, learn the loop first.
 
+> **⚠️ Superseded — engine migrating to Strudel + superdough (AGPL).** The "MIT, Strudel
+> avoided" call above was reversed after spikes proved Strudel (music) + superdough (SFX) gives
+> one reactive, livecoding-native engine for music *and* SFX, FPS-clean in-game. The game is now
+> **AGPL-3.0** (Strudel/superdough are AGPL; bundling forces it) following the Doom model — open
+> engine, future content packs kept as separately-licensed runtime data. See issue #254 and the
+> "Strudel + superdough engine" section below. **Phase 1** has shipped behind an engine-select
+> flag (`audio engine strudel`; Tone still the default); Phases 2 (re-author the full reactive
+> design + variants) and 3 (flip the default, retire Tone) are follow-on. The two-axis model and
+> everything below still hold — only the output engine changes.
+
+### Strudel + superdough engine (Phase 1, behind a flag)
+
+A second engine lives under `js/audio/strudel/` — a single self-contained module
+(`initStrudelEngine`) that owns music, one-shot SFX, and action drones, selected at boot via the
+`starnet:audio-engine` pref (`audio engine <tone|strudel>`; reload to apply). Tone-default users
+never download its runtime (lazy `import()`).
+
+- **Runtime:** `@strudel/web@1.0.3` vendored offline via esbuild → `dist/strudel.js` (importmap
+  `@strudel/web`), mirroring `dist/tone.js`. Boot polls for the window globals `initStrudel`
+  registers (`runtime.js`); the AudioContext resumes on first gesture.
+- **Reuses `signals.js` unchanged** — `deriveProgress`/`deriveThreat` drive a live `stack()` whose
+  per-layer params are `signal()`-mapped (re-sampled each cycle, no re-eval). The corporate score
+  is DATA (`strudel/data/corporate.js`, 8 **synth-only** voices — no drum samples in Phase 1, so
+  the dirt-sample vendoring is deferred to Phase 2). Interpreter: `strudel/music.js`.
+- **One-shot SFX** are superdough voices from cue DATA (`strudel/data/cues.js`), covering the
+  Phase-1 events; the rest degrade to no cue until a follow-up.
+- **Action drones** can't be superdough one-shots (no live mid-voice sweeps), so they're a faithful
+  **raw-Web-Audio** port of the Tone `startDrone` graph (`strudel/drones.js` + `data/drones.js`),
+  driven by the same `ACTION_FEEDBACK` contract.
+- **Prefs/events:** the Tone renderers still own the music/SFX on-off prefs + `MUSIC_CHANGED`/
+  `SFX_CHANGED` events even when not running, so the HUD buttons + `music`/`sfx` commands work
+  unchanged; the Strudel engine just subscribes.
+- **Perf gate (Phase 1):** main-thread frame pacing under 8 voices + ~9 SFX/s + 4 rolling drones
+  held median **120 FPS** (== idle, on par with Tone) — synthesis is on the worklet thread. See
+  `docs/dev-sessions/2026-06-30-1413-audio-engine-strudel/`.
+
 ### Intensity model: TWO AXES (progress + threat)
 
 The music's state is driven by two **independent** axes that combine:

@@ -39,3 +39,17 @@ make check    # run tsc type checker (no emit)
 
 See [`CLAUDE.md`](CLAUDE.md) for architecture notes, dev workflow, and design principles.
 See [`docs/SPEC.md`](docs/SPEC.md) for the full game design document.
+
+## License
+
+The Starnet **engine** is licensed under the **GNU Affero General Public License v3.0**
+([`LICENSE`](LICENSE)). The engine bundles [Strudel](https://strudel.cc/) and superdough
+for audio, which are AGPL-3.0; bundling them makes the combined work AGPL-3.0.
+
+Following the **Doom model**, game *content* — future content packs ("wads": songs,
+missions, assets) — is kept as separately-licensed data loaded at runtime, never woven
+into the engine source, so it can carry its own license. The engine being AGPL does not
+force a particular license on the content it loads.
+
+As an AGPL §13 courtesy (and condition), the running game shows a **source** link to this
+public repository.
