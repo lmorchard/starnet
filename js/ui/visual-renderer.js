@@ -77,7 +77,15 @@ export function initVisualRenderer() {
   // Shared with the preview harness via initializeGraphOverlays (#167): mounts
   // the registry overlays + the selection reticle (graph.js drives the latter
   // from syncSelection) and wires both to re-anchor on pan/zoom.
-  const { overlays } = initializeGraphOverlays();
+  const { overlays, flowLayer } = initializeGraphOverlays();
+
+  // Flow substrate: redraw typed packet flows on any state change or node reveal (a flow
+  // only renders once both endpoints are in the graph), and clear on a fresh run. Registered
+  // here — after the layer exists — as its own STATE_CHANGED subscriber.
+  const refreshFlows = () => flowLayer.refresh(_getState().flows, getCy());
+  on(E.STATE_CHANGED, refreshFlows);
+  on(E.NODE_REVEALED, refreshFlows);
+  on(E.RUN_STARTED, () => flowLayer.clear());
 
   // action id → node id of the in-flight animation (tracked across feedback events)
   const activeNodeIds = new Map();

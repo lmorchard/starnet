@@ -112,6 +112,19 @@ export function buildNetwork() {
       moneyCost: "A",
       startHand: ["common", "uncommon", "uncommon", "rare", "rare"],
       ice: { grade: "B", startNode: "sec/monitor" },
+      // Flow substrate (declarative, visual-only): typed packets riding real edges.
+      // Each renders once both endpoints are revealed (fog-of-war). A money artery flows
+      // toward the gateway and off-LAN via the WAN; the gateway↔switch-1 edge carries a
+      // mix (money one way, control the other); audit climbs toward security; an encrypted
+      // credential gates the firewall.
+      flows: [
+        { from: "switch-1", to: "gateway", type: "money", rate: 0.8 },
+        { from: "gateway", to: "wan", type: "money", rate: 0.7 },
+        { from: "gateway", to: "switch-1", type: "control", rate: 0.4 },
+        { from: "office/fileserver", to: "switch-1", type: "data", rate: 0.5 },
+        { from: "switch-2", to: "sec/ids", type: "audit", rate: 0.35 },
+        { from: "switch-2", to: "fw-1", type: "credential", rate: 0.25, encrypted: true },
+      ],
     },
   };
 }

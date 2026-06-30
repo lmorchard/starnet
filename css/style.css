@@ -178,6 +178,15 @@ html, body {
 #overlay-layer > * {
   filter: url(#overlay-bloom);
 }
+/* The flow layer is a single full-bleed <canvas> whose packets animate every frame. Exempt it
+   from the overlay bloom, and promote it to its OWN GPU compositing layer (translateZ) so its
+   per-frame repaints stay on that layer and don't force the bloomed #cy underneath to
+   re-composite every frame (that recompositing — not Cytoscape redraws — was the fps cost). */
+#overlay-layer > .flow-layer {
+  filter: none;
+  transform: translateZ(0);
+  will-change: transform;
+}
 
 #cy {
   width: 100%;

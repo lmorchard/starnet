@@ -1,5 +1,7 @@
 This is a cyberpunk nethacking game idea I had with an interplanetary setting. Wanted to do something with procedural generation to allow for an endlessly explorable system of neighborhoods, cities, up through planets and star systems.
 
+> **Active design pillar:** [Flow Subversion](design/flow-subversion.md) — reworking the LAN core loop from per-node extraction into reading & rerouting typed data flows. It's the realization of the "network as a circuit you splice apart" idea sketched under *Misc game loop ideas* below.
+
 ## Names
 
   - Starnet

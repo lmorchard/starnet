@@ -14,6 +14,7 @@ import "./lie-low-clock.js";
 import { OVERLAY_DESCRIPTORS } from "./registry.js";
 import { onViewport, setReticleOverlay } from "../graph.js";
 import { mountReticle } from "./selection-reticle.js";
+import { FlowLayer } from "./flow-layer.js";
 
 /**
  * @param {HTMLElement} container
@@ -37,7 +38,7 @@ export function mountOverlays(container) {
  * registry overlays + the selection reticle into the overlay container, register
  * the reticle with graph.js, and wire both to re-anchor on every pan/zoom.
  * @param {HTMLElement} [layer] overlay container; defaults to #overlay-layer
- * @returns {{ overlays: ReturnType<typeof mountOverlays>, reticle: any }}
+ * @returns {{ overlays: ReturnType<typeof mountOverlays>, reticle: any, flowLayer: FlowLayer }}
  */
 export function initializeGraphOverlays(
   layer = /** @type {HTMLElement} */ (document.getElementById("overlay-layer")),
@@ -49,5 +50,11 @@ export function initializeGraphOverlays(
   setReticleOverlay(reticle);
   onViewport(() => reticle.reposition());
 
-  return { overlays, reticle };
+  // Flow substrate: one always-on canvas layer drawing typed packets along edges. Its rAF loop
+  // animates from cached geometry; reposition() (on pan/zoom) re-sizes the backing store and
+  // recomputes that cached screen geometry — so the onViewport wiring is load-bearing.
+  const flowLayer = new FlowLayer(layer);
+  onViewport(() => flowLayer.reposition());
+
+  return { overlays, reticle, flowLayer };
 }
