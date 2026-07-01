@@ -425,9 +425,10 @@ wired only in `js/ui/main.js`.)
 
 ## Prototypes
 
-- `audio-tone.html` — Tone.js, 4-part song, per-track mutes, tempo, global tension sweep
-  (master lowpass + Q + drone). **The chosen direction.**
-- `audio-elementary.html` — Elementary equivalent (same song), kept for reference/comparison.
+The engine choice came out of a Tone.js vs. Elementary bake-off — two root-level demos
+(`audio-tone.html` / `audio-elementary.html`) playing the same 4-part song with per-track
+mutes, tempo, and a global tension sweep (master lowpass + Q + drone). **Tone.js won** and is
+the shipped direction; both demo files have since been removed now that the engine is live.
 
 ## Deferred / fast-follows (not blocking v1)
 
