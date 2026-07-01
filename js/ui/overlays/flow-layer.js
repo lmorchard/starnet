@@ -51,12 +51,14 @@ export function renderableFlows(flows, presentNodeIds) {
  * Stable string key for a set of flows. The layer rebuilds only when this changes, so frequent
  * STATE_CHANGED events that don't alter the flow set (e.g. a timed action ticking) don't reset
  * the packets. Pure.
- * @param {Array<{from:string,to:string,type:string,rate:number,encrypted?:boolean}>} flows
+ * @param {Array<{from:string,to:string,type:string,rate:number,encrypted?:boolean,revealed?:boolean}>} flows
  * @returns {string}
  */
 export function flowsSignature(flows) {
   return (flows || [])
-    .map((f) => `${f.from}>${f.to}:${f.type}:${f.rate}:${f.encrypted ? 1 : 0}`)
+    // `revealed` is in the key so SNIFFing an encrypted flow (which flips revealed) changes the
+    // signature and rebuilds the layer — the packet re-renders as its true type instead of "?".
+    .map((f) => `${f.from}>${f.to}:${f.type}:${f.rate}:${f.encrypted ? 1 : 0}:${f.revealed ? 1 : 0}`)
     .join("|");
 }
 
@@ -109,7 +111,7 @@ export class FlowLayer {
   /**
    * Rebuild the packet set from the current flows + graph, skipping when the renderable set is
    * unchanged (so STATE_CHANGED storms during a timed action don't reset packet phases).
-   * @param {Array<{from:string,to:string,type:string,rate:number,encrypted?:boolean}>} flows
+   * @param {Array<{from:string,to:string,type:string,rate:number,encrypted?:boolean,revealed?:boolean}>} flows
    * @param {any} cy
    */
   refresh(flows, cy) {
@@ -122,7 +124,7 @@ export class FlowLayer {
     this._build(renderable);
   }
 
-  /** @param {Array<{from:string,to:string,type:string,rate:number,encrypted?:boolean}>} flows */
+  /** @param {Array<{from:string,to:string,type:string,rate:number,encrypted?:boolean,revealed?:boolean}>} flows */
   _build(flows) {
     this.flows = [];
     const cy = this.cy;
@@ -150,7 +152,8 @@ export class FlowLayer {
         a: cy ? cy.getElementById(f.from) : null,
         b: cy ? cy.getElementById(f.to) : null,
         type: f.type,
-        encrypted: !!f.encrypted,
+        // Concealed only while encrypted AND not yet SNIFFed. Once revealed, draw the true glyph.
+        encrypted: !!f.encrypted && !f.revealed,
         laneOffset,
         packets,
       });

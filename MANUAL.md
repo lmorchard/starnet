@@ -489,10 +489,56 @@ around it.
 
 ---
 
+## FLOW PROGRAMS
+
+Some LANs aren't just containers of loot — they're **running machines**, with typed data
+**flowing** along the connections between nodes. Where a network has flows, you'll see packets
+travelling its edges: **money** (gold diamonds), **data** (cyan squares), **audit/alert** (red
+triangles), **control** (amber chevrons), and **credentials** (magenta hexagons). Speed and
+density show volume; the arrow shows which way value (or an alarm) is moving. A **dashed, dim**
+flow is **encrypted** — you can see it exists but not what it carries until you read it.
+
+> Flows currently appear on hand-authored networks (e.g. the Corporate Exchange). Not every LAN
+> is wired this way yet.
+
+Your cyberdeck carries a small always-available kit of **programs** that act on flows. Two ship
+today:
+
+- **SNIFF** — read a flow. Requires the node be **probed** first — a bit of reconnaissance before
+  you can read its traffic (but just a scan, not the full break-in). Target a probed node, choose
+  **SNIFF**, and pick a flow from the list (only flows to nodes you've already revealed appear).
+  Sniffing an **encrypted** flow decrypts it (you can now read its type); sniffing a **credential**
+  flow additionally **captures the token** for later use. Quiet — low noise.
+- **REPLAY** — replay a captured credential into a node that trusts it. Louder than SNIFF.
+
+Console: `sniff <node> [flow]` (no flow argument → lists the node's flows, numbered), `replay <node>`.
+
+### Finesse access — the nodes you can't smash
+
+Most nodes fall to a matching exploit (a **smash**). Some can't: a **finesse-only** node is
+brute-immune — it offers no XPLOIT at all, because it only trusts a **credential that flows in
+from elsewhere**. Probing it tells you which credential it wants.
+
+To own one: find the credential flow feeding it, **probe the node that emits that flow** (SNIFF
+needs recon first), **SNIFF** the flow to capture the token, then **REPLAY** the token into the
+locked node. It jumps straight to **owned** — and whatever it was gating (a firewall's protected
+subnet, say) is revealed. The whole LAN becomes one interlocked puzzle: to open X, find and tap
+what flows toward it.
+
+### Noise feeds the trace
+
+Every program you run adds **noise** to the same trace clock the alert system drives (below).
+Loud programs cost more noise than quiet ones. Enough noise on its own will start a trace — so the
+skill is the **quietest** solution, not the flashiest. Your accumulated noise shows as **NOISE: N**
+beside the alert in the status bar.
+
+---
+
 ## THE ALERT SYSTEM
 
 The LAN watches you through two sensors — a passive security grid and active ICE — both
 feeding one alert ladder. Understanding it is the difference between a clean run and a trace.
+(A third input, **program noise**, feeds the same ladder — see *Flow Programs* above.)
 
 ### Node Alert State
 
@@ -732,6 +778,8 @@ Actions depend on the selected node's type and access level:
 | `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
+| `sniff`        | Probed node with a visible flow touching it    | Opens a flow picker (only flows to already-revealed nodes). Reads a flow (decrypts an encrypted one; captures a credential token from a credential flow). Adds program noise. Needs the node probed first — not available on an unprobed node. |
+| `replay`       | Finesse-locked node you hold its trusted credential for | Replays the captured credential → node jumps to owned (reveals what it gated). Adds program noise. |
 | `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
 | `corrupt`      | IDS node is open or owned                      | Severs event forwarding to security monitor (run via `exec`) |
 | `scrub-logs`   | Security-monitor, open or owned                | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
@@ -760,6 +808,8 @@ xploit <#|name>        Use exploit card by number or name on targeted node.
 dump [node]            Dump contents of targeted/specified node.
 fetch [node]           Extract macguffins from owned node.
 mine [node]            Data-mine owned node for an exploit card (timed; diminishing returns).
+sniff [node] [flow]    Read a flow on a node (decrypt / capture credential). No flow arg lists the node's flows.
+replay [node]          Replay a captured credential into a finesse node that trusts it.
 exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, disconnect, …). No arg lists scripts.
 kick                   Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.

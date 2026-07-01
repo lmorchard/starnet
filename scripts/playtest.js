@@ -207,6 +207,10 @@ if (jsonMode) {
   on(E.ALERT_TRACE_STARTED,   ({ seconds })               => out(`[ALERT] ⚠ TRACE INITIATED — ${seconds}s`));
   on(E.ALERT_TRACE_CANCELLED, ()                          => out(`[ALERT] Trace cancelled. Alert: RED`));
   on(E.ALERT_PROPAGATED,     ({ fromLabel, toLabel })    => out(`[ALERT] ${fromLabel} → ${toLabel}: alert propagated.`));
+  on(E.FLOW_SNIFFED,         ({ nodeId, type })          => out(`[SNIFF] ${nodeId}: ${type} flow read.`));
+  on(E.CREDENTIAL_CAPTURED,  ({ key })                   => out(`[SNIFF] Credential captured: ${key}.`));
+  on(E.CREDENTIAL_REPLAYED,  ({ nodeId, key })           => out(`[REPLAY] ${nodeId}: credential ${key} accepted — trusted access.`));
+  on(E.PROGRAM_NOISE,        ({ total })                 => out(`[NOISE] Program noise: ${total}.`));
   on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
     if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
   });

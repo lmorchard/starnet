@@ -304,6 +304,17 @@ registerTrait("darknet", {
   actions: [ACTION_TEMPLATES.ACCESS_DARKNET, ACTION_TEMPLATES.LIE_LOW, ACTION_TEMPLATES.DISCONNECT],
 });
 
+// Finesse access (Flow Subversion Session 1): a node that CANNOT be brute-forced —
+// it only trusts a credential that flows in from elsewhere. `finesseLocked` suppresses
+// XPLOIT (see EXPLOIT_ACTION.requires); `trustsCredential` names the token a captured
+// credential must match. Owning it is the REPLAY program (injected in program-actions.js),
+// not a trait action. Apply via createFirewall({ finesse: { key } }).
+registerTrait("finesse-access", {
+  attributes: { finesseLocked: true, trustsCredential: null },
+  operators: [],
+  actions: [],
+});
+
 // ── New traits (stress-test the system) ─────────────────────
 
 registerTrait("hardened", {

@@ -275,6 +275,12 @@ These omissions are intentional — they make the bot a pessimistic baseline:
   card and can't afford darknet); never pre-mines nodes to stockpile cards
 - **Mine exhausted nodes** — skips nodes where `mine` is no longer available;
   no retry loops
+- **Flow programs (SNIFF / REPLAY)** — the bot doesn't read, sniff, or act on
+  typed flows, and doesn't use the finesse-access path (capture a credential →
+  REPLAY it to own a brute-immune node). It also never accrues program noise.
+  Generated census networks author no flows, so `getProgramActions` returns
+  nothing for the bot regardless. The flow programs are exercised only in the
+  hand-authored `?network=corporate-exchange` demo.
 
 ### What the census therefore cannot validate
 
@@ -287,6 +293,12 @@ and curve-correct — but **nothing about whether it's balanced or a meaningful
 choice**. That judgment needs a human or LLM player (issues #122 and #86). When adding a mechanic that's a
 deliberate escape hatch rather than a primary path, don't expect the census to
 gate it.
+
+The **flow programs + noise economy** (SNIFF/REPLAY, Flow Subversion Session 1)
+are the same shape: the bot doesn't use them, so census only confirms the
+existing loop is un-regressed — it says nothing about whether the noise costs or
+thresholds (`PROGRAM_NOISE_COST` / `PROGRAM_NOISE_THRESHOLD` in `balance.js`) are
+tuned right. Those are feel-tuned with a human on the demo network.
 
 ---
 

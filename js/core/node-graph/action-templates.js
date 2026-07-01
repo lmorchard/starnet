@@ -97,6 +97,10 @@ const EXPLOIT_ACTION = {
     // Owned nodes are already at max access — don't offer XPLOIT at all (the
     // hand stays a full-agency override for a deliberate re-exploit).
     { type: "not", condition: { type: "node-attr", attr: "accessLevel", eq: "owned" } },
+    // Finesse-locked nodes can't be brute-forced — they only trust a captured
+    // credential replayed in (REPLAY program). Harmless on ordinary nodes, where
+    // finesseLocked is undefined and reads as not-true.
+    { type: "not", condition: { type: "node-attr", attr: "finesseLocked", eq: true } },
   ],
   followup: {
     title: (node) => `XPLOIT ${node.id}`,

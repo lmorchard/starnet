@@ -45,6 +45,11 @@ export const E = Object.freeze({
   ALERT_TRACE_STARTED:   "alert:trace-started",
   ALERT_TRACE_CANCELLED: "alert:trace-cancelled",
   ALERT_PROPAGATED:      "alert:propagated",
+  PROGRAM_NOISE:         "alert:program-noise",
+
+  FLOW_SNIFFED:          "flow:sniffed",
+  CREDENTIAL_CAPTURED:   "flow:credential-captured",
+  CREDENTIAL_REPLAYED:   "flow:credential-replayed",
 
   PLAYER_NAVIGATED:     "player:navigated",
 

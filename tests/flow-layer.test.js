@@ -44,3 +44,9 @@ test("flowsSignature changes when any field changes", () => {
   assert.notEqual(base, flowsSignature([{ from: "x", to: "y", type: "audit", rate: 0.5 }]));
   assert.notEqual(base, flowsSignature([{ from: "x", to: "y", type: "money", rate: 0.5, encrypted: true }]));
 });
+
+test("flowsSignature changes when an encrypted flow is revealed (SNIFF decrypts on the graph)", () => {
+  const enc = flowsSignature([{ from: "x", to: "y", type: "credential", rate: 0.5, encrypted: true }]);
+  const revealed = flowsSignature([{ from: "x", to: "y", type: "credential", rate: 0.5, encrypted: true, revealed: true }]);
+  assert.notEqual(enc, revealed);
+});

@@ -426,6 +426,7 @@ function syncHud(state) {
   if (hudEl) {
     hudEl.alert = state.globalAlert;
     hudEl.cash = state.player.cash;
+    hudEl.programNoise = state.programNoise;
     hudEl.traceSeconds = state.traceSecondsRemaining;
     hudEl.isCheating = state.isCheating;
     hudEl.phase = state.phase;

@@ -24,6 +24,11 @@ export const A = Object.freeze({
   KICK: "kick",
   REBOOT: "reboot",
 
+  // Flow-manipulation programs (Session 1). Top-level verbs (host their own
+  // pickers / consume captured state), not EXEC scripts.
+  SNIFF: "sniff",
+  REPLAY: "replay",
+
   // Node-specific actions
   EXEC: "exec",
   CORRUPT: "corrupt",

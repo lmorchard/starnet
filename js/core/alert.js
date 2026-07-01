@@ -6,9 +6,10 @@
 import { getState, endRun } from "./state.js";
 import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
 import { setIceDetectedAt, incrementIceDetectionCount, activeIceInstances } from "./state/ice.js";
+import { addProgramNoise } from "./state/flow.js";
 import { emitEvent, E } from "./events.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
-import { DETECTION_TRACE_THRESHOLD, MONITOR_TRACE_THRESHOLD, TRACE_SECONDS } from "./balance.js";
+import { DETECTION_TRACE_THRESHOLD, MONITOR_TRACE_THRESHOLD, TRACE_SECONDS, PROGRAM_NOISE_THRESHOLD } from "./balance.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
@@ -156,6 +157,34 @@ export function recordMonitorAlert(monitorId) {
     const next = GLOBAL_ALERT_ORDER[idx + 1];
     setGlobalAlert(next);
     emitEvent(E.ALERT_GLOBAL_RAISED, { prev, next });
+  }
+}
+
+// ── Program noise (third sensor; Session 1) ───────────────
+
+/**
+ * Record program-noise heat — the third alert sensor. The counterpart to recordIceDetection
+ * (active ICE) and recordMonitorAlert (passive grid): each program play adds heat that
+ * accumulates on state.programNoise and climbs the SAME green→yellow→red→trace ladder, starting
+ * the SAME trace clock once the cumulative `trace` threshold is crossed. Noise can reach trace on
+ * its own — a real stealth budget. Escalation-only (never lowers the alert). See MANUAL.md.
+ * @param {number} amount
+ */
+export function recordProgramNoise(amount) {
+  const total = addProgramNoise(amount);
+  emitEvent(E.PROGRAM_NOISE, { amount, total });
+  const t = PROGRAM_NOISE_THRESHOLD;
+  if (total >= t.trace) {
+    if (getState().traceSecondsRemaining === null) startTraceCountdown();
+    return;
+  }
+  // Step the ladder up to the highest level the accumulated noise has crossed (capped below
+  // trace; trace is threshold-gated above). Escalation-only — never step down.
+  const target = total >= t.red ? "red" : total >= t.yellow ? "yellow" : "green";
+  const cur = getState().globalAlert;
+  if (GLOBAL_ALERT_ORDER.indexOf(target) > GLOBAL_ALERT_ORDER.indexOf(cur)) {
+    setGlobalAlert(target);
+    emitEvent(E.ALERT_GLOBAL_RAISED, { prev: cur, next: target });
   }
 }
 
