@@ -1,9 +1,0 @@
-__pycache__/
-*.pyc
-.venv/
-.pytest_cache/
-*.egg-info/
-# transcode scratch
-*.16k.wav
-# local Vertex config (project/location) — see .env.example
-.env
