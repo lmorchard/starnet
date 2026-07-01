@@ -1,21 +1,62 @@
-// Starnet — strudel.cc PREBAKE
+// Starnet — strudel.cc PREBAKE  (one-paste authoring block)
 // =====================================================================================
-// Paste this into strudel.cc → Settings → "prebake" (the script that runs before every song). It
-// stubs the game's live signals so a Starnet song copied from the repo plays + reacts in the editor.
+// Paste this ONCE into strudel.cc → Settings → "prebake" (the script that runs before every
+// song). It sets up BOTH halves of the game's sound world so a Starnet song copied straight out
+// of the repo plays UNCHANGED in the editor:
 //
-// In the game these same names are injected by the engine (js/audio/strudel/signal-bridge.js), so
-// song files carry no setup of their own — this prebake is the editor-side mirror of that contract.
+//   1. Instruments — the game's `gus_*` GeneralUser GS presets (a DISTINCT set, not strudel's
+//      built-in `gm_*`; do not substitute).
+//   2. Signals — the live game variables `gameProgress` / `gameThreat`, stubbed here as sliders
+//      you drag to hear a song react.
 //
-// SOUNDS: songs that use the game's `gus_*` instruments won't sound in strudel.cc yet — registering
-// the soundfont from the prebake trips a strudel.cc Repl error (`i.fonts is undefined`). Author with
-// synth waveforms (sawtooth/square/triangle/…) + drum samples (bd/sd/hh/…) + the signals for now;
-// `gus_*` resolves in-game. Loading `gus_*` in the editor is tracked in #265. See
-// docs/strudel-authoring.md.
+// In the game these same names are provided by the engine (js/audio/strudel/soundfont.js registers
+// the identical `gus_*`; js/audio/strudel/signal-bridge.js injects the same signals), so song files
+// carry no setup of their own — this prebake is the editor-side mirror of that contract.
 
+// ── 0. Firefox soundfont-release fix ──
+// Firefox does not implement AudioParam.cancelAndHoldAtTime, which the SF2 player calls on every
+// soundfont note-off. Without it note-offs throw in Firefox → gus_* voices never release (notes ring
+// forever, voices pile up). Polyfill it (hold-current-value) before anything plays. No-op in Chrome,
+// and no-op in the game (the engine's runtime installs the same shim). Mirrors runtime.js.
+if (typeof AudioParam !== 'undefined' && typeof AudioParam.prototype.cancelAndHoldAtTime !== 'function') {
+  AudioParam.prototype.cancelAndHoldAtTime = function (t) {
+    const held = this.value;
+    try { this.cancelScheduledValues(t); } catch (_) { /* ignore */ }
+    try { this.setValueAtTime(held, t); } catch (_) { /* ignore */ }
+    return this;
+  };
+}
+
+// ── 1. Instruments: load the game's vendored GeneralUser GS v2.0.3 + register the gus_* names ──
+// Loads Starnet's OWN vendored SF2 (raw.githubusercontent serves it CORS-enabled), so the sound set
+// is byte-identical to the game — no upstream drift. The naming (sanitize + dedup) and the note
+// trigger MIRROR js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
+// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
+// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
+await loadSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/GeneralUser-GS.sf2')
+  .then((sf) => {
+    const used = new Set();
+    sf.presets.forEach((preset, i) => {
+      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      let name = 'gus_' + (cleaned || 'preset_' + i);
+      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
+      used.add(name);
+      registerSound(name, (time, value) => {
+        const ctx = getAudioContext();
+        const note = value?.note ?? 'c3';
+        const midi = typeof note === 'number' ? note : noteToMidi(note);
+        const stop = startPresetNote(ctx, preset, midi, time);
+        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
+        return { node: undefined, stop };
+      }, { type: 'soundfont', prebake: false, fonts: [] });
+    });
+  });
+
+// ── 2. Signals: stub gameProgress / gameThreat so reactive songs play + react while authoring ──
 // Keep this list in sync with js/audio/signal-registry.js (currently: gameProgress, gameThreat).
 // Assigned onto `window.` — NOT `let` (a let binding wouldn't be visible to the separately-evaluated
-// song, and bare assignment throws under strict mode). Default is sliders (draggable widgets); swap
-// to sweep or mouse below for hands-free / pointer control.
+// song, and bare assignment throws under strict mode). Default is sliders (draggable widgets);
+// swap to sweep or mouse below for hands-free / pointer control.
 
 // --- sliders (default): draggable widgets for deliberate values --------------------------------
 window.gameProgress = slider(0.5, 0, 1)
