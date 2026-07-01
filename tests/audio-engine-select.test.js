@@ -22,9 +22,9 @@ test("AUDIO_ENGINES lists tone and strudel", () => {
   assert.deepEqual([...AUDIO_ENGINES].sort(), ["strudel", "tone"]);
 });
 
-test("defaults to tone when unset", () => {
+test("defaults to strudel when unset", () => {
   installStorage();
-  assert.equal(getAudioEngine(), "tone");
+  assert.equal(getAudioEngine(), "strudel");
 });
 
 test("setAudioEngine persists the choice and returns it", () => {
@@ -35,16 +35,16 @@ test("setAudioEngine persists the choice and returns it", () => {
 
 test("setAudioEngine rejects an unknown engine and leaves the pref unchanged", () => {
   installStorage();
-  setAudioEngine("strudel");
+  setAudioEngine("tone");   // set the NON-default so the assertion is distinguishable from the default
   assert.equal(setAudioEngine("bogus"), null);
-  assert.equal(getAudioEngine(), "strudel");
+  assert.equal(getAudioEngine(), "tone");
 });
 
-test("getAudioEngine falls back to tone when storage throws", () => {
+test("getAudioEngine falls back to strudel (the default) when storage throws", () => {
   globalThis.localStorage = {
     getItem() { throw new Error("blocked"); },
     setItem() { throw new Error("blocked"); },
   };
-  assert.equal(getAudioEngine(), "tone");
-  assert.equal(setAudioEngine("strudel"), "strudel"); // returns the value even if persist fails
+  assert.equal(getAudioEngine(), "strudel");
+  assert.equal(setAudioEngine("tone"), "tone"); // returns the value even if persist fails
 });

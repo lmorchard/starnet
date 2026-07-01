@@ -73,8 +73,8 @@ function init() {
   initConsole();
   initResizers();  // apply saved layout + wire the resize splitters
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
-  // Audio engine select (boot-time; switching requires a reload). Tone is the default; the Strudel
-  // engine is lazy-imported so Tone users never download its runtime bundle.
+  // Audio engine select (boot-time; switching requires a reload). Strudel is the default; the legacy
+  // Tone engine loads only when explicitly selected, so default users never download its bundle.
   let audioEngine = null;   // exposed as window.starnet.audio (Tone engine, or null under Strudel)
   if (getAudioEngine() === "strudel") {
     import("../audio/strudel/index.js").then((m) => m.initStrudelEngine());
