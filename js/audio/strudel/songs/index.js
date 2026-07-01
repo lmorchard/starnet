@@ -20,6 +20,25 @@ export const SONG_MANIFEST = [
   { id: "corporate-noir",  name: "Corporate — Noir",   file: "corporate-noir.strudel" },
 ];
 
+/** Last-word alias for a song, e.g. "Corporate — Neon" → "neon", "Hub Ambient" → "ambient". */
+export function songAlias(entry) {
+  return (entry.name.split(/\s+/).pop() || "").toLowerCase();
+}
+
+/**
+ * Resolve a query to a manifest entry: exact id, exact name, last-word alias, or loose name-contains
+ * (case-insensitive), in that priority. Pure — safe to import anywhere. @returns {SongEntry|null}
+ */
+export function resolveSongQuery(query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return null;
+  return SONG_MANIFEST.find((e) => e.id.toLowerCase() === q)
+      || SONG_MANIFEST.find((e) => e.name.toLowerCase() === q)
+      || SONG_MANIFEST.find((e) => songAlias(e) === q)
+      || SONG_MANIFEST.find((e) => e.name.toLowerCase().includes(q))
+      || null;
+}
+
 /** Fetch one song's code. @param {SongEntry} entry @returns {Promise<string>} */
 export async function fetchSongCode(entry) {
   const res = await fetch(new URL(entry.file, BASE));

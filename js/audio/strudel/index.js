@@ -8,7 +8,8 @@
 // Pref/event ownership stays in the Tone renderer modules: setMusicEnabled/setSfxEnabled still write
 // localStorage + emit MUSIC_CHANGED/SFX_CHANGED even when Tone isn't running, so the HUD buttons +
 // music/sfx commands keep working — this engine just listens.
-import { on, E } from "../../core/events.js";
+import { on, emitEvent, E } from "../../core/events.js";
+import { getState } from "../../core/state.js";
 import { bootStrudel } from "./runtime.js";
 import { loadGameSoundfont } from "./soundfont.js";
 import { installGameSignals } from "./signal-bridge.js";
@@ -57,21 +58,35 @@ function wire(rt, songs = []) {
 
   const hubSong = songs.find((s) => s.id === HUB_ID) || null;
   const runSongs = songs.filter((s) => s.id !== HUB_ID);
+  const pickRunSong = () => runSongs[Math.floor(Math.random() * runSongs.length)] || runSongs[0] || hubSong;
+  let override = null;                    // explicit `music set/next` selection (song id); overrides the run/hub pick
 
   // ---- Music (reactive songs) — play via the repl; stop via repl hush (clears $: patterns) ------
-  const play = (song) => { if (song) { try { rt.evaluate(song.code); } catch (e) { console.warn("[strudel] song eval failed:", e); } } };
+  const play = (song) => {
+    if (!song) return;
+    try { rt.evaluate(song.code); emitEvent(E.MUSIC_SONG_CHANGED, { id: song.id, name: song.name }); }
+    catch (e) { console.warn("[strudel] song eval failed:", e); }
+  };
   const stop = () => { try { rt.evaluate("hush()"); } catch (_) {} };
-  const desired = () => (runActive ? runSong : hubSong);
+  const byId = (id) => songs.find((s) => s.id === id) || null;
+  const desired = () => (override && byId(override)) || (runActive ? runSong : hubSong);
   const refresh = () => { if (musicEnabled) play(desired()); else stop(); };
 
-  refresh();                             // hub song at boot (if enabled)
+  // Boot-race guard: if a run is already live by the time the engine booted (the RUN_STARTED
+  // handler below wasn't registered yet when it fired), reflect that so we play a run song, not hub.
+  if (getState()) { runActive = true; runSong = pickRunSong(); }
+  refresh();                             // hub or run song at boot (if enabled)
+
   on(E.RUN_STARTED, () => {
-    runActive = true;                                     // random run score (like the Tone engine)
-    runSong = runSongs[Math.floor(Math.random() * runSongs.length)] || runSongs[0] || hubSong;
+    runActive = true;                    // random run score (like the Tone engine); clears any manual pick
+    override = null;
+    runSong = pickRunSong();
     refresh();
   });
-  on(E.RUN_ENDED, () => { runActive = false; refresh(); });
+  on(E.RUN_ENDED, () => { runActive = false; override = null; refresh(); });
   on(E.MUSIC_CHANGED, ({ enabled }) => { musicEnabled = !!enabled; refresh(); });
+  // `music set/next/random` (console) → switch immediately (persists until the next run).
+  on(E.MUSIC_SONG_SELECT, ({ songId }) => { override = songId; refresh(); });
 
   // ---- One-shot SFX -----------------------------------------------------------------------------
   const sfx = createSfx(rt);
