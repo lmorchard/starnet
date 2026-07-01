@@ -11,3 +11,12 @@
 // (not the browser). esbuild bundles it fine for the browser. Any node-side song validator must
 // pin @strudel/* to 1.2.5, pre-bundle, or run headless — see the song-playback session notes.
 export * from "@strudel/web";
+
+// Bundle @strudel/soundfonts TOGETHER with @strudel/web so they share the same @strudel/core +
+// @strudel/webaudio singletons (separate bundles would each get their own copies, and the sound
+// registry / audio context wouldn't be shared). Attach the loader to window for the runtime to use.
+// GeneralUser GS (clean license) is loaded via loadSoundfont(); presets are registered under
+// distinct game-specific names (NOT strudel.cc's gm_* — a separate, non-fungible instrument set).
+import * as __soundfonts from "@strudel/soundfonts";
+if (typeof window !== "undefined") window.__soundfonts = __soundfonts;
+
