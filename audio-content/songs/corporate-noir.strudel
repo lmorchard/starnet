@@ -1,0 +1,9 @@
+// Corporate — Noir. D dorian, 84bpm (trip-hop / spy-jazz).
+setcpm(84/4)
+$: note("[d3,f3,a3,c4]").s("gus_warm_pad").gain(0.3).room(0.7).slow(4)
+$: sound("bd ~ ~ ~ sd ~ bd ~").gain(gameProgress.range(0,0.7)).lpf(6000).room(0.2)
+$: note("d2 ~ f2 ~ a2 ~ ~ c2").s("gus_synth_bass_1").lpf(gameThreat.range(500,3000)).gain(gameProgress.range(0.15,0.6))
+$: note("d4 ~ ~ f4 ~ ~ a4 ~ ~ c5 ~ a4 ~ ~ ~ ~").s("triangle").gain(gameProgress.range(0,0.4)).room(0.5)
+$: note("f4 ~ a4 ~ c5 ~ f5 ~ c5 ~ a4 ~ c5 ~ f5 ~").s("triangle").gain(gameProgress.range(0,0.3)).room(0.6)
+$: note("[a2,eb3]").s("sawtooth").gain(gameThreat.range(0,0.35)).slow(2)
+$: note("d4 f4 a4 d5 a4 f4 d4 f4 a4 d5 a4 f4 d4 f4 a4 eb5").s("sawtooth").gain(gameThreat.range(0,0.45))

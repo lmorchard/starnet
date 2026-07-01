@@ -1,0 +1,10 @@
+// Corporate — Cold. C aeolian, 138bpm (motorik).
+setcpm(138/4)
+$: note("[c3,g3]").s("sawtooth").gain(0.26).room(0.5).slow(4)
+$: sound("bd ~ bd ~ bd ~ bd ~").gain(gameProgress.range(0,0.8)).lpf(7000)
+$: sound("~ hh sd hh ~ hh sd hh").gain(gameProgress.range(0,0.4))
+$: note("c2 ~ c2 c2 ~ c2 c2 ~").s("square").lpf(gameThreat.range(600,3800)).gain(gameProgress.range(0.12,0.55))
+$: note("c5 ~ eb5 ~ ~ ~ ~ ~ g4 ~ eb5 ~ c5 ~ ~ ~").s("square").gain(gameProgress.range(0,0.4)).room(0.25)
+$: note("eb5 ~ g5 ~ bb5 ~ eb6 ~ bb5 ~ g5 ~ bb5 ~ eb6 ~").s("sawtooth").gain(gameProgress.range(0,0.35)).room(0.35)
+$: note("[c3,db3]").s("sawtooth").gain(gameThreat.range(0,0.4)).slow(2)
+$: note("c5 eb5 g5 c6 g5 eb5 c5 eb5 g5 c6 g5 eb5 c5 eb5 g5 db6").s("sawtooth").gain(gameThreat.range(0,0.48))

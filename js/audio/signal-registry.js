@@ -1,6 +1,6 @@
 // @ts-check
 // Expandable registry of game signals exposed to Strudel songs. Each entry maps a signal NAME
-// (referenced in a song, e.g. `progress`/`threat`) to a pure derive(state)->0..1 function.
+// (referenced in a song, e.g. `gameProgress`/`gameThreat`) to a pure derive(state)->0..1 function.
 //
 // To expose a new game variable to music, add ONE entry here (and it appears in the preview tool
 // automatically). Pure — no runtime/DOM. The browser-side bridge (js/audio/strudel/signal-bridge.js)
@@ -13,8 +13,8 @@ const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
 /** @type {Record<string, (state: GameState) => number>} */
 export const SIGNAL_REGISTRY = {
-  progress: deriveProgress,
-  threat: deriveThreat,
+  gameProgress: deriveProgress,
+  gameThreat: deriveThreat,
 };
 
 /** @returns {string[]} the registered signal names. */

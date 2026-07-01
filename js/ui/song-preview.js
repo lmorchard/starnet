@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Song Preview Harness — the permanent authoring/preview tool for reactive Strudel songs.
 // The audio analog of preview.html (visual effects). Load a strudel.cc song, hear it through the
-// game's own runtime + vendored gus_* instruments, drive the game signals (progress/threat/…) with
+// game's own runtime + vendored gus_* instruments, drive the game signals (gameProgress/gameThreat/…) with
 // sliders to hear reactivity, and lint the song against the kosher sound set.
 //
 // Browser-only. Wires the shipped engine pieces: runtime boot, game soundfont, signal bridge.
@@ -9,6 +9,7 @@ import { bootStrudel } from "../audio/strudel/runtime.js";
 import { loadGameSoundfont, soundfontNames } from "../audio/strudel/soundfont.js";
 import { installGameSignals } from "../audio/strudel/signal-bridge.js";
 import { signalNames } from "../audio/signal-registry.js";
+import { SONG_MANIFEST, fetchSongCode } from "../audio/strudel/songs/index.js";
 
 // Drum sample names currently loaded from the dirt-samples set (NOT yet vendored/offline — a
 // follow-up; the linter treats these as allowed for now). Synth waveforms are always allowed.
@@ -20,14 +21,14 @@ const DEMO = `// Song Preview demo — game-signal reactivity + vendored gus_* i
 setcpm(60/4)
 
 $: note("<c2 c2 g1 c2>").s("gus_synth_bass_1")
-     .lpf(threat.range(300, 3000))          // filter opens as THREAT climbs
+     .lpf(gameThreat.range(300, 3000))          // filter opens as THREAT climbs
      .gain(0.6)
 
 $: note("c4 eb4 g4 bb4").s("gus_warm_pad")
-     .gain(progress.range(0.1, 0.6))        // pad swells as you own more of the LAN
+     .gain(gameProgress.range(0.1, 0.6))        // pad swells as you own more of the LAN
      .room(0.5)
 
-$: sound("bd sd").gain(threat.range(0, 0.85))  // beat drops in under threat
+$: sound("bd sd").gain(gameThreat.range(0, 0.85))  // beat drops in under gameThreat
 `;
 
 let _rt = null;
@@ -55,8 +56,30 @@ async function boot() {
   $("sp-app").classList.remove("hidden");
   buildSignalSliders();
   buildPalette(names);
+  buildSongPicker();
   $("sp-code").value = DEMO;
   setStatus(`ready — ${names.length} gus_ instruments loaded`);
+}
+
+// Populate the song dropdown from the manifest; selecting one loads its .strudel content into the
+// editor (but does NOT auto-play — hit PLAY to hear it). The leading option keeps the pasted/demo
+// code (the tool is not song-locked).
+function buildSongPicker() {
+  const sel = $("sp-song");
+  sel.innerHTML =
+    `<option value="">— bundled songs —</option>` +
+    SONG_MANIFEST.map((e) => `<option value="${e.id}">${e.name}</option>`).join("");
+  sel.addEventListener("change", async () => {
+    const entry = SONG_MANIFEST.find((e) => e.id === sel.value);
+    if (!entry) return;
+    setStatus(`loading ${entry.name}…`);
+    try {
+      $("sp-code").value = await fetchSongCode(entry);
+      setStatus(`loaded ${entry.name} — press PLAY ▶`);
+    } catch (e) {
+      setStatus("load failed: " + (e && e.message || e), false);
+    }
+  });
 }
 
 function buildSignalSliders() {

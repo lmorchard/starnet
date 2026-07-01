@@ -12,25 +12,25 @@ function stateWith({ owned = 0, total = 2, alert = "green", health = 1, deck = 1
   };
 }
 
-test("signalNames lists the registered signals (progress + threat to start)", () => {
-  assert.deepEqual(signalNames().sort(), ["progress", "threat"]);
+test("signalNames lists the registered signals (gameProgress + gameThreat to start)", () => {
+  assert.deepEqual(signalNames().sort(), ["gameProgress", "gameThreat"]);
 });
 
-test("computeSignals derives progress and threat from state", () => {
+test("computeSignals derives gameProgress and gameThreat from state", () => {
   const s = stateWith({ owned: 1, total: 2, alert: "green" });
   const v = computeSignals(s);
-  assert.equal(v.progress, 0.5);
-  assert.equal(v.threat, 0);
+  assert.equal(v.gameProgress, 0.5);
+  assert.equal(v.gameThreat, 0);
 });
 
-test("threat tracks the alert ladder", () => {
-  assert.ok(Math.abs(computeSignals(stateWith({ alert: "red" })).threat - 2 / 3) < 1e-9);
-  assert.equal(computeSignals(stateWith({ alert: "trace" })).threat, 1);
+test("gameThreat tracks the alert ladder", () => {
+  assert.ok(Math.abs(computeSignals(stateWith({ alert: "red" })).gameThreat - 2 / 3) < 1e-9);
+  assert.equal(computeSignals(stateWith({ alert: "trace" })).gameThreat, 1);
 });
 
 test("computeSignals returns 0 for every signal when state is null", () => {
   const v = computeSignals(null);
-  assert.deepEqual(v, { progress: 0, threat: 0 });
+  assert.deepEqual(v, { gameProgress: 0, gameThreat: 0 });
 });
 
 test("all computed values are clamped to 0..1", () => {

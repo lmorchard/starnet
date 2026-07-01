@@ -2,7 +2,13 @@
 
 > **Status: v1 shipped — wired into the game.** Reactive two-axis music with 11 selectable
 > Corporate scores + section-breakdown automation, driven by live game state. Tuning harness
-> at `preview/audio.html`. Deferred / fast-follow items are tracked at the bottom.
+> at `preview/tone-audio.html`. Deferred / fast-follow items are tracked at the bottom.
+>
+> **Migration note (Tone → Strudel):** the Tone.js engine is being replaced by Strudel/superdough.
+> The Tone tuning harnesses (`preview/audio.html`, `preview/sfx.html`) and their `playground.js`
+> scripts have been **removed**; the current preview tools are `preview/music.html` (songs) and
+> `preview/sfx.html` (SFX + drones), both Strudel. References below to the Tone harnesses are
+> historical — full reconciliation of this doc is tracked in **#267**.
 
 ## Why this doc exists
 
@@ -222,7 +228,7 @@ cover probe/xploit/dump/fetch/mine — natural hooks for fire-and-forget SFX. `E
   bar-quantized, subtractive over progress layers); a biome-independent **hub ambient** track
   (all sustained pads) with **faded transitions** (hub ↔ run, fade-out on jack-out); a **Music
   on/off** menu toggle (persisted); **`music` console commands** (status/list/next/set/on/off);
-  and the `preview/audio.html` tuning harness.
+  and the `preview/tone-audio.html` tuning harness.
 - **Perf:** per-note AudioParam automation is pruned by recycling sequenced synths when they
   fall silent (Web Audio never prunes past automation; unbounded growth caused over-time
   stutter — see the `engine.js` recycle logic).
@@ -245,7 +251,7 @@ cover probe/xploit/dump/fetch/mine — natural hooks for fire-and-forget SFX. `E
   scalars from state/events, calls engine methods. Gates AudioContext on first user gesture.
   Wired in `js/ui/main.js` after `initVisualRenderer()`; kept out of all headless entry points.
 - **Vendor:** bundle Tone → `dist/tone.js` (esbuild ESM, like `dist/lit.js`) + a `make` target.
-- **Tuning harness:** new **`preview/audio.html`** + **`js/audio/playground.js`** — per-layer
+- **Tuning harness:** new **`preview/tone-audio.html`** + **`js/audio/playground.js`** — per-layer
   mutes + progress/threat sliders + play/stop. (Leaves the existing root `preview.html` in place;
   a `preview/` reorg of the old harness is an optional separate tidy-up.)
 
@@ -292,7 +298,7 @@ diatonic degrees** every few bars (`DRONE_BARS_DEFAULT`, currently 4; overridabl
 - **Scope** — only the base `drone` in run scores. The **hub** wanders its `drone` **and** `pad`
   together (cycling Am7 → Cmaj7 → Dm7 → Em7 → Fmaj7 → G7); the high shimmer stays a static anchor.
   The threat `tensionDrone` is untouched. Ear-check the cadence/feel via the **WANDER NOW** button
-  in `preview/audio.html` (the hub is selectable there too).
+  in `preview/tone-audio.html` (the hub is selectable there too).
 
 ### Transitions
 
@@ -353,7 +359,7 @@ split (pure data + pure mapping + a thin Tone boundary + a browser-only subscrib
   console in sync (GUI/console symmetry).
 - **Wiring:** `initSfxRenderer()` + `sfx-commands` import live in `js/ui/main.js` only. Headless
   entry points (`scripts/`) never import any of it.
-- **Harness:** `preview/sfx.html` + `js/audio/sfx/playground.js` — a button per one-shot cue, and a
+- **Harness:** `preview/tone-sfx.html` + `js/audio/sfx/playground.js` — a button per one-shot cue, and a
   toggle + progress slider per drone to audition/tune the sustained voices.
 
 **Not in v1:** music ducking under SFX; sample/vocal one-shots (item 3 above); positional audio;
@@ -413,8 +419,8 @@ throwaway Playwright scripts against `make serve` (port 3000). Pattern that work
 
 ### Ear-tuning
 
-Synth params are rough drafts tuned by ear in the **preview harnesses** (`preview/audio.html` for
-music layers, `preview/sfx.html` for cues + drones). Numbers in the score/cue/drone data are feel,
+Synth params are rough drafts tuned by ear in the **preview harnesses** (`preview/tone-audio.html` for
+music layers, `preview/tone-sfx.html` for cues + drones). Numbers in the score/cue/drone data are feel,
 not spec — change them freely and listen.
 
 ### Don't regress the headless paths
