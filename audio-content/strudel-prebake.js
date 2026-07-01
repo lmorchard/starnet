@@ -12,17 +12,19 @@
 //   gameProgress = fraction of the LAN owned            (0..1)
 //   gameThreat   = alert ladder + injury pressure        (0..1)
 //
-// Pick ONE driver per signal below. Default is an auto-sweep so you can hear a song move
-// across its full reactive range hands-free; swap to mouse or sliders for deliberate control.
+// Pick ONE driver per signal below. Default is sliders (verified working in strudel.cc: they render
+// as draggable widgets you steer while the song plays). Assigned onto `window.` — NOT `let` (a `let`
+// binding wouldn't be visible to the separately-evaluated song, and bare assignment throws under
+// strict mode). Swap to sweep or mouse for hands-free / pointer control.
 
-// --- auto-sweep (default): phased sines, so the two axes drift against each other ----------
-gameProgress = sine.range(0, 1).slow(64)
-gameThreat   = sine.range(0, 1).slow(37)
+// --- sliders (default): draggable widgets for deliberate values --------------------------------
+window.gameProgress = slider(0.5, 0, 1)
+window.gameThreat   = slider(0.5, 0, 1)
 
-// --- mouse drive: X = gameProgress, Y = gameThreat (move the pointer to steer) ---------------------
-// gameProgress = mousex
-// gameThreat   = mousey
+// --- auto-sweep: phased sines drift the two axes across their range hands-free ------------------
+// window.gameProgress = sine.range(0, 1).slow(64)
+// window.gameThreat   = sine.range(0, 1).slow(37)
 
-// --- sliders: deliberate values (if strudel renders slider widgets from the prebake) ------
-// gameProgress = slider(0.5, 0, 1)
-// gameThreat   = slider(0.5, 0, 1)
+// --- mouse drive: X = gameProgress, Y = gameThreat (move the pointer to steer) ------------------
+// window.gameProgress = mousex
+// window.gameThreat   = mousey

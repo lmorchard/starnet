@@ -2,7 +2,7 @@
 // Song manifest. Each song is a STANDALONE .strudel file under audio-content/songs/ — raw
 // strudel.cc-dialect content, openable/saveable/pasteable in strudel.cc, and fetched + evaluated by
 // the engine (the "wad" content boundary). To add a song: drop a .strudel file here + a manifest
-// entry. (Authoring parity — loading the game's gus_* + progress/threat in strudel.cc — is #265.)
+// entry. (Authoring parity — loading the game's gus_* + gameProgress/gameThreat in strudel.cc — is #265.)
 
 // Resolved relative to THIS module (not the document), so the manifest loads whether the page is
 // the game at the site root or a preview harness under /preview/. import.meta.url anchors it.

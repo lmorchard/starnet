@@ -16,7 +16,10 @@ function loadPref() {
 function savePref(on) { try { localStorage.setItem(SFX_PREF_KEY, String(!!on)); } catch { /* ignore */ } }
 
 let _sfx = null;
-let _enabled = true;
+// Seed from the persisted pref at module load so isSfxEnabled() is correct even when
+// initSfxRenderer() never runs (e.g. the Strudel engine is selected — this module still owns
+// the SFX pref + HUD state). initSfxRenderer() re-reads it (harmless).
+let _enabled = loadPref();
 let _prevHealth = null;
 let _prevDeck = null;
 const _last = {};   // cueId -> last play time (ms), for dedupe

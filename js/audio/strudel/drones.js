@@ -26,6 +26,10 @@ export function droneRange(v, p) {
 
 const dbToGain = (db) => Math.pow(10, db / 20);
 
+// Initial cutoff in Hz: droneRange at p=0, or 1200 when unset. A finite check (not `|| 1200`) so a
+// valid cutoff of 0 — which the {from:0,to:...}/plain-number domain allows — is preserved, not defaulted.
+function baseCutoff(spec) { const c = droneRange(spec.cutoff, 0); return Number.isFinite(c) ? c : 1200; }
+
 /** Build a looping noise buffer (white or brown). */
 function makeNoiseBuffer(ctx, type) {
   const len = Math.floor(ctx.sampleRate * 2);
@@ -100,7 +104,7 @@ export function createDroneVoice(ctx, spec) {
 
   const filter = ctx.createBiquadFilter();
   filter.type = "lowpass";
-  filter.frequency.value = droneRange(spec.cutoff, 0) || 1200;
+  filter.frequency.value = baseCutoff(spec);
   filter.Q.value = spec.q ?? 2;
 
   const ampGain = ctx.createGain();
@@ -132,7 +136,7 @@ export function createDroneVoice(ctx, spec) {
       lfoOsc.connect(lfoGain); lfoGain.connect(ampGain.gain);
       lfoStart = t + fade;                        // delay tremolo until fade completes (no onset spike)
     } else {
-      const base = droneRange(spec.cutoff, 0) || 1200;
+      const base = baseCutoff(spec);
       filter.frequency.value = (base * (1 - depth) + base) / 2;
       lfoGain.gain.value = (base - base * (1 - depth)) / 2;
       lfoOsc.connect(lfoGain); lfoGain.connect(filter.frequency);

@@ -50,7 +50,7 @@ export function initStrudelEngine() {
 }
 
 function wire(rt, songs = []) {
-  installGameSignals(rt);                // progress/threat as live signals + STATE_CHANGED bridge
+  installGameSignals(rt);                // gameProgress/gameThreat as live signals + STATE_CHANGED bridge
   let musicEnabled = loadPref("starnet:music-enabled");
   let runActive = false;
   let runSong = null;                    // the run's picked song

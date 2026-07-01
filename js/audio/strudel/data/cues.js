@@ -2,7 +2,8 @@
 // One-shot SFX cue DATA (superdough value specs) + the event→cue resolver. Ported and tuned from
 // the known-good cues in js/audio/strudel-spike.js (branch strudel-ingame-spike).
 //
-// `_dur` is the voice duration passed to superdough(value, 0, dur); the rest of each object is the
+// `_dur` is the voice duration passed to superdough(value, ctx.currentTime+lookahead, dur) — NOT 0,
+// which @strudel/web 1.3.0 drops as "in the past" (see sfx.js); the rest of each object is the
 // superdough value (note/s/cutoff/envelope/gain/room/resonance). Phase-1 event coverage per
 // issue #254; other routed events degrade to no cue (extend in a follow-up).
 import { E } from "../../../core/events.js";

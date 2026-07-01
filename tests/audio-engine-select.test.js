@@ -1,6 +1,11 @@
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { getAudioEngine, setAudioEngine, AUDIO_ENGINES } from "../js/audio/engine-select.js";
+
+// These tests replace globalThis.localStorage with stubs; restore the original once done so other
+// test files aren't left with a stub (avoids cross-file order dependence).
+const _origLocalStorage = globalThis.localStorage;
+after(() => { globalThis.localStorage = _origLocalStorage; });
 
 // Minimal Map-backed localStorage stub (node has no localStorage).
 function installStorage() {

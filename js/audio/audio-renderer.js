@@ -26,7 +26,10 @@ const RUN_END_FADE = 2;    // run music fades out on jack-out (requested)
 const SWITCH_FADE = 0.8;   // brief dip between tracks / live score switches
 
 let _engine = null;
-let _enabled = true;
+// Seed from the persisted pref at module load so isMusicEnabled() is correct even when
+// initAudioRenderer() never runs (e.g. the Strudel engine is selected — this module still
+// owns the music pref + HUD state). initAudioRenderer() re-reads it (harmless).
+let _enabled = loadMusicPref();
 let _armed = false;        // AudioContext unlocked (first gesture)
 let _runActive = false;
 let _biome = "corporate";

@@ -3,6 +3,12 @@
 > **Status: v1 shipped — wired into the game.** Reactive two-axis music with 11 selectable
 > Corporate scores + section-breakdown automation, driven by live game state. Tuning harness
 > at `preview/tone-audio.html`. Deferred / fast-follow items are tracked at the bottom.
+>
+> **Migration note (Tone → Strudel):** the Tone.js engine is being replaced by Strudel/superdough.
+> The Tone tuning harnesses (`preview/audio.html`, `preview/sfx.html`) and their `playground.js`
+> scripts have been **removed**; the current preview tools are `preview/music.html` (songs) and
+> `preview/sfx.html` (SFX + drones), both Strudel. References below to the Tone harnesses are
+> historical — full reconciliation of this doc is tracked in **#267**.
 
 ## Why this doc exists
 
