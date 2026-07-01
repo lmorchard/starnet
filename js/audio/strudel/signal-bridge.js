@@ -1,10 +1,10 @@
 // @ts-nocheck
 // Installs the registered game signals (js/audio/signal-registry.js) as live global Strudel
-// signals a song can reference by name (e.g. `progress`, `threat`), and refreshes their values on
+// signals a song can reference by name (e.g. `gameProgress`, `gameThreat`), and refreshes their values on
 // STATE_CHANGED. Browser-only.
 //
 // A song authored in strudel.cc references the same names; there the author fakes them (a prelude
-// of `let progress = signal(() => ...)` or slider-driven values). In-game / in the preview tool
+// of `let gameProgress = signal(() => ...)` or slider-driven values). In-game / in the preview tool
 // these are the REAL game values — that's the injection point. Bidirectional by shared naming.
 import { on, E } from "../../core/events.js";
 import { getState } from "../../core/state.js";

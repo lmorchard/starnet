@@ -1,41 +1,31 @@
 // @ts-check
-// Reactive Strudel songs as content (the "wad" — separately-licensable data the engine interprets).
-// Each song is strudel.cc-dialect code that references the game's kosher set: gus_* instruments
-// (js/audio/strudel/soundfont.js) + the game signals (progress/threat, js/audio/signal-registry.js).
-// Played via the repl (evaluate); stopped via evaluate("hush()").
-//
-// Ported Tone scores (Dread/Neon/Glitch/Cold/Noir) land here as they're converted (issue #269).
-// Composition is tuned by ear in song-preview.html — mechanical/structure-first here.
+// Song manifest. Each song is a STANDALONE .strudel file under audio-content/songs/ — raw
+// strudel.cc-dialect content, openable/saveable/pasteable in strudel.cc, and fetched + evaluated by
+// the engine (the "wad" content boundary). To add a song: drop a .strudel file here + a manifest
+// entry. (Authoring parity — loading the game's gus_* + progress/threat in strudel.cc — is #265.)
 
-/** @typedef {{ id: string, name: string, code: string }} Song */
+const BASE = "audio-content/songs/";
+export const HUB_ID = "hub";
 
-/** Calm overworld theme. */
-export const HUB_SONG = {
-  id: "hub",
-  name: "Hub Ambient",
-  code: `
-setcpm(55/4)
-$: note("<c3 eb3 g3 bb3>").s("gus_warm_pad").gain(0.35).room(0.7).slow(2)
-$: note("c2 ~ ~ g2 ~ ~ eb2 ~").s("gus_synth_bass_1").lpf(700).gain(0.3)
-`,
-};
+/** @typedef {{ id: string, name: string, file: string }} SongEntry */
+/** @type {SongEntry[]} */
+export const SONG_MANIFEST = [
+  { id: "hub",             name: "Hub Ambient",        file: "hub.strudel" },
+  { id: "corporate-dread", name: "Corporate — Dread",  file: "corporate-dread.strudel" },
+  { id: "corporate-neon",  name: "Corporate — Neon",   file: "corporate-neon.strudel" },
+  { id: "corporate-glitch",name: "Corporate — Glitch", file: "corporate-glitch.strudel" },
+  { id: "corporate-cold",  name: "Corporate — Cold",   file: "corporate-cold.strudel" },
+  { id: "corporate-noir",  name: "Corporate — Noir",   file: "corporate-noir.strudel" },
+];
 
-/** Run scores (keyed by id). More get added as the Tone scores are ported (#269). */
-export const SONGS = {
-  "corporate-dread": {
-    id: "corporate-dread",
-    name: "Corporate — Dread",
-    code: `
-setcpm(60/4)
-$: note("<c2 c2 g1 c2>").s("gus_synth_bass_1").lpf(threat.range(300, 3000)).gain(0.6)
-$: note("c4 eb4 g4 bb4").s("gus_warm_pad").gain(progress.range(0.1, 0.6)).room(0.5)
-$: sound("bd sd").gain(threat.range(0, 0.85))
-`,
-  },
-};
+/** Fetch one song's code. @param {SongEntry} entry @returns {Promise<string>} */
+export async function fetchSongCode(entry) {
+  const res = await fetch(BASE + entry.file);
+  if (!res.ok) throw new Error(`song fetch failed: ${entry.file} (${res.status})`);
+  return res.text();
+}
 
-/** @returns {Song[]} all run songs. */
-export function songList() { return Object.values(SONGS); }
-
-/** Pick a run song by id (exact, else the first). @param {string} [id] @returns {Song} */
-export function pickSong(id) { return SONGS[id] || songList()[0]; }
+/** Load all manifest songs. @returns {Promise<{id:string,name:string,code:string}[]>} */
+export async function loadSongs() {
+  return Promise.all(SONG_MANIFEST.map(async (e) => ({ id: e.id, name: e.name, code: await fetchSongCode(e) })));
+}

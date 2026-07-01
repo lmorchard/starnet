@@ -1,0 +1,9 @@
+// Corporate — Dread. A aeolian, 120bpm. gameProgress = LAN owned, gameThreat = alert+injury.
+setcpm(120/4)
+$: note("[a2,e3]").s("sawtooth").gain(0.28).room(0.6).slow(4)
+$: sound("bd ~ ~ bd hh ~ sd bd").gain(gameProgress.range(0,0.8)).lpf(7000)
+$: note("a1 ~ ~ a1 ~ a1 ~ ~").s("square").lpf(gameThreat.range(600,3800)).gain(gameProgress.range(0.12,0.6))
+$: note("e4 ~ ~ a4 ~ ~ c5 ~").s("sawtooth").gain(gameProgress.range(0,0.4)).room(0.3)
+$: note("c5 ~ e5 ~ g5 ~ c6 ~ g5 ~ e5 ~ g5 ~ c6 ~").s("sawtooth").gain(gameProgress.range(0,0.35)).room(0.4)
+$: note("[a2,bb2]").s("sawtooth").gain(gameThreat.range(0,0.4)).slow(2)
+$: note("a4 c5 e5 a5 e5 c5 a4 c5 e5 a5 e5 c5 a4 c5 e5 bb5").s("sawtooth").gain(gameThreat.range(0,0.5))

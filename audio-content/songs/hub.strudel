@@ -1,0 +1,4 @@
+// Hub Ambient — calm overworld theme. gus_* instruments; no game signals (steady in the hub).
+setcpm(55/4)
+$: note("[c3,eb3,g3,bb3]").s("gus_warm_pad").gain(0.35).room(0.7).slow(4)
+$: note("c2 ~ ~ g2 ~ ~ eb2 ~").s("gus_synth_bass_1").lpf(700).gain(0.3)

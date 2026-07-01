@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Song Preview Harness — the permanent authoring/preview tool for reactive Strudel songs.
 // The audio analog of preview.html (visual effects). Load a strudel.cc song, hear it through the
-// game's own runtime + vendored gus_* instruments, drive the game signals (progress/threat/…) with
+// game's own runtime + vendored gus_* instruments, drive the game signals (gameProgress/gameThreat/…) with
 // sliders to hear reactivity, and lint the song against the kosher sound set.
 //
 // Browser-only. Wires the shipped engine pieces: runtime boot, game soundfont, signal bridge.
@@ -20,14 +20,14 @@ const DEMO = `// Song Preview demo — game-signal reactivity + vendored gus_* i
 setcpm(60/4)
 
 $: note("<c2 c2 g1 c2>").s("gus_synth_bass_1")
-     .lpf(threat.range(300, 3000))          // filter opens as THREAT climbs
+     .lpf(gameThreat.range(300, 3000))          // filter opens as THREAT climbs
      .gain(0.6)
 
 $: note("c4 eb4 g4 bb4").s("gus_warm_pad")
-     .gain(progress.range(0.1, 0.6))        // pad swells as you own more of the LAN
+     .gain(gameProgress.range(0.1, 0.6))        // pad swells as you own more of the LAN
      .room(0.5)
 
-$: sound("bd sd").gain(threat.range(0, 0.85))  // beat drops in under threat
+$: sound("bd sd").gain(gameThreat.range(0, 0.85))  // beat drops in under gameThreat
 `;
 
 let _rt = null;

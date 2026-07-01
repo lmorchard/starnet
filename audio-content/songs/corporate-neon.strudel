@@ -1,0 +1,9 @@
+// Corporate — Neon. F# aeolian, 148bpm.
+setcpm(148/4)
+$: note("[fs2,cs3]").s("sawtooth").gain(0.26).room(0.5).slow(4)
+$: sound("bd ~ sd ~ bd ~ sd ~").gain(gameProgress.range(0,0.85)).lpf(8000)
+$: note("fs1 ~ fs2 ~ fs1 ~ fs2 ~").s("sawtooth").lpf(gameThreat.range(700,4500)).gain(gameProgress.range(0.12,0.6))
+$: note("fs5 ~ a5 ~ cs5 ~ ~ ~ e5 ~ cs5 ~ a4 ~ fs5 ~").s("sawtooth").gain(gameProgress.range(0,0.45)).room(0.3)
+$: note("a5 ~ cs6 ~ e6 ~ a6 ~ e6 ~ cs6 ~ e6 ~ a6 ~").s("sawtooth").gain(gameProgress.range(0,0.35)).room(0.35)
+$: note("[fs2,g2]").s("sawtooth").gain(gameThreat.range(0,0.42)).slow(2)
+$: note("fs5 a5 cs6 fs6 cs6 a5 fs5 a5 cs6 fs6 cs6 a5 fs5 a5 cs6 g6").s("sawtooth").gain(gameThreat.range(0,0.5))

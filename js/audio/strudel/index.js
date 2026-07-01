@@ -16,7 +16,7 @@ import { createSfx } from "./sfx.js";
 import { resolveCue } from "./data/cues.js";
 import { createDroneVoice } from "./drones.js";
 import { DRONES, resolveDrone } from "./data/drones.js";
-import { HUB_SONG, pickSong } from "./songs/index.js";
+import { loadSongs, HUB_ID } from "./songs/index.js";
 
 const SFX_EVENTS = [
   E.NODE_REVEALED, E.NODE_ACCESSED, E.ACTION_RESOLVED,
@@ -39,7 +39,9 @@ export function initStrudelEngine() {
       .then(async (rt) => {
         await rt.ctx.resume();
         await loadGameSoundfont();       // register gus_* (needed by songs); ~32MB, once
-        wire(rt);
+        try { await rt.samples("github:tidalcycles/dirt-samples"); } catch (_) { /* offline: drums silent */ }
+        const songs = await loadSongs().catch((e) => { console.warn("[strudel] song load failed:", e); return []; });
+        wire(rt, songs);
       })
       .catch((e) => console.warn("[strudel] boot failed:", e));
   }
@@ -47,22 +49,25 @@ export function initStrudelEngine() {
   window.addEventListener("keydown", arm);
 }
 
-function wire(rt) {
+function wire(rt, songs = []) {
   installGameSignals(rt);                // progress/threat as live signals + STATE_CHANGED bridge
   let musicEnabled = loadPref("starnet:music-enabled");
   let runActive = false;
   let runSong = null;                    // the run's picked song
 
+  const hubSong = songs.find((s) => s.id === HUB_ID) || null;
+  const runSongs = songs.filter((s) => s.id !== HUB_ID);
+
   // ---- Music (reactive songs) — play via the repl; stop via repl hush (clears $: patterns) ------
   const play = (song) => { if (song) { try { rt.evaluate(song.code); } catch (e) { console.warn("[strudel] song eval failed:", e); } } };
   const stop = () => { try { rt.evaluate("hush()"); } catch (_) {} };
-  const desired = () => (runActive ? runSong : HUB_SONG);
+  const desired = () => (runActive ? runSong : hubSong);
   const refresh = () => { if (musicEnabled) play(desired()); else stop(); };
 
   refresh();                             // hub song at boot (if enabled)
-  on(E.RUN_STARTED, ({ state }) => {
-    runActive = true;
-    runSong = pickSong(state?.spec?.biome === "corporate" ? "corporate-dread" : undefined);
+  on(E.RUN_STARTED, () => {
+    runActive = true;                                     // random run score (like the Tone engine)
+    runSong = runSongs[Math.floor(Math.random() * runSongs.length)] || runSongs[0] || hubSong;
     refresh();
   });
   on(E.RUN_ENDED, () => { runActive = false; refresh(); });

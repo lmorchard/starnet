@@ -1,14 +1,14 @@
 // Starnet demo song — reactive to game signals. Authored in strudel.cc against the game's kosher
-// set (gus_* instruments + the progress/threat signals), so it carries into the game unchanged.
-//   progress = fraction of the LAN owned   |   threat = alert ladder + injury
+// set (gus_* instruments + the gameProgress/gameThreat signals), so it carries into the game unchanged.
+//   gameProgress = fraction of the LAN owned   |   gameThreat = alert ladder + injury
 setcpm(60/4)
 
 $: note("<c2 c2 g1 c2>").s("gus_synth_bass_1")
-     .lpf(threat.range(300, 3000))            // filter opens as THREAT climbs
+     .lpf(gameThreat.range(300, 3000))            // filter opens as THREAT climbs
      .gain(0.6)
 
 $: note("c4 eb4 g4 bb4").s("gus_warm_pad")
-     .gain(progress.range(0.1, 0.6))          // pad swells as you own more of the LAN
+     .gain(gameProgress.range(0.1, 0.6))          // pad swells as you own more of the LAN
      .room(0.5)
 
-$: sound("bd sd").gain(threat.range(0, 0.85)) // the beat drops in under threat
+$: sound("bd sd").gain(gameThreat.range(0, 0.85)) // the beat drops in under gameThreat
