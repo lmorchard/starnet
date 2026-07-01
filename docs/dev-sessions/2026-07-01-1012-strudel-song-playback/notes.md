@@ -14,7 +14,22 @@
 - **Slice D** — permanent song preview harness (`song-preview.html` + `js/ui/song-preview.js`):
   editor, per-signal sliders, 287-instrument palette, in-set linter.
 
-## OPEN BUG (not fixed): soundfont songs don't STOP + degrade over time — Firefox
+## RESOLVED: soundfont songs don't STOP + degrade over time — Firefox
+
+**Fixed** (commit "fix STOP (Firefox + repl)"). Three causes, three fixes:
+1. **Primary:** the bare global `window.hush()` does NOT clear `$:` multi-patterns (they live in
+   the repl) → song looped forever + replays stacked (the "degradation"). Fix: stop via
+   `window.evaluate("hush()")` (runs hush through the repl). Verified: bare hush leaves it at 0.84;
+   `evaluate("hush()")` → 0.
+2. Firefox lacks `cancelAndHoldAtTime` → polyfill in runtime.js (soundfont voices now release).
+3. superdough bails on our soundfont handle (node undefined) → schedule the note-off ourselves in
+   soundfont.js (`stop(time+value.duration)`).
+Result (Firefox): STOP decays the song to silence; no replay accumulation. Residual tail = the
+warm pad's natural release at the demo's slow tempo, not a bug.
+
+Historical detail below (kept for the record):
+
+### Original diagnosis
 
 Les (Firefox) reported: STOP doesn't stop the audio, and playback degrades over time. Root-caused,
 partially patched (uncommitted), NOT resolved. Findings:
