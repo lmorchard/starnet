@@ -105,11 +105,15 @@ function play() {
     warn.textContent = "✓ all sounds in the kosher set";
     warn.style.color = "var(--green)";
   }
-  try { window.hush(); window.evaluate(code); setStatus("playing ▶"); }
+  // evaluate() replaces the whole $: program (no stacking on replay).
+  try { window.evaluate(code); setStatus("playing ▶"); }
   catch (e) { setStatus("error: " + (e && e.message || e), false); }
 }
 
-function stop() { window.hush(); setStatus("stopped ■"); }
+// The bare global hush() does NOT clear `$:` patterns (they live in the repl); running hush()
+// THROUGH the repl via evaluate() does. (Soundfont voices then release via the runtime's
+// cancelAndHoldAtTime polyfill + the scheduled note-off in soundfont.js.)
+function stop() { window.evaluate("hush()"); setStatus("stopped ■"); }
 
 export function initSongPreview() {
   $("sp-boot").onclick = () => boot().catch((e) => setStatus("boot failed: " + (e && e.message || e), false));

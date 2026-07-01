@@ -47,6 +47,12 @@ export async function loadGameSoundfont(url = GAME_SOUNDFONT_URL) {
         const note = value?.note ?? "c3";
         const midi = typeof note === "number" ? note : noteToMidi(note);
         const stop = sfMod.startPresetNote(ctx, preset, midi, time);
+        // superdough bails early on a soundfont handle (node is undefined) and never schedules the
+        // note-off, so the voice would ring forever — schedule it ourselves from the hap duration
+        // (value.duration = hapDuration). This is what sfumato's own .soundfont() method does, and
+        // it makes hush()/stop actually silence the song (voices self-terminate; no new triggers).
+        const dur = typeof value?.duration === "number" ? value.duration : 0.5;
+        stop(time + dur);
         return { node: undefined, stop };
       },
       { type: "soundfont", prebake: false },
