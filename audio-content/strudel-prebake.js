@@ -1,21 +1,21 @@
 // Starnet — strudel.cc PREBAKE
 // =====================================================================================
-// Paste this into strudel.cc → Settings → "prebake" (the script that runs before every
-// song). It defines the game's live signals so a Starnet song copied straight out of the
-// repo plays UNCHANGED in the editor.
+// Paste this into strudel.cc → Settings → "prebake" (the script that runs before every song). It
+// stubs the game's live signals so a Starnet song copied from the repo plays + reacts in the editor.
 //
-// In the game these same names are injected live by the engine
-// (js/audio/strudel/signal-bridge.js, from js/audio/signal-registry.js), so the song files
-// themselves never carry any stub — this prebake is the editor-side half of that contract.
-// Keep the signal list here in sync with signal-registry.js (currently: gameProgress, gameThreat).
+// In the game these same names are injected by the engine (js/audio/strudel/signal-bridge.js), so
+// song files carry no setup of their own — this prebake is the editor-side mirror of that contract.
 //
-//   gameProgress = fraction of the LAN owned            (0..1)
-//   gameThreat   = alert ladder + injury pressure        (0..1)
-//
-// Pick ONE driver per signal below. Default is sliders (verified working in strudel.cc: they render
-// as draggable widgets you steer while the song plays). Assigned onto `window.` — NOT `let` (a `let`
-// binding wouldn't be visible to the separately-evaluated song, and bare assignment throws under
-// strict mode). Swap to sweep or mouse for hands-free / pointer control.
+// SOUNDS: songs that use the game's `gus_*` instruments won't sound in strudel.cc yet — registering
+// the soundfont from the prebake trips a strudel.cc Repl error (`i.fonts is undefined`). Author with
+// synth waveforms (sawtooth/square/triangle/…) + drum samples (bd/sd/hh/…) + the signals for now;
+// `gus_*` resolves in-game. Loading `gus_*` in the editor is tracked in #265. See
+// docs/strudel-authoring.md.
+
+// Keep this list in sync with js/audio/signal-registry.js (currently: gameProgress, gameThreat).
+// Assigned onto `window.` — NOT `let` (a let binding wouldn't be visible to the separately-evaluated
+// song, and bare assignment throws under strict mode). Default is sliders (draggable widgets); swap
+// to sweep or mouse below for hands-free / pointer control.
 
 // --- sliders (default): draggable widgets for deliberate values --------------------------------
 window.gameProgress = slider(0.5, 0, 1)
