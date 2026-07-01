@@ -37,6 +37,7 @@
     .sp-sig b { width: 44px; text-align: right; color: var(--green); }
     #sp-palette-box { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     #sp-filter { background: #111; color: var(--green); border: 1px solid #345; font-family: var(--font-mono); padding: 4px 6px; margin-bottom: 6px; }
+    #sp-song { background: #111; color: var(--cyan); border: 1px solid var(--cyan); font-family: var(--font-mono); font-size: 14px; padding: 6px 8px; cursor: pointer; }
     #sp-palette { overflow-y: auto; display: flex; flex-wrap: wrap; gap: 4px 8px; align-content: flex-start; }
     .sp-inst { color: #6cf; cursor: pointer; font-size: 14px; white-space: nowrap; }
     .sp-inst:hover { color: var(--cyan); text-shadow: var(--glow-sm) var(--cyan); }
@@ -54,9 +55,10 @@
   <div id="sp-app" class="hidden">
     <div id="sp-left">
       <div class="controls">
+        <select id="sp-song" title="Load a bundled song"></select>
         <button class="btn" id="sp-play">PLAY ▶</button>
         <button class="btn" id="sp-stop">STOP ■</button>
-        <span class="hint">Author in <a href="https://strudel.cc" target="_blank" rel="noopener">strudel.cc</a> using the same <code>gus_*</code> instruments + signal names, then paste here to hear it in-engine.</span>
+        <span class="hint">Pick a bundled song, or author in <a href="https://strudel.cc" target="_blank" rel="noopener">strudel.cc</a> using the same <code>gus_*</code> instruments + signal names and paste here.</span>
       </div>
       <textarea id="sp-code" spellcheck="false"></textarea>
       <div id="sp-lint"></div>
@@ -66,7 +68,7 @@
       <fieldset>
         <legend>GAME SIGNALS (drive to hear reactivity)</legend>
         <div id="sp-signals"></div>
-        <div class="hint">Reference in a song, e.g. <code>.lpf(threat.range(400,6000))</code>. Expandable via the signal registry.</div>
+        <div class="hint">Reference in a song, e.g. <code>.lpf(gameThreat.range(400,6000))</code>. Expandable via the signal registry.</div>
       </fieldset>
       <fieldset id="sp-palette-box">
         <legend>INSTRUMENTS — <span id="sp-count">0</span> gus_* (click to copy)</legend>

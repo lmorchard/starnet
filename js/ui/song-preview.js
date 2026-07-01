@@ -9,6 +9,7 @@ import { bootStrudel } from "../audio/strudel/runtime.js";
 import { loadGameSoundfont, soundfontNames } from "../audio/strudel/soundfont.js";
 import { installGameSignals } from "../audio/strudel/signal-bridge.js";
 import { signalNames } from "../audio/signal-registry.js";
+import { SONG_MANIFEST, fetchSongCode } from "../audio/strudel/songs/index.js";
 
 // Drum sample names currently loaded from the dirt-samples set (NOT yet vendored/offline — a
 // follow-up; the linter treats these as allowed for now). Synth waveforms are always allowed.
@@ -55,8 +56,30 @@ async function boot() {
   $("sp-app").classList.remove("hidden");
   buildSignalSliders();
   buildPalette(names);
+  buildSongPicker();
   $("sp-code").value = DEMO;
   setStatus(`ready — ${names.length} gus_ instruments loaded`);
+}
+
+// Populate the song dropdown from the manifest; selecting one loads its .strudel content into the
+// editor (but does NOT auto-play — hit PLAY to hear it). The leading option keeps the pasted/demo
+// code (the tool is not song-locked).
+function buildSongPicker() {
+  const sel = $("sp-song");
+  sel.innerHTML =
+    `<option value="">— bundled songs —</option>` +
+    SONG_MANIFEST.map((e) => `<option value="${e.id}">${e.name}</option>`).join("");
+  sel.addEventListener("change", async () => {
+    const entry = SONG_MANIFEST.find((e) => e.id === sel.value);
+    if (!entry) return;
+    setStatus(`loading ${entry.name}…`);
+    try {
+      $("sp-code").value = await fetchSongCode(entry);
+      setStatus(`loaded ${entry.name} — press PLAY ▶`);
+    } catch (e) {
+      setStatus("load failed: " + (e && e.message || e), false);
+    }
+  });
 }
 
 function buildSignalSliders() {
