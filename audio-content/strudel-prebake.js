@@ -13,6 +13,20 @@
 // the identical `gus_*`; js/audio/strudel/signal-bridge.js injects the same signals), so song files
 // carry no setup of their own — this prebake is the editor-side mirror of that contract.
 
+// ── 0. Firefox soundfont-release fix ──
+// Firefox does not implement AudioParam.cancelAndHoldAtTime, which the SF2 player calls on every
+// soundfont note-off. Without it note-offs throw in Firefox → gus_* voices never release (notes ring
+// forever, voices pile up). Polyfill it (hold-current-value) before anything plays. No-op in Chrome,
+// and no-op in the game (the engine's runtime installs the same shim). Mirrors runtime.js.
+if (typeof AudioParam !== 'undefined' && typeof AudioParam.prototype.cancelAndHoldAtTime !== 'function') {
+  AudioParam.prototype.cancelAndHoldAtTime = function (t) {
+    const held = this.value;
+    try { this.cancelScheduledValues(t); } catch (_) { /* ignore */ }
+    try { this.setValueAtTime(held, t); } catch (_) { /* ignore */ }
+    return this;
+  };
+}
+
 // ── 1. Instruments: load the game's vendored GeneralUser GS v2.0.3 + register the gus_* names ──
 // Loads Starnet's OWN vendored SF2 (raw.githubusercontent serves it CORS-enabled), so the sound set
 // is byte-identical to the game — no upstream drift. The naming (sanitize + dedup) and the note
