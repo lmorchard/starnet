@@ -24,13 +24,32 @@ export function setFlowRevealed(id) {
 }
 
 /**
- * Adds program noise heat to the shared alert ladder's accumulator.
+ * Adds heat (the decaying "notice" meter). Clamped ≥ 0.
  * @param {number} amount
- * @returns {number} the new accumulated programNoise total
+ * @returns {number} the new heat total
  */
-export function addProgramNoise(amount) {
+export function addHeat(amount) {
   mutate((s) => {
-    s.programNoise += amount;
+    s.heat = Math.max(0, s.heat + amount);
   });
-  return getState().programNoise;
+  return getState().heat;
+}
+
+/**
+ * Bleeds heat down by `amount`, floored at 0 (the HEAT_DECAY timer + lie-low use this).
+ * @param {number} amount
+ * @returns {number} the new heat total
+ */
+export function decayHeat(amount) {
+  mutate((s) => {
+    s.heat = Math.max(0, s.heat - amount);
+  });
+  return getState().heat;
+}
+
+/** Records the repeating HEAT_DECAY timer's id (so it serializes / can be cancelled). */
+export function setHeatDecayTimerId(id) {
+  mutate((s) => {
+    s.heatDecayTimerId = id;
+  });
 }

@@ -14,7 +14,8 @@
 /** @typedef {import('./types.js').CtxInterface} CtxInterface */
 
 import { A } from "../action-ids.js";
-import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert, scrubLogs, lieLow } from "../alert.js";
+import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert, scrubLogs, lieLow, recordHeat } from "../alert.js";
+import { HEAT_COST } from "../balance.js";
 import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
 import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
@@ -208,6 +209,7 @@ export function buildGameCtx(opts = {}) {
 
       setNodeProbed(nodeId);
       setLastDisturbedNode(nodeId);
+      recordHeat(HEAT_COST.probe); // probing is activity — it raises heat
 
       if ((node.gateAccess ?? "probed") === "probed") {
         revealNeighbors(nodeId);

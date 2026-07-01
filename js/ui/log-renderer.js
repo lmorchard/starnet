@@ -149,8 +149,8 @@ export function initLogRenderer() {
     add(`[SNIFF] Credential captured: ${key}.`, "success"));
   on(E.CREDENTIAL_REPLAYED, ({ nodeId, key }) =>
     add(`[REPLAY] ${nodeId}: credential ${key} accepted — trusted access.`, "success"));
-  on(E.PROGRAM_NOISE, ({ total }) =>
-    add(`[NOISE] Program noise: ${total}.`, "meta"));
+  on(E.HEAT_ALARM, ({ level }) =>
+    add(`[HEAT] Activity noticed — alert rising to ${String(level).toUpperCase()}.`, "error"));
 
   // ── Mission / run events ─────────────────────────────────
   on(E.MISSION_STARTED,  (/** @type {MissionStartedPayload} */  { targetName }) => add(`[MISSION] Objective: retrieve ${targetName}.`, "info"));

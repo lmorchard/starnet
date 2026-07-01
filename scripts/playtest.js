@@ -210,7 +210,7 @@ if (jsonMode) {
   on(E.FLOW_SNIFFED,         ({ nodeId, type })          => out(`[SNIFF] ${nodeId}: ${type} flow read.`));
   on(E.CREDENTIAL_CAPTURED,  ({ key })                   => out(`[SNIFF] Credential captured: ${key}.`));
   on(E.CREDENTIAL_REPLAYED,  ({ nodeId, key })           => out(`[REPLAY] ${nodeId}: credential ${key} accepted — trusted access.`));
-  on(E.PROGRAM_NOISE,        ({ total })                 => out(`[NOISE] Program noise: ${total}.`));
+  on(E.HEAT_ALARM,           ({ level })                 => out(`[HEAT] Activity noticed — alert rising to ${String(level).toUpperCase()}.`));
   on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
     if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
   });

@@ -5,7 +5,7 @@ import { handleIceTick, handleIceDetect } from "../core/ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "../core/events.js";
 import { tick, TICK_MS, TIMER, getVisibleTimers, pauseTimers, resumeTimers } from "../core/timers.js";
-import { handleTraceTick } from "../core/alert.js";
+import { handleTraceTick, handleHeatDecay } from "../core/alert.js";
 import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initAudioRenderer, toggleMusic, isMusicEnabled } from "../audio/audio-renderer.js";
@@ -169,6 +169,7 @@ function init() {
   on(TIMER.ICE_MOVE,     (payload) => handleIceTick(payload));
   on(TIMER.ICE_DETECT,   (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK,   () => handleTraceTick());
+  on(TIMER.HEAT_DECAY,   () => handleHeatDecay());
   // Probe, exploit, read, loot, reboot timers removed — timed-action operator drives these
 
   // End-screen button / legacy run-again event → return to the hub, where the

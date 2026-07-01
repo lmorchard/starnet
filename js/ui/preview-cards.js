@@ -12,6 +12,8 @@ import {
   alertLampDataUri,
   connStatusDataUri,
   tickMeterDataUri,
+  heatGaugeDataUri,
+  heatZone,
   missionMarkDataUri,
   accessGlyphDataUri,
 } from "./indicator-glyphs.js";
@@ -146,6 +148,13 @@ export function mountIndicatorSwatches(container) {
   row("Tick meter");
   for (const frac of [1, 0.6, 0.3, 0]) {
     container.appendChild(cell(tickMeterDataUri(frac), `${Math.round(frac * 100)}%`));
+  }
+
+  // Heat gauge cool→hot (fixed visual scale; no number/threshold shown). Label each sample by
+  // its actual tier (heatZone) so the swatch labels can't drift from the gauge's color thresholds.
+  row("Heat gauge");
+  for (const heat of [1, 6, 11, 12]) {
+    container.appendChild(cell(heatGaugeDataUri(heat), heatZone(heat)));
   }
 
   // Mission marks

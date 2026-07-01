@@ -1,10 +1,9 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
-import { setFlowRevealed, flowId, addProgramNoise } from "../js/core/state/flow.js";
+import { setFlowRevealed, flowId, addHeat } from "../js/core/state/flow.js";
 import { addCapturedCredential } from "../js/core/state/player.js";
-import { recordProgramNoise } from "../js/core/alert.js";
-import { PROGRAM_NOISE_THRESHOLD, PROGRAM_NOISE_COST } from "../js/core/balance.js";
+import { HEAT_COST } from "../js/core/balance.js";
 import { sniffFlow, incidentFlows, replayCredential } from "../js/core/programs.js";
 import { setNodeVisible, setNodeProbed } from "../js/core/state/node.js";
 import { getProgramActions, getFlowChoices } from "../js/core/actions/program-actions.js";
@@ -27,7 +26,7 @@ function armCredentialFlow(key = "cred-key") {
 afterEach(() => { clearHandlers(); clearAll(); });
 
 describe("flow programs — data shape + serialization", () => {
-  it("Flow.key / revealed, capturedCredentials, and programNoise survive a round-trip", () => {
+  it("Flow.key / revealed, capturedCredentials, and heat survive a round-trip", () => {
     initGame(() => buildCorporateExchange(), "flow-seed-1");
     const s = getState();
 
@@ -38,7 +37,7 @@ describe("flow programs — data shape + serialization", () => {
 
     setFlowRevealed(id);
     addCapturedCredential("test-key");
-    addProgramNoise(3);
+    addHeat(3);
 
     const snap = JSON.parse(JSON.stringify(serializeState()));
     deserializeState(snap);
@@ -47,18 +46,18 @@ describe("flow programs — data shape + serialization", () => {
     const credAfter = r.flows.find((f) => flowId(f) === id);
     assert.equal(credAfter.revealed, true, "revealed flag round-trips");
     assert.deepEqual(r.player.capturedCredentials, ["test-key"], "captured credentials round-trip");
-    assert.equal(r.programNoise, 3, "programNoise round-trips");
+    assert.equal(r.heat, 3, "heat round-trips");
   });
 
   it("heals a save that predates the new fields", () => {
     initGame(() => buildCorporateExchange(), "flow-seed-2");
     const snap = JSON.parse(JSON.stringify(serializeState()));
-    delete snap.programNoise;
+    delete snap.heat;
     delete snap.player.capturedCredentials;
 
     deserializeState(snap);
     const r = getState();
-    assert.equal(r.programNoise, 0, "programNoise heals to 0");
+    assert.equal(r.heat, 0, "heat heals to 0");
     assert.deepEqual(r.player.capturedCredentials, [], "capturedCredentials heals to []");
   });
 
@@ -70,55 +69,31 @@ describe("flow programs — data shape + serialization", () => {
   });
 });
 
-describe("program noise sensor", () => {
-  it("steps the shared alert ladder by accumulated noise and starts the trace at threshold", () => {
-    initGame(() => buildCorporateExchange(), "flow-seed-4");
-    const t = PROGRAM_NOISE_THRESHOLD;
-    assert.equal(getState().globalAlert, "green");
-
-    recordProgramNoise(t.yellow);            // reach yellow threshold
-    assert.equal(getState().globalAlert, "yellow");
-
-    recordProgramNoise(t.red - t.yellow);    // reach red threshold
-    assert.equal(getState().globalAlert, "red");
-
-    assert.equal(getState().traceSecondsRemaining, null, "no trace before the trace threshold");
-    recordProgramNoise(t.trace - t.red);     // reach trace threshold
-    assert.notEqual(getState().traceSecondsRemaining, null, "trace countdown started at threshold");
-    assert.equal(getState().globalAlert, "trace");
-  });
-
-  it("noise only escalates (never lowers the alert)", () => {
-    initGame(() => buildCorporateExchange(), "flow-seed-5");
-    recordProgramNoise(PROGRAM_NOISE_THRESHOLD.red); // to red
-    assert.equal(getState().globalAlert, "red");
-    recordProgramNoise(0); // no-op amount must not lower it
-    assert.equal(getState().globalAlert, "red");
-  });
-});
+// (The old monotonic program-heat sensor tests moved to tests/heat.test.js as the
+// decaying-heat trip-line ratchet — superseded by the anti-tedium arc.)
 
 describe("SNIFF program", () => {
-  it("reveals a flow, captures its credential, and adds sniff noise", () => {
+  it("reveals a flow, captures its credential, and adds sniff heat", () => {
     initGame(() => buildCorporateExchange(), "sniff-seed-1");
     const { cred, id } = armCredentialFlow("fw-key");
-    const noiseBefore = getState().programNoise;
+    const heatBefore = getState().heat;
 
     sniffFlow(getState(), cred.from, id);
 
     const after = getState().flows.find((f) => flowId(f) === id);
     assert.equal(after.revealed, true, "flow revealed");
     assert.deepEqual(getState().player.capturedCredentials, ["fw-key"], "credential captured");
-    assert.equal(getState().programNoise, noiseBefore + PROGRAM_NOISE_COST.sniff, "sniff noise added");
+    assert.equal(getState().heat, heatBefore + HEAT_COST.sniff, "sniff heat added");
   });
 
-  it("sniffing a non-credential flow reveals it and adds noise but captures nothing", () => {
+  it("sniffing a non-credential flow reveals it and adds heat but captures nothing", () => {
     initGame(() => buildCorporateExchange(), "sniff-seed-2");
     const money = getState().flows.find((f) => f.type === "money");
     const id = flowId(money);
     sniffFlow(getState(), money.from, id);
     assert.equal(getState().flows.find((f) => flowId(f) === id).revealed, true);
     assert.deepEqual(getState().player.capturedCredentials, []);
-    assert.equal(getState().programNoise, PROGRAM_NOISE_COST.sniff);
+    assert.equal(getState().heat, HEAT_COST.sniff);
   });
 
   it("offers SNIFF as a top-level (non-script) action on a PROBED node with visible flows", () => {
@@ -176,7 +151,7 @@ describe("SNIFF program", () => {
     setNodeProbed(a.cred.from);                // prep: SNIFF needs the node probed
     setNodeVisible(a.cred.to, "revealed");     // other endpoint visible (fog-of-war: both must show)
     sniffFlow(getState(), a.cred.from, a.id);
-    const direct = JSON.stringify({ noise: getState().programNoise, creds: getState().player.capturedCredentials, revealed: getState().flows.find((f) => flowId(f) === a.id).revealed });
+    const direct = JSON.stringify({ heat: getState().heat, creds: getState().player.capturedCredentials, revealed: getState().flows.find((f) => flowId(f) === a.id).revealed });
 
     // Path B: same seed, via the action dispatcher (exercises availability gating + execute).
     initGame(() => buildCorporateExchange(), "parity-seed");
@@ -186,7 +161,7 @@ describe("SNIFF program", () => {
     setNodeVisible(b.cred.to, "revealed");
     initActionDispatcher(buildActionContext());
     emitEvent("starnet:action", { actionId: A.SNIFF, nodeId: b.cred.from, flowId: b.id, fromConsole: true });
-    const viaDispatch = JSON.stringify({ noise: getState().programNoise, creds: getState().player.capturedCredentials, revealed: getState().flows.find((f) => flowId(f) === b.id).revealed });
+    const viaDispatch = JSON.stringify({ heat: getState().heat, creds: getState().player.capturedCredentials, revealed: getState().flows.find((f) => flowId(f) === b.id).revealed });
 
     assert.equal(viaDispatch, direct, "both channels produce identical state");
   });
@@ -224,7 +199,7 @@ describe("finesse access + REPLAY program", () => {
     sniffFlow(getState(), "switch-2", id);
     const key = getState().nodes["fw-1"].trustsCredential;
     assert.ok(getState().player.capturedCredentials.includes(key), "captured the fw-1 credential");
-    const noiseAfterSniff = getState().programNoise;
+    const heatAfterSniff = getState().heat;
 
     // REPLAY it into fw-1.
     const replay = getAvailableActions(getState().nodes["fw-1"], getState()).find((a) => a.id === A.REPLAY);
@@ -232,16 +207,16 @@ describe("finesse access + REPLAY program", () => {
     replay.execute(getState().nodes["fw-1"], getState(), buildActionContext(), { nodeId: "fw-1" });
 
     assert.equal(getState().nodes["fw-1"].accessLevel, "owned", "fw-1 owned via replay");
-    assert.equal(getState().programNoise, noiseAfterSniff + PROGRAM_NOISE_COST.replay, "replay noise added");
+    assert.equal(getState().heat, heatAfterSniff + HEAT_COST.replay, "replay heat added");
   });
 
-  it("REPLAY without the credential is a no-op (access unchanged, no noise)", () => {
+  it("REPLAY without the credential is a no-op (access unchanged, no heat)", () => {
     initGame(() => buildCorporateExchange(), "finesse-seed-4");
     setNodeVisible("fw-1", "accessible");
     const before = getState().nodes["fw-1"].accessLevel;
-    const noiseBefore = getState().programNoise;
+    const heatBefore = getState().heat;
     replayCredential(getState(), "fw-1");
     assert.equal(getState().nodes["fw-1"].accessLevel, before, "access unchanged");
-    assert.equal(getState().programNoise, noiseBefore, "no noise added");
+    assert.equal(getState().heat, heatBefore, "no heat added");
   });
 });

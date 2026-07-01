@@ -164,9 +164,10 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     // in-run mutation (future rerouting / encryption reveal) never writes back into the source
     // network definition's meta.flows — same fresh-objects contract as the player hand above.
     flows: (meta.flows ?? []).map((f) => ({ ...f })),
-    // Accumulated program-noise heat — the third alert sensor (js/core/alert.js
-    // recordProgramNoise) climbs the shared ladder off this. Serializable.
-    programNoise: 0,
+    // Heat — the decaying "notice" meter (js/core/alert.js recordHeat + the HEAT_DECAY timer).
+    // Crossing a network's hidden threshold trips the alert ladder. Serializable.
+    heat: 0,
+    heatDecayTimerId: null,
     nodeGraph: graph,
     player: {
       cash: meta.startCash ?? 1000,
@@ -392,8 +393,9 @@ export function deserializeState(snapshot, opts = {}) {
   if (!ctx.state.ui) ctx.state.ui = { menuOpen: false, handCollapsed: false };
   // Heal saves that predate state.flows — the flow renderer reads getState().flows directly.
   if (!ctx.state.flows) ctx.state.flows = [];
-  // Heal saves that predate the flow-program fields (Session 1).
-  if (typeof ctx.state.programNoise !== "number") ctx.state.programNoise = 0;
+  // Heal saves that predate the flow-program fields (Session 1) and the heat model.
+  if (typeof ctx.state.heat !== "number") ctx.state.heat = 0;
+  if (ctx.state.heatDecayTimerId === undefined) ctx.state.heatDecayTimerId = null;
   if (ctx.state.player && !ctx.state.player.capturedCredentials) ctx.state.player.capturedCredentials = [];
   deserializeTimers(_timers);   // writes into ctx.timers
   if (_rng) deserializeRng(_rng);

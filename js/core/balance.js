@@ -70,13 +70,18 @@ export const MONITOR_TRACE_THRESHOLD = { S: 4, A: 5, B: 7, C: 9, D: 12, F: 15 };
 /** Trace countdown duration (seconds) scales with network threat grade. */
 export const TRACE_SECONDS = { S: 30, A: 40, B: 45, C: 60, D: 75, F: 90 };
 
-// ── Program noise (third alert sensor; Session 1) ────────────────────────────
-// Each flow-program play adds heat; crossing the cumulative thresholds steps the
-// SAME green→yellow→red→trace ladder, and the trace threshold starts the SAME
-// trace clock. Quiet solutions are the skill. PLACEHOLDER VALUES — tuned by feel
-// with Les (the bot doesn't use programs, so census only confirms no-regression).
-export const PROGRAM_NOISE_COST = { sniff: 1, replay: 3 };
-export const PROGRAM_NOISE_THRESHOLD = { yellow: 2, red: 4, trace: 6 };
+// ── Heat (decaying "notice" meter; anti-tedium arc) ──────────────────────────
+// Activity (probe/xploit/programs) adds heat; the HEAT_DECAY timer bleeds it off. Crossing a
+// network's (hidden) HEAT_ALARM_THRESHOLD trips ONE step up the alert ladder and discharges heat
+// (→ threshold*HEAT_DISCHARGE_FRAC) so it must rebuild — bursts trip, paced play stays cool.
+// PLACEHOLDER VALUES — feel + census tuned with Les (heat now feeds probe/xploit, so it moves the
+// bot's difficulty curve; census is a real gate, not just no-regression).
+export const HEAT_COST = { probe: 1, xploit: 2, sniff: 1, replay: 3 };
+export const HEAT_ALARM_THRESHOLD = { S: 4, A: 5, B: 7, C: 9, D: 12, F: 15 }; // grade-keyed sensitivity
+export const HEAT_DECAY_PER_TICK = 0.6;   // heat shed per HEAT_DECAY interval (pacing must actually cool)
+export const HEAT_DISCHARGE_FRAC = 0.5;   // on a trip, heat → threshold * this
+export const HEAT_DECAY_MS = 1000;        // decay interval (mirrors TRACE_TICK cadence)
+export const LIE_LOW_HEAT_DROP = 6;       // lie-low's accelerated heat shed (Phase 4)
 
 // ── ICE movement / detection ─────────────────────────────────────────────────
 
