@@ -2,7 +2,7 @@
 // Sustained "action in progress" drone DATA — one per timed action, played for the action's
 // duration and reshaped by progress 0→1 (see drones.js, the raw-Web-Audio voice). Keyed by the
 // ACTION_FEEDBACK `action` string. `loop:true` ignores progress (reboot — a system state, not a
-// player sweep). Ported from the Tone drone specs (js/audio/sfx/drones.js); same character.
+// player sweep). Ported from the retired Tone drone specs (removed in #267); same character.
 //
 // Spec shape (interpreted in drones.js): {
 //   source: "sawtooth"|"sine"|"square"|"triangle"|"noise"|"fm"|"dual",

@@ -1,8 +1,8 @@
 // @ts-nocheck
 // Sustained action drones, raw Web Audio. superdough is a one-shot trigger engine and can't do
 // live mid-voice param sweeps, so action drones are built directly against the shared
-// AudioContext (getAudioContext()) — a faithful port of the Tone drone engine (js/audio/sfx/
-// engine.js startDrone). Chain: source(s) → filter → ampGain (progress / amp-LFO) → fadeGain
+// AudioContext (getAudioContext()) — a faithful port of the retired Tone drone engine's
+// startDrone (removed in #267). Chain: source(s) → filter → ampGain (progress / amp-LFO) → fadeGain
 // (click-free in/out) → destination. setProgress(p) reshapes cutoff/detune/gain (no-op if loop).
 
 const NOTE_INDEX = { c: 0, "c#": 1, db: 1, d: 2, "d#": 3, eb: 3, e: 4, f: 5, "f#": 6, gb: 6, g: 7, "g#": 8, ab: 8, a: 9, "a#": 10, bb: 10, b: 11 };

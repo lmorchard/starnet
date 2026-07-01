@@ -872,7 +872,7 @@ from layers rather than a fixed loop.
   *unfolds* — percussion, bass, lead, and a celebratory arp layer in as you go.
 - **Threat = warning.** As the alert level climbs, ICE locks on, or your health/deck takes
   damage, urgency layers and a filter sweep cut in — fast to rise, slow to ease back down.
-- **Variety.** Each run picks one of several scores (different moods/keys/tempos), and the
+- **Variety.** Each run picks one of several songs (different moods/keys/tempos), and the
   arrangement periodically shifts into breakdowns so a long run never sits still.
 - **A wandering harmonic bed.** The sustained drone chord doesn't hold one note all run — it
   drifts to neighbouring chords in the score's key every few bars, so the harmony slowly
@@ -881,7 +881,7 @@ from layers rather than a fixed loop.
   drift together through the key the same way, for more variety while you linger. The run's
   music **fades out** when you jack out, and the hub ambience drifts back in.
 
-**Music commands** (console): `music` shows what's playing, `music list` lists the scores,
+**Music commands** (console): `music` shows what's playing, `music list` lists the songs,
 `music next` switches randomly, `music <name>` picks one (e.g. `music neon`), `music on|off`.
 
 **Music: On / Off** lives in the hamburger menu (`[ ☰ ]`). The choice is remembered between

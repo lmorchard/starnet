@@ -1,13 +1,12 @@
 // @ts-nocheck
 // In-game Strudel + superdough audio engine — owns music (reactive songs), one-shot SFX, and
-// action drones when the "strudel" engine is selected (js/audio/engine-select.js). Built on the
+// action drones. The single audio engine (#267 retired the legacy Tone.js engine). Built on the
 // 1.3.0 base from #266 (runtime + signal registry/bridge + GeneralUser GS soundfont) + the song
-// model (evaluate strudel-song content), replacing #262's bespoke score interpreter.
+// model (evaluate strudel-song content).
 //
-// Browser-only. This is the default engine (main.js dynamic-imports it); opt-in Tone users don't load it.
-// Pref/event ownership stays in the Tone renderer modules: setMusicEnabled/setSfxEnabled still write
-// localStorage + emit MUSIC_CHANGED/SFX_CHANGED even when Tone isn't running, so the HUD buttons +
-// music/sfx commands keep working — this engine just listens.
+// Browser-only — main.js dynamic-imports it so the @strudel/web bundle downloads lazily.
+// Music/SFX on/off prefs + the MUSIC_CHANGED/SFX_CHANGED events live in js/audio/audio-prefs.js;
+// this engine reads them at boot and listens for changes.
 import { on, emitEvent, E } from "../../core/events.js";
 import { getState } from "../../core/state.js";
 import { bootStrudel } from "./runtime.js";
@@ -18,6 +17,7 @@ import { resolveCue } from "./data/cues.js";
 import { createDroneVoice } from "./drones.js";
 import { DRONES, resolveDrone } from "./data/drones.js";
 import { loadSongs, HUB_ID } from "./songs/index.js";
+import { isMusicEnabled, isSfxEnabled } from "../audio-prefs.js";
 
 const SFX_EVENTS = [
   E.NODE_REVEALED, E.NODE_ACCESSED, E.ACTION_RESOLVED,
@@ -25,9 +25,10 @@ const SFX_EVENTS = [
 ];
 
 let _started = false;
-const loadPref = (key, dflt = true) => {
-  try { const v = localStorage.getItem(key); return v === null ? dflt : v === "true"; } catch { return dflt; }
-};
+let _sfx = null;   // the live SFX instance (set in wire()), for the `sfx test <cue>` command
+
+/** Play a one-shot cue by id — for the console `sfx test <cue>` command. No-op until the engine boots. */
+export function playSfxCue(id) { _sfx?.playCue(id); }
 
 /** Wire and boot the in-game Strudel engine. Idempotent. */
 export function initStrudelEngine() {
@@ -52,7 +53,7 @@ export function initStrudelEngine() {
 
 function wire(rt, songs = []) {
   installGameSignals(rt);                // gameProgress/gameThreat as live signals + STATE_CHANGED bridge
-  let musicEnabled = loadPref("starnet:music-enabled");
+  let musicEnabled = isMusicEnabled();
   let runActive = false;
   let runSong = null;                    // the run's picked song
 
@@ -90,7 +91,8 @@ function wire(rt, songs = []) {
 
   // ---- One-shot SFX -----------------------------------------------------------------------------
   const sfx = createSfx(rt);
-  sfx.setEnabled(loadPref("starnet:sfx-enabled"));
+  _sfx = sfx;                            // expose for the `sfx test <cue>` command
+  sfx.setEnabled(isSfxEnabled());
   for (const type of SFX_EVENTS) {
     on(type, (payload) => { const spec = resolveCue(type, payload); if (spec) sfx.play(spec); });
   }
