@@ -40,7 +40,7 @@ export {
 } from "./state/player.js";
 
 export {
-  flowId, setFlowRevealed, addProgramNoise,
+  flowId, setFlowRevealed, addHeat, decayHeat, setHeatDecayTimerId,
 } from "./state/flow.js";
 
 export {

@@ -3,13 +3,13 @@
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
-import { alertLampDataUri, connStatusDataUri, missionMarkDataUri } from "../indicator-glyphs.js";
+import { alertLampDataUri, connStatusDataUri, missionMarkDataUri, heatGaugeDataUri, heatZone } from "../indicator-glyphs.js";
 
 class StarnetHud extends StarnetElement {
   static properties = {
     alert: { type: String },
     cash: { type: Number },
-    programNoise: { type: Number },
+    heat: { type: Number },
     traceSeconds: { type: Number },
     connectionStatus: { type: String },
     connectionLabel: { type: String },
@@ -26,7 +26,7 @@ class StarnetHud extends StarnetElement {
     super();
     this.alert = "green";
     this.cash = 0;
-    this.programNoise = 0;
+    this.heat = 0;
     this.traceSeconds = null;
     this.connectionStatus = "";
     this.connectionLabel = "PASSIVE SCAN";
@@ -92,8 +92,8 @@ class StarnetHud extends StarnetElement {
         <span class="hud-label">ALERT:</span>
         <span class="hud-value" id="alert-level" style="color:${alertColor}">${this.alert.toUpperCase()}</span>
         ${this.phase === "playing" ? html`
-          <span class="hud-label">NOISE:</span>
-          <span class="hud-value" id="noise-level">${this.programNoise ?? 0}</span>
+          <span class="hud-label">HEAT:</span>
+          <img class="hud-lamp" id="heat-gauge" alt="heat ${heatZone(this.heat ?? 0)}" src=${heatGaugeDataUri(this.heat ?? 0)}>
         ` : nothing}
       </div>
 

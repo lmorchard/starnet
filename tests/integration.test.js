@@ -26,7 +26,7 @@ import {
   createFileserver, createFirewall, createWAN,
 } from "../js/core/node-graph/node-factories.js";
 import { buildSetPieceMiniNetwork } from "../js/core/node-graph/mini-network.js";
-import { initGame, getState, isIceVisible, buyExploit } from "../js/core/state.js";
+import { initGame, getState, isIceVisible, buyExploit, addHeat } from "../js/core/state.js";
 import { navigateTo, navigateAway } from "../js/core/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/core/ice.js";
 import { emitEvent, on, off, E } from "../js/core/events.js";
@@ -1209,22 +1209,24 @@ describe("cheat alert set/raise/lower (#174)", () => {
   });
 });
 
-describe("security grid cooldown: lie low (#174)", () => {
+describe("lie low → heat cooling (anti-tedium arc)", () => {
   beforeEach(() => { clearAll(); });
   const sendAlert = (graph) => graph.sendMessage("sp/ids", { type: "alert", payload: {} });
   const climbToRed = (graph) => { sendAlert(graph); sendAlert(graph); sendAlert(graph); };
   const completeLieLow = (graph) => { graph.executeAction("wan", "lie-low"); graph.tick(60); };
 
-  it("lie-low fully calms the grid (monitors → 0, global → green) and spends one use", () => {
+  it("lie-low sheds heat and spends a use, but does NOT lower the alert (subversion does that now)", () => {
     initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "lielow-1");
     const graph = getState().nodeGraph;
-    climbToRed(graph);
-    assert.notEqual(getState().globalAlert, "green");
+    climbToRed(graph);                       // grid raises the alert ladder
+    const alertBefore = getState().globalAlert;
+    assert.notEqual(alertBefore, "green");
+    addHeat(5);                              // heat built up separately
 
     completeLieLow(graph);
 
-    assert.equal(getState().globalAlert, "green", "grid fully calmed");
-    assert.equal(graph.getNodeState("sp/monitor").alertCount, 0, "monitor accumulation cleared");
+    assert.ok(getState().heat < 5, "lie-low shed heat");
+    assert.equal(getState().globalAlert, alertBefore, "alert unchanged — lie-low is heat-only");
     assert.equal(graph.getNodeState("wan").lieLowUsesRemaining, 1, "one use spent");
   });
 

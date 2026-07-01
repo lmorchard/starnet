@@ -277,10 +277,16 @@ These omissions are intentional — they make the bot a pessimistic baseline:
   no retry loops
 - **Flow programs (SNIFF / REPLAY)** — the bot doesn't read, sniff, or act on
   typed flows, and doesn't use the finesse-access path (capture a credential →
-  REPLAY it to own a brute-immune node). It also never accrues program noise.
-  Generated census networks author no flows, so `getProgramActions` returns
-  nothing for the bot regardless. The flow programs are exercised only in the
-  hand-authored `?network=corporate-exchange` demo.
+  REPLAY it to own a brute-immune node). Generated census networks author no flows,
+  so `getProgramActions` returns nothing for the bot regardless. The flow programs
+  are exercised only in the hand-authored `?network=corporate-exchange` demo.
+- **Pacing against heat** — the bot does NOT pace itself to manage heat. Heat now
+  rides on probe/xploit (which the bot does every run), but probe/xploit are *timed*
+  actions, so the bot's steady cadence keeps heat cool and rarely trips the alarm
+  (at the current decay it matches `main` exactly — no regression). Heat is a
+  **burst** detector; the bot doesn't burst instant actions, so it neither exploits
+  the mechanic (deliberate pacing) nor stress-tests it. A human blitzing programs /
+  a future SWEEP is what heat is really for.
 
 ### What the census therefore cannot validate
 
@@ -294,11 +300,13 @@ choice**. That judgment needs a human or LLM player (issues #122 and #86). When 
 deliberate escape hatch rather than a primary path, don't expect the census to
 gate it.
 
-The **flow programs + noise economy** (SNIFF/REPLAY, Flow Subversion Session 1)
-are the same shape: the bot doesn't use them, so census only confirms the
-existing loop is un-regressed — it says nothing about whether the noise costs or
-thresholds (`PROGRAM_NOISE_COST` / `PROGRAM_NOISE_THRESHOLD` in `balance.js`) are
-tuned right. Those are feel-tuned with a human on the demo network.
+The **heat model** (Flow Subversion anti-tedium arc) is the same shape: because the
+bot's timed-action cadence keeps heat cool, census confirms the existing loop is
+un-regressed but says nothing about whether heat's costs/threshold/decay
+(`HEAT_*` in `balance.js`) are tuned right for a *human* who bursts or paces
+deliberately. Those are feel-tuned with a human on the demo network — the current
+values are conservative (no bot regression), leaving room to dial heat up for more
+bite once the SWEEP verb variants give bursting a real cost.
 
 ---
 

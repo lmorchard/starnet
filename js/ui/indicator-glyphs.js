@@ -184,6 +184,60 @@ export function tickMeterDataUri(frac, opts = {}) {
   return dataUri(tickMeterSvg(frac, opts));
 }
 
+// ── heatGaugeSvg (qualitative heat readout) ───────────────────────────────────
+
+// Fixed visual scale for the heat gauge. Deliberately NOT any network's real alarm threshold
+// (those are hidden) — the gauge shows *how hot* you are, never *how close to the line*.
+const HEAT_GAUGE_MAX = 12;
+
+/** Heat tier color: cool (low) green → warm amber → hot (high) red — the inverse of tierColor. */
+function heatColor(frac) {
+  return frac >= 0.75 ? RED : frac >= 0.4 ? AMBER : GREEN;
+}
+
+/**
+ * Qualitative heat zone for a raw heat value — "cool" | "warm" | "hot". Shares the heatColor
+ * thresholds so the label always matches the gauge's tier. Used for a11y alt text + previews.
+ * @param {number} heat @returns {string}
+ */
+export function heatZone(heat) {
+  const f = Math.max(0, Math.min(1, (heat || 0) / HEAT_GAUGE_MAX));
+  return f >= 0.75 ? "hot" : f >= 0.4 ? "warm" : "cool";
+}
+
+/**
+ * Qualitative heat gauge — a stroked tick-ladder (like tickMeterSvg) filling cool→hot as heat
+ * rises on a FIXED visual scale (HEAT_GAUGE_MAX), so the player feels heat without reading a
+ * number or learning the hidden threshold. Stroke-only + glow.
+ * @param {number} heat — raw heat (clamped to the visual scale)
+ * @returns {string} standalone SVG markup
+ */
+export function heatGaugeSvg(heat) {
+  const N = 8;
+  const f = Math.max(0, Math.min(1, (heat || 0) / HEAT_GAUGE_MAX));
+  const lit = Math.round(f * N);
+  const color = heatColor(f);
+
+  const W = 64, H = 18;
+  const gap = W / (N + 1);
+  let body = "";
+  for (let i = 0; i < N; i++) {
+    const x = (gap * (i + 1)).toFixed(1);
+    const isLit = i < lit;
+    body += `<line x1="${x}" y1="${isLit ? 3 : 10}" x2="${x}" y2="15"`
+          + ` stroke="${isLit ? color : DIM}"`
+          + ` stroke-width="${isLit ? 2 : 1.4}"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" fill="none">`
+    + glowDefs(color)
+    + `<g filter="url(#g)">${body}</g></svg>`;
+}
+
+/** Heat gauge as a data URI. @param {number} heat @returns {string} */
+export function heatGaugeDataUri(heat) {
+  return dataUri(heatGaugeSvg(heat));
+}
+
 // ── missionMarkSvg ────────────────────────────────────────────────────────────
 
 /**

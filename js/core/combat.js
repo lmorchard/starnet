@@ -15,9 +15,10 @@ import { setLastDisturbedNode } from "./state/ice.js";
 import { applyCardDecay as applyCardDecayState } from "./state/player.js";
 import { emitEvent, E } from "./events.js";
 import { A } from "./action-ids.js";
+import { recordHeat } from "./alert.js";
 import {
   GRADE_MODIFIER, MATCH_BONUS, SUCCESS_CAP, DISCLOSURE_CHANCE,
-  SKIP_TO_OWNED_FLOOR, SKIP_TO_OWNED_QUALITY_SCALE, PATCH_LAG,
+  SKIP_TO_OWNED_FLOOR, SKIP_TO_OWNED_QUALITY_SCALE, PATCH_LAG, HEAT_COST,
 } from "./balance.js";
 
 // Re-export combat-balance constants so existing `import … from "./combat.js"`
@@ -244,6 +245,7 @@ export function resolveCombat(exploit, node) {
  */
 export function applyCombatResult(nodeId, exploit, result) {
   const node = getState().nodes[nodeId];
+  recordHeat(HEAT_COST.xploit); // every xploit attempt is activity — raises heat (success or fail)
   const detail = { exploitName: exploit.name, flavor: result.flavor, roll: result.roll,
     successChance: result.successChance, matchingVulns: result.matchingVulns };
 

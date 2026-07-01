@@ -508,7 +508,7 @@ today:
   you can read its traffic (but just a scan, not the full break-in). Target a probed node, choose
   **SNIFF**, and pick a flow from the list (only flows to nodes you've already revealed appear).
   Sniffing an **encrypted** flow decrypts it (you can now read its type); sniffing a **credential**
-  flow additionally **captures the token** for later use. Quiet — low noise.
+  flow additionally **captures the token** for later use. Quiet — low heat.
 - **REPLAY** — replay a captured credential into a node that trusts it. Louder than SNIFF.
 
 Console: `sniff <node> [flow]` (no flow argument → lists the node's flows, numbered), `replay <node>`.
@@ -525,12 +525,19 @@ locked node. It jumps straight to **owned** — and whatever it was gating (a fi
 subnet, say) is revealed. The whole LAN becomes one interlocked puzzle: to open X, find and tap
 what flows toward it.
 
-### Noise feeds the trace
+### Heat feeds the trace
 
-Every program you run adds **noise** to the same trace clock the alert system drives (below).
-Loud programs cost more noise than quiet ones. Enough noise on its own will start a trace — so the
-skill is the **quietest** solution, not the flashiest. Your accumulated noise shows as **NOISE: N**
-beside the alert in the status bar.
+Everything you do in a LAN raises **heat** — a measure of how much the network has *noticed* you.
+Probing, exploiting, and running programs all add heat; loud actions add more. But heat **cools on
+its own** over time: if you space your actions out, it bleeds back down and stays beneath notice.
+Do too much *at once* and it spikes — and when heat crosses a network's tolerance, the alarm trips
+and the global alert ratchets up a level (it can climb all the way to a trace). Each network has a
+different, **unadvertised** tolerance: a sleepy low-threat LAN absorbs a flurry that a hardened one
+would trip on instantly — you learn a network's patience by feel, not from a number.
+
+Heat shows as a **gauge** beside the alert in the status bar (cool → warm → hot). It's deliberately
+*relative* — it tells you how hot you're running, never exactly how close the line is. The skill is
+pacing: read the network, act in measured steps, and let it cool between moves rather than blitzing.
 
 ---
 
@@ -538,7 +545,14 @@ beside the alert in the status bar.
 
 The LAN watches you through two sensors — a passive security grid and active ICE — both
 feeding one alert ladder. Understanding it is the difference between a clean run and a trace.
-(A third input, **program noise**, feeds the same ladder — see *Flow Programs* above.)
+(A third input, your accumulated **heat**, feeds the same ladder when it spikes — see *Heat feeds
+the trace* above.)
+
+The alert ladder is a **ratchet**: it only climbs (it never cools on its own). Heat can cool, but
+once a heat spike has *ratcheted the alert up a level*, that level is stuck — the only way back
+down is to **subvert the network's security systems** (corrupt an IDS, scrub a monitor's logs, or
+own the monitor and cancel the trace). Get hot and the way out is to go quiet **and** take out the
+watchers, not just wait.
 
 ### Node Alert State
 
@@ -629,21 +643,23 @@ goes dark and stops climbing the alert ladder, no matter how many exploits you f
 with more than one IDS/monitor pair needs each IDS corrupted to fully go dark.) This is often
 worth the detour, especially on an ICE-less LAN where the grid is your only clock.
 
-### Cooling the grid (below trace)
+### Two different things to cool: heat, and the alert
 
-The security grid climbs, but — below trace — you can also push it back down. Two relief levers
-(both **grid only**: they don't touch ICE, which keeps hunting):
+**Heat** and the **alert level** cool by different means, and it's worth keeping them straight:
 
+- **Lie low** (`exec lie-low`) — at the **WAN node** — sheds **heat** fast. You go quiet and *wait*
+  (a timed action — ICE keeps moving while you sit); a clock face spins on the WAN node as the wait
+  completes, and your heat drops. It's **limited to a couple of uses per run** (keep lying low and a
+  human admin eventually clocks your tether). Lie-low is heat relief — it does **not** lower the
+  alert ladder.
 - **Scrub logs** (`exec scrub-logs`) — on an **open** security-monitor. Wipes that monitor's
-  accumulated alerts and eases the global alert one level. Cheap and repeatable.
-- **Lie low** (`exec lie-low`) — at the **WAN node**. You go quiet and *wait* (a timed action — ICE
-  keeps moving while you sit). A clock face spins on the WAN node, its edges lighting up as the wait
-  completes. On completion the whole grid calms to green. But it's **limited to a couple of uses per
-  run**: keep lying low and a human admin eventually clocks your tether, and the option's gone.
+  accumulated grid alerts and eases the global **alert** one level. Cheap and repeatable.
 
-So the security chain gives you a tiered toolkit: **corrupt the IDS** (stop new alerts) → **scrub the
-monitor** (clear what's piled up) → **own the monitor + `cancel-trace`** (kill an active trace). Once a
-trace is actually running, lie-low and scrub do nothing — jack out or cancel it.
+So the alert **ratchet** only comes down by subverting the watchers: **corrupt the IDS** (stop new
+grid alerts) → **scrub the monitor** (ease the alert a level) → **own the monitor + `cancel-trace`**
+(kill an active trace). Lie-low keeps you *cool* so the ratchet doesn't climb in the first place;
+subversion is how you walk it back once it has. Once a trace is actually running, only jacking out
+or `cancel-trace` stops it.
 
 ---
 
@@ -778,12 +794,12 @@ Actions depend on the selected node's type and access level:
 | `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
-| `sniff`        | Probed node with a visible flow touching it    | Opens a flow picker (only flows to already-revealed nodes). Reads a flow (decrypts an encrypted one; captures a credential token from a credential flow). Adds program noise. Needs the node probed first — not available on an unprobed node. |
-| `replay`       | Finesse-locked node you hold its trusted credential for | Replays the captured credential → node jumps to owned (reveals what it gated). Adds program noise. |
+| `sniff`        | Probed node with a visible flow touching it    | Opens a flow picker (only flows to already-revealed nodes). Reads a flow (decrypts an encrypted one; captures a credential token from a credential flow). Adds heat. Needs the node probed first — not available on an unprobed node. |
+| `replay`       | Finesse-locked node you hold its trusted credential for | Replays the captured credential → node jumps to owned (reveals what it gated). Adds heat. |
 | `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
 | `corrupt`      | IDS node is open or owned                      | Severs event forwarding to security monitor (run via `exec`) |
 | `scrub-logs`   | Security-monitor, open or owned                | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
-| `lie-low`      | WAN node, uses remaining this run              | Timed wait that calms the whole grid to green (below trace); limited per run (run via `exec`) |
+| `lie-low`      | WAN node, uses remaining this run              | Timed wait that sheds **heat** (does not lower the alert ladder); limited per run (run via `exec`) |
 | `spoof`        | Security-monitor node, open or owned           | Recalibrates security monitor (run via `exec`) |
 | `kick`         | Owned node + ICE is present here               | Boots ICE to adjacent node |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |

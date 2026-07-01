@@ -15,7 +15,7 @@
 import { initGame, getState, serializeState, deserializeState } from "../../js/core/state.js";
 import { buildActionContext, initActionDispatcher } from "../../js/core/actions/action-context.js";
 import { startIce, handleIceTick, handleIceDetect, initIceHandlers } from "../../js/core/ice.js";
-import { handleTraceTick } from "../../js/core/alert.js";
+import { handleTraceTick, handleHeatDecay } from "../../js/core/alert.js";
 import { initNavigationCancelHandler } from "../../js/core/node-graph/game-ctx.js";
 import { initGraphBridge } from "../../js/core/graph-bridge.js";
 import { initDynamicActions } from "../../js/core/console-commands/dynamic-actions.js";
@@ -53,6 +53,7 @@ export function wireRunHandlers() {
   on(TIMER.ICE_MOVE,   (payload) => handleIceTick(payload));
   on(TIMER.ICE_DETECT, (payload) => handleIceDetect(payload));
   on(TIMER.TRACE_TICK, () => handleTraceTick());
+  on(TIMER.HEAT_DECAY, () => handleHeatDecay());
 
   // Unified action dispatcher
   if (_ctx) initActionDispatcher(_ctx);

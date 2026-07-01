@@ -6,10 +6,10 @@
 import { getState, endRun } from "./state.js";
 import { setGlobalAlert, setTraceCountdown, setTraceTimerId, decrementTraceCountdown } from "./state/alert.js";
 import { setIceDetectedAt, incrementIceDetectionCount, activeIceInstances } from "./state/ice.js";
-import { addProgramNoise } from "./state/flow.js";
+import { addHeat, decayHeat, setHeatDecayTimerId } from "./state/flow.js";
 import { emitEvent, E } from "./events.js";
 import { scheduleRepeating, cancelEvent, TIMER } from "./timers.js";
-import { DETECTION_TRACE_THRESHOLD, MONITOR_TRACE_THRESHOLD, TRACE_SECONDS, PROGRAM_NOISE_THRESHOLD } from "./balance.js";
+import { DETECTION_TRACE_THRESHOLD, MONITOR_TRACE_THRESHOLD, TRACE_SECONDS, HEAT_ALARM_THRESHOLD, HEAT_DISCHARGE_FRAC, HEAT_DECAY_PER_TICK, HEAT_DECAY_MS, LIE_LOW_HEAT_DROP } from "./balance.js";
 
 /** @type {GlobalAlertLevel[]} */
 const GLOBAL_ALERT_ORDER = ["green", "yellow", "red", "trace"];
@@ -160,40 +160,52 @@ export function recordMonitorAlert(monitorId) {
   }
 }
 
-// ── Program noise (third sensor; Session 1) ───────────────
+// ── Heat: decaying meter + trip-line ratchet (anti-tedium arc) ─────────────
 
 /**
- * Record program-noise heat — the third alert sensor. The counterpart to recordIceDetection
- * (active ICE) and recordMonitorAlert (passive grid): each program play adds heat that
- * accumulates on state.programNoise and climbs the SAME green→yellow→red→trace ladder, starting
- * the SAME trace clock once the cumulative `trace` threshold is crossed. Noise can reach trace on
- * its own — a real stealth budget. Escalation-only (never lowers the alert). See MANUAL.md.
+ * Record heat from any activity (probe/xploit/programs). Heat accumulates on state.heat and is
+ * bled off by the HEAT_DECAY timer. Crossing a network's (hidden, grade-scaled) HEAT_ALARM_THRESHOLD
+ * TRIPS the ratchet: one escalation-only step up the alert ladder, then heat is discharged (→
+ * threshold*HEAT_DISCHARGE_FRAC) so it must rebuild — a rising-edge without a separate armed flag.
+ * A big enough sustained burst climbs to trace; paced activity cools below the bar and never trips.
+ * Alert never lowers here — that's the subversion levers' job (scrub/corrupt/cancel-trace).
  * @param {number} amount
  */
-export function recordProgramNoise(amount) {
-  const total = addProgramNoise(amount);
-  emitEvent(E.PROGRAM_NOISE, { amount, total });
-  const t = PROGRAM_NOISE_THRESHOLD;
-  if (total >= t.trace) {
-    if (getState().traceSecondsRemaining === null) startTraceCountdown();
-    return;
-  }
-  // Step the ladder up to the highest level the accumulated noise has crossed (capped below
-  // trace; trace is threshold-gated above). Escalation-only — never step down.
-  const target = total >= t.red ? "red" : total >= t.yellow ? "yellow" : "green";
-  const cur = getState().globalAlert;
-  if (GLOBAL_ALERT_ORDER.indexOf(target) > GLOBAL_ALERT_ORDER.indexOf(cur)) {
-    setGlobalAlert(target);
-    emitEvent(E.ALERT_GLOBAL_RAISED, { prev: cur, next: target });
-  }
+export function recordHeat(amount) {
+  if (getState().heatDecayTimerId === null) startHeatDecay(); // self-start decay on first heat
+  const total = addHeat(amount);
+  emitEvent(E.HEAT_CHANGED, { amount, total });
+
+  const s = getState();
+  const threat = s.spec?.threat ?? "C";
+  const threshold = HEAT_ALARM_THRESHOLD[threat] ?? 9;
+  if (total < threshold) return; // under the bar — no trip
+
+  // Trip: discharge heat so it must rebuild, then step the ladder up one (escalation-only).
+  decayHeat(total - threshold * HEAT_DISCHARGE_FRAC);
+  const cur = s.globalAlert;
+  const next = GLOBAL_ALERT_ORDER[Math.min(GLOBAL_ALERT_ORDER.indexOf(cur) + 1, GLOBAL_ALERT_ORDER.length - 1)];
+  if (next === cur) return; // already at trace — heat discharged, but the ladder can't rise; don't emit
+  setGlobalAlert(next);
+  emitEvent(E.HEAT_ALARM, { level: next });
+  emitEvent(E.ALERT_GLOBAL_RAISED, { prev: cur, next });
+  if (next === "trace" && getState().traceSecondsRemaining === null) startTraceCountdown();
 }
 
-// ── Cooldown (grid-only relief; #174) ─────────────────────
-
-/** @returns {string[]} security-monitor node ids in the current state */
-function monitorNodeIds(s) {
-  return Object.keys(s.nodes).filter((id) => s.nodes[id].type === "security-monitor");
+/** Start the always-on HEAT_DECAY repeating timer (idempotent). Called lazily on first heat. */
+export function startHeatDecay() {
+  if (getState().heatDecayTimerId !== null) return;
+  setHeatDecayTimerId(scheduleRepeating(TIMER.HEAT_DECAY, HEAT_DECAY_MS));
 }
+
+/** HEAT_DECAY timer handler — bleeds heat down each interval. Wire like handleTraceTick. */
+export function handleHeatDecay() {
+  const s = getState();
+  if (!s || s.phase !== "playing" || s.heat <= 0) return;
+  decayHeat(HEAT_DECAY_PER_TICK);
+}
+
+// ── Alert de-escalation via subversion (scrub-logs; #174) ─────────────────────
 
 /**
  * Ease the security grid below trace: reset `alertCount` on the given monitors and lower the
@@ -229,16 +241,20 @@ export function scrubLogs(monitorId) {
 }
 
 /**
- * Lie low at the WAN node: fully calm the security grid (every monitor → 0, global → green) and
- * spend one per-run use. No-op while a trace is running. When uses run out, mark the WAN node
- * `lieLowExhausted` so the action gates itself off (fiction: a human admin has clocked the tether).
+ * Lie low at the WAN node: shed **heat** fast (accelerated cooling — you spend time going quiet)
+ * and spend one per-run use. Heat-only under the two-layer model — it does NOT lower the alert
+ * ladder (that ratchet only comes down by subverting security systems: scrub-logs / corrupt /
+ * cancel-trace). When uses run out, mark the WAN node `lieLowExhausted` so the action gates itself
+ * off (fiction: a human admin has clocked the tether).
  * @param {string} wanNodeId
  */
 export function lieLow(wanNodeId) {
   const s = getState();
   const graph = s.nodeGraph;
   if (!graph) return;
-  if (!coolGrid(monitorNodeIds(s), "green")) return; // at trace — no-op, no use spent
+  if (s.globalAlert === "trace") return; // trace running — shedding heat can't help; don't waste a use
+  const total = decayHeat(LIE_LOW_HEAT_DROP);
+  emitEvent(E.HEAT_CHANGED, { amount: -LIE_LOW_HEAT_DROP, total });
   const remaining = (graph.getNodeState(wanNodeId)?.lieLowUsesRemaining ?? 0) - 1;
   graph.setNodeAttr(wanNodeId, "lieLowUsesRemaining", Math.max(0, remaining));
   if (remaining <= 0) graph.setNodeAttr(wanNodeId, "lieLowExhausted", true);

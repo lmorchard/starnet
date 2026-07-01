@@ -4,7 +4,7 @@
  * state.flows + player state. Programs are a fixed always-available kit (no loadout economy
  * yet — that's Session 3); they surface as node-contextual actions via program-actions.js.
  *
- * Each program play adds noise to the shared trace clock (recordProgramNoise). Quiet,
+ * Each program play adds heat to the shared trace clock (recordHeat). Quiet,
  * minimal solutions are the skill.
  */
 
@@ -14,8 +14,8 @@ import { setFlowRevealed, flowId } from "./state/flow.js";
 import { addCapturedCredential } from "./state/player.js";
 import { setNodeAccessLevel, setNodeAlertState, setNodeVisible, setNodeProbed } from "./state/node.js";
 import { revealNeighbors } from "./state.js";
-import { recordProgramNoise } from "./alert.js";
-import { PROGRAM_NOISE_COST } from "./balance.js";
+import { recordHeat } from "./alert.js";
+import { HEAT_COST } from "./balance.js";
 import { emitEvent, E } from "./events.js";
 
 export { flowId };
@@ -55,7 +55,7 @@ export function sniffFlow(state, nodeId, id) {
     addCapturedCredential(f.key);
     emitEvent(E.CREDENTIAL_CAPTURED, { nodeId, key: f.key });
   }
-  recordProgramNoise(PROGRAM_NOISE_COST.sniff);
+  recordHeat(HEAT_COST.sniff);
 }
 
 /**
@@ -78,5 +78,5 @@ export function replayCredential(state, nodeId) {
   revealNeighbors(nodeId); // owned reveals what the firewall/gate concealed
   emitEvent(E.CREDENTIAL_REPLAYED, { nodeId, key });
   emitEvent(E.NODE_ACCESSED, { nodeId, label: node.label, prev, next: "owned" });
-  recordProgramNoise(PROGRAM_NOISE_COST.replay);
+  recordHeat(HEAT_COST.replay);
 }

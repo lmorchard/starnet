@@ -14,6 +14,7 @@ export const TIMER = {
   ICE_MOVE:        "starnet:timer:ice-move",
   ICE_DETECT:      "starnet:timer:ice-detect",
   TRACE_TICK:      "starnet:timer:trace-tick",
+  HEAT_DECAY:      "starnet:timer:heat-decay",
   // Probe, exploit, read, loot, reboot timers removed — timed-action operator handles these
 };
 
