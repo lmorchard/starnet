@@ -4,7 +4,7 @@
 // 1.3.0 base from #266 (runtime + signal registry/bridge + GeneralUser GS soundfont) + the song
 // model (evaluate strudel-song content), replacing #262's bespoke score interpreter.
 //
-// Browser-only. Tone-default users never load this (main.js dynamic-imports it only when selected).
+// Browser-only. This is the default engine (main.js dynamic-imports it); opt-in Tone users don't load it.
 // Pref/event ownership stays in the Tone renderer modules: setMusicEnabled/setSfxEnabled still write
 // localStorage + emit MUSIC_CHANGED/SFX_CHANGED even when Tone isn't running, so the HUD buttons +
 // music/sfx commands keep working — this engine just listens.

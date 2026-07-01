@@ -1,16 +1,16 @@
 // @ts-check
 // Audio engine selection — a client preference (NOT game state; audio is never serialized).
-// Chooses between the legacy Tone.js engine (default) and the Strudel + superdough engine.
-// Read once at boot by js/ui/main.js; switching requires a page reload to take effect.
+// Chooses between the Strudel + superdough engine (default) and the legacy Tone.js engine (opt-in,
+// pending removal — #267). Read once at boot by js/ui/main.js; switching requires a page reload.
 
 /** @type {readonly ["tone", "strudel"]} */
 export const AUDIO_ENGINES = ["tone", "strudel"];
 
 const ENGINE_PREF_KEY = "starnet:audio-engine";
-const DEFAULT_ENGINE = "tone";
+const DEFAULT_ENGINE = "strudel";
 
 /**
- * @returns {"tone"|"strudel"} the selected audio engine, defaulting to "tone".
+ * @returns {"tone"|"strudel"} the selected audio engine, defaulting to "strudel".
  */
 export function getAudioEngine() {
   try {
