@@ -4,7 +4,9 @@
 // the engine (the "wad" content boundary). To add a song: drop a .strudel file here + a manifest
 // entry. (Authoring parity — loading the game's gus_* + progress/threat in strudel.cc — is #265.)
 
-const BASE = "audio-content/songs/";
+// Resolved relative to THIS module (not the document), so the manifest loads whether the page is
+// the game at the site root or a preview harness under /preview/. import.meta.url anchors it.
+const BASE = new URL("../../../../audio-content/songs/", import.meta.url);
 export const HUB_ID = "hub";
 
 /** @typedef {{ id: string, name: string, file: string }} SongEntry */
@@ -20,7 +22,7 @@ export const SONG_MANIFEST = [
 
 /** Fetch one song's code. @param {SongEntry} entry @returns {Promise<string>} */
 export async function fetchSongCode(entry) {
-  const res = await fetch(BASE + entry.file);
+  const res = await fetch(new URL(entry.file, BASE));
   if (!res.ok) throw new Error(`song fetch failed: ${entry.file} (${res.status})`);
   return res.text();
 }

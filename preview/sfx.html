@@ -1,33 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Starnet audio — SFX harness</title>
-<style>
-  :root { --bg:#0a0a0f; --cyan:#22d3ee; --green:#39ff88; --mag:#ff00aa; --dim:#1b2330; }
-  body { background:var(--bg); color:var(--green); font-family:ui-monospace,monospace; margin:0; padding:2rem; }
-  h1 { color:var(--cyan); font-size:1.1rem; text-shadow:0 0 8px rgba(34,211,238,.5); }
-  .sub { color:#6b7a8d; font-size:.8rem; margin-bottom:1rem; }
-  #cues { display:flex; flex-wrap:wrap; gap:.5rem; max-width:760px; }
-  button.cue { background:transparent; color:var(--cyan); border:1px solid var(--cyan); border-radius:4px;
-    padding:.4rem .7rem; font:inherit; font-size:.8rem; cursor:pointer; text-shadow:0 0 6px rgba(34,211,238,.5); }
-  button.cue:hover { background:rgba(34,211,238,.1); }
-  #status { color:#6b7a8d; font-size:.8rem; margin-left:.5rem; }
-  h2 { color:var(--mag); font-size:.9rem; margin:1.6rem 0 .3rem; text-shadow:0 0 8px rgba(255,0,170,.4); }
-  #drones { display:flex; flex-direction:column; gap:.5rem; max-width:520px; }
-  .drone-row { display:flex; align-items:center; gap:.7rem; }
-  .drone-row button.cue { min-width:9rem; text-align:left; }
-  .drone-row input[type=range] { flex:1; accent-color:var(--mag); }
-</style>
+  <meta charset="UTF-8">
+  <title>STARNET — SFX &amp; Drone Preview</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <!-- Import map: bare specifiers → bundled dist/*. @strudel/web is the vendored audio runtime. -->
+  <script type="importmap">
+    { "imports": {
+      "lit": "../dist/lit.js",
+      "lit/directives/repeat.js": "../dist/lit.js",
+      "tone": "../dist/tone.js",
+      "@strudel/web": "../dist/strudel.js"
+    } }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0a0a0f; color: var(--green); font-family: var(--font-mono); font-size: 20px; }
+    header { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-bottom: 1px solid #1a2b2b; }
+    header h1 { color: var(--cyan); font-size: 22px; margin: 0; text-shadow: var(--glow-sm) var(--cyan); }
+    #sp-status { color: #fa0; font-size: 18px; }
+    .btn { background: #111; color: var(--cyan); border: 1px solid var(--cyan); padding: 6px 14px; font-family: var(--font-mono); cursor: pointer; }
+    .btn:hover { box-shadow: var(--glow-sm) var(--cyan); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+    #sp-boot { font-size: 22px; padding: 12px 24px; }
+    .hidden { display: none; }
+    #sp-app { display: flex; gap: 14px; padding: 14px; align-items: flex-start; flex-wrap: wrap; }
+    fieldset { border: 1px solid #234; padding: 10px 12px; flex: 1; min-width: 320px; }
+    legend { color: var(--cyan); font-size: 18px; }
+    .hint { color: #678; font-size: 17px; margin-top: 8px; }
+    a { color: #6cf; }
+
+    /* one-shot cue buttons */
+    #sp-cues { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cue { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.3; }
+    .cue small, .dname small { color: #678; font-size: 16px; }
+
+    /* drone rows */
+    .drone { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+    .drone .toggle { width: 84px; }
+    .drone .toggle.on { color: #ff6a9a; border-color: #ff6a9a; }
+    .drone .sweep { width: 70px; }
+    .dname { flex: 1; min-width: 96px; display: flex; flex-direction: column; }
+    .drone input[type=range] { flex: 1.2; min-width: 120px; }
+    .drone b { width: 44px; text-align: right; color: var(--green); }
+  </style>
 </head>
 <body>
-  <h1>STARNET // SFX HARNESS <span id="status">click any cue to start</span></h1>
-  <div class="sub">Click a cue to audition it. (Audio unlocks on first click.)</div>
-  <div id="cues"></div>
-  <h2>// ACTION DRONES (sustained)</h2>
-  <div class="sub">Toggle a drone on/off; drag its slider to sweep progress 0→1.</div>
-  <div id="drones"></div>
-  <script type="module" src="/js/audio/sfx/playground.js"></script>
+  <header>
+    <h1>SFX &amp; DRONE PREVIEW</h1>
+    <button class="btn" id="sp-boot">▶ BOOT AUDIO</button>
+    <button class="btn hidden" id="sp-stop-all">STOP ALL ■</button>
+    <span id="sp-status"></span>
+  </header>
+
+  <div id="sp-app" class="hidden">
+    <fieldset>
+      <legend>ONE-SHOT SFX CUES (click to fire)</legend>
+      <div id="sp-cues"></div>
+      <div class="hint">The exact cues the engine fires on game events (reveal, access, xploit, alert, ICE, trace).</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ACTION DRONES (start, then drive progress)</legend>
+      <div id="sp-drones"></div>
+      <div class="hint">Sustained per-action drones. START to sound one, drag the slider to sweep <code>progress</code> 0→1 by hand, or SWEEP to ramp it once (as an action does over its duration). Loop drones ignore progress.</div>
+    </fieldset>
+  </div>
+
+  <!-- AGPL-3.0 §13: source link (this tool loads the AGPL Strudel/superdough runtime). -->
+  <a id="source-link" href="https://github.com/lmorchard/starnet" target="_blank" rel="noopener">source</a>
+
+  <script type="module">
+    import { initSfxPreview } from "../js/ui/sfx-preview.js";
+    initSfxPreview();
+  </script>
 </body>
 </html>

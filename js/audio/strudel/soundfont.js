@@ -9,7 +9,9 @@
 // Browser-only. Uses the bundled soundfont loader (window.__soundfonts, attached by
 // js/strudel-vendor.js) + registerSound/noteToMidi (registered by initStrudel).
 
-export const GAME_SOUNDFONT_URL = "audio-content/soundfonts/GeneralUser-GS.sf2";
+// Anchored to this module (not the document) so it resolves from any page location — the game at
+// the site root or a preview harness under /preview/.
+export const GAME_SOUNDFONT_URL = new URL("../../../audio-content/soundfonts/GeneralUser-GS.sf2", import.meta.url).href;
 const PREFIX = "gus_"; // GeneralUser GS
 
 /** Preset display name → a distinct `gus_*` sound name (lowercased, non-alnum → `_`). Exported for tests. */
