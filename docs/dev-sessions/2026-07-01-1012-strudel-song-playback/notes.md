@@ -59,6 +59,18 @@ partially patched (uncommitted), NOT resolved. Findings:
 - `js/audio/strudel/soundfont.js`: schedule `stop(time + value.duration)` in the trigger (because of
   superdough's early-return, #2).
 
+## SFX independence + superdough timing (for the eventual SFX/drone port to 1.3.0)
+
+- **SFX are isolated from songs** (verified): the single-program repl limit applies only to Strudel
+  *patterns* (a song). Sound effects are direct `superdough(...)` one-shots that bypass the repl, so
+  they play with/without a song and survive `hush()`-ing the song. Two-layer model like the Tone
+  engine's separate music/SFX buses. Measured: SFX 0.98 alone AND after the song is hushed; song 0
+  when stopped.
+- **superdough `t` must be `ctx.currentTime`, not `0`, on @strudel/web 1.3.0.** superdough skips haps
+  scheduled in the past (`ac.currentTime > t` → skip), so `superdough(value, 0, dur)` (what the #262
+  SFX code uses on 1.0.3) is silently dropped on 1.3.0. Port fix: `superdough(value, ctx.currentTime
+  (+ small lookahead), dur)`.
+
 ## Recommended next step (Les's instinct — align to strudel.cc's well-trod code)
 
 Rather than our polyfill + hand-rolled registration, do it the way strudel.cc does:
