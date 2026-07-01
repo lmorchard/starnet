@@ -24,7 +24,9 @@ export function installGameSignals(rt) {
     window[name] = rt.signal(() => live[name] ?? 0);
   }
 
-  on(E.STATE_CHANGED, (state) => { if (state) live = computeSignals(state); });
+  // Recompute unconditionally: computeSignals(null) → defaults (0), so signals reset between runs
+  // instead of getting stuck at the last run's values.
+  on(E.STATE_CHANGED, (state) => { live = computeSignals(state); });
 
   return {
     names: Object.keys(SIGNAL_REGISTRY),

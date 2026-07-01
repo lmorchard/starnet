@@ -44,9 +44,13 @@ async function boot() {
   setStatus("loading instruments (32MB soundfont)…");
   const names = await loadGameSoundfont();
   setStatus("loading drums…");
-  try { await _rt.samples("github:tidalcycles/dirt-samples"); } catch (_) { /* offline: drums silent */ }
+  let drumsOk = true;
+  try { await _rt.samples("github:tidalcycles/dirt-samples"); } catch (_) { drumsOk = false; }
   _signals = installGameSignals(_rt);
-  _allowed = new Set([...names, ...WAVEFORMS, ...DRUMS]);
+  // Only whitelist drum names if the sample set actually loaded — otherwise the linter would pass a
+  // song whose drums won't sound (offline/CORS), giving false "carries to the game" confidence.
+  _allowed = new Set([...names, ...WAVEFORMS, ...(drumsOk ? DRUMS : [])]);
+  if (!drumsOk) setStatus("(drums failed to load — drum sounds will be flagged by the linter)", false);
   $("sp-boot").classList.add("hidden");
   $("sp-app").classList.remove("hidden");
   buildSignalSliders();

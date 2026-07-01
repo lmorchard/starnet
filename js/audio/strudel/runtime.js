@@ -51,6 +51,9 @@ export function bootStrudel() {
     rt.setcpm = window.setcpm; // may be transpiler-injected only; keep a ref if present
     rt.ctx = window.getAudioContext();
     return rt;
-  })();
+  })().catch((e) => {
+    _booting = null; // reset on failure so BOOT can be retried after a transient error (no page reload)
+    throw e;
+  });
   return _booting;
 }
