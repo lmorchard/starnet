@@ -1,7 +1,7 @@
 .PHONY: all serve dev lint lint-imports test check bundle-vendor census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
-all: node_modules dist/vendor.js dist/lit.js dist/tone.js
+all: node_modules dist/vendor.js dist/lit.js dist/tone.js dist/strudel.js
 
 node_modules: package.json
 	npm install
@@ -14,6 +14,9 @@ dist/lit.js: js/lit-vendor.js node_modules
 
 dist/tone.js: js/tone-vendor.js node_modules
 	npx esbuild js/tone-vendor.js --bundle --outfile=dist/tone.js --format=esm --platform=browser --minify
+
+dist/strudel.js: js/strudel-vendor.js node_modules
+	npx esbuild js/strudel-vendor.js --bundle --outfile=dist/strudel.js --format=esm --platform=browser --minify
 
 # Start local dev server (open http://localhost:3000)
 serve:
@@ -29,7 +32,7 @@ dev: all serve
 #   fixtures/             (test fixture data)
 lint:
 	npx tsc --noEmit --allowJs --checkJs --target ES2020 --moduleResolution bundler --module ES2020 \
-		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'vendor.js' ! -name 'lit-vendor.js' ! -name 'tone-vendor.js')
+		$(shell find js -name '*.js' ! -name '*.test.js' ! -path '*/fixtures/*' ! -name 'graph.js' ! -name 'vendor.js' ! -name 'lit-vendor.js' ! -name 'tone-vendor.js' ! -name 'strudel-vendor.js')
 
 # Guard against absolute "/dist/..." paths in js/ and HTML. They resolve to the
 # domain root and 404 under a deploy subpath (e.g. GitHub Pages /starnet/), where
@@ -50,11 +53,12 @@ test:
 # Full check: imports guard + lint + test
 check: lint-imports lint test
 
-# Bundle vendor dependencies (Cytoscape + layout extensions, Lit, Tone)
+# Bundle vendor dependencies (Cytoscape + layout extensions, Lit, Tone, Strudel)
 bundle-vendor:
 	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 	npx esbuild js/lit-vendor.js --bundle --outfile=dist/lit.js --format=esm --platform=browser --minify
 	npx esbuild js/tone-vendor.js --bundle --outfile=dist/tone.js --format=esm --platform=browser --minify
+	npx esbuild js/strudel-vendor.js --bundle --outfile=dist/strudel.js --format=esm --platform=browser --minify
 
 # Shared grade defaults for bot/census/generate targets
 THREAT ?= C

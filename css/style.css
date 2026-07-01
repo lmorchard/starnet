@@ -1799,3 +1799,20 @@ html, body {
   flex-direction: column;
   gap: 6px;
 }
+
+/* AGPL-3.0 §13 source link — persistent, unobtrusive corner anchor. Stroke + glow, no fill
+   (vector phosphene discipline). The engine bundles AGPL Strudel/superdough (see LICENSE). */
+#source-link {
+  position: fixed;
+  right: 8px;
+  bottom: 6px;
+  z-index: 9;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--cyan-dim);
+  text-decoration: none;
+  opacity: 0.5;
+  transition: opacity 0.2s, color 0.2s, text-shadow 0.2s;
+}
+#source-link:hover { opacity: 1; color: var(--cyan); text-shadow: var(--glow-sm) var(--cyan); }
