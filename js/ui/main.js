@@ -10,6 +10,7 @@ import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
 import { initAudioRenderer, toggleMusic, isMusicEnabled } from "../audio/audio-renderer.js";
 import { initSfxRenderer, isSfxEnabled, toggleSfx } from "../audio/sfx/renderer.js";
+import { getAudioEngine } from "../audio/engine-select.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
 import { openDarknetsStore } from "./store.js";
 import { initGraphBridge } from "../core/graph-bridge.js";
@@ -22,6 +23,7 @@ import { initResizers } from "./resizers.js";
 import "./hub-commands.js";
 import "../audio/music-commands.js";
 import "../audio/sfx/commands.js";
+import "../audio/strudel/commands.js";   // `audio engine <tone|strudel>` — registered for both engines
 
 import { NAMED_NETWORKS, DEFAULT_NETWORK, buildGenerated } from "../../data/networks/index.js";
 
@@ -71,8 +73,15 @@ function init() {
   initConsole();
   initResizers();  // apply saved layout + wire the resize splitters
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
-  const audioEngine = initAudioRenderer();   // browser-only reactive audio; silent until a run starts
-  initSfxRenderer();
+  // Audio engine select (boot-time; switching requires a reload). Tone is the default; the Strudel
+  // engine is lazy-imported so Tone users never download its runtime bundle.
+  let audioEngine = null;   // exposed as window.starnet.audio (Tone engine, or null under Strudel)
+  if (getAudioEngine() === "strudel") {
+    import("../audio/strudel/index.js").then((m) => m.initStrudelEngine());
+  } else {
+    audioEngine = initAudioRenderer();   // browser-only reactive audio; silent until a run starts
+    initSfxRenderer();
+  }
   initGraphBridge();
   initDynamicActions();
   initProfileRunCommit();  // wire RUN_ENDED → commit results back to the profile
