@@ -8,6 +8,7 @@ import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
 import { exploitCardBody } from "./exploit-card-view.js";
 import { wearFraction } from "../../core/exploits.js";
+import { flowGlyphDataUri } from "../flow-glyphs.js";
 
 class StarnetActionChoices extends StarnetElement {
   static properties = {
@@ -82,6 +83,18 @@ class StarnetActionChoices extends StarnetElement {
           [ ${choice.data.label} ]${choice.data.desc
             ? html`<span class="ctx-item-desc">${choice.data.desc}</span>`
             : nothing}
+        </button>`;
+    }
+    if (choice.render === "flow-packet") {
+      // Glyph via data-URI <img> (the HUD indicator-glyph pattern) — the local lit bundle has
+      // no `svg` tag. Stroke-only + glow, per the vector-UI rule. Encrypted-and-unrevealed
+      // flows show a dim "?".
+      const d = choice.data;
+      const label = d.encrypted ? "ENCRYPTED" : d.type.toUpperCase();
+      return html`
+        <button class="ctx-item flow-choice" @click=${() => this._pick(choice)}>
+          <img class="flow-glyph" alt=${d.type} src=${flowGlyphDataUri(d.type, { encrypted: d.encrypted })}>
+          [ ${label} ${d.dir === "in" ? "←" : "→"} ]
         </button>`;
     }
     return nothing;

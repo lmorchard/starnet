@@ -9,6 +9,7 @@ class StarnetHud extends StarnetElement {
   static properties = {
     alert: { type: String },
     cash: { type: Number },
+    programNoise: { type: Number },
     traceSeconds: { type: Number },
     connectionStatus: { type: String },
     connectionLabel: { type: String },
@@ -25,6 +26,7 @@ class StarnetHud extends StarnetElement {
     super();
     this.alert = "green";
     this.cash = 0;
+    this.programNoise = 0;
     this.traceSeconds = null;
     this.connectionStatus = "";
     this.connectionLabel = "PASSIVE SCAN";
@@ -89,6 +91,10 @@ class StarnetHud extends StarnetElement {
         <img class="hud-lamp" id="alert-dot" alt="alert ${this.alert}" src=${alertLampDataUri(this.alert)}>
         <span class="hud-label">ALERT:</span>
         <span class="hud-value" id="alert-level" style="color:${alertColor}">${this.alert.toUpperCase()}</span>
+        ${this.phase === "playing" ? html`
+          <span class="hud-label">NOISE:</span>
+          <span class="hud-value" id="noise-level">${this.programNoise ?? 0}</span>
+        ` : nothing}
       </div>
 
       <span class="hud-label">WALLET:</span>

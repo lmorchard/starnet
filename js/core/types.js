@@ -148,6 +148,7 @@
  *   hand: ExploitCard[],
  *   health: { current: number, max: number },
  *   deckIntegrity: { current: number, max: number },
+ *   capturedCredentials: string[],
  * }} PlayerState
  */
 
@@ -315,6 +316,8 @@
  *   type: ('money'|'data'|'audit'|'control'|'credential'),
  *   rate: number,
  *   encrypted?: boolean,
+ *   key?: string,
+ *   revealed?: boolean,
  * }} Flow
  */
 
@@ -329,6 +332,7 @@
  *   nodes: Object.<string, NodeState>,
  *   adjacency: Object.<string, string[]>,
  *   flows: Flow[],
+ *   programNoise: number,
  *   player: PlayerState,
  *   globalAlert: GlobalAlertLevel,
  *   traceSecondsRemaining: number|null,

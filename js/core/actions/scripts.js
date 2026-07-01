@@ -11,6 +11,9 @@ export const CORE_NODE_VERBS = new Set([
   A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.MINE, A.KICK,
   A.REBOOT, A.ABORT, A.TARGET, A.UNTARGET, A.JACKOUT,
   A.EXEC, // synthetic submenu action — not itself a script
+  // Flow programs stay top-level: SNIFF hosts its own flow picker (EXEC can't nest a
+  // followup), and both are core player verbs rather than node-authored scripts.
+  A.SNIFF, A.REPLAY,
 ]);
 
 /** @param {string} id @returns {boolean} */

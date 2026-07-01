@@ -13,6 +13,7 @@ import {
   resolveNode, resolveImplicitNode, resolveCard, dispatch, resolveWanAccess,
 } from "./resolvers.js";
 import { isObscured } from "../state/node.js";
+import { visibleIncidentFlows, flowId } from "../programs.js";
 import { A } from "../action-ids.js";
 import {
   cmdStatusSummary, cmdStatusFull, cmdStatusIce, cmdStatusHand,
@@ -29,6 +30,25 @@ const CHEAT_POOLS      = ["health", "deck"];
 const CHEAT_RARITIES   = ["common", "uncommon", "rare"];
 const CHEAT_ALERTS     = ["green", "yellow", "red", "trace"];
 const CHEAT_TRACE_SUBS = ["start", "end"];
+
+// ── Flow-program command helpers ──────────────────────────────────────────────
+
+/** One-line description of a flow relative to a node (for the `sniff` listing). */
+function flowDesc(f, nodeId) {
+  const other = f.from === nodeId ? f.to : f.from;
+  const dir = f.from === nodeId ? "→" : "←";
+  const conceal = f.encrypted && !f.revealed ? " [encrypted]" : "";
+  const type = f.encrypted && !f.revealed ? "?????" : f.type;
+  return `${type} ${dir} ${other}${conceal}`;
+}
+
+/** Resolve a flow reference (1-based index, type name, or full flow id) against a node's flows. */
+function resolveFlow(flows, ref) {
+  const n = Number(ref);
+  if (Number.isInteger(n) && n >= 1 && n <= flows.length) return flows[n - 1];
+  const lc = String(ref).toLowerCase();
+  return flows.find((f) => f.type === lc) || flows.find((f) => flowId(f).toLowerCase() === lc) || null;
+}
 
 // ── Command definitions ───────────────────────────────────────────────────────
 
@@ -86,6 +106,45 @@ export const COMMANDS = [
   },
 
   // kick — dynamically discovered from graph available actions
+
+  // ── flow programs (SNIFF / REPLAY) ───────────────────────────────────────────
+  // Not dynamically discovered: they're actions-layer injections, not graph actions,
+  // and SNIFF takes a flow argument (like xploit takes a card).
+  { verb: "sniff",
+    complete(args, partial, state) {
+      if (args.length === 0 && !state.selectedNodeId) return fromNodes(state.nodes, partial);
+      return null;
+    },
+    execute(args) {
+      const s = getState();
+      let node = null, ref = null;
+      if (args.length >= 2)              { node = resolveNode(args[0]); ref = args.slice(1).join(" "); }
+      else if (args.length === 1 && s.selectedNodeId) { node = resolveImplicitNode(); ref = args[0]; }
+      else if (args.length === 1)        { node = resolveNode(args[0]); }        // sniff <node> → list
+      else if (s.selectedNodeId)         { node = resolveImplicitNode(); }        // sniff → list
+      else { addLogEntry("Usage: sniff <node> [flow]  (or select a node: sniff [flow])", "error"); return; }
+      if (!node) return;
+      const flows = visibleIncidentFlows(s, node.id);
+      if (flows.length === 0) { addLogEntry(`no flows on ${node.id}.`, "meta"); return; }
+      if (!ref) {
+        addLogEntry(`flows on ${node.id}:`, "meta");
+        flows.forEach((f, i) => addLogEntry(`  ${i + 1}. ${flowDesc(f, node.id)}`, "meta"));
+        return;
+      }
+      const flow = resolveFlow(flows, ref);
+      if (!flow) { addLogEntry(`sniff: no flow "${ref}" on ${node.id}.`, "error"); return; }
+      dispatch(A.SNIFF, { nodeId: node.id, flowId: flowId(flow) });
+    },
+  },
+
+  { verb: "replay",
+    complete: completeNodeArg,
+    execute(args) {
+      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
+      if (!node) { addLogEntry("Usage: replay <node>  (or select a node first)", "error"); return; }
+      dispatch(A.REPLAY, { nodeId: node.id });
+    },
+  },
 
   // ── exec — run a node script (grouped non-core node actions) ─────────────────
   { verb: "exec",

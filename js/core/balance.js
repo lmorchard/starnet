@@ -70,6 +70,14 @@ export const MONITOR_TRACE_THRESHOLD = { S: 4, A: 5, B: 7, C: 9, D: 12, F: 15 };
 /** Trace countdown duration (seconds) scales with network threat grade. */
 export const TRACE_SECONDS = { S: 30, A: 40, B: 45, C: 60, D: 75, F: 90 };
 
+// ── Program noise (third alert sensor; Session 1) ────────────────────────────
+// Each flow-program play adds heat; crossing the cumulative thresholds steps the
+// SAME green→yellow→red→trace ladder, and the trace threshold starts the SAME
+// trace clock. Quiet solutions are the skill. PLACEHOLDER VALUES — tuned by feel
+// with Les (the bot doesn't use programs, so census only confirms no-regression).
+export const PROGRAM_NOISE_COST = { sniff: 1, replay: 3 };
+export const PROGRAM_NOISE_THRESHOLD = { yellow: 2, red: 4, trace: 6 };
+
 // ── ICE movement / detection ─────────────────────────────────────────────────
 
 // Grade → movement interval (ms); must be longer than the corresponding DWELL_TIMES entry.

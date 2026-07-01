@@ -26,7 +26,9 @@ export function buildNetwork() {
   });
   const switch1 = createRouter("switch-1");
   const switch2 = createRouter("switch-2");
-  const fw = createFirewall("fw-1", { grade: "A" });
+  // fw-1 is finesse-only (Flow Subversion Session 1): it can't be brute-forced — it trusts
+  // the credential that flows in from switch-2 (SNIFF that flow → REPLAY the token here).
+  const fw = createFirewall("fw-1", { grade: "A", finesse: { key: "fw-root-key" } });
   const vault = createCryptovault("vault-1", { grade: "A" });
   const wan = createWAN("wan");
 
@@ -123,7 +125,7 @@ export function buildNetwork() {
         { from: "gateway", to: "switch-1", type: "control", rate: 0.4 },
         { from: "office/fileserver", to: "switch-1", type: "data", rate: 0.5 },
         { from: "switch-2", to: "sec/ids", type: "audit", rate: 0.35 },
-        { from: "switch-2", to: "fw-1", type: "credential", rate: 0.25, encrypted: true },
+        { from: "switch-2", to: "fw-1", type: "credential", rate: 0.25, encrypted: true, key: "fw-root-key" },
       ],
     },
   };

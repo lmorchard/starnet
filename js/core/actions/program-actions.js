@@ -1,0 +1,80 @@
+// @ts-check
+/**
+ * Flow-program actions (Session 1). Programs are a fixed always-available kit surfaced as
+ * node-contextual actions — NOT node traits (the kit is player-owned, not node-intrinsic) and
+ * NOT EXEC scripts (SNIFF hosts its own flow picker, which EXEC can't nest). getProgramActions
+ * is injected into getAvailableActions; availability that the node-graph's `requires` can't
+ * express (incident flows, player-held credentials) is filtered here — mirroring the KICK filter.
+ */
+
+/** @typedef {import('../types.js').ActionDef} ActionDef */
+/** @typedef {import('../types.js').NodeState} NodeState */
+/** @typedef {import('../types.js').GameState} GameState */
+
+import { A } from "../action-ids.js";
+import { visibleIncidentFlows, flowId, sniffFlow, replayCredential } from "../programs.js";
+
+/**
+ * Flow choices for the SNIFF picker — plain DATA (core stays UI-free). The picker component
+ * (starnet-action-choices) renders the glyph from flow-glyphs geometry.
+ * @param {NodeState} node @param {GameState} state
+ */
+export function getFlowChoices(node, state) {
+  return visibleIncidentFlows(state, node.id).map((f) => ({
+    id: flowId(f),
+    payloadKey: "flowId",
+    render: "flow-packet",
+    data: {
+      type: f.type,
+      encrypted: !!f.encrypted && !f.revealed,
+      revealed: !!f.revealed,
+      dir: f.from === node.id ? "out" : "in",
+    },
+  }));
+}
+
+export const getFlowEmptyReason = () => "No flows on this node.";
+
+/** @type {ActionDef} */
+export const SNIFF_ACTION = {
+  id: A.SNIFF,
+  label: "SNIFF",
+  available: () => true,
+  desc: () => "Read a data flow on this node; capture a credential if it carries one.",
+  followup: { title: (node) => `SNIFF ${node.id}`, choices: getFlowChoices, empty: getFlowEmptyReason },
+  execute: (node, state, _ctx, payload) => sniffFlow(state, node.id, payload?.flowId),
+};
+
+/** @type {ActionDef} */
+export const REPLAY_ACTION = {
+  id: A.REPLAY,
+  label: "REPLAY",
+  available: () => true,
+  desc: () => "Replay a captured credential to gain trusted access.",
+  execute: (node, state, _ctx) => replayCredential(state, node.id),
+};
+
+/**
+ * Programs available on this node given the player's kit + flow/credential context.
+ * @param {NodeState | null} node @param {GameState} state @returns {ActionDef[]}
+ */
+export function getProgramActions(node, state) {
+  /** @type {ActionDef[]} */
+  const out = [];
+  if (!node || node.visibility !== "accessible") return out;
+
+  // SNIFF: requires the node be PROBED — a measure of careful preparation (you scan/fingerprint
+  // the node before reading its traffic), but a single recon act, NOT the locked→open→owned
+  // XPLOIT climb (that climb is the grind the flow loop exists to avoid). Plus a VISIBLE incident
+  // flow to read (fog-of-war: don't offer SNIFF for a flow to an unrevealed node).
+  if (node.probed && visibleIncidentFlows(state, node.id).length > 0) out.push(SNIFF_ACTION);
+
+  // REPLAY: a finesse-locked node that trusts a credential the player has captured,
+  // not already owned. (Player-held-credential check can't be a node-graph `requires`.)
+  const key = node.trustsCredential;
+  if (node.finesseLocked && key && node.accessLevel !== "owned"
+      && state.player.capturedCredentials.includes(key)) {
+    out.push(REPLAY_ACTION);
+  }
+  return out;
+}

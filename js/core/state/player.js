@@ -24,6 +24,13 @@ export function addCardToHand(card) {
   });
 }
 
+/** Captures a credential token (from a SNIFFed flow). De-dupes; ignores empty. */
+export function addCapturedCredential(key) {
+  mutate((s) => {
+    if (key && !s.player.capturedCredentials.includes(key)) s.player.capturedCredentials.push(key);
+  });
+}
+
 /** Marks the current mission as complete. */
 export function setMissionComplete() {
   mutate((s) => {

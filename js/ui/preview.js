@@ -316,15 +316,19 @@ function rebuildFlows() {
   const density = parseFloat($("flow-density").value) || 0;
   $("flow-density-val").textContent = density.toFixed(2);
   const encrypted = $("flow-encrypted").checked;
+  // "revealed" models a flow that was encrypted but has been SNIFFed: it renders as its true
+  // type again. Only meaningful alongside ENCRYPTED (the sniff-decrypt A/B).
+  const revealed = $("flow-revealed").checked;
   const types = [...document.querySelectorAll(".flow-type")]
     .map((c) => /** @type {HTMLInputElement} */ (c))
     .filter((c) => c.checked)
     .map((c) => c.value);
-  const flows = types.map((type) => ({ from: "flow-src", to: "flow-dst", type, rate: density, encrypted }));
+  const flows = types.map((type) => ({ from: "flow-src", to: "flow-dst", type, rate: density, encrypted, revealed }));
   flowLayer.refresh(flows, cy);
 }
 flowToggles.addEventListener("change", rebuildFlows);
 $("flow-encrypted").addEventListener("change", rebuildFlows);
+$("flow-revealed").addEventListener("change", rebuildFlows);
 $("flow-density").addEventListener("input", rebuildFlows);
 rebuildFlows();
 

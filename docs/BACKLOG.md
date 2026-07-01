@@ -6,6 +6,15 @@ _Compiled from all dev session notes. Not a prioritized roadmap — just a livin
 
 ## Gameplay Systems
 
+### Flow Subversion — anti-tedium arc (heat + verb variants + flows-as-scouting)
+- Full design captured in `docs/design/flow-subversion.md` → "Anti-tedium arc" section. In brief:
+  collapse Session 1's monotonic `programNoise` into a **decaying heat** meter that feeds the alert
+  **ratchet** (hidden per-network thresholds; alert de-escalates *only* via security-subversion, not
+  passively; `lie-low` → faster heat cooling, not alert); add breadth/speed/stealth **verb variants**
+  to the RAM loadout (PROBE-sweep vs meticulous, parallel vs node-at-a-time XPLOIT); and
+  **flows-as-scouting** (traffic visible into unmapped territory directs exploration). Reverses
+  Session 1's "noise only escalates" — needs a census pass. Framing: *grind ≠ preparation.*
+
 ### Exploit Economy / Card Acquisition
 - **Card restock mid-run** — ~~player has no way to get new cards except cheats~~ darknet store at WAN node is now in. Remaining: loot drops from owned nodes, additional store nodes deeper in a network, or mid-run card crafting
 - **Persistent inventory between runs** — in the overworld context, exploit loadout carries across LANs; crafting/acquiring a better kit is part of the meta-loop

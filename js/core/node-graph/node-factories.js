@@ -20,6 +20,8 @@
  * @property {string} [label]
  * @property {string} [grade]
  * @property {Record<string, any>} [attributes]
+ * @property {{ key: string }} [finesse] Firewall-only: makes the node finesse-locked
+ *   (brute-immune), trusting the credential `key` (REPLAY it in to gain access).
  */
 
 /**
@@ -149,14 +151,21 @@ export function createCryptovault(id, config = {}) {
  * @returns {NodeDef}
  */
 export function createFirewall(id, config = {}) {
+  // A finesse firewall can't be brute-forced — it only trusts a captured credential
+  // replayed in (config.finesse = { key }). The finesse-access trait supplies
+  // finesseLocked (suppresses XPLOIT); trustsCredential names the required token.
+  const finesse = config.finesse;
+  const traits = ["graded", "hackable", "rebootable", "gate"];
+  if (finesse) traits.push("finesse-access");
   return {
     id,
     type: "firewall",
-    traits: ["graded", "hackable", "rebootable", "gate"],
+    traits,
     attributes: {
       label: config.label || id,
       grade: config.grade || "A",
       gateAccess: "owned",
+      ...(finesse ? { trustsCredential: finesse.key } : {}),
       ...config.attributes,
     },
   };

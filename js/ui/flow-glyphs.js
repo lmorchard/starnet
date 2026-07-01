@@ -55,6 +55,7 @@ export function flowGlyphFor(type) {
   return FLOW_GLYPHS[type] ?? { color: ENCRYPTED_COLOR, body: "" };
 }
 
+
 /**
  * Inner glyph markup (no <svg> wrapper), 0 0 12 12 space. When `encrypted`, a dim "?" replaces
  * the type glyph. Single source of the encrypted treatment, shared by flowSvg and the layer.
@@ -76,6 +77,17 @@ export function flowGlyphBody(type, opts = {}) {
  */
 export function flowSvg(type, opts = {}) {
   return `<svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">${flowGlyphBody(type, opts)}</svg>`;
+}
+
+/**
+ * Packet glyph as an `<img src>`-ready data URI (matches the HUD indicator-glyph pattern).
+ * Lets DOM/Lit consumers show the glyph without lit's `svg` tag (not in the local lit bundle).
+ * @param {string} type
+ * @param {{ encrypted?: boolean }} [opts]
+ * @returns {string}
+ */
+export function flowGlyphDataUri(type, opts = {}) {
+  return "data:image/svg+xml," + encodeURIComponent(flowSvg(type, opts));
 }
 
 /**

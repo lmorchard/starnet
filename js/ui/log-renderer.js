@@ -142,6 +142,16 @@ export function initLogRenderer() {
   on(E.ALERT_PROPAGATED,    (/** @type {AlertPropagatedPayload} */   { fromLabel, toLabel }) =>
     add(`[ALERT] Event forwarded: ${fromLabel} → ${toLabel}`, "meta"));
 
+  // ── Flow programs (Session 1) ────────────────────────────
+  on(E.FLOW_SNIFFED, ({ nodeId, type }) =>
+    add(`[SNIFF] ${nodeId}: ${type} flow read.`, "info"));
+  on(E.CREDENTIAL_CAPTURED, ({ key }) =>
+    add(`[SNIFF] Credential captured: ${key}.`, "success"));
+  on(E.CREDENTIAL_REPLAYED, ({ nodeId, key }) =>
+    add(`[REPLAY] ${nodeId}: credential ${key} accepted — trusted access.`, "success"));
+  on(E.PROGRAM_NOISE, ({ total }) =>
+    add(`[NOISE] Program noise: ${total}.`, "meta"));
+
   // ── Mission / run events ─────────────────────────────────
   on(E.MISSION_STARTED,  (/** @type {MissionStartedPayload} */  { targetName }) => add(`[MISSION] Objective: retrieve ${targetName}.`, "info"));
   on(E.MISSION_COMPLETE, (/** @type {MissionCompletePayload} */ { targetName }) => add(`[MISSION] ★ Target acquired: ${targetName}.`, "success"));

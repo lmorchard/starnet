@@ -36,7 +36,12 @@ export {
 
 export {
   addCash, setCash, addCardToHand, setMissionComplete, applyCardDecay,
+  addCapturedCredential,
 } from "./state/player.js";
+
+export {
+  flowId, setFlowRevealed, addProgramNoise,
+} from "./state/flow.js";
 
 export {
   setSelectedNode, setPhase, setRunOutcome, toggleMenuOpen, toggleHandCollapsed,

@@ -13,6 +13,7 @@
 /** @typedef {import('../types.js').GameState} GameState */
 
 import { getGlobalActions } from "./global-actions.js";
+import { getProgramActions } from "./program-actions.js";
 import { A } from "../action-ids.js";
 import { activeIceInstances } from "../state/ice.js";
 import { isScriptAction } from "./scripts.js";
@@ -43,9 +44,13 @@ export function getAvailableActions(node, state) {
   // Wrap each graph ActionDef into a game-compatible ActionDef
   const wrapped = filtered.map(ga => wrapGraphAction(ga));
 
+  // Flow programs: a fixed player-owned kit injected as top-level node actions (not scripts,
+  // so they stay out of the EXEC submenu — SNIFF needs its own flow picker).
+  const programs = getProgramActions(node, state);
+
   // Group non-core node actions (scripts) under a synthetic EXEC follow-up action.
   const scripts = wrapped.filter(a => isScriptAction(a.id));
-  const result = [...global, ...wrapped];
+  const result = [...global, ...wrapped, ...programs];
   if (scripts.length > 0) result.push(buildExecAction(scripts));
   return result;
 }
