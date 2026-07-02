@@ -234,10 +234,24 @@ export function prunePresets(font, keepNameSet) {
     const pcm = rawSamples.subarray(oldStart * 2, oldEnd * 2);
     pcmParts.push(pcm);
 
+    // `link` is an index into sampleHeaders pointing at the stereo partner; it must be remapped
+    // like any other sample index. If the partner was culled, the pairing is broken — zero the
+    // link and mark the sample mono so no bogus partner is resolved on reparse.
+    let newLink = 0;
+    let newType = h.type;
+    const isStereo = h.type === 2 || h.type === 4; // Right / Left (ignore ROM/linked exotics)
+    if (isStereo && sampleRemap.has(h.link)) {
+      newLink = sampleRemap.get(h.link);
+    } else if (isStereo) {
+      newType = 1; // partner culled → downgrade to Mono
+    }
+
     outSampleHeaders.push({
       ...h,
       start: frameCursor,
       end: frameCursor + frameCount,
+      link: newLink,
+      type: newType,
       // startLoop / endLoop left unchanged (relative offsets, invariant under move)
     });
 
