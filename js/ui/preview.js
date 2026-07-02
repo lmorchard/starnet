@@ -15,6 +15,7 @@ import {
 } from "./graph.js";
 import { initializeGraphOverlays } from "./overlays/index.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
+import { A } from "../core/action-ids.js";
 import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { FLOW_TYPES } from "./flow-glyphs.js";
@@ -163,9 +164,17 @@ cy.userPanningEnabled(true);
 // element is kept for the preview-only ICE-presence demo node mounted below.
 const overlayLayer = $("overlay-layer");
 const { overlays, flowLayer } = initializeGraphOverlays(overlayLayer);
+const { manager } = overlays;
 
-// SWEEP FAN-OUT LAB (overlay-particle-manager session) — temporary tuning scaffolding.
-import("./preview-sweep-lab.js").then((m) => m.initSweepLab(overlayLayer));
+// Drive the probe demo through the manager (pooled, not a byKey singleton).
+// Maps t → { start, progress, complete } phases matching ACTION_FEEDBACK payloads.
+function driveProbeDemo(nodeId, t) {
+  const phase = t <= 0 ? "start" : t >= 1 ? "complete" : "progress";
+  manager.handleFeedback({ nodeId, action: A.PROBE, phase, progress: t });
+}
+
+// Sweep Fan-out demo — drives N nodes through the manager concurrently.
+import("./preview-sweep-lab.js").then((m) => m.initSweepLab(overlayLayer, manager));
 
 // ── Animation helpers ────────────────────────────────────────
 
@@ -220,12 +229,23 @@ for (const d of OVERLAY_DESCRIPTORS) {
 }
 
 // Each effect drives its mounted overlay element via the sync/clear contract.
-const EFFECTS = OVERLAY_DESCRIPTORS.map((d) => ({
-  name: d.key,
-  nodeId: `demo-${d.key}`,
-  sync: (id, t) => overlays.byKey.get(d.key).sync(id, t),
-  clear: () => overlays.byKey.get(d.key).clear(),
-}));
+// Probe is pooled (managed), so its EFFECT uses driveProbeDemo instead of byKey.
+const EFFECTS = OVERLAY_DESCRIPTORS.map((d) => {
+  if (d.key === "probe") {
+    return {
+      name: d.key,
+      nodeId: `demo-${d.key}`,
+      sync: driveProbeDemo,
+      clear: () => manager.handleFeedback({ nodeId: `demo-${d.key}`, action: A.PROBE, phase: "cancel" }),
+    };
+  }
+  return {
+    name: d.key,
+    nodeId: `demo-${d.key}`,
+    sync: (id, t) => overlays.byKey.get(d.key).sync(id, t),
+    clear: () => overlays.byKey.get(d.key).clear(),
+  };
+});
 
 for (const effect of EFFECTS) {
   const slider = $(`slider-${effect.name}`);
