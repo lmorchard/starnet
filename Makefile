@@ -1,4 +1,4 @@
-.PHONY: all serve dev lint lint-imports test check bundle-vendor census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js dist/strudel.js
@@ -55,6 +55,10 @@ bundle-vendor:
 	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 	npx esbuild js/lit-vendor.js --bundle --outfile=dist/lit.js --format=esm --platform=browser --minify
 	npx esbuild js/strudel-vendor.js --bundle --outfile=dist/strudel.js --format=esm --platform=browser --minify
+
+# Cull each authoring soundfont down to only the presets songs use → *.deploy.sf2
+cull-soundfonts:
+	node scripts/cull-soundfonts.js
 
 # Shared grade defaults for bot/census/generate targets
 THREAT ?= C
