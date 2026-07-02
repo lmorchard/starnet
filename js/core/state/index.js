@@ -38,6 +38,9 @@ import { setCash, addCash, addCardToHand } from "./player.js";
 
 import { NodeGraph } from "../node-graph/runtime.js";
 import { buildGameCtx } from "../node-graph/game-ctx.js";
+// Side-effect import: registers the sweep-cascade operator so it's available
+// whenever initGame constructs a NodeGraph (hackable nodes carry the operator).
+import "../sweep.js";
 
 // ── State + version counter ──────────────────────────────
 

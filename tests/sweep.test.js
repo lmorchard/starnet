@@ -69,6 +69,15 @@ describe("SWEEP — gate-bounded progressive flood-fill", () => {
   });
 });
 
+describe("SWEEP — sweep-pulse graph stimulus", () => {
+  it("a sweep-pulse starts the origin probe and stamps the cascade ttl", () => {
+    initGame(() => buildCorporateExchange(), "sweep-pulse-start");
+    startSweep("gateway", 2);
+    assert.equal(getState().nodes["gateway"].probing, true, "origin probe started via sweep-pulse");
+    assert.equal(getState().nodes["gateway"]._cascade_ttl, 2, "origin stamped with the cascade ttl");
+  });
+});
+
 describe("SWEEP — action, availability, abort", () => {
   it("SWEEP is a top-level (non-script) inspector action, not buried under EXEC", () => {
     initGame(() => buildCorporateExchange(), "sweep-toplevel");
