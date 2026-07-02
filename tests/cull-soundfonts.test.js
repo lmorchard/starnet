@@ -4,8 +4,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import sf2pkg from "soundfont2";
 const { SoundFont2 } = sf2pkg;
-import { cullFont } from "../scripts/cull-soundfonts.js";
+import { cullFont, main } from "../scripts/cull-soundfonts.js";
 import { sanitize } from "../js/audio/strudel/soundfont.js";
+import { SOUNDFONTS } from "../audio-content/soundfonts/manifest.js";
 
 const AUTHORING = "audio-content/soundfonts/GeneralUser-GS.sf2";
 
@@ -73,5 +74,51 @@ test(
     } finally {
       rmSync(outPath, { force: true });
     }
+  },
+);
+
+// Smoke test: run the actual CLI entry point against the REAL manifest. This guards the whole
+// dispatch path — notably that main() SKIPS entries without a deployPath (the topical MuseScore
+// sets), rather than crashing on writeFileSync(undefined). That regression shipped once because
+// nothing exercised the CLI end-to-end (the unit test above only calls cullFont directly).
+// main() regenerates GeneralUser-GS.deploy.sf2 — the cull is deterministic, so it rewrites the
+// committed file byte-identically (working tree stays clean).
+test(
+  "cull CLI main() runs against the real manifest without throwing",
+  { skip: !existsSync(AUTHORING) && "authoring font absent" },
+  () => {
+    // The guard is only meaningful if the manifest actually contains deployPath-less entries
+    // (the topical sets) — i.e. the exact scenario that used to crash.
+    assert.ok(
+      SOUNDFONTS.some((e) => !e.deployPath),
+      "expected the manifest to contain deployPath-less topical entries (the regression scenario)",
+    );
+
+    // main() logs progress; silence it so the test output stays clean.
+    const origLog = console.log;
+    console.log = () => {};
+    try {
+      assert.doesNotThrow(
+        () => main(),
+        "cull CLI must handle deployPath-less manifest entries without throwing",
+      );
+    } finally {
+      console.log = origLog;
+    }
+
+    // The regenerated gus_ deploy font must reparse and register the expected loader names.
+    const gus = SOUNDFONTS.find((e) => e.prefix === "gus_");
+    assert.ok(gus?.deployPath, "manifest must have a gus_ entry with a deployPath");
+    const out = new SoundFont2(new Uint8Array(readFileSync(gus.deployPath)));
+    const loaderNames = new Set(
+      out.presets
+        .map((p) => p.header.name)
+        .filter((n) => n !== "EOP")
+        .map((name, i) => sanitize(name, i, "gus_")),
+    );
+    assert.ok(
+      loaderNames.has("gus_warm_pad") && loaderNames.has("gus_synth_bass_1"),
+      `regenerated deploy font registers ${JSON.stringify([...loaderNames])}`,
+    );
   },
 );
