@@ -1,4 +1,4 @@
-.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts sf3-to-sf2 census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts sf3-to-sf2 gen-prebake census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js dist/strudel.js
@@ -64,6 +64,10 @@ cull-soundfonts:
 # Download authoring soundfonts (large; gitignored) from their hosts
 fetch-soundfonts:
 	node scripts/fetch-authoring-soundfonts.js
+
+# Regenerate the strudel.cc prebake from the soundfont manifest (loads FULL authoring fonts)
+gen-prebake:
+	node scripts/gen-prebake.js
 
 # One-time: convert a compressed .sf3 to the uncompressed .sf2 our runtime parser requires.
 # Requires `sf3convert` (MuseScore tools). Usage: make sf3-to-sf2 IN=foo.sf3 OUT=foo.sf2

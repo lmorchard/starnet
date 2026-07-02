@@ -19,7 +19,7 @@ export const SOUNDFONTS = [
     authoringPath: "audio-content/soundfonts/MuseScore_General.sf2",
     deployPath: "audio-content/soundfonts/MuseScore_General.deploy.sf2",
     license: "audio-content/soundfonts/MuseScore_General.LICENSE.txt",
-    host: "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General.sf2",
+    host: "https://github.com/lmorchard/starnet/releases/download/soundfonts-authoring/MuseScore_General.sf2", // self-hosted mirror of OSUOSL original (OSUOSL has no CORS; GitHub release asset does)
     allow: ["msg_halo_pad"],
   },
 ];
