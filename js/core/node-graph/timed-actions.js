@@ -13,15 +13,18 @@
 
 /**
  * @typedef {Object} TimedActionDef
- * @property {string} action      timed-action id (drives the _ta_<action>_* attr names)
- * @property {string} activeAttr  boolean "in progress" attribute (mapped explicitly — irregular)
- * @property {boolean} abortable  whether ABORT can cancel it (reboot is involuntary, so no)
+ * @property {string} action        timed-action id (drives the _ta_<action>_* attr names)
+ * @property {string} activeAttr    boolean "in progress" attribute (mapped explicitly — irregular)
+ * @property {boolean} abortable    whether ABORT can cancel it (reboot is involuntary, so no)
+ * @property {string[]} [clearOnCancel] extra node attributes to null out when the action is cancelled
+ *   (nav-cancel / jack-out). Beyond the standard activeAttr/progress/duration reset — e.g. xploit's
+ *   `activeExploitId`. Centralized here so the nav-cancel handler stays a generic loop (#225).
  */
 
 /** @type {TimedActionDef[]} */
 export const TIMED_ACTIONS = [
   { action: "probe",   activeAttr: "probing",    abortable: true },
-  { action: "xploit",  activeAttr: "exploiting", abortable: true },
+  { action: "xploit",  activeAttr: "exploiting", abortable: true, clearOnCancel: ["activeExploitId"] },
   { action: "dump",    activeAttr: "reading",    abortable: true },
   { action: "fetch",   activeAttr: "looting",    abortable: true },
   { action: "mine",    activeAttr: "mining",     abortable: true },
@@ -30,11 +33,19 @@ export const TIMED_ACTIONS = [
 ];
 
 /**
+ * The ABORTABLE timed actions — the set the nav-cancel / jack-out handler resets. reboot is
+ * excluded (involuntary). The nav-cancel handler (game-ctx.js) iterates this instead of
+ * hand-enumerating each action.
+ * @type {TimedActionDef[]}
+ */
+export const ABORTABLE_TIMED_ACTIONS = TIMED_ACTIONS.filter((t) => t.abortable);
+
+/**
  * activeAttr flags for the ABORTABLE timed actions. ABORT shows when any is true;
  * NOT_BUSY (action-templates.js) requires all of them — plus `rebooting` — false.
  * @type {string[]}
  */
-export const ABORTABLE_FLAGS = TIMED_ACTIONS.filter((t) => t.abortable).map((t) => t.activeAttr);
+export const ABORTABLE_FLAGS = ABORTABLE_TIMED_ACTIONS.map((t) => t.activeAttr);
 
 /**
  * The standard attribute names for a timed action, derived from its id. Operators
