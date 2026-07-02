@@ -51,6 +51,16 @@
  * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
  * @property {string} [enabledAttr]     - if set, operator is skipped when this node attribute is false
  * @property {boolean} [armable]      - watchdog: stay dormant until the first non-tick message arms it
+ * @property {boolean} [_abortable]   - timed-action (synthesized only): whether ABORT/nav-cancel may
+ *   cancel this action; set by timed-synthesis.js from ActionDef.timed.abortable, defaults to true
+ *   when absent (#187 Phase 2 review fix)
+ * @property {ActionFeedbackSpec} [feedback] - timed-action: inline feedback-profile override
+ *   (#187 Phase 3), threaded from ActionDef.feedback by timed-synthesis.js and echoed on the
+ *   "start" ACTION_FEEDBACK payload — see js/ui/feedback-profiles.js
+ * @property {boolean} [emitStartOnArm] - timed-action (synthesized only): set by
+ *   timed-synthesis.js for a flat `duration` (no durationTable); makes the operator emit
+ *   "start" on the first counting tick instead of the grade-table branch, which flat
+ *   durations bypass (#187 review fix — flatstart bug)
  */
 
 /**
@@ -104,11 +114,48 @@
  * @property {FollowupStep} [followup]  - if set, choosing this action opens a node-anchored choice panel instead of executing immediately
  * @property {Condition[]} requires   - implicit all-of; all must pass
  * @property {Effect[]} effects
+ * @property {TimedActionSpec} [timed]  - if set, synthesizeTimedActions() (timed-synthesis.js) rewrites
+ *   this action into a timed one at node construction: a `timed-action` operator (operators.js) is
+ *   generated with `onComplete` set to this action's original `effects`, and `effects` itself is
+ *   replaced with the "arm" pattern (set active flag, zero progress, seed duration if given). See #187.
+ * @property {boolean} [instant]  - opts a script/set-piece action OUT of the timed-by-default flip
+ *   (#187 default-flip): a non-core-verb action is synthesized as timed even without an explicit
+ *   `timed` block (default duration) UNLESS `instant: true` is set. For UI/panic/exit actions that
+ *   are not in-world timed work (e.g. CANCEL_TRACE, ACCESS_DARKNET, DISCONNECT). Ignored if `timed`
+ *   is also set (explicit `timed` always wins).
+ * @property {ActionFeedbackSpec} [feedback]  - per-action feedback profile override (#187 Phase 3):
+ *   { overlay?, drone?, completionCue? }. Layered inline → ACTION_FEEDBACK_PROFILES[actionId]
+ *   (central) → DEFAULT_PROFILE — see js/ui/feedback-profiles.js `resolveFeedback()`. Threaded onto
+ *   the synthesized timed-action operator's config by timed-synthesis.js and emitted on the
+ *   ACTION_FEEDBACK "start" payload by operators.js so overlay dispatch + the Strudel audio module
+ *   can honor a set-piece author's inline override.
+ * @property {boolean} [_timedSynthesized]  - set by synthesizeTimedActions() on the *replacement*
+ *   action object it returns; guards against re-synthesizing an already-synthesized node. Never set
+ *   on an author-supplied ActionDef directly (see timed-synthesis.js for why).
+ */
+
+/**
+ * Declares an ActionDef as a timed action (#187, Phase 1). See `timed` on ActionDef.
+ * @typedef {Object} TimedActionSpec
+ * @property {number} [duration]        - fixed duration in ticks, seeded directly by the arm effects
+ * @property {Record<string, number>} [durationTable] - grade → ticks, resolved by the timed-action operator itself
+ * @property {boolean} [abortable]      - whether ABORT/nav-cancel can cancel this synthesized action;
+ *   defaults to true. Wired onto the synthesized operator as `_abortable` (timed-synthesis.js) and
+ *   read by the `active-abortable-timed-action` condition / getActiveAbortableTimedAction (#187 Phase 2 review fix)
+ */
+
+/**
+ * Per-action feedback profile override (#187 Phase 3) — see `feedback` on ActionDef and
+ * js/ui/feedback-profiles.js.
+ * @typedef {Object} ActionFeedbackSpec
+ * @property {string} [overlay]        - overlay element name (js/ui/overlays/registry.js)
+ * @property {string} [drone]          - Strudel drone id (js/audio/strudel/data/drones.js)
+ * @property {string} [completionCue]  - Strudel one-shot cue id fired on completion
  */
 
 /**
  * Condition — union of supported condition shapes.
- * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | AllOfCondition | AnyOfCondition | NotCondition} Condition
+ * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | NoActiveTimedActionCondition | ActiveAbortableTimedActionCondition | AllOfCondition | AnyOfCondition | NotCondition} Condition
  */
 
 /**
@@ -140,6 +187,25 @@
  * @property {string} attr           - node attribute containing the quality name
  * @property {number} [gte]          - quality value >= threshold
  * @property {number} [eq]           - quality value === threshold
+ */
+
+/**
+ * Passes when the node has NO active timed-action operator (#187 Phase 2) — a
+ * structural check (via NodeGraph#isNodeBusy) rather than a named-attribute one,
+ * so it also catches a synthesized `timed` action's dynamically-named activeAttr.
+ * @typedef {Object} NoActiveTimedActionCondition
+ * @property {'no-active-timed-action'} type
+ * @property {string} [nodeId]        - omitted in action requires (runtime fills it in)
+ */
+
+/**
+ * Passes when the node HAS an active timed-action operator that ABORT is allowed
+ * to cancel (review fix, #187 Phase 2) — narrower than NoActiveTimedActionCondition:
+ * excludes an action registered `abortable: false` (reboot) or a synthesized action
+ * whose operator carries `_abortable: false`. Drives ABORT_ACTION.requires.
+ * @typedef {Object} ActiveAbortableTimedActionCondition
+ * @property {'active-abortable-timed-action'} type
+ * @property {string} [nodeId]        - omitted in action requires (runtime fills it in)
  */
 
 /**

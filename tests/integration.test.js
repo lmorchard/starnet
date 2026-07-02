@@ -981,6 +981,7 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
         graph.setNodeAttr(sw, "accessLevel", "owned");
         graph.executeAction(sw, "activate");
       }
+      graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
 
       const vault = s.nodes["sp/vault"];
       assert.equal(vault.concealed, false,
@@ -1306,6 +1307,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
 
     graph.setNodeAttr("sp/monitor", "accessLevel", "open");
     graph.executeAction("sp/monitor", "scrub-logs");
+    graph.tick(20); // scrub-logs is timed-by-default (#187 default-flip) — let it complete
 
     assert.equal(graph.getNodeState("sp/monitor").alertCount, 0, "scrub resets the monitor's count");
     assert.equal(ORDER.indexOf(getState().globalAlert), ORDER.indexOf(before) - 1,
@@ -1356,6 +1358,7 @@ describe("security grid: IDS->monitor escalation (#173)", () => {
     const graph = getState().nodeGraph;
     graph.setNodeAttr("sp/ids", "accessLevel", "owned");
     graph.executeAction("sp/ids", "corrupt");
+    graph.tick(20); // corrupt is timed-by-default (#187 default-flip) — let it complete
     assert.equal(graph.getNodeState("sp/ids").forwardingEnabled, false, "corrupt should disable forwarding");
 
     for (let i = 0; i < 30; i++) sendAlert(graph); // far past any grade threshold
@@ -1618,12 +1621,15 @@ describe("EXEC synthetic action injection", () => {
     assert.ok(!actions.some((a) => a.id === A.EXEC), "no EXEC when no scripts");
   });
 
-  it("EXEC.execute runs the chosen script (forwarding disabled), same as dispatching it directly", () => {
+  it("EXEC.execute runs the chosen script (forwarding disabled on completion), same as dispatching it directly", () => {
     const s = getState();
     s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
     s.nodeGraph.setNodeAttr("ids-1", "forwardingEnabled", true);
     const exec = getAvailableActions(s.nodes["ids-1"], s).find((a) => a.id === A.EXEC);
     exec.execute(s.nodes["ids-1"], s, {}, { scriptId: "corrupt", nodeId: "ids-1" });
+    // corrupt is timed (#187 Phase 5) — EXEC only arms it; tick to completion (grade C: 15 ticks
+    // + 1 to resolve duration from the table).
+    s.nodeGraph.tick(16);
     assert.equal(s.nodes["ids-1"].forwardingEnabled, false);
   });
 });
@@ -1669,6 +1675,10 @@ describe("EXEC dispatch echo", () => {
     off(E.COMMAND_ISSUED, h);
 
     assert.deepEqual(echoes, ["exec corrupt"], "exactly one echo reading 'exec corrupt'");
+
+    // corrupt is timed (#187 Phase 5) — the dispatch only arms it; tick to completion
+    // (grade C: 15 ticks + 1 to resolve duration from the table).
+    s.nodeGraph.tick(16);
     assert.equal(getState().nodes["ids-1"].forwardingEnabled, false, "script ran");
   });
 });

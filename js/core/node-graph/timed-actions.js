@@ -62,3 +62,19 @@ export function getTimedActionAttrNames(action) {
     durationAttr: `_ta_${action}_duration`,
   };
 }
+
+/**
+ * The active-flag attribute name for a *synthesized* timed action (#187, Phase 1):
+ * an ActionDef's declarative `timed` block doesn't hand-pick an irregular activeAttr
+ * name the way the seven hand-wired TIMED_ACTIONS entries do (`probing`, `exploiting`,
+ * etc.) — it mints one deterministically from the action id instead. Not registered in
+ * TIMED_ACTIONS (it has no fixed activeAttr to enumerate), but a synthesized abortable
+ * action DOES participate in NOT_BUSY/ABORT/nav-cancel — those checks find it
+ * structurally instead, via NodeGraph#getActiveTimedAction /
+ * #getActiveAbortableTimedAction, rather than by name (#187 Phase 2).
+ * @param {string} actionId
+ * @returns {string}
+ */
+export function timedActiveAttr(actionId) {
+  return `_ta_active_${actionId}`;
+}

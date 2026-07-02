@@ -87,10 +87,12 @@ export function initVisualRenderer() {
   on(E.NODE_REVEALED, refreshFlows);
   on(E.RUN_STARTED, () => flowLayer.clear());
 
-  // action id → node id of the in-flight animation (tracked across feedback events)
+  // action id → { nodeId, overlayName } of the in-flight animation (tracked across feedback
+  // events; the overlay name is resolved once at "start" — see dispatch.js — since later
+  // phases don't carry the action's feedback profile)
   const activeNodeIds = new Map();
   on(E.ACTION_FEEDBACK, (payload) =>
-    dispatchActionFeedback(overlays.byAction, activeNodeIds, payload, { onXploitProgress: updateExploitProgress }));
+    dispatchActionFeedback(overlays.byName, activeNodeIds, payload, { onXploitProgress: updateExploitProgress }));
 
   // Exploit result flash — driven by ACTION_RESOLVED
   on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {

@@ -65,6 +65,7 @@ function makeScatteredLock(n, cost) {
           {
             id: "scan-lock",
             label: "Scan Lock",
+            instant: true,   // status readout, not in-world work — stays instant (#187)
             requires: [
               /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             ],
@@ -91,7 +92,14 @@ function makeScatteredLock(n, cost) {
               // (owned + locks-opened>=n) are monotonic and never revert, so without
               // this the action stays available forever and farms cash on every click.
               /** @type {const} */ ({ type: "node-attr", attr: "cracked", eq: false }),
+              // One-at-a-time gate (#187 Phase 5): structural check, same as the core
+              // verbs' NOT_BUSY — blocks re-triggering while the crack is already in flight.
+              /** @type {const} */ ({ type: "no-active-timed-action" }),
             ],
+            // Timed (#187 default-flip): crack-vault is a script action, so it's
+            // synthesized as timed by default (DEFAULT_SCRIPT_ACTION_DURATION, same 20-tick
+            // feel-draft value this explicit block used to spell out) — turning the instant
+            // payout into a legible crack rather than a silent dud, with no annotation needed.
             effects: [
               /** @type {const} */ ({ effect: "ctx-call", method: "giveReward", args: [1500] }),
               /** @type {const} */ ({ effect: "set-attr", attr: "cracked", value: true }),
@@ -181,6 +189,7 @@ function makeScatteredKeyVault(n, cost) {
           {
             id: "scan-vault",
             label: "Scan Vault",
+            instant: true,   // status readout, not in-world work — stays instant (#187)
             requires: [
               /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             ],
@@ -245,7 +254,14 @@ function makeScatteredEncryptedVault(n, cost) {
           requires: [
             /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             /** @type {const} */ ({ type: "node-attr", attr: "keyExtracted", eq: false }),
+            // One-at-a-time gate (#187 Phase 5): structural check, same as the core
+            // verbs' NOT_BUSY — blocks re-triggering while the extraction is in flight.
+            /** @type {const} */ ({ type: "no-active-timed-action" }),
           ],
+          // Timed (#187 default-flip): extract-key is a script action, so it's synthesized
+          // as timed by default (DEFAULT_SCRIPT_ACTION_DURATION, same 20-tick feel-draft
+          // value this explicit block used to spell out) — turning the instant extraction
+          // into a legible process rather than a silent dud, with no annotation needed.
           effects: [
             /** @type {const} */ ({ effect: "set-attr", attr: "keyExtracted", value: true }),
             /** @type {const} */ ({ effect: "quality-delta", name: "decryption-keys", delta: 1 }),
@@ -271,6 +287,7 @@ function makeScatteredEncryptedVault(n, cost) {
           {
             id: "scan-vault",
             label: "Scan Vault",
+            instant: true,   // status readout, not in-world work — stays instant (#187)
             requires: [
               /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             ],

@@ -21,9 +21,12 @@ import { ABORTABLE_FLAGS, getTimedActionAttrNames } from "./timed-actions.js";
 // ── Shared action templates ──────────────────────────────────
 
 // activeAttr flags for the player-initiated, abortable timed actions, sourced
-// from the TIMED_ACTIONS registry (timed-actions.js): ABORT shows when any is
-// true, and NOT_BUSY (below) requires all of them false. Add new timed actions
-// to the registry, not here.
+// from the TIMED_ACTIONS registry (timed-actions.js): NOT_BUSY (below) requires
+// all of them false. ABORT no longer reads this list directly — it uses the
+// structural `active-abortable-timed-action` condition instead (#187 Phase 2
+// review fix) — but NOT_BUSY still needs the enumerated flags (a busy node is
+// busy whether or not the thing making it busy is abortable). Add new timed
+// actions to the registry, not here.
 const TIMED_ACTION_FLAGS = ABORTABLE_FLAGS;
 
 // A node may run at most ONE timed action at a time. Every startable action
@@ -36,9 +39,15 @@ const TIMED_ACTION_FLAGS = ABORTABLE_FLAGS;
 // rather than `eq false`: some flags (e.g. reading/looting) aren't defined on
 // non-lootable node types, and undefined must read as idle, not busy.
 /** @type {import('./types.js').Condition[]} */
-const NOT_BUSY = [...TIMED_ACTION_FLAGS, "rebooting"].map(
-  (attr) => ({ type: "not", condition: { type: "node-attr", attr, eq: true } })
-);
+const NOT_BUSY = [
+  ...[...TIMED_ACTION_FLAGS, "rebooting"].map(
+    (attr) => /** @type {Condition} */ ({ type: "not", condition: { type: "node-attr", attr, eq: true } })
+  ),
+  // Structural check (#187 Phase 2), additive alongside the enumerated flags above:
+  // catches a busy *synthesized* timed action (declarative ActionDef.timed), whose
+  // activeAttr is minted per-action-id and so can't be named in TIMED_ACTION_FLAGS.
+  { type: "no-active-timed-action" },
+];
 
 /** @type {ActionDef} */
 const PROBE_ACTION = {
@@ -57,19 +66,22 @@ const PROBE_ACTION = {
 };
 
 // Abort: unified cancel for any timed action. The execution is generic
-// (queries timed-action operators at runtime); the requires list shows it
-// whenever any abortable timed action is in flight (see TIMED_ACTION_FLAGS).
+// (queries timed-action operators at runtime); the requires list is the single
+// structural `active-abortable-timed-action` check (#187 Phase 2 review fix) —
+// it covers both the enumerated core verbs (probe, xploit, …) and a synthesized
+// timed action (dynamically-named activeAttr) alike, while EXCLUDING an action
+// marked non-abortable (reboot — involuntary, ABORT must not offer to cancel it).
+// This replaced a broader `not(no-active-timed-action)` check that didn't
+// distinguish abortable from non-abortable, which let ABORT wrongly show during
+// a reboot. The #282 process-framework busy case (SWEEP, …) is handled
+// separately, one layer up in node-actions.js — it swaps in its own ABORT
+// before this template is ever consulted, so it isn't duplicated here.
 /** @type {ActionDef} */
 const ABORT_ACTION = {
   id: A.ABORT,
   label: "ABORT",
   desc: "Cancel the current timed action.",
-  requires: [
-    {
-      type: "any-of",
-      conditions: TIMED_ACTION_FLAGS.map((attr) => ({ type: "node-attr", attr, eq: true })),
-    },
-  ],
+  requires: [{ type: "active-abortable-timed-action" }],
   effects: [
     { effect: "ctx-call", method: "abortTimedAction", args: ["$nodeId"] },
   ],
@@ -215,7 +227,13 @@ const RECONFIGURE_ACTION = {
       ],
     },
     { type: "node-attr", attr: "forwardingEnabled", eq: true },
+    ...NOT_BUSY,
   ],
+  // Timed (#187 Phase 5): subverting an IDS takes time, grade-scaled — a higher-grade
+  // IDS resists longer. Feel-draft numbers. Synthesis (timed-synthesis.js) rewrites these
+  // `effects` into the timed-action operator's `onComplete`, so forwardingEnabled only
+  // flips (and reconfigureNode only fires) once the subversion completes, not at dispatch.
+  timed: { durationTable: { S: 30, A: 25, B: 20, C: 15, D: 12, F: 8 } },
   effects: [
     { effect: "set-attr", attr: "forwardingEnabled", value: false },
     { effect: "ctx-call", method: "reconfigureNode", args: ["$nodeId"] },
@@ -227,6 +245,10 @@ const CANCEL_TRACE_ACTION = {
   id: A.CANCEL_TRACE,
   label: "CANCEL TRACE",
   desc: "Abort trace countdown.",
+  // Instant (#187 default-flip opt-out): the panic button. Racing the trace countdown
+  // while the game keeps the player waiting on this action to complete would be pure
+  // frustration, not in-world timed work.
+  instant: true,
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
   ],
@@ -240,6 +262,9 @@ const ACCESS_DARKNET_ACTION = {
   id: A.ACCESS_DARKNET,
   label: "ACCESS DARKNET",
   desc: "Access the darknet broker to purchase exploit cards.",
+  // Instant (#187 default-flip opt-out): a UI transition (opens the store modal), not
+  // in-world timed work.
+  instant: true,
   requires: [],
   effects: [
     { effect: "ctx-call", method: "openDarknetsStore", args: [] },
@@ -251,6 +276,9 @@ const DISCONNECT_ACTION = {
   id: A.DISCONNECT,
   label: "DISCONNECT",
   desc: "Sever the uplink — jack out and end the run.",
+  // Instant (#187 default-flip opt-out): jacking out ends the run immediately — an exit
+  // action, not in-world timed work.
+  instant: true,
   requires: [],
   effects: [
     { effect: "ctx-call", method: "jackOut", args: [] },

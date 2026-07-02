@@ -363,6 +363,7 @@ describe("player action execute — full pipeline", () => {
     }, ctx);
 
     graph.executeAction("switch", "flip-route");
+    graph.tick(20); // flip-route is a script action, timed-by-default (#187 default-flip)
 
     assert.equal(graph.getQuality("routing-panels-aligned"), 1);
     assert.equal(ctx.calls.giveReward?.length, 1);
