@@ -57,8 +57,9 @@ bundle-vendor:
 	npx esbuild js/strudel-vendor.js --bundle --outfile=dist/strudel.js --format=esm --platform=browser --minify
 
 # Cull each authoring soundfont down to only the presets songs use → *.deploy.sf2
+# MuseScore_General.sf2 is ~206MB; --max-old-space-size=4096 prevents OOM on large parses.
 cull-soundfonts:
-	node scripts/cull-soundfonts.js
+	node --max-old-space-size=4096 scripts/cull-soundfonts.js
 
 # Download authoring soundfonts (large; gitignored) from their hosts
 fetch-soundfonts:
