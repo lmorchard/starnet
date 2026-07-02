@@ -239,3 +239,11 @@ The engine is browser-only. Confirm the headless entry points never import audio
 6. **Other biomes** — alien/ancient (BoC/weirder); the song manifest already supports more entries.
 7. **More game signals** — expose additional state variables via `SIGNAL_REGISTRY` for richer
    reactivity (e.g. per-node danger, cash momentum).
+
+## Soundfont tooling
+
+Large authoring soundfonts are not committed to the repo; run `make fetch-soundfonts` to download
+them from their hosts (URLs come from the `host` field in `audio-content/soundfonts/manifest.js`).
+If a font is distributed as a compressed `.sf3` (MuseScore format), convert it first with
+`make sf3-to-sf2 IN=foo.sf3 OUT=foo.sf2`, which requires `sf3convert` from the MuseScore tools
+package — our runtime SF2 parser cannot read `.sf3` directly.
