@@ -44,3 +44,21 @@ string literals inside the conditional branch).
 Not touched (correctly out of scope for Phase 1): `isNodeBusy`, `NOT_BUSY`/ABORT wiring, feedback
 resolution, overlay/drone default, and the `corrupt`/`crack-vault`/`extract-key` proof slice — all later
 phases per `plan.md`.
+
+## Phase 4a — generic-overlay feel loop (with Les)
+
+Feel lab: `tmp/generic-overlay-lab.html` (throwaway, gitignored) — a slider-driven Canvas harness with
+four candidate treatments. **Chosen for the generic default: `segmented-ring`** — a stroked polygon ring
+whose segments light up clockwise as progress fills. Locked feel: idle spin ~8°/s, unlit dimness ~0.10,
+hue **141** (green), radius 54, 12 segments, stroke 2.0, segment gap 0.18, glow blur 10, leading-edge
+pulse 0.5. (Confirm final spin/dim with Les before porting.)
+
+**Future palette candidates (Les — keep for the bespoke-feedback arc; see spec "future palette" + #288):**
+the three unchosen lab styles are worth reusing as bespoke overlays assigned across ranges of actions:
+- **`converging-brackets`** — four corner brackets marching inward + a progress tick-ring. Reads as
+  "locking on / tightening" — good for exploit-like or vault-crack actions.
+- **`sweep-ticks`** — a clockwise sweep line lighting a tick ring as it passes. Reads as "scanning" —
+  good for scan/probe-family set-piece actions.
+- **`aperture-blades`** — blades rotating CW and closing with progress. Reads as "opening/sealing" —
+  good for unlock/extract/gate actions.
+The lab code preserves the exact geometry of all four if we rebuild it for that arc.
