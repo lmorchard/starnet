@@ -546,9 +546,13 @@ and the global alert ratchets up a level (it can climb all the way to a trace). 
 different, **unadvertised** tolerance: a sleepy low-threat LAN absorbs a flurry that a hardened one
 would trip on instantly — you learn a network's patience by feel, not from a number.
 
-Heat shows as a **gauge** beside the alert in the status bar (cool → warm → hot). It's deliberately
-*relative* — it tells you how hot you're running, never exactly how close the line is. The skill is
-pacing: read the network, act in measured steps, and let it cool between moves rather than blitzing.
+Heat shows two ways. A **gauge** beside the alert in the status bar reads your heat *right now*
+(cool → warm → hot). And in the upper-right vitals stack — below the HEALTH and DECK traces — a
+**heat strip** draws it *over time* as a rising vector flame: it climbs as you act and sinks back as
+you pace or lie low, so you can watch a spike building and the cooldown taking hold. Both are
+deliberately *relative* — they tell you how hot you're running, never exactly how close the line is
+(the network's tolerance stays hidden). The skill is pacing: read the network, act in measured
+steps, and let it cool between moves rather than blitzing.
 
 ---
 

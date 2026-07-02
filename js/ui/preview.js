@@ -464,6 +464,36 @@ if (wfDemo && waveHealth && waveDeck && waveToggle) {
   });
 }
 
+// Heat scope demo — <starnet-heat-scope>. Slider is 0..100 = frac 0..1 (the HEAT_GAUGE_MAX scale).
+const heatDemo = $("heat-scope-demo");
+const heatSlider = $("heat-scope");
+if (heatDemo && heatSlider) {
+  const scope = /** @type {any} */ (document.createElement("starnet-heat-scope"));
+  scope.className = "vital-strip";
+  scope.style.width = "204px";
+  scope.frac = +heatSlider.value / 100;
+  heatDemo.append(scope);
+
+  const heatVal = $("heat-scope-val");
+  heatSlider.addEventListener("input", () => {
+    scope.frac = +heatSlider.value / 100;
+    if (heatVal) heatVal.textContent = String(heatSlider.value);
+  });
+
+  const bindHeat = (id, valId, prop, scale, fmt) => {
+    const el = $(id);
+    if (!el) return;
+    const out = $(valId);
+    el.addEventListener("input", () => {
+      scope[prop] = scale ? +el.value / scale : +el.value;
+      if (out) out.textContent = fmt ? fmt(el.value) : String(el.value);
+    });
+  };
+  bindHeat("heat-scope-speed", "heat-scope-speed-val", "speed", 0);
+  bindHeat("heat-scope-gap", "heat-scope-gap-val", "bandGap", 0, (v) => (+v).toFixed(1));
+  bindHeat("heat-scope-bloom", "heat-scope-bloom-val", "bloom", 0);
+}
+
 // FPS meter toggle — dev frame-time readout (js/ui/fps-meter.js; `cheat fps` in game).
 const fpsToggleBtn = document.getElementById("btn-fps-toggle");
 if (fpsToggleBtn) {

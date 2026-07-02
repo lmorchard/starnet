@@ -18,6 +18,7 @@ import { initializeGraphOverlays } from "./overlays/index.js";
 import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
 import { exploitSortKey } from "../core/exploits.js";
+import { HEAT_GAUGE_MAX } from "./indicator-glyphs.js";
 import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation/index.js";
 import { computeInspectorPosition } from "./inspector-position.js";
 
@@ -406,9 +407,12 @@ function syncOverlays(state) {
 function syncVitals(state) {
   const ecgEl = /** @type {any} */ (document.getElementById("vital-ecg"));
   const deckEl = /** @type {any} */ (document.getElementById("vital-deck"));
+  const heatEl = /** @type {any} */ (document.getElementById("vital-heat"));
   const h = state.player.health, d = state.player.deckIntegrity;
   if (ecgEl) ecgEl.frac = h.max > 0 ? h.current / h.max : 0;
   if (deckEl) deckEl.frac = d.max > 0 ? d.current / d.max : 0;
+  // Heat strip shares the gauge's fixed scale (never reveals the hidden alarm threshold).
+  if (heatEl) heatEl.frac = Math.max(0, Math.min(1, (state.heat || 0) / HEAT_GAUGE_MAX));
 }
 
 // ── Uplink control (floats under the vitals) ──────────────
