@@ -58,7 +58,7 @@ if (typeof AudioParam !== 'undefined' && typeof AudioParam.prototype.cancelAndHo
 // ── Signal stubs (verbatim) ───────────────────────────────────────────────────
 
 const SIGNAL_STUBS = `\
-// ── ${SOUNDFONTS.length + 1}. Signals: stub gameProgress / gameThreat so reactive songs play + react while authoring ──
+// ── 2. Signals: stub gameProgress / gameThreat so reactive songs play + react while authoring ──
 // Keep this list in sync with js/audio/signal-registry.js (currently: gameProgress, gameThreat).
 // Assigned onto \`window.\` — NOT \`let\` (a let binding wouldn't be visible to the separately-evaluated
 // song, and bare assignment throws under strict mode). Default is sliders (draggable widgets);
@@ -76,54 +76,49 @@ window.gameThreat   = slider(0.5, 0, 1)
 // window.gameProgress = mousex
 // window.gameThreat   = mousey`;
 
-// ── Per-font soundfont block generator ───────────────────────────────────────
+// ── Instruments: one shared loader helper + one call per font ─────────────────
+// DRY: the registration logic (sanitize + dedup + note trigger) is emitted ONCE as a
+// `registerSoundfont(url, prefix)` helper; each manifest font is then a single call.
 
-/**
- * Render one soundfont loading block for a manifest entry.
- * @param {{ prefix: string, host?: string }} entry
- * @param {number} idx  1-based index (for the section header number)
- * @returns {string}
- */
-function renderFontBlock(entry, idx) {
-  const { prefix, host } = entry;
-  if (!host) throw new Error(`[gen-prebake] manifest entry '${prefix}' has no host URL`);
+/** Terse font label for the inline comment on each call, e.g. "msgpad_" → "msgpad". */
+const labelOf = (prefix) => prefix.replace(/_$/, "");
 
-  // Derive a readable font label from the prefix for the comment header.
-  // e.g. "gus_" → "gus", "msg_" → "msg" (simple; keep it terse).
-  const label = prefix.replace(/_$/, "");
+const fontCalls = SOUNDFONTS.map((entry) => {
+  if (!entry.host) throw new Error(`[gen-prebake] manifest entry '${entry.prefix}' has no host URL`);
+  return `await registerSoundfont(${JSON.stringify(entry.host)}, ${JSON.stringify(entry.prefix)}); // ${labelOf(entry.prefix)}`;
+}).join("\n");
 
-  return `\
-// ── ${idx}. Instruments (${label}): load soundfont + register the ${prefix}* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
+const INSTRUMENTS = `\
+// ── 1. Instruments: register every font's presets under its prefix ──
+// Loads each full authoring SF2 (CORS-enabled host) so the sound set is byte-identical to what
 // composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
 // js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// \`fonts: []\` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over \`preset\`, so the array itself is unused for audio.
-await loadSoundfont(${JSON.stringify(host)})
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = ${JSON.stringify(prefix)} + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });`;
+// \`fonts: []\` lets strudel.cc's soundfont UI render the entry (it reads options.fonts.length);
+// our trigger closes over \`preset\`, so the array itself is unused for audio.
+async function registerSoundfont(url, prefix) {
+  const sf = await loadSoundfont(url);
+  const used = new Set();
+  sf.presets.forEach((preset, i) => {
+    const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    let name = prefix + (cleaned || 'preset_' + i);
+    if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
+    used.add(name);
+    registerSound(name, (time, value) => {
+      const ctx = getAudioContext();
+      const note = value?.note ?? 'c3';
+      const midi = typeof note === 'number' ? note : noteToMidi(note);
+      const stop = startPresetNote(ctx, preset, midi, time);
+      stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
+      return { node: undefined, stop };
+    }, { type: 'soundfont', prebake: false, fonts: [] });
+  });
 }
+
+${fontCalls}`;
 
 // ── Assemble and write ────────────────────────────────────────────────────────
 
-const fontBlocks = SOUNDFONTS.map((entry, i) => renderFontBlock(entry, i + 1));
-
-const output = [HEADER, "", FIREFOX_SHIM, "", fontBlocks.join("\n\n"), "", SIGNAL_STUBS, ""].join("\n");
+const output = [HEADER, "", FIREFOX_SHIM, "", INSTRUMENTS, "", SIGNAL_STUBS, ""].join("\n");
 
 const outPath = resolve(projectRoot, "audio-content/strudel-prebake.js");
 writeFileSync(outPath, output, "utf8");

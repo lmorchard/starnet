@@ -30,232 +30,42 @@ if (typeof AudioParam !== 'undefined' && typeof AudioParam.prototype.cancelAndHo
   };
 }
 
-// ── 1. Instruments (gus): load soundfont + register the gus_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
+// ── 1. Instruments: register every font's presets under its prefix ──
+// Loads each full authoring SF2 (CORS-enabled host) so the sound set is byte-identical to what
 // composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
 // js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/GeneralUser-GS.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "gus_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
+// `fonts: []` lets strudel.cc's soundfont UI render the entry (it reads options.fonts.length);
+// our trigger closes over `preset`, so the array itself is unused for audio.
+async function registerSoundfont(url, prefix) {
+  const sf = await loadSoundfont(url);
+  const used = new Set();
+  sf.presets.forEach((preset, i) => {
+    const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    let name = prefix + (cleaned || 'preset_' + i);
+    if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
+    used.add(name);
+    registerSound(name, (time, value) => {
+      const ctx = getAudioContext();
+      const note = value?.note ?? 'c3';
+      const midi = typeof note === 'number' ? note : noteToMidi(note);
+      const stop = startPresetNote(ctx, preset, midi, time);
+      stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
+      return { node: undefined, stop };
+    }, { type: 'soundfont', prebake: false, fonts: [] });
   });
+}
 
-// ── 2. Instruments (msgpad): load soundfont + register the msgpad_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Pad.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msgpad_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/GeneralUser-GS.sf2", "gus_"); // gus
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Pad.sf2", "msgpad_"); // msgpad
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Lead.sf2", "msglead_"); // msglead
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-FX.sf2", "msgfx_"); // msgfx
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Bass.sf2", "msgbass_"); // msgbass
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Keys.sf2", "msgkeys_"); // msgkeys
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Organ.sf2", "msgorg_"); // msgorg
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Guitar.sf2", "msggtr_"); // msggtr
+await registerSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Drums.sf2", "msgdrum_"); // msgdrum
 
-// ── 3. Instruments (msglead): load soundfont + register the msglead_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Lead.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msglead_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
-
-// ── 4. Instruments (msgfx): load soundfont + register the msgfx_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-FX.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msgfx_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
-
-// ── 5. Instruments (msgbass): load soundfont + register the msgbass_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Bass.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msgbass_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
-
-// ── 6. Instruments (msgkeys): load soundfont + register the msgkeys_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Keys.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msgkeys_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
-
-// ── 7. Instruments (msgorg): load soundfont + register the msgorg_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Organ.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msgorg_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
-
-// ── 8. Instruments (msggtr): load soundfont + register the msggtr_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Guitar.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msggtr_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
-
-// ── 9. Instruments (msgdrum): load soundfont + register the msgdrum_* names ──
-// Loads the full authoring SF2 (CORS-enabled host), so the sound set is byte-identical to what
-// composers work with. The naming (sanitize + dedup) and the note trigger MIRROR
-// js/audio/strudel/soundfont.js exactly; keep them in sync if that file changes.
-// `fonts: []` is required so strudel.cc's soundfont UI can render the entry (it reads
-// options.fonts.length); our trigger closes over `preset`, so the array itself is unused for audio.
-await loadSoundfont("https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Drums.sf2")
-  .then((sf) => {
-    const used = new Set();
-    sf.presets.forEach((preset, i) => {
-      const cleaned = String(preset.header?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      let name = "msgdrum_" + (cleaned || 'preset_' + i);
-      if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
-      used.add(name);
-      registerSound(name, (time, value) => {
-        const ctx = getAudioContext();
-        const note = value?.note ?? 'c3';
-        const midi = typeof note === 'number' ? note : noteToMidi(note);
-        const stop = startPresetNote(ctx, preset, midi, time);
-        stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-        return { node: undefined, stop };
-      }, { type: 'soundfont', prebake: false, fonts: [] });
-    });
-  });
-
-// ── 10. Signals: stub gameProgress / gameThreat so reactive songs play + react while authoring ──
+// ── 2. Signals: stub gameProgress / gameThreat so reactive songs play + react while authoring ──
 // Keep this list in sync with js/audio/signal-registry.js (currently: gameProgress, gameThreat).
 // Assigned onto `window.` — NOT `let` (a let binding wouldn't be visible to the separately-evaluated
 // song, and bare assignment throws under strict mode). Default is sliders (draggable widgets);
