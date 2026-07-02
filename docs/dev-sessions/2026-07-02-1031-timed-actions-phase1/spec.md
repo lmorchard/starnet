@@ -95,9 +95,19 @@ isNodeBusy(state, node) = (node has any active timed-action operator) OR activeP
 - **Nav-cancel** (game-ctx) uses the same unified query + abort path.
 
 "Active timed-action operator on a node" is answered by the existing `getActiveTimedAction(nodeId)`;
-generalizing to *any* active operator retires the `ABORTABLE_FLAGS` enumeration for declared actions
-(a new condition type, e.g. `no-active-timed-action`, backs `NOT_BUSY`). This is the concrete
-down-payment toward #288 — one notion of "busy," not the current hand-bridged two.
+a new condition type (e.g. `no-active-timed-action`) backs `NOT_BUSY`, so declared set-piece actions
+(with generated activeAttrs, not in the enumeration) are covered without registry edits. This is the
+concrete down-payment toward #288 — one notion of "busy," not the current hand-bridged two.
+
+**Coordination with #286 (reactive substrate / cascade) — Phase 1 is additive on both surfaces:**
+- The **`processes.js` contract is untouched.** `isNodeBusy` *composes* `activeProcessOnNode` (calls
+  it); `state.processes`, `activeProcessOnNode`, `abortNodeProcesses`, and the `PROCESS_*` events are
+  unchanged. #286's SWEEP reimplementation (new `cascade` operator, slimmed process `step`) depends
+  on that contract — we do not alter it.
+- **No rename/relocate of the operator-side registry** (`timed-actions.js`, `ABORTABLE_FLAGS` /
+  `TIMED_ACTION_FLAGS`) in Phase 1. The generalized busy query is *added alongside* the existing
+  enumeration, not a replacement. If a rename becomes necessary, ping the #286 session first. The
+  actual framework dissolve/convergence (and retiring the enumeration) is deferred to **#288**.
 
 ### 3. Feedback mapping + generic default
 
