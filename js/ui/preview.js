@@ -203,6 +203,10 @@ function animateEffect(sliderId, valId, syncFn, nodeId) {
     syncFn(nodeId, t);
     if (t < 1) requestAnimationFrame(frame);
   }
+  // Emit t=0 synchronously so overlay managers that require a "start" phase
+  // (e.g. probe's OverlayManager, which ignores "progress" with no active entry)
+  // receive the initialising call before the first rAF tick arrives ~16ms later.
+  syncFn(nodeId, 0);
   requestAnimationFrame(frame);
   return { cancel: () => { cancelled = true; } };
 }
