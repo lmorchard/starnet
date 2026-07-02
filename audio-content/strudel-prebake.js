@@ -45,12 +45,23 @@ async function registerSoundfont(url, prefix) {
     if (used.has(name)) { const base = name; let n = 2; while (used.has(name)) name = base + '_' + n++; }
     used.add(name);
     registerSound(name, (time, value) => {
+      // Route the voice into our own gain node and RETURN it so superdough applies its FX chain
+      // (gain/room/lpf/pan/…) — it only wires effects onto the returned node, and bails on none.
+      // sfumato's startPresetNote self-connects to ctx.destination, so proxy the ctx to redirect
+      // .destination to our tap node; superdough then handles note-off (ramps node.gain, calls stop).
       const ctx = getAudioContext();
       const note = value?.note ?? 'c3';
       const midi = typeof note === 'number' ? note : noteToMidi(note);
-      const stop = startPresetNote(ctx, preset, midi, time);
-      stop(time + (typeof value?.duration === 'number' ? value.duration : 0.5));
-      return { node: undefined, stop };
+      const out = ctx.createGain();
+      const proxied = new Proxy(ctx, {
+        get(target, prop) {
+          if (prop === 'destination') return out;
+          const v = target[prop];
+          return typeof v === 'function' ? v.bind(target) : v;
+        },
+      });
+      const stop = startPresetNote(proxied, preset, midi, time);
+      return { node: out, stop };
     }, { type: 'soundfont', prebake: false, fonts: [] });
   });
 }

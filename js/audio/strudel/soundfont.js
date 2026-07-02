@@ -90,14 +90,23 @@ export async function loadGameSoundfont() {
           const ctx = window.getAudioContext();
           const note = value?.note ?? "c3";
           const midi = typeof note === "number" ? note : noteToMidi(note);
-          const stop = sfMod.startPresetNote(ctx, preset, midi, time);
-          // superdough bails early on a soundfont handle (node is undefined) and never schedules the
-          // note-off, so the voice would ring forever — schedule it ourselves from the hap duration
-          // (value.duration = hapDuration). This is what sfumato's own .soundfont() method does, and
-          // it makes hush()/stop actually silence the song (voices self-terminate; no new triggers).
-          const dur = typeof value?.duration === "number" ? value.duration : 0.5;
-          stop(time + dur);
-          return { node: undefined, stop };
+          // Route the voice into our own gain node and RETURN that node, so superdough can apply
+          // its FX chain (gain/room/lpf/pan/delay/…). superdough only wires effects onto the node a
+          // trigger returns and bails entirely when there's no node — which is why a soundfont that
+          // returns `node: undefined` plays raw (no effects) and trips "Failed to trigger sound".
+          // sfumato's startPresetNote self-connects to ctx.destination, so we proxy the context to
+          // redirect `.destination` to our tap node; superdough then handles note-off (it ramps
+          // node.gain to 0 and calls the returned stop() at release).
+          const out = ctx.createGain();
+          const proxied = new Proxy(ctx, {
+            get(target, prop) {
+              if (prop === "destination") return out;
+              const v = target[prop];
+              return typeof v === "function" ? v.bind(target) : v;
+            },
+          });
+          const stop = sfMod.startPresetNote(proxied, preset, midi, time);
+          return { node: out, stop };
         },
         { type: "soundfont", prebake: false },
       );
