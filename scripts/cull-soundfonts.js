@@ -10,8 +10,10 @@ import { SOUNDFONTS } from "../audio-content/soundfonts/manifest.js";
 
 /**
  * Cull one font entry down to the presets whose sanitized names are in `usedNames`.
- * The output deploy font has its preset header names rewritten to their sanitized (`gus_*`)
- * forms so the on-disk file is self-descriptive and matches what songs reference.
+ * The output deploy font retains RAW General MIDI preset names (e.g. "Warm Pad") — NOT sanitized.
+ * The loader (js/audio/strudel/soundfont.js) applies sanitize() at load time to derive the
+ * in-game sound names (e.g. "gus_warm_pad"). Storing sanitized names in the file would cause
+ * sanitize() to double-prefix them (gus_warm_pad → gus_gus_warm_pad), silently breaking songs.
  *
  * @param {{ authoringPath: string, deployPath: string, prefix: string }} entry
  * @param {Set<string>} usedNames - sanitized sound names (e.g. "gus_warm_pad")
@@ -21,12 +23,9 @@ export function cullFont(entry, usedNames) {
   const authoringBytes = readFileSync(entry.authoringPath).length;
   const src = new SoundFont2(new Uint8Array(readFileSync(entry.authoringPath)));
 
-  // Map each authoring preset's raw name → its sanitized name, deduplicating the way the loader
-  // does (append _2, _3 ... for collisions). Track which raw names correspond to used sanitized
-  // names so we can pass the right set to prunePresets (which works on raw names).
+  // Map each authoring preset's sanitized name to select which raw presets to keep.
+  // Deduplicates the same way the loader does (append _2, _3 ... for collisions).
   const usedSanitized = new Set();
-  /** @type {Map<string, string>} raw preset name → sanitized name for kept presets */
-  const rawToSanitized = new Map();
   /** @type {Set<string>} raw names to pass to prunePresets */
   const keepRawNames = new Set();
 
@@ -44,21 +43,14 @@ export function cullFont(entry, usedNames) {
     if (usedNames.has(sName) && !usedSanitized.has(sName)) {
       usedSanitized.add(sName);
       keepRawNames.add(p.header.name);
-      rawToSanitized.set(p.header.name, sName);
     }
   });
 
   // Prune to the kept raw-name set.
+  // Keep raw preset names in the deploy font — the loader's sanitize() applies the prefix at load
+  // time. If we renamed headers to sanitized names here, sanitize() would run again and
+  // double-prefix them (e.g. "gus_warm_pad" → "gus_gus_warm_pad"), silently breaking all song refs.
   const pruned = prunePresets(src, keepRawNames);
-
-  // Rename kept preset headers to their sanitized names so the deploy font is self-descriptive.
-  // pruned.presetData.presetHeaders includes the EOP sentinel at the end (name "EOP") — skip it.
-  const headers = pruned.presetData.presetHeaders;
-  for (let i = 0; i < headers.length - 1; i++) {
-    const raw = headers[i].name;
-    const sName = rawToSanitized.get(raw);
-    if (sName) headers[i] = { ...headers[i], name: sName };
-  }
 
   const bytes = writeSf2(pruned);
   writeFileSync(entry.deployPath, Buffer.from(bytes));
