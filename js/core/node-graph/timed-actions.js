@@ -68,8 +68,10 @@ export function getTimedActionAttrNames(action) {
  * an ActionDef's declarative `timed` block doesn't hand-pick an irregular activeAttr
  * name the way the seven hand-wired TIMED_ACTIONS entries do (`probing`, `exploiting`,
  * etc.) — it mints one deterministically from the action id instead. Not registered in
- * TIMED_ACTIONS: synthesized actions aren't part of the nav-cancel/ABORT flow this
- * registry drives (that wiring is a later phase).
+ * TIMED_ACTIONS (it has no fixed activeAttr to enumerate), but a synthesized abortable
+ * action DOES participate in NOT_BUSY/ABORT/nav-cancel — those checks find it
+ * structurally instead, via NodeGraph#getActiveTimedAction /
+ * #getActiveAbortableTimedAction, rather than by name (#187 Phase 2).
  * @param {string} actionId
  * @returns {string}
  */

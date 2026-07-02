@@ -21,9 +21,12 @@ import { ABORTABLE_FLAGS, getTimedActionAttrNames } from "./timed-actions.js";
 // ── Shared action templates ──────────────────────────────────
 
 // activeAttr flags for the player-initiated, abortable timed actions, sourced
-// from the TIMED_ACTIONS registry (timed-actions.js): ABORT shows when any is
-// true, and NOT_BUSY (below) requires all of them false. Add new timed actions
-// to the registry, not here.
+// from the TIMED_ACTIONS registry (timed-actions.js): NOT_BUSY (below) requires
+// all of them false. ABORT no longer reads this list directly — it uses the
+// structural `active-abortable-timed-action` condition instead (#187 Phase 2
+// review fix) — but NOT_BUSY still needs the enumerated flags (a busy node is
+// busy whether or not the thing making it busy is abortable). Add new timed
+// actions to the registry, not here.
 const TIMED_ACTION_FLAGS = ABORTABLE_FLAGS;
 
 // A node may run at most ONE timed action at a time. Every startable action
@@ -63,27 +66,22 @@ const PROBE_ACTION = {
 };
 
 // Abort: unified cancel for any timed action. The execution is generic
-// (queries timed-action operators at runtime); the requires list shows it
-// whenever any abortable timed action is in flight (see TIMED_ACTION_FLAGS),
-// OR a synthesized timed action is active (structural check, #187 Phase 2 —
-// covers a dynamically-named activeAttr the enumerated flags can't list).
-// The #282 process-framework busy case (SWEEP, …) is handled separately, one
-// layer up in node-actions.js — it swaps in its own ABORT before this template
-// is ever consulted, so it isn't duplicated here.
+// (queries timed-action operators at runtime); the requires list is the single
+// structural `active-abortable-timed-action` check (#187 Phase 2 review fix) —
+// it covers both the enumerated core verbs (probe, xploit, …) and a synthesized
+// timed action (dynamically-named activeAttr) alike, while EXCLUDING an action
+// marked non-abortable (reboot — involuntary, ABORT must not offer to cancel it).
+// This replaced a broader `not(no-active-timed-action)` check that didn't
+// distinguish abortable from non-abortable, which let ABORT wrongly show during
+// a reboot. The #282 process-framework busy case (SWEEP, …) is handled
+// separately, one layer up in node-actions.js — it swaps in its own ABORT
+// before this template is ever consulted, so it isn't duplicated here.
 /** @type {ActionDef} */
 const ABORT_ACTION = {
   id: A.ABORT,
   label: "ABORT",
   desc: "Cancel the current timed action.",
-  requires: [
-    {
-      type: "any-of",
-      conditions: [
-        ...TIMED_ACTION_FLAGS.map((attr) => /** @type {Condition} */ ({ type: "node-attr", attr, eq: true })),
-        { type: "not", condition: { type: "no-active-timed-action" } },
-      ],
-    },
-  ],
+  requires: [{ type: "active-abortable-timed-action" }],
   effects: [
     { effect: "ctx-call", method: "abortTimedAction", args: ["$nodeId"] },
   ],

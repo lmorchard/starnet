@@ -128,8 +128,12 @@ export function buildGameCtx(opts = {}) {
     abortTimedAction: (nodeId) => {
       // Unified abort — query the node's timed-action operators to find whichever
       // one is active, then clear it generically. No hardcoded action list.
+      // getActiveAbortableTimedAction (not getActiveTimedAction) is deliberate
+      // (#187 Phase 2 review fix): defense in depth so this is a no-op on a
+      // non-abortable active action (reboot) even if invoked outside the normal
+      // ABORT_ACTION.requires gate, which already excludes it.
       if (!ctx._graph) return;
-      const active = ctx._graph.getActiveTimedAction(nodeId);
+      const active = ctx._graph.getActiveAbortableTimedAction(nodeId);
       if (!active) return;
 
       // Exploit is special — has extra attributes (activeExploitId) beyond the

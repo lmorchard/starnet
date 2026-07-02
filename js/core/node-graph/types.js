@@ -51,6 +51,9 @@
  * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
  * @property {string} [enabledAttr]     - if set, operator is skipped when this node attribute is false
  * @property {boolean} [armable]      - watchdog: stay dormant until the first non-tick message arms it
+ * @property {boolean} [_abortable]   - timed-action (synthesized only): whether ABORT/nav-cancel may
+ *   cancel this action; set by timed-synthesis.js from ActionDef.timed.abortable, defaults to true
+ *   when absent (#187 Phase 2 review fix)
  */
 
 /**
@@ -121,7 +124,9 @@
  * @typedef {Object} TimedActionSpec
  * @property {number} [duration]        - fixed duration in ticks, seeded directly by the arm effects
  * @property {Record<string, number>} [durationTable] - grade → ticks, resolved by the timed-action operator itself
- * @property {boolean} [abortable]      - reserved for a later phase (nav-cancel/ABORT wiring); unused by Phase 1
+ * @property {boolean} [abortable]      - whether ABORT/nav-cancel can cancel this synthesized action;
+ *   defaults to true. Wired onto the synthesized operator as `_abortable` (timed-synthesis.js) and
+ *   read by the `active-abortable-timed-action` condition / getActiveAbortableTimedAction (#187 Phase 2 review fix)
  */
 
 /**
@@ -133,7 +138,7 @@
 
 /**
  * Condition — union of supported condition shapes.
- * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | NoActiveTimedActionCondition | AllOfCondition | AnyOfCondition | NotCondition} Condition
+ * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | NoActiveTimedActionCondition | ActiveAbortableTimedActionCondition | AllOfCondition | AnyOfCondition | NotCondition} Condition
  */
 
 /**
@@ -173,6 +178,16 @@
  * so it also catches a synthesized `timed` action's dynamically-named activeAttr.
  * @typedef {Object} NoActiveTimedActionCondition
  * @property {'no-active-timed-action'} type
+ * @property {string} [nodeId]        - omitted in action requires (runtime fills it in)
+ */
+
+/**
+ * Passes when the node HAS an active timed-action operator that ABORT is allowed
+ * to cancel (review fix, #187 Phase 2) — narrower than NoActiveTimedActionCondition:
+ * excludes an action registered `abortable: false` (reboot) or a synthesized action
+ * whose operator carries `_abortable: false`. Drives ABORT_ACTION.requires.
+ * @typedef {Object} ActiveAbortableTimedActionCondition
+ * @property {'active-abortable-timed-action'} type
  * @property {string} [nodeId]        - omitted in action requires (runtime fills it in)
  */
 

@@ -61,6 +61,10 @@ export function synthesizeTimedActions(node) {
         activeAttr,
         ...(action.timed.durationTable ? { durationTable: action.timed.durationTable } : {}),
         onComplete: action.effects,
+        // Wired through for the ABORT/nav-cancel structural checks (review fix,
+        // #187 Phase 2): defaults to abortable unless the ActionDef explicitly
+        // opts out via `timed.abortable: false`.
+        _abortable: action.timed.abortable !== false,
       },
     ];
 

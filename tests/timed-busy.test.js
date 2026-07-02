@@ -147,6 +147,76 @@ describe("nav-cancel generalization for a synthesized timed action (#187 Phase 2
   });
 });
 
+function buildRouterLAN() {
+  return {
+    graphDef: {
+      nodes: [
+        createGateway("gateway", { attributes: { visibility: "accessible" } }),
+        createRouter("router-a"),
+      ],
+      edges: [["gateway", "router-a"]],
+      triggers: [],
+    },
+    meta: { startNode: "gateway", startCash: 0, moneyCost: "F" },
+  };
+}
+
+describe("ABORT must not cancel involuntary reboot (review fix, #187)", () => {
+  it("does not offer ABORT while rebooting, and abortTimedAction is a no-op on reboot", () => {
+    initGame(() => buildRouterLAN(), "reboot-abort-guard");
+    const graph = getState().nodeGraph;
+    const nodeId = "router-a";
+    const { progressAttr, durationAttr } = getTimedActionAttrNames("reboot");
+
+    // Arm the reboot the same way ctx.startReboot does, without exercising the
+    // rest of the reboot side effects (ICE eviction, etc.) — this test is only
+    // about the ABORT/busy plumbing.
+    graph.setNodeAttr(nodeId, "rebooting", true);
+    graph.setNodeAttr(nodeId, progressAttr, 5);
+    graph.setNodeAttr(nodeId, durationAttr, 20);
+
+    assert.equal(graph.isNodeBusy(nodeId), true, "node is busy while rebooting");
+
+    const available = graph.getAvailableActions(nodeId).map((a) => a.id);
+    assert.ok(!available.includes(A.ABORT), "ABORT is NOT offered during an involuntary reboot");
+
+    // Defense in depth: even calling the ctx abort path directly must not touch reboot.
+    const cancels = [];
+    const h = (p) => { if (p?.phase === "cancel") cancels.push(p); };
+    on(E.ACTION_FEEDBACK, h);
+    graph._ctx.abortTimedAction(nodeId);
+    off(E.ACTION_FEEDBACK, h);
+
+    const attrs = graph.getNodeState(nodeId);
+    assert.equal(attrs.rebooting, true, "rebooting is NOT cleared by abortTimedAction");
+    assert.equal(attrs[progressAttr], 5, "reboot progress untouched");
+    assert.equal(attrs[durationAttr], 20, "reboot duration untouched");
+    assert.equal(cancels.length, 0, "no cancel feedback fired for a blocked reboot abort");
+
+    // The reboot still completes normally on tick — advance progress to duration
+    // (20, set above) and let the timed-action operator fire onComplete
+    // (completeReboot clears rebooting).
+    graph.tick(20);
+    assert.equal(graph.getNodeState(nodeId).rebooting, false, "reboot completes normally on tick");
+  });
+
+  it("an abortable action (probe) still offers ABORT and cancels normally", () => {
+    initGame(() => buildRouterLAN(), "reboot-abort-guard-probe-still-works");
+    const graph = getState().nodeGraph;
+    const nodeId = "router-a";
+
+    graph.executeAction(nodeId, A.PROBE);
+    assert.equal(graph.isNodeBusy(nodeId), true, "busy while probing");
+
+    const available = graph.getAvailableActions(nodeId).map((a) => a.id);
+    assert.ok(available.includes(A.ABORT), "ABORT is still offered for an abortable action (probe)");
+
+    graph.executeAction(nodeId, A.ABORT);
+    assert.equal(graph.getNodeState(nodeId).probing, false, "probe cancelled by ABORT");
+    assert.equal(graph.isNodeBusy(nodeId), false, "no longer busy after ABORT");
+  });
+});
+
 describe("process-side busy composes with the graph-side check (#282 + #187 Phase 2)", () => {
   const PROC_TYPE = "timed-busy-test-proc";
   registerProcess(PROC_TYPE, { step: () => false, onAbort: () => {} });
