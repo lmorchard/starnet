@@ -64,7 +64,7 @@ import { walkSlots } from "./tree-utils.js";
  * @param {number} [opts.budgetOverride] - override computed budget
  * @param {boolean} [opts.skipScatterPlacement] - return scatter obligations without placing them
  * @param {boolean} [opts.skipSubBiomeSlots] - skip slots that have subBiomeId (for backbone-only filling)
- * @returns {{ pieces: PlacedPiece[], crossEdges: [string, string][], ok: boolean, scatterObligations?: ScatterObligation[] }}
+ * @returns {{ pieces: PlacedPiece[], crossEdges: [string, string][], ok: boolean, scatterObligations?: ScatterObligation[], placed?: Map<string, PlacedPiece> }}
  */
 export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
   const budgetRemaining = opts.budgetOverride ?? costBudget(spec);
@@ -95,15 +95,17 @@ export function fillSkeleton(skeleton, biome, spec, rng, opts = {}) {
     usedPieceIds, scatterObligations, piecePalette, preAssigned, skipSubBiome,
   };
   const ok = fillSlot(skeleton, null, fillContext);
-  if (!ok) return { pieces, crossEdges, ok: false };
+  if (!ok) return { pieces, crossEdges, ok: false, placed };
 
   // Pass 2: place scattered nodes (unless caller wants to handle them)
   if (!skipScatter && scatterObligations.length > 0) {
     const scatterOk = placeScatteredNodes(scatterObligations, pieces, skeleton, crossEdges, placed);
-    if (!scatterOk) return { pieces, crossEdges, ok: false };
+    if (!scatterOk) return { pieces, crossEdges, ok: false, placed };
   }
 
-  return { pieces, crossEdges, ok, scatterObligations: skipScatter ? scatterObligations : [] };
+  // `placed` is surfaced (slotId → placed piece) so callers/tests can assert the slot→piece map
+  // stays consistent with `pieces` (see the wire-failure rollback path in fillSlot).
+  return { pieces, crossEdges, ok, scatterObligations: skipScatter ? scatterObligations : [], placed };
 }
 
 /**
@@ -218,9 +220,14 @@ function fillSlot(slot, parentPiece, ctx) {
     if (parentOutPort) {
       crossEdges.push([parentOutPort, piece.inboundNodeId]);
     } else {
-      // Can't wire — remove piece to prevent orphan. Refund budget.
+      // Can't wire — remove piece to prevent orphan. Refund budget + undo ALL side effects from
+      // steps 6–7 so the discarded piece leaves no trace: pop it, refund, drop the diversity mark
+      // (else a later slot is wrongly penalized for a piece that was never placed) and the stale
+      // slot→piece mapping (else `placed` points at a piece absent from the network). (#164)
       pieces.pop();
       state.budget += gradeToNumber(chosen.cost ?? "F");
+      usedPieceIds.delete(chosen.id);
+      placed.delete(slot.id);
       // Also remove any scatter obligation for this piece
       const oblIdx = scatterObligations.findIndex(o => o.prefix === prefix);
       if (oblIdx !== -1) scatterObligations.splice(oblIdx, 1);
