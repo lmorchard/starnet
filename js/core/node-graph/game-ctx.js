@@ -34,6 +34,7 @@ function exploitDuration(quality) {
 import { endRun, nextAlertLevel, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
+import { abortNodeProcesses } from "../processes.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
 import { launchExploit } from "../combat.js";
@@ -429,6 +430,8 @@ export function initNavigationCancelHandler() {
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.LIE_LOW, phase: "cancel", progress: 0 });
     }
   }
+  // Progressive processes (SWEEP, …) also cancel on navigation — parity with timed actions.
+  for (const proc of [...getState().processes]) abortNodeProcesses(proc.nodeId);
   });
 }
 

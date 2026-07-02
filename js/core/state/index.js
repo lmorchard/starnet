@@ -168,6 +168,8 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     // Crossing a network's hidden threshold trips the alert ladder. Serializable.
     heat: 0,
     heatDecayTimerId: null,
+    // Active progressive processes (SWEEP now; parallel-XPLOIT later) — see js/core/processes.js.
+    processes: [],
     nodeGraph: graph,
     player: {
       cash: meta.startCash ?? 1000,
@@ -396,6 +398,7 @@ export function deserializeState(snapshot, opts = {}) {
   // Heal saves that predate the flow-program fields (Session 1) and the heat model.
   if (typeof ctx.state.heat !== "number") ctx.state.heat = 0;
   if (ctx.state.heatDecayTimerId === undefined) ctx.state.heatDecayTimerId = null;
+  if (!Array.isArray(ctx.state.processes)) ctx.state.processes = [];
   if (ctx.state.player && !ctx.state.player.capturedCredentials) ctx.state.player.capturedCredentials = [];
   deserializeTimers(_timers);   // writes into ctx.timers
   if (_rng) deserializeRng(_rng);

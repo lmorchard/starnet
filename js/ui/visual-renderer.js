@@ -97,6 +97,13 @@ export function initVisualRenderer() {
     if (action === A.XPLOIT) flashNode(nodeId, success ? "success" : "failure");
   });
 
+  // SWEEP: pulse each node a wave touches (per-node probe feedback; the dedicated
+  // outward-ripple overlay is a follow-up — see epic #279). Origin pulses at start.
+  on(E.PROCESS_STARTED, ({ type, nodeId }) => { if (type === "sweep") flashNode(nodeId, "reveal"); });
+  on(E.PROCESS_STEP, ({ type, nodes }) => {
+    if (type === "sweep" && Array.isArray(nodes)) nodes.forEach((id) => flashNode(id, "reveal"));
+  });
+
   on(E.RUN_STARTED, () => {
     overlays.byKey.forEach((o) => o.clear());
     activeNodeIds.clear();

@@ -44,5 +44,9 @@ export {
 } from "./state/flow.js";
 
 export {
+  nextProcessId, addProcess, updateProcess, removeProcess,
+} from "./state/process.js";
+
+export {
   setSelectedNode, setPhase, setRunOutcome, toggleMenuOpen, toggleHandCollapsed,
 } from "./state/game.js";

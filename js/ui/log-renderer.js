@@ -152,6 +152,17 @@ export function initLogRenderer() {
   on(E.HEAT_ALARM, ({ level }) =>
     add(`[HEAT] Activity noticed — alert rising to ${String(level).toUpperCase()}.`, "error"));
 
+  // ── SWEEP (progressive process) ──────────────────────────
+  on(E.PROCESS_STARTED, ({ type, nodeId, depthCap }) => {
+    if (type === "sweep") add(`[SWEEP] ${nodeId}: broadcast probe — depth ${depthCap}.`, "info");
+  });
+  on(E.PROCESS_STEP, ({ type, depth, count }) => {
+    if (type === "sweep") add(`[SWEEP] wave ${depth}: probed ${count} node${count !== 1 ? "s" : ""}.`, "info");
+  });
+  on(E.PROCESS_ENDED, ({ type, reason }) => {
+    if (type === "sweep") add(`[SWEEP] ${reason === "aborted" ? "aborted." : "complete."}`, "meta");
+  });
+
   // ── Mission / run events ─────────────────────────────────
   on(E.MISSION_STARTED,  (/** @type {MissionStartedPayload} */  { targetName }) => add(`[MISSION] Objective: retrieve ${targetName}.`, "info"));
   on(E.MISSION_COMPLETE, (/** @type {MissionCompletePayload} */ { targetName }) => add(`[MISSION] ★ Target acquired: ${targetName}.`, "success"));

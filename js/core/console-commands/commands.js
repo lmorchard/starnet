@@ -23,6 +23,7 @@ import {
 // ── Shared constants for completion ──────────────────────────────────────────
 
 const STATUS_NOUNS     = ["summary", "ice", "hand", "node", "alert", "mission"];
+const SWEEP_DEPTHS     = ["1", "2", "3", "max"];
 const CHEAT_SUBS       = ["give", "alert", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "fps", "help"];
 const CHEAT_GIVE_SUBS  = ["matching", "card", "cash"];
 const CHEAT_ALERT_VERBS = ["set", "raise", "lower"];
@@ -143,6 +144,20 @@ export const COMMANDS = [
       const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
       if (!node) { addLogEntry("Usage: replay <node>  (or select a node first)", "error"); return; }
       dispatch(A.REPLAY, { nodeId: node.id });
+    },
+  },
+
+  { verb: "sweep",
+    // SWEEP always acts on the currently TARGETED node (GUI/console symmetry: it's the node
+    // inspector's SWEEP). Only the depth is an argument.
+    complete(args, partial) {
+      if (args.length === 0) return fromList(SWEEP_DEPTHS, partial);
+      return null;
+    },
+    execute(args) {
+      const node = resolveImplicitNode(); // targeted node (logs its own error if none)
+      if (!node) return;
+      dispatch(A.SWEEP, { nodeId: node.id, depth: args[0] || "max" });
     },
   },
 

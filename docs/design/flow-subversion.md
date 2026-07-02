@@ -235,9 +235,14 @@ today, where `lie-low` calms the grid to green — that alert-calming moves to t
 Each core verb becomes a *family* of loadout-selectable variants along a small triangle —
 **breadth** (one node ↔ sweep), **speed**, **stealth (heat)**:
 
-- **PROBE-sweep** (scan many nodes at once, big heat spike) vs **meticulous PROBE** (one node,
-  slow, low heat).
-- **Parallel XPLOIT sweep** vs **node-at-a-time XPLOIT**, trading heat/risk for reach.
+- **PROBE-sweep** ✅ **shipped** (verb variants pt.2) — a progressive, depth-bounded, abortable
+  broadcast probe that ripples outward wave-by-wave, gate-bounded (stops at routers/firewalls/IDS/
+  monitors), heat per node. vs **meticulous PROBE** (the existing one-node scan). Built on a **generic
+  progressive-process seam** (`js/core/processes.js`: `state.processes` + a type registry + one
+  `stepProcesses()` hook in the central tick + uniform busy/abort) — so it needed *no* bespoke timer
+  or abort special-case, and the remaining variants plug into the same registry.
+- **Parallel XPLOIT sweep** vs **node-at-a-time XPLOIT**, trading heat/risk for reach — *pending*,
+  and now cheap: it's another `registerProcess` client on the seam above.
 
 The RAM loadout decision becomes *"what's my playstyle for this network — meticulous ghost, or
 smash-and-grab?"* — a strong pre-run layer that feeds the Session 3 store/RAM economy. Heat is the
