@@ -59,3 +59,47 @@ describe("cascade operator — TTL-bounded propagation", () => {
     assert.equal(seenAtA, "ice:hunter-1", "source rides through the hop");
   });
 });
+
+describe("attachBehavior — runtime-equipped behaviors", () => {
+  const EDGES2 = [["origin", "a"], ["a", "b"], ["b", "c"], ["b", "d"]];
+  const plainNodes = () =>
+    ["origin", "a", "b", "c", "d"].map((id) => ({
+      id, type: "host", attributes: { forwardingEnabled: true }, operators: [],
+    }));
+
+  it("a behavior attached at runtime participates immediately", () => {
+    const t = tracker();
+    const g = new NodeGraph({ nodes: plainNodes(), edges: EDGES2 }, undefined, t.onEvent);
+    g.init();
+    g.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
+    assert.equal(t.hits["a"] ?? 0, 0, "no behavior yet → nothing propagates");
+    for (const id of g.getNodeIds()) g.attachBehavior(id, { name: "cascade", kind: "pulse" });
+    const t2 = tracker();
+    g._onEvent = t2.onEvent; // re-point instrumentation
+    g.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
+    assert.ok(t2.hits["a"] >= 1, "attached cascade now propagates");
+  });
+
+  it("an attached behavior survives snapshot → fromSnapshot", () => {
+    const g = new NodeGraph({ nodes: plainNodes(), edges: EDGES2 }, undefined, () => {});
+    g.init();
+    for (const id of g.getNodeIds()) g.attachBehavior(id, { name: "cascade", kind: "pulse" });
+    const snap = JSON.parse(JSON.stringify(g.snapshot()));
+    const t = tracker();
+    const g2 = NodeGraph.fromSnapshot(snap, undefined, t.onEvent);
+    g2.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
+    assert.ok(t.hits["a"] >= 1, "behavior persisted across reload");
+  });
+
+  it("detachBehavior stops participation", () => {
+    const t = tracker();
+    const g = new NodeGraph({ nodes: plainNodes(), edges: EDGES2 }, undefined, t.onEvent);
+    g.init();
+    for (const id of g.getNodeIds()) g.attachBehavior(id, { name: "cascade", kind: "pulse" });
+    for (const id of g.getNodeIds()) g.detachBehavior(id, "cascade");
+    const t2 = tracker();
+    g._onEvent = t2.onEvent;
+    g.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
+    assert.equal(t2.hits["a"] ?? 0, 0, "detached → no propagation");
+  });
+});
