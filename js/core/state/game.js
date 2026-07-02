@@ -3,11 +3,11 @@
 
 import { mutate, getState } from "./index.js";
 
-// Menu/hand are view chrome, not gameplay: the HUD hamburger + hand collapse are usable in the
-// overworld hub, where there is NO active run (so mutate() would throw — #236). When a run is
-// active the flags live in serialized run state (state.ui, round-tripped); with no run they fall
-// back to this module-level view state. The two scopes are independent by design — a run starts
-// with fresh state.ui, and the hub keeps its own toggle state between runs.
+// Menu/hand are view chrome, not gameplay: the HUD hamburger + hand collapse are usable at the
+// overworld hub. When a run is active the flags live in serialized run state (state.ui,
+// round-tripped). At the initial hub — before any run has been started this session — there is no
+// active run, so mutate() would throw (#236); the toggles fall back to this module-level view state
+// instead. The goal is simply that the toggles never throw regardless of run context.
 const _uiFallback = { menuOpen: false, handCollapsed: false };
 
 /** Sets state.selectedNodeId (pass null to deselect). */

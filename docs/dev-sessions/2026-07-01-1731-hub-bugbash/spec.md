@@ -29,12 +29,12 @@ there's no active run, so `toggleMenuOpen()`/`toggleHandCollapsed()` → `mutate
 **Decision:** make the two UI toggles **run-independent** via a module-level fallback — no change
 to the serialized-state shape or the existing round-trip test.
 
-**Approach (`js/core/state/game.js`):**
+**Approach (`js/core/state/game.js`) — as shipped:**
 - Module-level fallback `{ menuOpen, handCollapsed }`.
-- Each toggle: if an active run exists, mutate `state.ui` as today; otherwise flip the fallback.
-- Add read helpers (`isMenuOpen`/`isHandCollapsed`) that prefer run state, fall back to module
-  state, so the HUD reflects the right value in both contexts.
-- Use `getActiveRun()`-style guard (not `mutate`, which throws) to branch.
+- Each toggle branches on `getState()` (non-throwing, unlike `mutate`): with an active run, mutate
+  `state.ui` as today; otherwise flip the fallback. Both paths return the new value.
+- No read helpers needed — the HUD consumes the toggle's return value; nothing else reads
+  `state.ui.*` in production (only tests do, in-run).
 
 ## Non-goals
 
