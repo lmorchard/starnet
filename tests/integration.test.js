@@ -981,6 +981,7 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
         graph.setNodeAttr(sw, "accessLevel", "owned");
         graph.executeAction(sw, "activate");
       }
+      graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
 
       const vault = s.nodes["sp/vault"];
       assert.equal(vault.concealed, false,
@@ -1306,6 +1307,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
 
     graph.setNodeAttr("sp/monitor", "accessLevel", "open");
     graph.executeAction("sp/monitor", "scrub-logs");
+    graph.tick(20); // scrub-logs is timed-by-default (#187 default-flip) — let it complete
 
     assert.equal(graph.getNodeState("sp/monitor").alertCount, 0, "scrub resets the monitor's count");
     assert.equal(ORDER.indexOf(getState().globalAlert), ORDER.indexOf(before) - 1,
@@ -1356,6 +1358,7 @@ describe("security grid: IDS->monitor escalation (#173)", () => {
     const graph = getState().nodeGraph;
     graph.setNodeAttr("sp/ids", "accessLevel", "owned");
     graph.executeAction("sp/ids", "corrupt");
+    graph.tick(20); // corrupt is timed-by-default (#187 default-flip) — let it complete
     assert.equal(graph.getNodeState("sp/ids").forwardingEnabled, false, "corrupt should disable forwarding");
 
     for (let i = 0; i < 30; i++) sendAlert(graph); // far past any grade threshold

@@ -57,6 +57,16 @@ test("an unmapped verb resolves overlay/drone/cue all to the DEFAULT ids", () =>
   assert.equal(resolved.completionCue, "process.done");
 });
 
+test("reboot resolves to the 'none' overlay sentinel, not the generic-process default (#187 default-flip)", () => {
+  // reboot is a core verb (excluded from the timed-by-default flip) with its own bespoke
+  // node-pulse treatment. Before this central entry existed, an unmapped reboot fell through
+  // to DEFAULT_PROFILE's "generic-process" overlay and mounted the generic ring on top of its
+  // bespoke pulse. "none" isn't a registered overlay name, so overlay dispatch no-ops for it.
+  const resolved = resolveFeedback(A.REBOOT);
+  assert.equal(resolved.overlay, "none");
+  assert.notEqual(resolved.overlay, DEFAULT_PROFILE.overlay);
+});
+
 test("every core verb in the central profile only declares overlay (drone/cue stay the audio module's job)", () => {
   for (const [id, profile] of Object.entries(ACTION_FEEDBACK_PROFILES)) {
     assert.ok(profile.overlay, `${id} should declare a central overlay override`);

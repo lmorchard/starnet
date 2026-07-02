@@ -50,6 +50,12 @@ export const ACTION_FEEDBACK_PROFILES = {
   [A.FETCH]: { overlay: "loot-rings" },
   [A.MINE]: { overlay: "mine-scan" },
   [A.LIE_LOW]: { overlay: "lie-low-clock" },
+  // reboot uses its own bespoke node-pulse treatment (not a generic-overlay ring). "none"
+  // isn't a registered overlay name, so overlay dispatch no-ops for it (#187 default-flip:
+  // reboot is a core verb excluded from the timed-by-default flip, but it emits "start" via
+  // ctx and, having no central overlay entry until now, was resolving to the generic ring
+  // stacked on top of its bespoke pulse).
+  [A.REBOOT]: { overlay: "none" },
 };
 
 /**

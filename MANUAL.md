@@ -810,7 +810,7 @@ Actions depend on the selected node's type and access level:
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
 | `sniff`        | Probed node with a visible flow touching it    | Opens a flow picker (only flows to already-revealed nodes). Reads a flow (decrypts an encrypted one; captures a credential token from a credential flow). Adds heat. Needs the node probed first — not available on an unprobed node. |
 | `replay`       | Finesse-locked node you hold its trusted credential for | Replays the captured credential → node jumps to owned (reveals what it gated). Adds heat. |
-| `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
+| `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …). Set-piece/puzzle scripts run as timed actions by default (brief, ~2s, with the generic-process animation) unless they're a UI/exit action like cancel-trace, access-darknet, or disconnect |
 | `corrupt`      | IDS node is open or owned                      | Timed subversion — severs event forwarding to security monitor once complete; grade-scaled duration (run via `exec`) |
 | `scrub-logs`   | Security-monitor, open or owned                | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
 | `lie-low`      | WAN node, uses remaining this run              | Timed wait that sheds **heat** (does not lower the alert ladder); limited per run (run via `exec`) |
@@ -921,11 +921,12 @@ cards escalate by rarity (common → uncommon → rare); a big-value loot haul g
 a small one; and **revealing nodes is a "discovery rush"** — a single reveal is a bright blip, but
 unlocking a cluster of neighbors cascades into a quick rising run.
 
-Every **timed action** (probe, xploit, dump, fetch, mine, lie-low, reboot, corrupt) also gets its own
-**sustained drone** that plays while the action is in progress and evolves as it advances —
-echoing the action's on-graph animation (a scanning pulse for probe, a grinding tighten for xploit,
-a lock-on beat that settles for mine, and so on). The drone stops when the action completes or is
-cancelled, and the usual one-shot fires at the end.
+Every **timed action** (probe, xploit, dump, fetch, mine, lie-low, reboot, corrupt, and — by
+default — set-piece/EXEC scripts) also gets its own **sustained drone** that plays while the
+action is in progress and evolves as it advances — echoing the action's on-graph animation (a
+scanning pulse for probe, a grinding tighten for xploit, a lock-on beat that settles for mine,
+a neutral pulse for a generic set-piece script, and so on). The drone stops when the action
+completes or is cancelled, and the usual one-shot fires at the end.
 
 SFX are **independent of the music** — they have their own on/off and run on their own audio bus,
 so you can have effects with the music off, and they play in the hub as well as in a run.

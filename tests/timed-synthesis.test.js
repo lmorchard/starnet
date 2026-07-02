@@ -17,6 +17,8 @@ import { NodeGraph } from "../js/core/node-graph/runtime.js";
 import { mockCtx } from "../js/core/node-graph/ctx.js";
 import { timedActiveAttr, getTimedActionAttrNames } from "../js/core/node-graph/timed-actions.js";
 import { dispatchActionFeedback } from "../js/ui/overlays/dispatch.js";
+import { DEFAULT_SCRIPT_ACTION_DURATION } from "../js/core/node-graph/timed-synthesis.js";
+import { A } from "../js/core/action-ids.js";
 
 /**
  * A single node carrying one inline action with a `timed` block: fixed duration of 5
@@ -239,5 +241,121 @@ describe("flat-duration 'start' feedback (#187 review fix — flatstart bug)", (
     const starts = events.filter((e) => e.type === "action-feedback" && e.payload.phase === "start");
     assert.equal(starts.length, 1, "exactly one start event, from the grade-table branch only");
     assert.equal(graph.getNodeState("test-node").done, true, "still completes at the grade-table duration");
+  });
+});
+
+// Timed-by-default flip (#187 default-flip): a script/set-piece action with NO explicit
+// `timed` block is synthesized anyway, using DEFAULT_SCRIPT_ACTION_DURATION, as long as it
+// isn't a core verb, isn't marked `instant`, and doesn't already have a hand-wired
+// timed-action operator for its id.
+describe("timed-by-default synthesis for script actions (#187 default-flip)", () => {
+  it("a plain script action with no timed/instant block is synthesized with the default duration", () => {
+    const node = {
+      id: "test-node",
+      type: "test",
+      attributes: { label: "test-node", visibility: "accessible", pressed: false },
+      actions: [
+        {
+          id: "press-button",
+          label: "PRESS",
+          requires: [],
+          effects: [{ effect: "set-attr", attr: "pressed", value: true }],
+        },
+      ],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, mockCtx());
+    const state = /** @type {any} */ (graph)._nodes.get("test-node");
+
+    const activeAttr = timedActiveAttr("press-button");
+    const { progressAttr, durationAttr } = getTimedActionAttrNames("press-button");
+
+    const op = state.operators.find((/** @type {any} */ o) => o.name === "timed-action" && o.action === "press-button");
+    assert.ok(op, "expected a synthesized timed-action operator for the default-timed script action");
+    assert.equal(op.activeAttr, activeAttr);
+    assert.equal(op.emitStartOnArm, true, "flat default duration should still emit start on arm");
+    assert.deepStrictEqual(op.onComplete, [{ effect: "set-attr", attr: "pressed", value: true }]);
+
+    const action = state.actions.find((/** @type {any} */ a) => a.id === "press-button");
+    assert.deepStrictEqual(action.effects, [
+      { effect: "set-attr", attr: activeAttr, value: true },
+      { effect: "set-attr", attr: progressAttr, value: 0 },
+      { effect: "set-attr", attr: durationAttr, value: DEFAULT_SCRIPT_ACTION_DURATION },
+    ]);
+  });
+
+  it("an action marked instant:true is not synthesized, even though it's a script action", () => {
+    const node = {
+      id: "test-node",
+      type: "test",
+      attributes: { label: "test-node", visibility: "accessible", pressed: false },
+      actions: [
+        {
+          id: "press-button",
+          label: "PRESS",
+          instant: true,
+          requires: [],
+          effects: [{ effect: "set-attr", attr: "pressed", value: true }],
+        },
+      ],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, mockCtx());
+    const state = /** @type {any} */ (graph)._nodes.get("test-node");
+
+    const op = state.operators.find((/** @type {any} */ o) => o.name === "timed-action" && o.action === "press-button");
+    assert.equal(op, undefined, "instant:true script action must not be synthesized");
+
+    const action = state.actions.find((/** @type {any} */ a) => a.id === "press-button");
+    assert.deepStrictEqual(action.effects, [{ effect: "set-attr", attr: "pressed", value: true }], "instant action effects run immediately, unmodified");
+  });
+
+  it("a core verb id with no explicit timed block is not auto-synthesized here", () => {
+    const node = {
+      id: "test-node",
+      type: "test",
+      attributes: { label: "test-node", visibility: "accessible" },
+      actions: [
+        {
+          id: A.DUMP,
+          label: "DUMP",
+          requires: [],
+          effects: [{ effect: "set-attr", attr: "read", value: true }],
+        },
+      ],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, mockCtx());
+    const state = /** @type {any} */ (graph)._nodes.get("test-node");
+
+    const op = state.operators.find((/** @type {any} */ o) => o.name === "timed-action" && o.action === A.DUMP);
+    assert.equal(op, undefined, "core verb without an explicit timed block is not auto-synthesized");
+
+    const action = state.actions.find((/** @type {any} */ a) => a.id === A.DUMP);
+    assert.deepStrictEqual(action.effects, [{ effect: "set-attr", attr: "read", value: true }], "core verb effects untouched");
+  });
+
+  it("does not double-wire when the node already has a hand-wired timed-action operator for that id", () => {
+    const node = {
+      id: "test-node",
+      type: "test",
+      attributes: { label: "test-node", visibility: "accessible", lyingLow: false },
+      operators: [
+        { name: "timed-action", action: "lie-low", activeAttr: "lyingLow", duration: 50, onComplete: [] },
+      ],
+      actions: [
+        {
+          id: "lie-low",
+          label: "LIE LOW",
+          requires: [],
+          effects: [{ effect: "set-attr", attr: "lyingLow", value: true }],
+        },
+      ],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, mockCtx());
+    const state = /** @type {any} */ (graph)._nodes.get("test-node");
+
+    const timedOps = state.operators.filter((/** @type {any} */ o) => o.name === "timed-action" && o.action === "lie-low");
+    assert.equal(timedOps.length, 1, "must not add a second timed-action operator for an id that already has one");
+
+    const action = state.actions.find((/** @type {any} */ a) => a.id === "lie-low");
+    assert.deepStrictEqual(action.effects, [{ effect: "set-attr", attr: "lyingLow", value: true }], "action effects left as-is when an operator already handles it");
   });
 });

@@ -95,10 +95,10 @@ function makeScatteredLock(n, cost) {
               // verbs' NOT_BUSY — blocks re-triggering while the crack is already in flight.
               /** @type {const} */ ({ type: "no-active-timed-action" }),
             ],
-            // Timed (#187 Phase 5): flat feel-draft duration — turns the instant payout
-            // into a legible crack rather than a silent dud. Synthesis rewrites `effects`
-            // below into the timed-action operator's onComplete.
-            timed: { duration: 20 },
+            // Timed (#187 default-flip): crack-vault is a script action, so it's
+            // synthesized as timed by default (DEFAULT_SCRIPT_ACTION_DURATION, same 20-tick
+            // feel-draft value this explicit block used to spell out) — turning the instant
+            // payout into a legible crack rather than a silent dud, with no annotation needed.
             effects: [
               /** @type {const} */ ({ effect: "ctx-call", method: "giveReward", args: [1500] }),
               /** @type {const} */ ({ effect: "set-attr", attr: "cracked", value: true }),
@@ -256,10 +256,10 @@ function makeScatteredEncryptedVault(n, cost) {
             // verbs' NOT_BUSY — blocks re-triggering while the extraction is in flight.
             /** @type {const} */ ({ type: "no-active-timed-action" }),
           ],
-          // Timed (#187 Phase 5): flat feel-draft duration — turns the instant extraction
-          // into a legible process rather than a silent dud. Synthesis rewrites `effects`
-          // below into the timed-action operator's onComplete.
-          timed: { duration: 20 },
+          // Timed (#187 default-flip): extract-key is a script action, so it's synthesized
+          // as timed by default (DEFAULT_SCRIPT_ACTION_DURATION, same 20-tick feel-draft
+          // value this explicit block used to spell out) — turning the instant extraction
+          // into a legible process rather than a silent dud, with no annotation needed.
           effects: [
             /** @type {const} */ ({ effect: "set-attr", attr: "keyExtracted", value: true }),
             /** @type {const} */ ({ effect: "quality-delta", name: "decryption-keys", delta: 1 }),

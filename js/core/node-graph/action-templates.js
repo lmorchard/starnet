@@ -245,6 +245,10 @@ const CANCEL_TRACE_ACTION = {
   id: A.CANCEL_TRACE,
   label: "CANCEL TRACE",
   desc: "Abort trace countdown.",
+  // Instant (#187 default-flip opt-out): the panic button. Racing the trace countdown
+  // while the game keeps the player waiting on this action to complete would be pure
+  // frustration, not in-world timed work.
+  instant: true,
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
   ],
@@ -258,6 +262,9 @@ const ACCESS_DARKNET_ACTION = {
   id: A.ACCESS_DARKNET,
   label: "ACCESS DARKNET",
   desc: "Access the darknet broker to purchase exploit cards.",
+  // Instant (#187 default-flip opt-out): a UI transition (opens the store modal), not
+  // in-world timed work.
+  instant: true,
   requires: [],
   effects: [
     { effect: "ctx-call", method: "openDarknetsStore", args: [] },
@@ -269,6 +276,9 @@ const DISCONNECT_ACTION = {
   id: A.DISCONNECT,
   label: "DISCONNECT",
   desc: "Sever the uplink — jack out and end the run.",
+  // Instant (#187 default-flip opt-out): jacking out ends the run immediately — an exit
+  // action, not in-world timed work.
+  instant: true,
   requires: [],
   effects: [
     { effect: "ctx-call", method: "jackOut", args: [] },

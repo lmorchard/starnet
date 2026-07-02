@@ -31,12 +31,31 @@
  * more than one NodeGraph construction. The `_timedSynthesized` guard on the *new*
  * object then only has to protect against re-running synthesis on an
  * already-synthesized node (idempotency), not against cross-node sharing.
+ *
+ * Timed-by-default flip (#187 default-flip): declaring `timed:{}` on every set-piece/
+ * script action doesn't scale — it's easy to forget (exactly what happened to the
+ * `puzzles.js` multiKeyVault `extract-key`, which never got a `timed` block and so
+ * never animated, unlike its `scattered.js` sibling). So a script action (per
+ * `isScriptAction()`, i.e. not a core deck verb) is synthesized into a timed action
+ * EVEN WITHOUT an explicit `timed` block, using `DEFAULT_SCRIPT_ACTION_DURATION` — unless
+ * it opts out via `instant: true`, or the node already carries a hand-wired
+ * `timed-action` operator for that action id (e.g. the `darknet` trait's `lie-low`,
+ * wired directly via `LIE_LOW_OPERATOR` rather than through `ActionDef.timed`). A
+ * default-timed action is just "explicit `timed`" with a default duration — it reuses
+ * the exact same synthesis path below.
  */
 
 /** @typedef {import('./runtime.js').NodeState} NodeState */
 /** @typedef {import('./types.js').NodeDef} NodeDef */
+/** @typedef {import('./types.js').TimedActionSpec} TimedActionSpec */
 
 import { getTimedActionAttrNames, timedActiveAttr } from "./timed-actions.js";
+import { isScriptAction } from "../actions/scripts.js";
+
+// Flat duration (ticks) applied to a script action synthesized as timed-by-default (no
+// explicit `timed` block). ~2s at the standard 100ms tick — a feel-draft placeholder,
+// same value the Phase-5 hand-conversions (extract-key/crack-vault) used explicitly.
+export const DEFAULT_SCRIPT_ACTION_DURATION = 20;
 
 /**
  * @param {NodeState | NodeDef} node - the node object under construction; mutated in place
@@ -47,8 +66,24 @@ export function synthesizeTimedActions(node) {
 
   let operators = node.operators ?? [];
 
+  // Action ids that already have a hand-wired `timed-action` operator (e.g. `lie-low` via
+  // the `darknet` trait's LIE_LOW_OPERATOR) — the default-timed path must not double-wire
+  // these. Snapshotted once, before this pass adds any operators of its own.
+  const alreadyTimed = new Set(
+    operators.filter((o) => o.name === "timed-action").map((o) => o.action)
+  );
+
   const actions = node.actions.map((action) => {
-    if (!action.timed || action._timedSynthesized) return action;
+    if (action._timedSynthesized) return action;
+
+    /** @type {TimedActionSpec | undefined} */
+    let timedSpec = action.timed;
+    if (!timedSpec) {
+      // Timed-by-default: a script action with no explicit `timed` block still gets
+      // synthesized, unless it opts out (`instant`) or is already timed some other way.
+      if (!isScriptAction(action.id) || action.instant || alreadyTimed.has(action.id)) return action;
+      timedSpec = { duration: DEFAULT_SCRIPT_ACTION_DURATION };
+    }
 
     const activeAttr = timedActiveAttr(action.id);
     const { progressAttr, durationAttr } = getTimedActionAttrNames(action.id);
@@ -59,14 +94,14 @@ export function synthesizeTimedActions(node) {
         name: "timed-action",
         action: action.id,
         activeAttr,
-        ...(action.timed.durationTable ? { durationTable: action.timed.durationTable } : {}),
+        ...(timedSpec.durationTable ? { durationTable: timedSpec.durationTable } : {}),
         // Flat-duration actions seed `duration` directly via the arm effects below, which
         // bypasses the operator's grade-table first-tick branch (progress===0 && duration===0)
         // — that branch is the ONLY place the operator emits a "start" ACTION_FEEDBACK, so
         // without this flag a flat-duration action never starts its overlay animation
         // (manual-smoke bug, #187 review fix). Not set for durationTable actions — that branch
         // already emits "start" and must not double-fire.
-        ...(action.timed.duration != null && !action.timed.durationTable ? { emitStartOnArm: true } : {}),
+        ...(timedSpec.duration != null && !timedSpec.durationTable ? { emitStartOnArm: true } : {}),
         // Inline feedback-profile override (#187 Phase 3), carried through to the "start"
         // ACTION_FEEDBACK payload by the timed-action operator (operators.js). Additive —
         // absent unless the ActionDef declares `feedback`.
@@ -75,7 +110,7 @@ export function synthesizeTimedActions(node) {
         // Wired through for the ABORT/nav-cancel structural checks (review fix,
         // #187 Phase 2): defaults to abortable unless the ActionDef explicitly
         // opts out via `timed.abortable: false`.
-        _abortable: action.timed.abortable !== false,
+        _abortable: timedSpec.abortable !== false,
       },
     ];
 
@@ -84,8 +119,8 @@ export function synthesizeTimedActions(node) {
       { effect: "set-attr", attr: activeAttr, value: true },
       { effect: "set-attr", attr: progressAttr, value: 0 },
     ];
-    if (action.timed.duration != null) {
-      armEffects.push({ effect: "set-attr", attr: durationAttr, value: action.timed.duration });
+    if (timedSpec.duration != null) {
+      armEffects.push({ effect: "set-attr", attr: durationAttr, value: timedSpec.duration });
     }
 
     return { ...action, _timedSynthesized: true, effects: armEffects };

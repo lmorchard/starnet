@@ -68,6 +68,13 @@ test("descriptorForName resolves a registered name and rejects an unregistered o
 
 test("every core verb's central feedback profile names a real registered overlay", () => {
   for (const [actionId, profile] of Object.entries(ACTION_FEEDBACK_PROFILES)) {
+    // reboot is the deliberate exception (#187 default-flip): "none" is an intentionally
+    // unregistered sentinel name so overlay dispatch no-ops for it, leaving reboot's bespoke
+    // node-pulse as the only visual treatment — see feedback-profiles.js.
+    if (actionId === A.REBOOT) {
+      assert.equal(descriptorForName(profile.overlay), null, "reboot's 'none' sentinel must NOT resolve to a real descriptor");
+      continue;
+    }
     assert.ok(descriptorForName(profile.overlay), `${actionId}'s central overlay "${profile.overlay}" should resolve to a real descriptor`);
   }
 });

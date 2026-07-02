@@ -118,6 +118,11 @@
  *   this action into a timed one at node construction: a `timed-action` operator (operators.js) is
  *   generated with `onComplete` set to this action's original `effects`, and `effects` itself is
  *   replaced with the "arm" pattern (set active flag, zero progress, seed duration if given). See #187.
+ * @property {boolean} [instant]  - opts a script/set-piece action OUT of the timed-by-default flip
+ *   (#187 default-flip): a non-core-verb action is synthesized as timed even without an explicit
+ *   `timed` block (default duration) UNLESS `instant: true` is set. For UI/panic/exit actions that
+ *   are not in-world timed work (e.g. CANCEL_TRACE, ACCESS_DARKNET, DISCONNECT). Ignored if `timed`
+ *   is also set (explicit `timed` always wins).
  * @property {ActionFeedbackSpec} [feedback]  - per-action feedback profile override (#187 Phase 3):
  *   { overlay?, drone?, completionCue? }. Layered inline → ACTION_FEEDBACK_PROFILES[actionId]
  *   (central) → DEFAULT_PROFILE — see js/ui/feedback-profiles.js `resolveFeedback()`. Threaded onto
