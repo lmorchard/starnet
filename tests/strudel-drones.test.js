@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DRONES, DRONE_IDS, resolveDrone } from "../js/audio/strudel/data/drones.js";
+import { DRONES, DRONE_IDS, resolveDrone, resolveActionDrone } from "../js/audio/strudel/data/drones.js";
 import { noteToFreq, droneRange } from "../js/audio/strudel/drones.js";
+import { DEFAULT_PROFILE, ACTION_FEEDBACK_PROFILES } from "../js/ui/feedback-profiles.js";
+import { A } from "../js/core/action-ids.js";
 
 test("resolveDrone maps the 7 timed actions to themselves, unknown → null", () => {
   for (const id of ["probe", "xploit", "dump", "fetch", "mine", "lie-low", "reboot"]) {
@@ -39,5 +41,35 @@ test("amp-LFO drones do not also declare a progress-driven gain (engine constrai
       assert.ok(!(spec.gain && typeof spec.gain === "object"),
         `${id}: amp-LFO drone must not have a {from,to} gain`);
     }
+  }
+});
+
+// #187 Phase 3 — resolveActionDrone layers inline → central → resolveDrone() (legacy, preserved
+// as-is) → DEFAULT_PROFILE.drone. Every core verb's bespoke drone must resolve exactly as
+// resolveDrone() alone already resolved it — zero regression, zero re-enumeration.
+test("resolveActionDrone preserves every core verb's bespoke drone via the resolveDrone fallback", () => {
+  for (const id of ["probe", "xploit", "dump", "fetch", "mine", "lie-low", "reboot"]) {
+    assert.equal(resolveActionDrone(id), resolveDrone(id), `${id} should resolve identically to legacy resolveDrone()`);
+  }
+});
+
+test("resolveActionDrone falls to DEFAULT_PROFILE.drone for an action resolveDrone doesn't know", () => {
+  assert.equal(resolveActionDrone("crack-vault"), DEFAULT_PROFILE.drone);
+  assert.equal(DRONES[DEFAULT_PROFILE.drone], undefined, "the generic drone spec isn't registered until Phase 4");
+});
+
+test("resolveActionDrone: inline wins over central and the resolveDrone fallback", () => {
+  assert.equal(resolveActionDrone(A.PROBE, { drone: "custom" }), "custom");
+});
+
+test("resolveActionDrone: a central drone override (if one existed) would win over resolveDrone", () => {
+  // No core verb centrally lists a drone today (by design — resolveDrone() already preserves it,
+  // see feedback-profiles.js's module doc). Temporarily inject one to prove the ordering.
+  const original = ACTION_FEEDBACK_PROFILES[A.PROBE];
+  ACTION_FEEDBACK_PROFILES[A.PROBE] = { ...original, drone: "central-override" };
+  try {
+    assert.equal(resolveActionDrone(A.PROBE), "central-override");
+  } finally {
+    ACTION_FEEDBACK_PROFILES[A.PROBE] = original;
   }
 });

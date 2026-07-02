@@ -13,9 +13,9 @@ import { bootStrudel } from "./runtime.js";
 import { loadGameSoundfont } from "./soundfont.js";
 import { installGameSignals } from "./signal-bridge.js";
 import { createSfx } from "./sfx.js";
-import { resolveCue } from "./data/cues.js";
+import { resolveCue, resolveActionCue } from "./data/cues.js";
 import { createDroneVoice } from "./drones.js";
-import { DRONES, resolveDrone } from "./data/drones.js";
+import { DRONES, resolveActionDrone } from "./data/drones.js";
 import { loadSongs, HUB_ID } from "./songs/index.js";
 import { isMusicEnabled, isSfxEnabled } from "../audio-prefs.js";
 
@@ -98,22 +98,34 @@ function wire(rt, songs = []) {
   }
 
   // ---- Action drones (sustained, progress-driven; raw Web Audio) --------------------------------
+  // #187 Phase 3: drone + completion-cue ids resolve via resolveActionDrone/resolveActionCue
+  // (inline payload.feedback → central ACTION_FEEDBACK_PROFILES → the legacy resolveDrone()
+  // fallback for drones / DEFAULT_PROFILE otherwise) — see js/audio/strudel/data/drones.js and
+  // data/cues.js. `feedback` only rides the "start" payload (operators.js), so the resolved
+  // completion cue is remembered per in-flight action for playback at "complete".
   const drones = new Map();
-  const stopAllDrones = () => { for (const d of drones.values()) d.stop(); drones.clear(); };
+  const pendingCues = new Map();
+  const stopAllDrones = () => { for (const d of drones.values()) d.stop(); drones.clear(); pendingCues.clear(); };
   on(E.ACTION_FEEDBACK, (payload) => {
     if (!sfx.isEnabled()) return;
-    const { nodeId, action, phase, progress } = payload || {};
+    const { nodeId, action, phase, progress, feedback } = payload || {};
     const key = `${nodeId}:${action}`;
     if (phase === "start") {
-      if (drones.has(key)) return;
-      const id = resolveDrone(action);
-      if (!id) return;
-      drones.set(key, createDroneVoice(rt.ctx, DRONES[id]));
+      if (!drones.has(key)) {
+        const id = resolveActionDrone(action, feedback);
+        if (id) drones.set(key, createDroneVoice(rt.ctx, DRONES[id]));
+      }
+      pendingCues.set(key, resolveActionCue(action, feedback));
     } else if (phase === "progress") {
       drones.get(key)?.setProgress(progress ?? 0);
     } else if (phase === "complete" || phase === "cancel") {
       drones.get(key)?.stop();
       drones.delete(key);
+      if (phase === "complete") {
+        const cueId = pendingCues.get(key);
+        if (cueId) sfx.playCue(cueId);
+      }
+      pendingCues.delete(key);
     }
   });
   on(E.RUN_ENDED, stopAllDrones);

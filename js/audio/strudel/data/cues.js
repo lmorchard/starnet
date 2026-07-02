@@ -6,7 +6,14 @@
 // which @strudel/web 1.3.0 drops as "in the past" (see sfx.js); the rest of each object is the
 // superdough value (note/s/cutoff/envelope/gain/room/resonance). Phase-1 event coverage per
 // issue #254; other routed events degrade to no cue (extend in a follow-up).
+//
+// #187 Phase 3: `resolveActionCue` resolves the *timed-action completion* cue id — a distinct,
+// new concept from `resolveCue` above (which maps whole game EVENT TYPES like NODE_REVEALED or
+// ACTION_RESOLVED to a cue, not per-action-id timed-action completions). There is no legacy
+// per-action completion-cue map to fall back to, so the chain is just inline → central
+// (ACTION_FEEDBACK_PROFILES) → DEFAULT_PROFILE.completionCue.
 import { E } from "../../../core/events.js";
+import { ACTION_FEEDBACK_PROFILES, DEFAULT_PROFILE } from "../../../ui/feedback-profiles.js";
 
 export const CUES = {
   // node discovery — short bright blip
@@ -41,4 +48,19 @@ export function resolveCue(type, payload) {
     case E.ALERT_TRACE_STARTED: return CUES["trace.start"];
     default: return null;
   }
+}
+
+/**
+ * Resolve the completion-cue id for a timed action's ACTION_FEEDBACK "complete" phase (#187
+ * Phase 3): inline (the "start" payload's `feedback.completionCue`) → central
+ * (ACTION_FEEDBACK_PROFILES[actionId].completionCue) → DEFAULT_PROFILE.completionCue. The
+ * DEFAULT id ("process.done") isn't backed by a real CUES entry until Phase 4 — sfx.playCue()
+ * already no-ops on an unregistered id (see sfx.js `play()`), so this degrades silently.
+ * @param {string} actionId
+ * @param {{ completionCue?: string }} [inline]
+ * @returns {string}
+ */
+export function resolveActionCue(actionId, inline = {}) {
+  const central = ACTION_FEEDBACK_PROFILES[actionId] ?? {};
+  return inline?.completionCue ?? central.completionCue ?? DEFAULT_PROFILE.completionCue;
 }

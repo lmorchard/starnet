@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { OVERLAY_DESCRIPTORS, overlayDescriptorForAction } from "../js/ui/overlays/registry.js";
+import { OVERLAY_DESCRIPTORS, overlayDescriptorForAction, descriptorForName } from "../js/ui/overlays/registry.js";
+import { ACTION_FEEDBACK_PROFILES } from "../js/ui/feedback-profiles.js";
 import { A } from "../js/core/action-ids.js";
 
 test("registry has seven overlays", () => {
@@ -33,5 +34,24 @@ test("every descriptor is well-formed", () => {
     assert.match(d.tag, /-overlay$/);
     assert.ok(d.label && typeof d.label === "string");
     assert.ok(d.demo?.type && d.demo?.grade);
+    assert.ok(d.name && typeof d.name === "string");
+  }
+});
+
+// #187 Phase 3 — name-keyed overlay resolution.
+test("every descriptor has a unique name", () => {
+  const names = OVERLAY_DESCRIPTORS.map((d) => d.name);
+  assert.equal(new Set(names).size, names.length, "no duplicate overlay names");
+});
+
+test("descriptorForName resolves a registered name and rejects an unregistered one", () => {
+  assert.equal(descriptorForName("probe-sweep")?.key, "probe");
+  assert.equal(descriptorForName("generic-process"), null, "Phase 4 has not registered the default overlay yet");
+  assert.equal(descriptorForName("nonsense"), null);
+});
+
+test("every core verb's central feedback profile names a real registered overlay", () => {
+  for (const [actionId, profile] of Object.entries(ACTION_FEEDBACK_PROFILES)) {
+    assert.ok(descriptorForName(profile.overlay), `${actionId}'s central overlay "${profile.overlay}" should resolve to a real descriptor`);
   }
 });

@@ -54,6 +54,9 @@
  * @property {boolean} [_abortable]   - timed-action (synthesized only): whether ABORT/nav-cancel may
  *   cancel this action; set by timed-synthesis.js from ActionDef.timed.abortable, defaults to true
  *   when absent (#187 Phase 2 review fix)
+ * @property {ActionFeedbackSpec} [feedback] - timed-action: inline feedback-profile override
+ *   (#187 Phase 3), threaded from ActionDef.feedback by timed-synthesis.js and echoed on the
+ *   "start" ACTION_FEEDBACK payload — see js/ui/feedback-profiles.js
  */
 
 /**
@@ -111,9 +114,12 @@
  *   this action into a timed one at node construction: a `timed-action` operator (operators.js) is
  *   generated with `onComplete` set to this action's original `effects`, and `effects` itself is
  *   replaced with the "arm" pattern (set active flag, zero progress, seed duration if given). See #187.
- * @property {ActionFeedbackSpec} [feedback]  - reserved for a later phase: periodic progress-milestone
- *   effects (mirrors the timed-action operator's onProgressInterval/onProgressEffects). Not read by
- *   Phase 1 synthesis.
+ * @property {ActionFeedbackSpec} [feedback]  - per-action feedback profile override (#187 Phase 3):
+ *   { overlay?, drone?, completionCue? }. Layered inline → ACTION_FEEDBACK_PROFILES[actionId]
+ *   (central) → DEFAULT_PROFILE — see js/ui/feedback-profiles.js `resolveFeedback()`. Threaded onto
+ *   the synthesized timed-action operator's config by timed-synthesis.js and emitted on the
+ *   ACTION_FEEDBACK "start" payload by operators.js so overlay dispatch + the Strudel audio module
+ *   can honor a set-piece author's inline override.
  * @property {boolean} [_timedSynthesized]  - set by synthesizeTimedActions() on the *replacement*
  *   action object it returns; guards against re-synthesizing an already-synthesized node. Never set
  *   on an author-supplied ActionDef directly (see timed-synthesis.js for why).
@@ -130,10 +136,12 @@
  */
 
 /**
- * Reserved for a later phase — see `feedback` on ActionDef.
+ * Per-action feedback profile override (#187 Phase 3) — see `feedback` on ActionDef and
+ * js/ui/feedback-profiles.js.
  * @typedef {Object} ActionFeedbackSpec
- * @property {number} [interval]
- * @property {any[]} [effects]
+ * @property {string} [overlay]        - overlay element name (js/ui/overlays/registry.js)
+ * @property {string} [drone]          - Strudel drone id (js/audio/strudel/data/drones.js)
+ * @property {string} [completionCue]  - Strudel one-shot cue id fired on completion
  */
 
 /**

@@ -60,6 +60,10 @@ export function synthesizeTimedActions(node) {
         action: action.id,
         activeAttr,
         ...(action.timed.durationTable ? { durationTable: action.timed.durationTable } : {}),
+        // Inline feedback-profile override (#187 Phase 3), carried through to the "start"
+        // ACTION_FEEDBACK payload by the timed-action operator (operators.js). Additive —
+        // absent unless the ActionDef declares `feedback`.
+        ...(action.feedback ? { feedback: action.feedback } : {}),
         onComplete: action.effects,
         // Wired through for the ABORT/nav-cancel structural checks (review fix,
         // #187 Phase 2): defaults to abortable unless the ActionDef explicitly

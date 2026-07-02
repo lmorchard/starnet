@@ -378,6 +378,10 @@ registerOperator("tally", (config, _attrs, message, _ctx) => {
  *   onComplete?: Effect[] — effects to fire on completion (stored as data, executed by ctx)
  *   onProgressInterval?: number — fraction (0-1) at which to fire onProgressEffects
  *   onProgressEffects?: Effect[] — effects to fire at progress milestones (e.g. exploit noise)
+ *   feedback?: { overlay?, drone?, completionCue? } — inline feedback-profile override (#187
+ *     Phase 3, threaded from ActionDef.feedback by timed-synthesis.js); echoed onto the "start"
+ *     ACTION_FEEDBACK payload for overlay dispatch + the Strudel audio module to layer over the
+ *     central/DEFAULT profile (js/ui/feedback-profiles.js)
  */
 registerOperator("timed-action", (config, attrs, message, _ctx) => {
   if (!message || message.type !== "tick") return {};
@@ -415,7 +419,13 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
       },
       events: [{
         type: "action-feedback",
-        payload: { nodeId: attrs.label, action, phase: "start", progress: 0, durationTicks: gradeDuration },
+        payload: {
+          nodeId: attrs.label, action, phase: "start", progress: 0, durationTicks: gradeDuration,
+          // Inline feedback-profile override (#187 Phase 3), if the ActionDef declared one —
+          // consumed by overlay dispatch + the Strudel audio module's layered resolution.
+          // Additive field; existing consumers ignore it.
+          ...(config.feedback ? { feedback: config.feedback } : {}),
+        },
       }],
     };
   }
