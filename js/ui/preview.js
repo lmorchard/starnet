@@ -164,6 +164,9 @@ cy.userPanningEnabled(true);
 const overlayLayer = $("overlay-layer");
 const { overlays, flowLayer } = initializeGraphOverlays(overlayLayer);
 
+// SWEEP FAN-OUT LAB (overlay-particle-manager session) — temporary tuning scaffolding.
+import("./preview-sweep-lab.js").then((m) => m.initSweepLab(overlayLayer));
+
 // ── Animation helpers ────────────────────────────────────────
 
 function getSpeed() {

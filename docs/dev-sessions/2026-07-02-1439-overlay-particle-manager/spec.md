@@ -39,25 +39,35 @@ One element per action type + one tracked node per action, end to end:
    drive it on `progress`, release it back to the pool on `complete`/`cancel`. Reuse released elements
    rather than churning DOM. Reasoning: Les's "overlay particle manager, reuse elements, efficiencies";
    avoids unbounded element creation on wide sweeps.
-3. **Keep each pooled element's existing RAF loop for now** (smoothing/time). A single shared "particle"
-   RAF that retires per-element loops is a **deferred optimization** — do it ONLY if the lab shows N
-   concurrent per-element loops actually hurt framerate. Reasoning: evidence-driven, smallest blast
-   radius; the shared-RAF rewrite would touch every overlay (code that isn't broken). [Les's call.]
-4. **Concurrency cap / clutter: decided in the lab.** Whether to animate every probing node (1:1 with
-   state) or cap with an aggregate cue is a feel+perf question answered by seeing it. The chosen value
-   is baked into the spec after the lab. [Les's call.] Default hypothesis: no cap (1:1) unless the lab
-   shows clutter or fps problems.
-5. **Preserve the glow/bloom "one owner per layer" rule.** Pooled elements live under `#overlay-layer`
+3. **Keep each pooled element's existing RAF loop** (smoothing/time). **LAB-CONFIRMED:** 24 concurrent
+   real probe overlays (looping, FPS meter on) held framerate, so the single shared "particle" RAF is
+   NOT needed. Not doing the shared-RAF rewrite — it would touch every overlay (code that isn't broken)
+   for no measured gain.
+4. **No concurrency cap — animate every probing node (1:1 with state).** **LAB-CONFIRMED:** up to 24
+   simultaneous sweeps read fine, no clutter or fps issue, so no cap / aggregate cue.
+5. **Random start jitter on a sweep batch (view-layer, cosmetic).** **LAB-CONFIRMED:** when a batch of
+   probe overlays starts in the same frame (a sweep fan-out), offset each overlay's ANIMATION start by a
+   random 0–150ms. This is purely visual — the probe timed-action still starts on its real tick, so
+   there is NO game-state timing change and NO determinism concern (a non-seeded `Math.random()` for the
+   view jitter is acceptable). A lone probe's jitter is imperceptible. Reasoning: the staggered wave
+   reads as propagation and looks better than a hard simultaneous flash.
+6. **Preserve the glow/bloom "one owner per layer" rule.** Pooled elements live under `#overlay-layer`
    and inherit `#overlay-bloom` (`css/style.css:178-180`); none carries its own `filter="url(...)"`
    (the `graph-perf` fps trap). Reposition-on-pan/zoom must cover pooled elements too
    (`overlays/index.js:47`).
-6. **Normalize the `nodeId` keying.** `ACTION_FEEDBACK` carries `attrs.label` from the operator path but
+7. **Normalize the `nodeId` keying.** `ACTION_FEEDBACK` carries `attrs.label` from the operator path but
    `n.id` from ctx paths (`research.md`); they usually match (`label` defaults to `id`) but the manager
    must key/anchor on the Cytoscape element id consistently. Pin this down so pooled anchoring is correct.
 
-## Interactive-lab phase (do this BEFORE porting to production)
+## Interactive-lab phase — DONE ✓
 
-Feel + perf can't be specified — see them first:
+Ran a real N-concurrent-probe-overlay lab (`js/ui/preview-sweep-lab.js`, temporary scaffolding in the
+preview harness). Findings locked into decisions #3–#5 above: **no cap** (24 concurrent read fine),
+**random 0–150ms view-layer start jitter** on a batch, **keep per-element RAF loops** (framerate held).
+Port target: fold these into the production manager + tests; keep a permanent multi-node preview demo
+(replacing/retiring the throwaway lab scaffolding).
+
+Original phase intent (for the record):
 - Stand up a lab that mounts **N real concurrent probe-sweep overlays** on N nodes (extend the preview
   harness with a temporary multi-node "sweep fan-out" driver + an fps meter + a fan-out-count/stagger
   slider; or a gitignored `tmp/` page importing the real overlay against a minimal cy). Use the REAL
