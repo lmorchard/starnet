@@ -39,7 +39,7 @@
           <starnet-store id="darknet-store"></starnet-store>
           <starnet-level-select id="level-select"></starnet-level-select>
           <!-- Vital-sign traces: floated upper-right over the graph.
-               Driven by visual-renderer.syncVitals via #vital-ecg / #vital-deck ids. -->
+               Driven by visual-renderer.syncVitals via #vital-ecg / #vital-deck / #vital-heat ids. -->
           <div id="vital-stack">
             <starnet-waveform id="vital-ecg" class="vital-strip" autosize
               kind="ecg" color="var(--green)" label="HEALTH"
@@ -47,6 +47,10 @@
             <starnet-waveform id="vital-deck" class="vital-strip" autosize
               kind="pulse" color="var(--violet)" label="DECK"
               h="44" speed="100" trail="0.72" bloom="14" meter></starnet-waveform>
+            <!-- Heat history: vector flame of state.heat over time (issue #295).
+                 Adversarial warm palette; frac = heat / HEAT_GAUGE_MAX. No trip line shown. -->
+            <starnet-heat-scope id="vital-heat" class="vital-strip" autosize
+              label="HEAT" h="44" speed="100" trail="0.9" bloom="6"></starnet-heat-scope>
             <!-- Uplink control: VISIT WAN normally, JACK OUT under alert/trace.
                  Driven by visual-renderer.syncHud. -->
             <starnet-uplink id="uplink-btn"></starnet-uplink>
@@ -81,6 +85,7 @@
   <script type="module" src="js/ui/components/starnet-log.js"></script>
   <script type="module" src="js/ui/components/starnet-ice-timers.js"></script>
   <script type="module" src="js/ui/components/starnet-waveform.js"></script>
+  <script type="module" src="js/ui/components/starnet-heat-scope.js"></script>
   <script type="module" src="js/ui/components/starnet-uplink.js"></script>
   <script type="module" src="js/ui/components/starnet-hud.js"></script>
   <script type="module" src="js/ui/components/starnet-context-menu.js"></script>

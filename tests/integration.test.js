@@ -1210,6 +1210,44 @@ describe("cheat alert set/raise/lower (#174)", () => {
   });
 });
 
+describe("cheat hurt/heal heat (#295 — manual heat testing)", () => {
+  beforeEach(() => { clearAll(); initGame(() => buildBasicLAN(), "cheat-heat"); });
+
+  it("hurt heat raises heat; a small amount stays under the alarm", () => {
+    assert.equal(getState().heat, 0);
+    handleCheatCommand(["hurt", "heat", "5"]);
+    assert.equal(getState().heat, 5);
+    assert.equal(getState().globalAlert, "green", "5 heat is under the threshold — no trip");
+  });
+
+  it("heal heat lowers heat by an amount, floored at 0", () => {
+    handleCheatCommand(["hurt", "heat", "5"]);
+    handleCheatCommand(["heal", "heat", "2"]);
+    assert.equal(getState().heat, 3);
+    handleCheatCommand(["heal", "heat", "10"]); // over-heal floors at 0
+    assert.equal(getState().heat, 0);
+  });
+
+  it("heal heat with no amount drops heat to 0", () => {
+    handleCheatCommand(["hurt", "heat", "7"]);
+    handleCheatCommand(["heal", "heat"]);
+    assert.equal(getState().heat, 0);
+  });
+
+  it("hurt heat over the threshold trips the alarm and discharges (real recordHeat path)", () => {
+    handleCheatCommand(["hurt", "heat", "50"]);
+    assert.notEqual(getState().globalAlert, "green", "a big heat spike must trip the ladder");
+    assert.ok(getState().heat < 50, "heat is discharged on a trip so it must rebuild");
+  });
+
+  it("rejects a non-positive hurt amount without changing heat", () => {
+    handleCheatCommand(["hurt", "heat", "0"]);
+    assert.equal(getState().heat, 0);
+    handleCheatCommand(["hurt", "heat", "-3"]);
+    assert.equal(getState().heat, 0);
+  });
+});
+
 describe("lie low → heat cooling (anti-tedium arc)", () => {
   beforeEach(() => { clearAll(); });
   const sendAlert = (graph) => graph.sendMessage("sp/ids", { type: "alert", payload: {} });
