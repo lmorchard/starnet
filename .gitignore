@@ -8,3 +8,7 @@
 
 # Superpowers brainstorming companion artifacts
 .superpowers/
+
+# Large authoring soundfonts — fetched via `make fetch-soundfonts`, never committed.
+# Deploy fonts (*.deploy.sf2) ARE committed.
+/audio-content/soundfonts/MuseScore_General.sf2

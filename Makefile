@@ -1,4 +1,4 @@
-.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts sf3-to-sf2 census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js dist/strudel.js
@@ -59,6 +59,15 @@ bundle-vendor:
 # Cull each authoring soundfont down to only the presets songs use → *.deploy.sf2
 cull-soundfonts:
 	node scripts/cull-soundfonts.js
+
+# Download authoring soundfonts (large; gitignored) from their hosts
+fetch-soundfonts:
+	node scripts/fetch-authoring-soundfonts.js
+
+# One-time: convert a compressed .sf3 to the uncompressed .sf2 our runtime parser requires.
+# Requires `sf3convert` (MuseScore tools). Usage: make sf3-to-sf2 IN=foo.sf3 OUT=foo.sf2
+sf3-to-sf2:
+	sf3convert "$(IN)" "$(OUT)"
 
 # Shared grade defaults for bot/census/generate targets
 THREAT ?= C
