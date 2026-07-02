@@ -173,7 +173,7 @@ function packGen(v, o, g) {
     v.setUint8(o + 3, g.range.hi & 0xff);
   } else {
     // scalar amount — signed 16-bit (covers both signed and unsigned generator amounts)
-    v.setInt16(o + 2, (g.value | 0) << 16 >> 16, true);
+    v.setInt16(o + 2, g.value | 0, true);
   }
 }
 
