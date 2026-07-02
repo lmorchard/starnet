@@ -112,7 +112,7 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
 /**
  * sweep-cascade — on a `sweep-pulse`, bring an unprobed probeable node online and start its probe,
  * stamping the remaining depth as `_cascade_ttl` so the completion forwarder can propagate ttl-1.
- * No-op on already-probed / probing / non-probeable nodes and on ttl < 1.
+ * No-op on already-probed / probing / non-probeable nodes and on ttl < 0 (ttl=0 probes this node but does not forward further).
  */
 registerOperator("sweep-cascade", (_config, attrs, message, _ctx) => {
   if (!message || message.type !== "sweep-pulse") return {};
