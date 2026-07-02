@@ -379,6 +379,9 @@ registerTrait("volatile", {
     activeAttr: "_volatile_armed",
     durationAttrSource: "volatileDelay",
     onComplete: [{ effect: "ctx-call", method: "volatileDetonate", args: ["$nodeId"] }],
+    // Involuntary, like reboot: it self-arms on an owned node and detonates on
+    // its own — ABORT must not be able to disarm it (final review, #187).
+    _abortable: false,
   }],
   actions: [],
   triggers: [{

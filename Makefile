@@ -1,4 +1,4 @@
-.PHONY: all serve dev lint lint-imports test check bundle-vendor census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts fetch-musescore-source sf3-to-sf2 gen-prebake split-musescore census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js dist/strudel.js
@@ -55,6 +55,34 @@ bundle-vendor:
 	npx esbuild js/vendor.js --bundle --outfile=dist/vendor.js --format=iife --platform=browser --minify
 	npx esbuild js/lit-vendor.js --bundle --outfile=dist/lit.js --format=esm --platform=browser --minify
 	npx esbuild js/strudel-vendor.js --bundle --outfile=dist/strudel.js --format=esm --platform=browser --minify
+
+# Cull each authoring soundfont down to only the presets songs use → *.deploy.sf2
+# MuseScore_General.sf2 is ~206MB; --max-old-space-size=4096 prevents OOM on large parses.
+cull-soundfonts:
+	node --max-old-space-size=4096 scripts/cull-soundfonts.js
+
+# Split the full MuseScore authoring font into small topical .sf2 sets (needs MuseScore_General.sf2 fetched)
+split-musescore:
+	node --max-old-space-size=4096 scripts/split-musescore-topical.js
+
+# Download authoring soundfonts (large; gitignored) from their hosts
+fetch-soundfonts:
+	node scripts/fetch-authoring-soundfonts.js
+
+# Download the full MuseScore_General.sf2 (~206MB, gitignored) — the input for `make split-musescore`.
+# Upstream: OSUOSL (see docs/dev-sessions/2026-07-01-1708-soundfont-seam-cull/musescore-sourcing.md).
+fetch-musescore-source:
+	@test -f audio-content/soundfonts/MuseScore_General.sf2 && echo "present, skip" || \
+		curl -L -o audio-content/soundfonts/MuseScore_General.sf2 https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General.sf2
+
+# Regenerate the strudel.cc prebake from the soundfont manifest (loads FULL authoring fonts)
+gen-prebake:
+	node scripts/gen-prebake.js
+
+# One-time: convert a compressed .sf3 to the uncompressed .sf2 our runtime parser requires.
+# Requires `sf3convert` (MuseScore tools). Usage: make sf3-to-sf2 IN=foo.sf3 OUT=foo.sf2
+sf3-to-sf2:
+	sf3convert "$(IN)" "$(OUT)"
 
 # Shared grade defaults for bot/census/generate targets
 THREAT ?= C

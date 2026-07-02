@@ -292,6 +292,14 @@ These omissions are intentional — they make the bot a pessimistic baseline:
   sweep running the process framework no-ops for the bot and census is unchanged from
   `main` (0.3 / 0.767 same-seed). SWEEP is a human breadth-vs-heat choice; the census
   can't tell us whether its depth/heat feel right.
+- **Timed set-piece verbs (`crack-vault`/`extract-key`)** — now timed (#187), but the bot
+  keeps them in `INSTANT_ACTIONS` (they resolve their reward via `onComplete`, never emit
+  `ACTION_RESOLVED`, so `tickUntilResolved` would spin the tick budget for nothing). The bot
+  proposes each once and the ~20-tick arm resolves passively in the background as the loop
+  advances. Residual: if a run ends (trace/jack-out) before the arm completes, the one-shot
+  reward is silently lost — acceptable for the greedy baseline (census is byte-identical to
+  base), but a human sees the timed action + reward. `corrupt`, by contrast, IS in the bot's
+  `TIMED_ACTIONS` set (it emits `ACTION_RESOLVED`), so the bot waits for it correctly.
 
 ### What the census therefore cannot validate
 

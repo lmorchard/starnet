@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Heat Strip Lab — Ember Scope (vector phosphor flame)</title>
+<!--
+  Throwaway tuning harness for issue #295 — "HUD: heat history strip below the vital waveforms".
+  Self-contained: open directly in a browser (file:// is fine, no modules).
+
+  Treatment D — "EMBER SCOPE": a hybrid of the earlier A (ridgeline) + C (stacked bands),
+  drawn with the REAL <starnet-waveform> mechanic — a standing oscilloscope. A sweep head
+  redraws left→right on repeat; each swept column is time-stamped into a buffer and the whole
+  thing is re-rendered per frame with age→alpha phosphor fade (NB bands). NOT a scrolling graph.
+
+  - Top edge   = jagged flame contour at the CURRENT heat height (ripples in behind the head).
+  - Fill       = per column, a stack of horizontal "electron-gun" scan-ticks from baseline up to
+                 the top edge. More heat → taller stack → denser raster fill. Stroke-only (no fill).
+  - Phosphor   = a painted column holds still and fades; shimmer comes from fresh jitter the beam
+                 lays down as it sweeps past (matches real-scope behavior).
+
+  Heat model mirrors the game: probe(+1)/xploit(+2)/replay(+3), decay ~0.6/sec, grade-keyed TRIP
+  threshold; crossing trip discharges heat to ~50% (HEAT_DISCHARGE_FRAC). Tune by eye, then port.
+-->
+<style>
+  :root { --bg:#0a0a0f; --fg:#9fb3c8; }
+  html,body { margin:0; background:var(--bg); color:var(--fg);
+              font:13px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+  .wrap { max-width:820px; margin:22px auto; padding:0 16px 60px; }
+  h1 { font-size:14px; color:#ffd9a0; font-weight:600; letter-spacing:.08em; }
+  p.note { color:#6b7a90; }
+  .panel { background:#06060a; border:1px solid #20283a; border-radius:6px; padding:12px 14px; margin:12px 0;
+           box-shadow:inset 0 0 40px #000a; }
+  .lab-label { font-size:11px; letter-spacing:.12em; color:#7d5a3a; margin:0 0 6px; text-transform:uppercase; }
+  canvas { display:block; width:100%; height:auto; image-rendering:auto; }
+  .stack { display:flex; flex-direction:column; gap:5px; }
+  .stack .mini { border-top:1px dashed #1c2436; padding-top:6px; }
+  .stack .mini .lab-label { color:#42506a; }
+  .realrow { display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; }
+  .realrow .cell { background:#06060a; border:1px solid #20283a; border-radius:4px; padding:6px; }
+  .realrow .cell p { margin:0 0 4px; font-size:10px; letter-spacing:.1em; color:#7d5a3a; }
+  .realrow canvas { width:204px; height:44px; }
+  .controls { display:grid; grid-template-columns:auto 1fr auto; gap:9px 14px; align-items:center; margin-top:6px; }
+  .controls label { color:#8aa; font-size:12px; }
+  .controls output { color:#ffd9a0; min-width:52px; text-align:right; }
+  input[type=range]{ width:100%; accent-color:#ff6a1a; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .row label { font-size:12px; color:#8aa; display:flex; gap:6px; align-items:center; }
+  button { background:#1a120a; color:#ffd9a0; border:1px solid #4a3520; border-radius:4px;
+           padding:5px 11px; font:inherit; cursor:pointer; }
+  button:hover { background:#241808; }
+  button.hot { border-color:#7a3a10; }
+  .hp { color:#ffd9a0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>★ EMBER SCOPE — vector phosphor flame (issue #295)</h1>
+  <p class="note">Standing oscilloscope, not a scroll: the sweep head redraws left→right on repeat,
+     phosphor trail fades behind it. Jagged top edge = current heat; the raster "fill" of horizontal
+     electron-gun ticks below grows denser/taller with heat. Drag HEAT or hit ▶ SIMULATE PLAY. Watch
+     the <span class="hp">real 204×44 HUD size</span> at the bottom — that's the true legibility test.</p>
+
+  <div class="panel">
+    <p class="lab-label">Ember Scope — tuning view (2× zoom)</p>
+    <canvas id="big" width="792" height="150"></canvas>
+  </div>
+
+  <div class="panel">
+    <p class="lab-label">In context — stacked under the vitals (approx)</p>
+    <div class="stack">
+      <div class="mini"><p class="lab-label" style="color:#39ff7a">HEALTH · ecg (placeholder)</p>
+        <canvas id="ph1" width="408" height="34"></canvas></div>
+      <div class="mini"><p class="lab-label" style="color:#b06cff">DECK · pulse (placeholder)</p>
+        <canvas id="ph2" width="408" height="34"></canvas></div>
+      <div class="mini"><p class="lab-label" style="color:#ff6a1a">HEAT · ember scope</p>
+        <canvas id="ctx1" width="408" height="44"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="lab-label">Real HUD strip size — 204 × 44 (this is what actually ships)</p>
+    <div class="realrow">
+      <div class="cell"><p>heat ember scope</p><canvas id="real" width="204" height="44"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="controls">
+      <label for="heat">HEAT (manual)</label>
+      <input id="heat" type="range" min="0" max="15" step="0.1" value="4" /><output id="heatv">4.0</output>
+      <label for="trip">TRIP threshold</label>
+      <input id="trip" type="range" min="3" max="15" step="1" value="7" /><output id="tripv">7</output>
+      <label for="speed">Sweep speed (px/s)</label>
+      <input id="speed" type="range" min="30" max="220" value="90" /><output id="speedv">90</output>
+      <label for="trail">Trail (× sweep)</label>
+      <input id="trail" type="range" min="30" max="150" value="90" /><output id="trailv">0.90</output>
+      <label for="bandgap">Band spacing (px)</label>
+      <input id="bandgap" type="range" min="2" max="14" step="0.5" value="4" /><output id="bandgapv">4.0</output>
+      <label for="maxbands">Max bands (cap)</label>
+      <input id="maxbands" type="range" min="2" max="12" step="1" value="12" /><output id="maxbandsv">12</output>
+      <label for="bandfade">Lower-band transparency</label>
+      <input id="bandfade" type="range" min="0" max="100" value="60" /><output id="bandfadev">60</output>
+      <label for="jag">Jaggedness</label>
+      <input id="jag" type="range" min="0" max="100" value="50" /><output id="jagv">50</output>
+      <label for="bloom">Bloom</label>
+      <input id="bloom" type="range" min="0" max="16" value="6" /><output id="bloomv">6</output>
+    </div>
+    <div class="row">
+      <button id="sim" class="hot">▶ SIMULATE PLAY</button>
+      <button id="probe">probe +1</button>
+      <button id="xploit">xploit +2</button>
+      <button id="replay">replay +3</button>
+      <button id="lielow">LIE LOW −6</button>
+      <label><input type="checkbox" id="showtrip" /> show TRIP line (lab-only; won't ship)</label>
+      <label><input type="checkbox" id="ramp" checked /> amber→red ramp</label>
+      <span id="status" class="hp"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ---- shared params + heat model ------------------------------------------
+const P = {
+  heat: 4, trip: 7, speed: 90, trail: 0.9, bandgap: 4, maxbands: 12, bandfade: 60, jag: 50, bloom: 6,
+  showtrip: false, ramp: true, sim: false,
+};
+const MAXBANDS_CEIL = 12;
+const HMAX = 15;            // y-scale ceiling (F-grade max)
+const DECAY = 0.6;          // per second
+const DISCHARGE_FRAC = 0.5; // trip discharges to ~50%
+let tripFlash = 0, armed = true;
+
+// ---- controls wiring ------------------------------------------------------
+function bind(id, key, fmt) {
+  const el = document.getElementById(id), out = document.getElementById(id + "v");
+  const upd = () => { P[key] = parseFloat(el.value); if (out) out.textContent = fmt ? fmt(P[key]) : el.value; };
+  el.addEventListener("input", upd); upd();
+}
+bind("heat","heat",v=>v.toFixed(1)); bind("trip","trip",v=>String(v|0));
+bind("speed","speed"); bind("trail","trail",v=>(v/100).toFixed(2));
+bind("bandgap","bandgap",v=>v.toFixed(1)); bind("maxbands","maxbands",v=>String(v|0)); bind("bandfade","bandfade");
+bind("jag","jag"); bind("bloom","bloom");
+// trail slider is 30..150 meaning 0.30..1.50
+document.getElementById("trail").addEventListener("input", e => P.trail = parseFloat(e.target.value)/100);
+P.trail = 0.9;
+document.getElementById("heat").addEventListener("input", () => { P.sim = false; setSimBtn(); });
+["showtrip","ramp"].forEach(id =>
+  document.getElementById(id).addEventListener("change", e => P[id] = e.target.checked));
+function bump(a){ P.heat = Math.min(HMAX, P.heat + a); syncHeat(); }
+document.getElementById("probe").onclick  = () => bump(1);
+document.getElementById("xploit").onclick = () => bump(2);
+document.getElementById("replay").onclick = () => bump(3);
+document.getElementById("lielow").onclick = () => { P.heat = Math.max(0, P.heat-6); syncHeat(); };
+function syncHeat(){ const el=document.getElementById("heat"); el.value=P.heat;
+  document.getElementById("heatv").textContent=P.heat.toFixed(1); }
+const simBtn = document.getElementById("sim");
+function setSimBtn(){ simBtn.textContent = P.sim ? "⏸ PAUSE SIM" : "▶ SIMULATE PLAY"; }
+simBtn.onclick = () => { P.sim=!P.sim; setSimBtn(); };
+
+// ---- color ----------------------------------------------------------------
+function heatColor(frac){
+  if (!P.ramp) return "#ff8a2a";
+  const t = Math.max(0, Math.min(1, frac));
+  const stops = [[255,176,32],[255,106,26],[255,42,42]];
+  const seg = t<0.5?0:1, lt = t<0.5?t/0.5:(t-0.5)/0.5;
+  const a=stops[seg], b=stops[seg+1];
+  const c=a.map((v,i)=>Math.round(v+(b[i]-v)*lt));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+// stack color: u=0 (base) yellow → u=1 (crown) red
+function stackColor(u){
+  if (!P.ramp) return "#ff7a2a";
+  const t = Math.max(0, Math.min(1, u));
+  const yellow=[255,225,55], red=[255,40,40];
+  const c = yellow.map((v,i)=>Math.round(v+(red[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+// stable per-column pseudo-noise from a frozen seed r (no time term → phosphor holds still)
+function noise(r, k){ return Math.sin(r*12.9898 + k*4.1414)*43758.5453 % 1; }
+
+// ---- Ember Scope: one instance per canvas --------------------------------
+const NB = 12, STEP = 2;
+function makeScope(canvas){
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width / dpr || canvas.width, H = canvas.height / dpr || canvas.height;
+  // size for dpr crispness
+  const cssW = canvas.getAttribute("width")|0, cssH = canvas.getAttribute("height")|0;
+  canvas.width = Math.round(cssW*dpr); canvas.height = Math.round(cssH*dpr);
+  canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return { ctx, W:cssW, H:cssH, buf:[], head:0, last:null };
+}
+function frameScope(s, now){
+  const { ctx, W, H } = s;
+  const dt = s.last!=null ? Math.min(now-s.last, 0.05) : 0; s.last = now;
+  const base = H-3, top = 4, span = base-top;
+  const level = P.heat/HMAX;                    // 0..1 of y-scale
+  const jag = P.jag/100;
+
+  // advance sweep head, sampling current shape into buffer
+  const sweepT = W/Math.max(1,P.speed);
+  const trailDur = sweepT*Math.max(0.05,P.trail);
+  const target = s.head + P.speed*dt;
+  while (s.head < target){
+    const segStart = s.head;
+    const next = Math.min(s.head+STEP, target);
+    const x = next % W;
+    const gap = Math.floor(next/W) !== Math.floor(segStart/W);
+    const r = Math.random();                    // frozen jitter seed for this column
+    s.buf.push({ x, t:now, gap, level, r });
+    s.head = next;
+  }
+  const cutoff = now - trailDur;
+  while (s.buf.length && s.buf[0].t < cutoff) s.buf.shift();
+
+  ctx.clearRect(0,0,W,H);
+  drawTrip(ctx, W, base, span);
+
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const bandOf = (p)=>Math.floor(((now-p.t)/trailDur)*NB);
+  const fade = P.bandfade/100;
+
+  // Fixed-spacing bands anchored to the crown. j=0 is the crown (top edge); each lower
+  // band sits GAP px below the one above. A band exists for a column only while it stays
+  // above the baseline — so lines are added/removed ONLY at the bottom, never redistributed.
+  const GAP = P.bandgap;
+  const MAXB = Math.min(MAXBANDS_CEIL, P.maxbands|0);
+
+  const crownYof = (p) => base - p.level*span - noise(p.r,1)*jag*3*(0.4+p.level);
+  const yOf = (p, j) => {                             // j=0 crown, j>0 lower tongues
+    const crown = crownYof(p);
+    const jitDamp = Math.max(0, 1 - j*0.14);          // base is calmer than the crown
+    const jit = noise(p.r,1)*jag*3*(0.4+p.level)*(1 - jitDamp);
+    return crown + j*GAP + jit;                        // fixed GAP below crown
+  };
+  const exists = (p, j) => (base - crownYof(p)) >= j*GAP + 0.5;  // room for this band?
+
+  // draw bottom → top so the bright crown lands on top
+  for (let j=MAXB-1; j>=0; j--){
+    const u = MAXB>1 ? 1 - j/(MAXB-1) : 1;            // crown red(1) → deeper base orange(0)
+    const col = stackColor(u);
+    const isCrown = j===0;
+    ctx.lineWidth = isCrown ? 1.4 : 1.1;
+    ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = isCrown ? P.bloom : Math.max(0,P.bloom-2);
+    const dim = isCrown ? 1 : (1 - fade*(1-u));       // lower bands optionally dimmer
+    let curBand=-1, open=false;
+    const flush=()=>{ if(open){ ctx.globalAlpha = dim*(1-(curBand+0.5)/NB); ctx.stroke(); open=false; } };
+    for (let i=1;i<s.buf.length;i++){
+      const a=s.buf[i-1], b=s.buf[i];
+      const band=bandOf(b);
+      if (b.gap || band>=NB || !exists(a,j) || !exists(b,j)){ flush(); curBand=-1; continue; }
+      if (band!==curBand){ flush(); ctx.beginPath(); ctx.moveTo(a.x, yOf(a,j)); curBand=band; open=true; }
+      ctx.lineTo(b.x, yOf(b,j));
+    }
+    flush();
+  }
+  ctx.globalAlpha=1;
+
+  // leading head dot rides the crown
+  if (s.buf.length){
+    const p=s.buf[s.buf.length-1], y=yOf(p,0);
+    const col=stackColor(1);
+    ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=P.bloom+3;
+    ctx.beginPath(); ctx.arc(p.x,y,2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#fff6e8"; ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(p.x,y,0.8,0,Math.PI*2); ctx.fill();
+  }
+  ctx.shadowBlur=0;
+
+  if (tripFlash>0){
+    const al=Math.min(1,tripFlash/0.4);
+    ctx.strokeStyle=`rgba(255,40,40,${al})`; ctx.lineWidth=2;
+    ctx.strokeRect(1,1,W-2,H-2);
+  }
+}
+function drawTrip(ctx, W, base, span){
+  if (!P.showtrip) return;
+  const y = base - (P.trip/HMAX)*span;
+  ctx.save();
+  ctx.setLineDash([4,4]); ctx.lineWidth=1; ctx.shadowBlur=0;
+  ctx.strokeStyle="rgba(255,60,60,0.5)";
+  ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  ctx.setLineDash([]); ctx.font="9px ui-monospace,monospace";
+  ctx.fillStyle="rgba(255,90,90,0.65)"; ctx.fillText("TRIP",3,y-2);
+  ctx.restore();
+}
+
+// ---- placeholder vital scopes (green ecg-ish, violet pulse-ish) -----------
+function makePlain(canvas){ return makeScope(canvas); }
+function framePlain(s, now, kind, col){
+  const { ctx, W, H } = s;
+  const dt = s.last!=null?Math.min(now-s.last,0.05):0; s.last=now;
+  const mid=H/2;
+  const sweepT=W/120, trailDur=sweepT*0.8;
+  const target=s.head+120*dt;
+  while(s.head<target){ const seg=s.head, next=Math.min(s.head+STEP,target);
+    const x=next%W; const gap=Math.floor(next/W)!==Math.floor(seg/W);
+    let y=mid;
+    if(kind==="ecg"){ const ph=(x/W)*4%1; y=mid - (ph>0.5&&ph<0.56?18:ph>0.56&&ph<0.6?-8:0); }
+    else { const ph=(x/W)*4%1; y=mid - (ph<0.5?10:-10); }
+    s.buf.push({x,t:now,gap,y}); s.head=next; }
+  const cutoff=now-trailDur; while(s.buf.length&&s.buf[0].t<cutoff) s.buf.shift();
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=6; ctx.lineWidth=1.3;
+  const bandOf=(p)=>Math.floor(((now-p.t)/trailDur)*NB);
+  let cur=-1,open=false; const flush=()=>{if(open){ctx.globalAlpha=1-(cur+0.5)/NB;ctx.stroke();open=false;}};
+  for(let i=1;i<s.buf.length;i++){const a=s.buf[i-1],b=s.buf[i];const band=bandOf(b);
+    if(b.gap||band>=NB){flush();cur=-1;continue;}
+    if(band!==cur){flush();ctx.beginPath();ctx.moveTo(a.x,a.y);cur=band;open=true;} ctx.lineTo(b.x,b.y);}
+  flush(); ctx.globalAlpha=1; ctx.shadowBlur=0;
+}
+
+// ---- main loop ------------------------------------------------------------
+const big = makeScope(document.getElementById("big"));
+const ctx1 = makeScope(document.getElementById("ctx1"));
+const real = makeScope(document.getElementById("real"));
+const ph1 = makePlain(document.getElementById("ph1"));
+const ph2 = makePlain(document.getElementById("ph2"));
+let nextSpike = 0.8;
+function tick(nowMs){
+  const now = nowMs/1000;
+  const dtGlobal = big.last!=null ? Math.min(now-big.last,0.1) : 0;
+  if (P.sim){
+    P.heat = Math.max(0, P.heat - DECAY*dtGlobal);
+    nextSpike -= dtGlobal;
+    if (nextSpike<=0){ const r=Math.random();
+      P.heat=Math.min(HMAX,P.heat+(r<0.45?1:r<0.8?2:3)); nextSpike=0.5+Math.random()*1.4; }
+    syncHeat();
+  }
+  if (armed && P.heat>=P.trip){ tripFlash=0.4; armed=false; P.heat=P.trip*DISCHARGE_FRAC; syncHeat(); }
+  if (!armed && P.heat<P.trip*0.9) armed=true;
+  if (tripFlash>0) tripFlash-=dtGlobal;
+
+  frameScope(big, now);
+  frameScope(ctx1, now);
+  frameScope(real, now);
+  framePlain(ph1, now, "ecg", "#39ff7a");
+  framePlain(ph2, now, "pulse", "#b06cff");
+
+  document.getElementById("status").textContent =
+    `heat ${P.heat.toFixed(1)} / trip ${P.trip}` + (P.heat>=P.trip*0.9?"  ⚠ near trip":"");
+  requestAnimationFrame(tick);
+}
+setSimBtn();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -204,6 +204,7 @@ describe("instantiate: two instances have independent IDs", () => {
     graph.executeAction("v1/switch-a", "activate");
     graph.executeAction("v1/switch-b", "activate");
     graph.executeAction("v1/switch-c", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
 
     assert.ok(ctx.calls.revealNode?.length > 0);
     assert.deepEqual(ctx.calls.revealNode[0], ["v1/vault"]);
@@ -251,6 +252,7 @@ describe("ids-relay-chain: alert forwarding and subversion", () => {
     assert.ok(available.map((a) => a.id).includes("corrupt"));
 
     graph.executeAction("east/ids", "corrupt");
+    graph.tick(20); // corrupt is timed-by-default (#187 default-flip) — let it complete
     assert.equal(graph.getNodeState("east/ids").forwardingEnabled, false);
   });
 
@@ -261,6 +263,7 @@ describe("ids-relay-chain: alert forwarding and subversion", () => {
 
     graph._nodes.get("east/ids").attributes.accessLevel = "owned";
     graph.executeAction("east/ids", "corrupt");
+    graph.tick(20); // corrupt is timed-by-default (#187 default-flip) — let it complete
 
     graph.sendMessage("east/ids", createMessage({ type: "alert", origin: "probe-node", payload: {} }));
     assert.equal(graph.getNodeState("east/monitor").alerted, false);
@@ -281,6 +284,7 @@ describe("combination-lock: all three switches must activate", () => {
 
     graph.executeAction("v1/switch-a", "activate");
     graph.executeAction("v1/switch-b", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.giveReward, undefined);
     assert.equal(ctx.calls.revealNode, undefined);
   });
@@ -296,6 +300,7 @@ describe("combination-lock: all three switches must activate", () => {
     graph.executeAction("v1/switch-a", "activate");
     graph.executeAction("v1/switch-b", "activate");
     graph.executeAction("v1/switch-c", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
 
     assert.equal(graph.getNodeState("v1/vault").concealed, false);
     assert.ok(ctx.calls.revealNode?.length > 0);
@@ -315,6 +320,7 @@ describe("combination-lock: all three switches must activate", () => {
     graph.executeAction("v1/switch-a", "activate");
     graph.executeAction("v1/switch-b", "activate");
     graph.executeAction("v1/switch-c", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
 
     // Vault is opened but not yet owned — crack-vault unavailable
     let available = graph.getAvailableActions("v1/vault").map(a => a.id);
@@ -326,6 +332,7 @@ describe("combination-lock: all three switches must activate", () => {
     assert.ok(available.includes("crack-vault"));
 
     graph.executeAction("v1/vault", "crack-vault");
+    graph.tick(20); // crack-vault is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [1500]);
 
@@ -379,9 +386,11 @@ describe("switch-arrangement: quality-delta reveals hidden subnet", () => {
 
     graph.executeAction("seg1/panel-alpha", "align");
     graph.executeAction("seg1/panel-beta", "align");
+    graph.tick(20); // align is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.revealNode, undefined);
 
     graph.executeAction("seg1/panel-gamma", "align");
+    graph.tick(20); // align is timed-by-default (#187 default-flip) — let it complete
     assert.ok(ctx.calls.revealNode?.length > 0);
     assert.deepEqual(ctx.calls.revealNode[0], ["seg1/hidden-subnet"]);
   });
@@ -393,6 +402,7 @@ describe("switch-arrangement: quality-delta reveals hidden subnet", () => {
 
     graph._nodes.get("seg1/panel-alpha").attributes.accessLevel = "owned";
     graph.executeAction("seg1/panel-alpha", "align");
+    graph.tick(20); // align is timed-by-default (#187 default-flip) — let it complete
 
     // Second align should fail — requires aligned:false but it's now true
     assert.throws(() => graph.executeAction("seg1/panel-alpha", "align"));
@@ -420,12 +430,14 @@ describe("multi-key-vault: requires two tokens before looting", () => {
 
     graph.executeAction("mk1/key-server-1", "extract-token");
     graph.executeAction("mk1/key-server-2", "extract-token");
+    graph.tick(20); // extract-token is timed-by-default (#187 default-flip) — let it complete
     assert.equal(graph.getQuality("mk1/auth-tokens"), 2);
 
     const available = graph.getAvailableActions("mk1/vault-node").map((a) => a.id);
     assert.ok(available.includes("unlock-vault"));
 
     graph.executeAction("mk1/vault-node", "unlock-vault");
+    graph.tick(20); // unlock-vault is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [5000]);
   });
@@ -526,12 +538,14 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     // Fire clock, extract key, then claim the vault bonus
     graph.tick(120);
     graph.executeAction("ev1/key-gen", "extract-key");
+    graph.tick(20); // extract-key is timed-by-default (#187 default-flip) — let it complete
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
     const available = graph.getAvailableActions("ev1/vault").map((a) => a.id);
     assert.ok(available.includes("fetch-vault"));
 
     graph.executeAction("ev1/vault", "fetch-vault");
+    graph.tick(20); // fetch-vault is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [3000]);
     assert.equal(graph.getQuality("ev1/decryption-key"), 0);
@@ -577,6 +591,7 @@ describe("encrypted-vault: key expiry forces timing pressure", () => {
     // First clock cycle: extract the key
     graph.tick(120);
     graph.executeAction("ev1/key-gen", "extract-key");
+    graph.tick(20); // extract-key is timed-by-default (#187 default-flip) — let it complete
     assert.equal(graph.getQuality("ev1/decryption-key"), 1);
 
     // Don't loot — let next clock cycle fire and expire the key
@@ -611,10 +626,12 @@ describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
     for (const r of ["cs1/relay-a", "cs1/relay-b", "cs1/relay-c"]) {
       graph._nodes.get(r).attributes.accessLevel = "owned";
     }
-    // Subvert all 3 without advancing time
+    // Subvert all 3 (subvert is timed-by-default — #187 default-flip — so let them complete
+    // before checking the puzzle-complete trigger)
     graph.executeAction("cs1/relay-a", "subvert");
     graph.executeAction("cs1/relay-b", "subvert");
     graph.executeAction("cs1/relay-c", "subvert");
+    graph.tick(20);
 
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [2000]);
@@ -631,6 +648,7 @@ describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
     // subvert-ping directly to watchdog (bypassing relay-a's own operators),
     // which resets the watchdog timer. Need 5 more ticks for it to expire (grade D).
     graph.executeAction("cs1/relay-a", "subvert");
+    graph.tick(20); // subvert is timed-by-default (#187 default-flip) — completing emits the ping that arms the watchdog
     graph.tick(5); // watchdog period elapses without further messages (grade D)
 
     assert.equal(ctx.calls.startTrace?.length, 1);
@@ -655,7 +673,8 @@ describe("cascade-shutdown: watchdog stays dormant until the player engages", ()
     const graph = new NodeGraph(inst, ctx);
 
     graph._nodes.get("cs1/relay-a").attributes.accessLevel = "owned";
-    graph.executeAction("cs1/relay-a", "subvert"); // arms the watchdog
+    graph.executeAction("cs1/relay-a", "subvert"); // arms the watchdog once it completes
+    graph.tick(20); // subvert is timed-by-default (#187 default-flip) — completing emits the arming ping
     graph.tick(6); // the now-armed watchdog expires (grade D period 5)
 
     assert.equal(ctx.calls.startTrace?.length, 1);
@@ -672,6 +691,7 @@ describe("cascade-shutdown: watchdog stays dormant until the player engages", ()
     graph.executeAction("cs1/relay-a", "subvert");
     graph.executeAction("cs1/relay-b", "subvert");
     graph.executeAction("cs1/relay-c", "subvert");
+    graph.tick(20); // subvert is timed-by-default (#187 default-flip) — let all three complete
 
     assert.equal(ctx.calls.giveReward?.length, 1);
 
@@ -830,6 +850,7 @@ describe("tamper-detect: corrupting IDS without neutralizing relay triggers trac
     // Give player ownership so corrupt is available
     graph._nodes.get("td1/ids").attributes.accessLevel = "owned";
     graph.executeAction("td1/ids", "corrupt");
+    graph.tick(20); // corrupt is timed-by-default (#187 default-flip) — let it complete
 
     assert.equal(graph.getNodeState("td1/tamper-flag").triggered, true);
     assert.equal(ctx.calls.startTrace?.length, 1);
@@ -852,11 +873,13 @@ describe("tamper-detect: corrupting IDS without neutralizing relay triggers trac
     // Own and neutralize the tamper relay first
     graph._nodes.get("td1/tamper-relay").attributes.accessLevel = "owned";
     graph.executeAction("td1/tamper-relay", "neutralize");
+    graph.tick(20); // neutralize is timed-by-default (#187 default-flip) — let it complete
     assert.equal(graph.getNodeState("td1/tamper-relay").forwardingEnabled, false);
 
     // Now corrupt the IDS safely
     graph._nodes.get("td1/ids").attributes.accessLevel = "owned";
     graph.executeAction("td1/ids", "corrupt");
+    graph.tick(20); // corrupt is timed-by-default (#187 default-flip) — let it complete
 
     assert.equal(graph.getNodeState("td1/tamper-flag").triggered, false);
     assert.equal(ctx.calls.startTrace, undefined);
@@ -921,10 +944,12 @@ describe("scatteredLock3: quality communication in NodeGraph", () => {
     // Activate 2 — vault should NOT reveal
     graph.executeAction("sl/switch-a", "activate");
     graph.executeAction("sl/switch-b", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.revealNode, undefined);
 
     // Activate 3rd — vault reveals
     graph.executeAction("sl/switch-c", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
     assert.ok(ctx.calls.revealNode?.length > 0);
     assert.deepEqual(ctx.calls.revealNode[0], ["sl/vault"]);
     assert.equal(graph.getNodeState("sl/vault").concealed, false);
@@ -939,12 +964,15 @@ describe("scatteredLock3: scan-lock action reports progress", () => {
 
     graph._nodes.get("sl/gate").attributes.accessLevel = "owned";
     graph.executeAction("sl/gate", "scan-lock");
+    graph.tick(20); // scan-lock is timed-by-default (#187 default-flip) — let it complete
     assert.ok(ctx.calls.log?.some(args => args[0] === "Combination lock: 0/3 switches activated"));
 
     // Activate one switch
     graph._nodes.get("sl/switch-a").attributes.accessLevel = "owned";
     graph.executeAction("sl/switch-a", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
     graph.executeAction("sl/gate", "scan-lock");
+    graph.tick(20); // scan-lock is timed-by-default (#187 default-flip) — let it complete
     assert.ok(ctx.calls.log?.some(args => args[0] === "Combination lock: 1/3 switches activated"));
   });
 });
@@ -961,6 +989,7 @@ describe("scatteredLock3: crack-vault requires all switches + owned", () => {
     graph.executeAction("sl/switch-a", "activate");
     graph.executeAction("sl/switch-b", "activate");
     graph.executeAction("sl/switch-c", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
 
     // Vault not owned — crack-vault unavailable
     let available = graph.getAvailableActions("sl/vault").map(a => a.id);
@@ -972,6 +1001,7 @@ describe("scatteredLock3: crack-vault requires all switches + owned", () => {
     assert.ok(available.includes("crack-vault"));
 
     graph.executeAction("sl/vault", "crack-vault");
+    graph.tick(20); // crack-vault is timed by default (#187 default-flip) — same 20-tick duration
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [1500]);
   });
@@ -987,10 +1017,12 @@ describe("scatteredLock3: crack-vault requires all switches + owned", () => {
     graph.executeAction("sl/switch-a", "activate");
     graph.executeAction("sl/switch-b", "activate");
     graph.executeAction("sl/switch-c", "activate");
+    graph.tick(20); // activate is timed-by-default (#187 default-flip) — let it complete
     graph._nodes.get("sl/vault").attributes.accessLevel = "owned";
 
-    // First crack pays out.
+    // First crack pays out (timed by default — #187 default-flip — 20-tick duration).
     graph.executeAction("sl/vault", "crack-vault");
+    graph.tick(20);
     assert.equal(ctx.calls.giveReward?.length, 1);
 
     // The vault is now spent: crack-vault is no longer offered, so the player
@@ -1030,10 +1062,11 @@ describe("scatteredKeyVault: quality communication", () => {
     const inst = instantiate(scatteredKeyVault2, "kv");
     const graph = new NodeGraph(inst, ctx);
 
-    // Own and extract from both keys
+    // Own and extract from both keys (extract-token is timed-by-default — #187 default-flip)
     for (const ks of ["kv/key-server-1", "kv/key-server-2"]) {
       graph._nodes.get(ks).attributes.accessLevel = "owned";
       graph.executeAction(ks, "extract-token");
+      graph.tick(20);
     }
 
     // Own vault and unlock
@@ -1042,6 +1075,7 @@ describe("scatteredKeyVault: quality communication", () => {
     assert.ok(available.includes("unlock-vault"));
 
     graph.executeAction("kv/vault-node", "unlock-vault");
+    graph.tick(20); // unlock-vault is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [5000]);
   });
@@ -1053,6 +1087,7 @@ describe("scatteredKeyVault: quality communication", () => {
 
     graph._nodes.get("kv/vault-node").attributes.accessLevel = "owned";
     graph.executeAction("kv/vault-node", "scan-vault");
+    graph.tick(20); // scan-vault is timed-by-default (#187 default-flip) — let it complete
     assert.ok(ctx.calls.log?.some(args => args[0] === "Key vault: 0/3 tokens collected"));
   });
 });
@@ -1072,15 +1107,17 @@ describe("scatteredEncryptedVault: quality communication", () => {
     const inst = instantiate(scatteredEncryptedVault2, "ev");
     const graph = new NodeGraph(inst, ctx);
 
-    // Own and extract from both key-gens
+    // Own and extract from both key-gens (extract-key is timed — #187 Phase 5 — flat duration:20)
     for (const kg of ["ev/key-gen-1", "ev/key-gen-2"]) {
       graph._nodes.get(kg).attributes.accessLevel = "owned";
       graph.executeAction(kg, "extract-key");
+      graph.tick(20);
     }
 
     // Own vault and decrypt
     graph._nodes.get("ev/vault").attributes.accessLevel = "owned";
     graph.executeAction("ev/vault", "decrypt-loot");
+    graph.tick(20); // decrypt-loot is timed-by-default (#187 default-flip) — let it complete
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [3000]);
   });
@@ -1092,6 +1129,7 @@ describe("scatteredEncryptedVault: quality communication", () => {
 
     graph._nodes.get("ev/vault").attributes.accessLevel = "owned";
     graph.executeAction("ev/vault", "scan-vault");
+    graph.tick(20); // scan-vault is timed-by-default (#187 default-flip) — let it complete
     assert.ok(ctx.calls.log?.some(args => args[0] === "Encrypted vault: 0/3 keys collected"));
   });
 });

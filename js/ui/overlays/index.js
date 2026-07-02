@@ -1,8 +1,9 @@
 // @ts-check
 // Browser-only barrel for node-graph overlay animations. Importing this file
-// registers all six overlay custom elements. mountOverlays() creates one
+// registers all overlay custom elements. mountOverlays() creates one
 // element per registry descriptor, appends them into a container, and returns
-// lookup maps for the game's dispatch (by action) and shared iteration (by key).
+// lookup maps for the game's dispatch (by overlay name, #187 Phase 3) and
+// shared iteration (by key).
 
 import "./probe-sweep.js";
 import "./mine-scan.js";
@@ -11,6 +12,7 @@ import "./loot-rings.js";
 import "./exploit-brackets.js";
 import "./ice-detect.js";
 import "./lie-low-clock.js";
+import "./generic-process.js";
 import { OVERLAY_DESCRIPTORS } from "./registry.js";
 import { onViewport, setReticleOverlay } from "../graph.js";
 import { mountReticle } from "./selection-reticle.js";
@@ -18,18 +20,18 @@ import { FlowLayer } from "./flow-layer.js";
 
 /**
  * @param {HTMLElement} container
- * @returns {{ byKey: Map<string, any>, byAction: Map<string, any> }}
+ * @returns {{ byKey: Map<string, any>, byName: Map<string, any> }}
  */
 export function mountOverlays(container) {
   const byKey = new Map();
-  const byAction = new Map();
+  const byName = new Map();
   for (const d of OVERLAY_DESCRIPTORS) {
     const el = document.createElement(d.tag);
     container.appendChild(el);
     byKey.set(d.key, el);
-    if (d.driver === "action-feedback" && d.action) byAction.set(d.action, el);
+    if (d.driver === "action-feedback") byName.set(d.name, el);
   }
-  return { byKey, byAction };
+  return { byKey, byName };
 }
 
 /**

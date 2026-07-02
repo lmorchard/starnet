@@ -188,7 +188,7 @@ export function tickMeterDataUri(frac, opts = {}) {
 
 // Fixed visual scale for the heat gauge. Deliberately NOT any network's real alarm threshold
 // (those are hidden) — the gauge shows *how hot* you are, never *how close to the line*.
-const HEAT_GAUGE_MAX = 12;
+export const HEAT_GAUGE_MAX = 12;
 
 /** Heat tier color: cool (low) green → warm amber → hot (high) red — the inverse of tierColor. */
 function heatColor(frac) {
