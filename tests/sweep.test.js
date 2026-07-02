@@ -42,6 +42,7 @@ describe("SWEEP — gate-bounded progressive flood-fill", () => {
     tick(400);
     // switch-1/wan are gateway's neighbors → probed within the depth-1 layer; nothing deeper.
     assert.equal(getState().nodes["switch-1"].probed, true);
+    assert.equal(getState().nodes["switch-2"].probed, false, "switch-2 is one layer beyond the cap — must not be probed");
     assert.equal(getState().processes.length, 0, "ended at the depth-1 ceiling");
   });
 

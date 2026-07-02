@@ -156,8 +156,8 @@ export function initLogRenderer() {
   on(E.PROCESS_STARTED, ({ type, nodeId, depthCap }) => {
     if (type === "sweep") add(`[SWEEP] ${nodeId}: broadcast probe — depth ${depthCap}.`, "info");
   });
-  on(E.PROCESS_STEP, ({ type, depth, count }) => {
-    if (type === "sweep") add(`[SWEEP] wave ${depth}: probed ${count} node${count !== 1 ? "s" : ""}.`, "info");
+  on(E.PROCESS_STEP, ({ type, count }) => {
+    if (type === "sweep") add(`[SWEEP] probed ${count} node${count !== 1 ? "s" : ""}.`, "info");
   });
   on(E.PROCESS_ENDED, ({ type, reason }) => {
     if (type === "sweep") add(`[SWEEP] ${reason === "aborted" ? "aborted." : "complete."}`, "meta");

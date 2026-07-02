@@ -212,7 +212,7 @@ if (jsonMode) {
   on(E.CREDENTIAL_REPLAYED,  ({ nodeId, key })           => out(`[REPLAY] ${nodeId}: credential ${key} accepted — trusted access.`));
   on(E.HEAT_ALARM,           ({ level })                 => out(`[HEAT] Activity noticed — alert rising to ${String(level).toUpperCase()}.`));
   on(E.PROCESS_STARTED,      ({ type, nodeId, depthCap }) => { if (type === "sweep") out(`[SWEEP] ${nodeId}: broadcast probe — depth ${depthCap}.`); });
-  on(E.PROCESS_STEP,         ({ type, depth, count })    => { if (type === "sweep") out(`[SWEEP] wave ${depth}: probed ${count} node(s).`); });
+  on(E.PROCESS_STEP,         ({ type, count })           => { if (type === "sweep") out(`[SWEEP] probed ${count} node(s).`); });
   on(E.PROCESS_ENDED,        ({ type, reason })          => { if (type === "sweep") out(`[SWEEP] ${reason === "aborted" ? "aborted." : "complete."}`); });
   on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
     if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
