@@ -240,6 +240,21 @@ export class NodeGraph {
   }
 
   /**
+   * True if the node has any active timed-action operator (#187 Phase 2) — the
+   * structural "is this node busy?" check that spans both the hand-wired core
+   * verbs and any synthesized `timed` action, without needing to know its
+   * (dynamically-named) activeAttr in advance. Does NOT know about the #282
+   * process framework (`state.processes`) — that's a separate busy source
+   * layered on top at the getAvailableActions level (node-actions.js), since
+   * this graph has no access to game state.
+   * @param {string} nodeId
+   * @returns {boolean}
+   */
+  isNodeBusy(nodeId) {
+    return this.getActiveTimedAction(nodeId) != null;
+  }
+
+  /**
    * Return a node's full data: id, type, and all attributes.
    * Useful for populating game state objects.
    * @param {string} nodeId
@@ -405,12 +420,16 @@ export class NodeGraph {
 
   /**
    * Build state accessor object for conditions and trigger evaluation.
-   * @returns {{ getNodeAttr: (nodeId: string, attr: string) => any, getQuality: (name: string) => number }}
+   * @returns {{ getNodeAttr: (nodeId: string, attr: string) => any, getQuality: (name: string) => number, isNodeBusy: (nodeId: string) => boolean }}
    */
   _stateAccessors() {
     return {
       getNodeAttr: (nodeId, attr) => this._nodes.get(nodeId)?.attributes[attr],
       getQuality: (name) => this._qualities.get(name),
+      // Guard against an unknown nodeId rather than throwing (matches the other
+      // accessors here, which read via optional chaining) — isNodeBusy() itself
+      // throws for a missing node, like the rest of the public API (getNodeState, …).
+      isNodeBusy: (nodeId) => (this._nodes.has(nodeId) ? this.isNodeBusy(nodeId) : false),
     };
   }
 

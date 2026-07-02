@@ -133,7 +133,7 @@
 
 /**
  * Condition — union of supported condition shapes.
- * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | AllOfCondition | AnyOfCondition | NotCondition} Condition
+ * @typedef {NodeAttrCondition | QualityGteCondition | QualityEqCondition | QualityFromAttrCondition | NoActiveTimedActionCondition | AllOfCondition | AnyOfCondition | NotCondition} Condition
  */
 
 /**
@@ -165,6 +165,15 @@
  * @property {string} attr           - node attribute containing the quality name
  * @property {number} [gte]          - quality value >= threshold
  * @property {number} [eq]           - quality value === threshold
+ */
+
+/**
+ * Passes when the node has NO active timed-action operator (#187 Phase 2) — a
+ * structural check (via NodeGraph#isNodeBusy) rather than a named-attribute one,
+ * so it also catches a synthesized `timed` action's dynamically-named activeAttr.
+ * @typedef {Object} NoActiveTimedActionCondition
+ * @property {'no-active-timed-action'} type
+ * @property {string} [nodeId]        - omitted in action requires (runtime fills it in)
  */
 
 /**

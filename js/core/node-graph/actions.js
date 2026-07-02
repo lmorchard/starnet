@@ -7,6 +7,7 @@ import { applyEffect } from "./effects.js";
  * @typedef {Object} ActionAccessors
  * @property {(nodeId: string, attr: string) => any} getNodeAttr
  * @property {(name: string) => number} getQuality
+ * @property {(nodeId: string) => boolean} isNodeBusy
  */
 
 /**

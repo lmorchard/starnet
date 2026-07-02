@@ -36,9 +36,15 @@ const TIMED_ACTION_FLAGS = ABORTABLE_FLAGS;
 // rather than `eq false`: some flags (e.g. reading/looting) aren't defined on
 // non-lootable node types, and undefined must read as idle, not busy.
 /** @type {import('./types.js').Condition[]} */
-const NOT_BUSY = [...TIMED_ACTION_FLAGS, "rebooting"].map(
-  (attr) => ({ type: "not", condition: { type: "node-attr", attr, eq: true } })
-);
+const NOT_BUSY = [
+  ...[...TIMED_ACTION_FLAGS, "rebooting"].map(
+    (attr) => /** @type {Condition} */ ({ type: "not", condition: { type: "node-attr", attr, eq: true } })
+  ),
+  // Structural check (#187 Phase 2), additive alongside the enumerated flags above:
+  // catches a busy *synthesized* timed action (declarative ActionDef.timed), whose
+  // activeAttr is minted per-action-id and so can't be named in TIMED_ACTION_FLAGS.
+  { type: "no-active-timed-action" },
+];
 
 /** @type {ActionDef} */
 const PROBE_ACTION = {
@@ -58,7 +64,12 @@ const PROBE_ACTION = {
 
 // Abort: unified cancel for any timed action. The execution is generic
 // (queries timed-action operators at runtime); the requires list shows it
-// whenever any abortable timed action is in flight (see TIMED_ACTION_FLAGS).
+// whenever any abortable timed action is in flight (see TIMED_ACTION_FLAGS),
+// OR a synthesized timed action is active (structural check, #187 Phase 2 —
+// covers a dynamically-named activeAttr the enumerated flags can't list).
+// The #282 process-framework busy case (SWEEP, …) is handled separately, one
+// layer up in node-actions.js — it swaps in its own ABORT before this template
+// is ever consulted, so it isn't duplicated here.
 /** @type {ActionDef} */
 const ABORT_ACTION = {
   id: A.ABORT,
@@ -67,7 +78,10 @@ const ABORT_ACTION = {
   requires: [
     {
       type: "any-of",
-      conditions: TIMED_ACTION_FLAGS.map((attr) => ({ type: "node-attr", attr, eq: true })),
+      conditions: [
+        ...TIMED_ACTION_FLAGS.map((attr) => /** @type {Condition} */ ({ type: "node-attr", attr, eq: true })),
+        { type: "not", condition: { type: "no-active-timed-action" } },
+      ],
     },
   ],
   effects: [
