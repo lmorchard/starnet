@@ -65,6 +65,7 @@ function makeScatteredLock(n, cost) {
           {
             id: "scan-lock",
             label: "Scan Lock",
+            instant: true,   // status readout, not in-world work — stays instant (#187)
             requires: [
               /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             ],
@@ -188,6 +189,7 @@ function makeScatteredKeyVault(n, cost) {
           {
             id: "scan-vault",
             label: "Scan Vault",
+            instant: true,   // status readout, not in-world work — stays instant (#187)
             requires: [
               /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             ],
@@ -285,6 +287,7 @@ function makeScatteredEncryptedVault(n, cost) {
           {
             id: "scan-vault",
             label: "Scan Vault",
+            instant: true,   // status readout, not in-world work — stays instant (#187)
             requires: [
               /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             ],
