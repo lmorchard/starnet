@@ -32,15 +32,18 @@ async function defaultProbe(path) {
 
 /**
  * Resolve which font path to load for a manifest entry.
- * Prefers `deployPath` (culled, smaller); falls back to `authoringPath` if deploy probe fails.
+ * If `deployPath` is absent (e.g. a topical set shipped whole), returns `authoringPath` directly
+ * without probing. When `deployPath` is present, prefers it (culled, smaller); falls back to
+ * `authoringPath` if the deploy probe fails.
  * Returns the raw path string from the entry (callers prepend _root to build the final URL).
  * `probe` receives the raw path and returns true if the resource exists.
  * `probe` is injectable for tests (defaults to a real HEAD fetch in the browser).
- * @param {{ deployPath: string, authoringPath: string }} entry
+ * @param {{ deployPath?: string, authoringPath: string }} entry
  * @param {(path: string) => Promise<boolean>} [probe]
  * @returns {Promise<string>} the resolved path (deployPath or authoringPath)
  */
 export async function resolveFontUrl(entry, probe = defaultProbe) {
+  if (!entry.deployPath) return entry.authoringPath;
   const ok = await probe(entry.deployPath);
   return ok ? entry.deployPath : entry.authoringPath;
 }
@@ -71,6 +74,7 @@ export async function loadGameSoundfont() {
   const allNames = [];
 
   for (const entry of SOUNDFONTS) {
+    if (entry.authoringOnly) continue; // authoring-only sets are not loaded in-game
     const path = await resolveFontUrl(entry);
     const url = _root + path;
     const sf = await sfMod.loadSoundfont(url);
