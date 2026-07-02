@@ -3,29 +3,28 @@
  * SWEEP — a progressive, depth-bounded, abortable probe flood-fill; the breadth counterpart to
  * selective PROBE. The first client of the process framework (js/core/processes.js).
  *
- * It behaves like **parallel probes propagating through the network**: each wave starts a REAL
- * timed probe on every frontier node at once (grade-scaled probe duration + probe animation +
- * resolveProbe on completion, all via the existing timed-action operator). The wave advances to the
- * next recursive layer only once its probes finish — so nodes reveal over real probe-time, not
- * instantly. Propagation is gate-bounded (resolveProbe reveals neighbors only through probe-gate
- * nodes → stops at routers/firewalls/IDS/monitors) and capped by a player-chosen depth.
+ * Propagation is completion-driven: when a sweep node's probe resolves, the forwarder
+ * (initSweepForwarding) sends sweep-pulse{ttl-1} to each now-revealed reachable neighbor and
+ * clears the node's _cascade_ttl. The process step() is a liveness watcher — it returns true
+ * (ended) when no node carries _cascade_ttl. Gate-bounded (resolveProbe reveals neighbors only
+ * through probe-gate nodes → stops at routers/firewalls/IDS/monitors) and depth-capped.
  *
- * Heat: each node hit charges HEAT_COST.sweep up front (a visible rise per node) plus the probe's
- * own HEAT_COST.probe on completion — a wide/deep sweep is loud.
+ * Heat: each node hit charges HEAT_COST.sweep up front (via the sweep-cascade operator) plus the
+ * probe's own HEAT_COST.probe on completion — a wide/deep sweep is loud.
  */
 
 /** @typedef {import('./types.js').GameState} GameState */
 
 import { getState } from "./state.js";
-import { setNodeVisible } from "./state/node.js";
-import { addProcess, updateProcess, nextProcessId } from "./state/process.js";
+import { addProcess, nextProcessId } from "./state/process.js";
 import { registerProcess, activeProcessOnNode } from "./processes.js";
-import { recordHeat } from "./alert.js";
-import { HEAT_COST, SWEEP_MAX_DEPTH } from "./balance.js";
+import { SWEEP_MAX_DEPTH } from "./balance.js";
 import { getTimedActionAttrNames } from "./node-graph/timed-actions.js";
-import { emitEvent, E } from "./events.js";
+import { on, off, emitEvent, E } from "./events.js";
+import { A } from "./action-ids.js";
 
 const PROBE_PROGRESS = getTimedActionAttrNames("probe").progressAttr;
+const PROBE_DURATION = getTimedActionAttrNames("probe").durationAttr;
 
 /** Neighbors a wave can reach next: visible, PROBEABLE (hackable — has a `probing` flag; WAN-likes
  *  don't and can't be probed, so we never wait on them), not already probed/probing. */
@@ -36,15 +35,31 @@ const reachableFrom = (s, id) =>
       && !node.probed && !node.probing;
   });
 
-/** Start a real timed probe on each node in parallel (operator animates + resolves), charging sweep heat per node. */
-function startWave(ids) {
-  const graph = getState().nodeGraph;
-  for (const id of ids) {
-    setNodeVisible(id, "accessible");        // connect — a reached node comes online
-    graph.setNodeAttr(id, "probing", true);  // the timed-action operator runs the probe (duration/anim/resolveProbe)
-    graph.setNodeAttr(id, PROBE_PROGRESS, 0);
-    recordHeat(HEAT_COST.sweep);             // each node hit raises cumulative heat
-  }
+/** Forward the sweep wave one hop when a sweep-probe completes.
+ * Safe to call multiple times — uses an off() guard to ensure at most one copy is active.
+ * Called from initGame() so it survives clearHandlers() between test runs/harness resets.
+ */
+let _sweepHandler = null;
+export function initSweepForwarding() {
+  if (_sweepHandler) off(E.ACTION_RESOLVED, _sweepHandler);
+  _sweepHandler = ({ action, nodeId }) => {
+    if (action !== A.PROBE) return;
+    const s = getState();
+    const graph = s.nodeGraph;
+    const node = s.nodes[nodeId];
+    if (!graph || !node) return;
+    const ttl = node._cascade_ttl;
+    if (ttl == null) return;                          // not part of a sweep cascade
+    graph.setNodeAttr(nodeId, "_cascade_ttl", null);  // this node's hop is done
+    const targets = ttl > 0 ? reachableFrom(s, nodeId) : [];
+    for (const nId of targets) {
+      graph.sendMessage(nId, { type: "sweep-pulse", payload: { ttl: ttl - 1, source: "player" } });
+    }
+    // Each probe completion is a sweep step — the wave advanced (even a terminal leaf reports).
+    const proc = s.processes.find((p) => p.type === "sweep");
+    emitEvent(E.PROCESS_STEP, { type: "sweep", nodeId: proc?.nodeId ?? nodeId, count: targets.length, nodes: targets });
+  };
+  on(E.ACTION_RESOLVED, _sweepHandler);
 }
 
 /**
@@ -58,36 +73,40 @@ export function startSweep(originId, depthCap) {
   const graph = s.nodeGraph;
   if (!graph || activeProcessOnNode(s, originId)) return;
   const cap = Number.isFinite(depthCap) ? Math.min(Math.max(1, depthCap), SWEEP_MAX_DEPTH) : SWEEP_MAX_DEPTH;
-  const origin = s.nodes[originId];
-  // Wave 0 probes the origin only if it's unprobed AND probeable (hackable). An already-probed or
-  // non-probeable origin (e.g. WAN) starts the sweep from its revealed children.
-  const probeOrigin = typeof origin?.probing === "boolean" && !origin.probed;
-  const frontier = probeOrigin ? [originId] : reachableFrom(s, originId);
-  const depth = probeOrigin ? 0 : 1;
-  if (frontier.length === 0) return; // nothing to sweep
-  startWave(frontier);
-  addProcess({ id: nextProcessId(), type: "sweep", nodeId: originId, depthCap: cap, depth, frontier });
+  // Inject the pulse at the origin and let the sweep-cascade operator decide per node: probe a fresh
+  // probeable node, or forward THROUGH an already-probed / non-probeable-hub origin to the frontier
+  // beyond (so a re-sweep reaches nodes an earlier, cancelled sweep missed). Register the process
+  // only if the pulse actually started a probe somewhere — otherwise it's a no-op sweep over
+  // fully-probed / dead-end territory and shouldn't leave a dangling process or log line.
+  graph.sendMessage(originId, { type: "sweep-pulse", payload: { ttl: cap, source: "player" } });
+  if (!Object.values(s.nodes).some((n) => n._cascade_ttl != null)) return;
+  addProcess({ id: nextProcessId(), type: "sweep", nodeId: originId, source: "player", depthCap: cap });
   emitEvent(E.PROCESS_STARTED, { type: "sweep", nodeId: originId, depthCap: cap });
 }
 
 registerProcess("sweep", {
-  step(proc, s) {
-    // Wait until this wave's parallel probes all finish (the operator clears `probing` + resolves each).
-    if (proc.frontier.some((id) => s.nodes[id]?.probing)) return false;
-    // Wave complete — its nodes are probed/revealed. Announce it, then compute the next recursive layer.
-    emitEvent(E.PROCESS_STEP, { type: "sweep", nodeId: proc.nodeId, depth: proc.depth, count: proc.frontier.length, nodes: proc.frontier });
-    const next = [...new Set(proc.frontier.flatMap((id) => reachableFrom(s, id)))];
-    const depth = proc.depth + 1;
-    if (depth > proc.depthCap || next.length === 0) return true; // done
-    startWave(next);
-    updateProcess(proc.id, { depth, frontier: next });
-    return false;
+  step(_proc, s) {
+    // The cascade is live while any node still carries a stamped hop. Ragged: each branch
+    // advances on its own probe completion (see initSweepForwarding). Done when none remain.
+    return !Object.values(s.nodes).some((n) => n._cascade_ttl != null);
   },
-  onAbort(proc, s) {
-    // Cancel the current wave's in-flight probes so they don't resolve after the sweep is aborted.
+  onAbort(_proc, s) {
+    // Cancel every in-flight sweep probe so none resolve after the sweep is aborted.
     const graph = s.nodeGraph;
-    for (const id of proc.frontier || []) {
-      if (s.nodes[id]?.probing) { graph.setNodeAttr(id, "probing", false); graph.setNodeAttr(id, PROBE_PROGRESS, 0); }
+    for (const n of Object.values(s.nodes)) {
+      if (n._cascade_ttl == null) continue;
+      graph.setNodeAttr(n.id, "_cascade_ttl", null);
+      if (n.probing) {
+        graph.setNodeAttr(n.id, "probing", false);
+        graph.setNodeAttr(n.id, PROBE_PROGRESS, 0);
+        // Reset duration too: the timed-action operator only re-emits the "start" phase when BOTH
+        // progress and duration are 0, so a stale duration would leave a re-swept node's overlay un-armed.
+        graph.setNodeAttr(n.id, PROBE_DURATION, 0);
+        // Emit the cancel feedback so the overlay dispatch tears the probe ring down. Without this the
+        // in-flight ring is orphaned mid-progress and visually reads as completed (parity with the
+        // nav-cancel handler, which emits the same for individually-aborted timed actions).
+        emitEvent(E.ACTION_FEEDBACK, { nodeId: n.id, action: A.PROBE, phase: "cancel", progress: 0 });
+      }
     }
   },
 });

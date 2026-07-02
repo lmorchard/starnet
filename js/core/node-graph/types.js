@@ -25,6 +25,7 @@
  * @typedef {Object} OperatorConfig
  * @property {string} name
  * @property {string} [filter]        - relay/counter: only process messages of this type
+ * @property {string} [kind]          - cascade: message type to propagate (default "pulse")
  * @property {string[]} [inputs]      - any-of / all-of: list of origin nodeIds to track
  * @property {string[] | null} [destinations] - relay/debounce: override outgoing destinations (null = broadcast)
  * @property {number} [period]        - clock / watchdog: emit / timeout every N ticks
@@ -319,6 +320,7 @@
  * @property {(nodeId: string) => void} recordMonitorAlert
  * @property {(nodeId: string) => void} scrubLogs
  * @property {(nodeId: string) => void} lieLow
+ * @property {(amount: number) => void} recordHeat
  * @property {(amount: number) => void} giveReward
  * @property {(nodeId: string) => void} spawnICE
  * @property {() => void} [stopIce]

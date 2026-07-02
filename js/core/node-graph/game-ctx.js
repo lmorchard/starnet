@@ -65,6 +65,7 @@ export function buildGameCtx(opts = {}) {
     recordMonitorAlert: (nodeId) => recordMonitorAlert(nodeId),
     scrubLogs: (nodeId) => scrubLogs(nodeId),
     lieLow: (nodeId) => lieLow(nodeId),
+    recordHeat: (amount) => recordHeat(amount),
     giveReward: (amount) => addCash(amount),
     spawnICE: (_nodeId) => startIce(),
     stopIce: () => stopIce(),

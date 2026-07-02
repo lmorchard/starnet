@@ -18,6 +18,9 @@
  */
 
 import { getTimedActionAttrNames } from "./timed-actions.js";
+import { HEAT_COST } from "../balance.js";
+
+const _SWEEP_PROBE_PROGRESS = getTimedActionAttrNames("probe").progressAttr;
 
 /**
  * Resolve a timing value from a grade table or fall back to a fixed value.
@@ -105,6 +108,40 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
 // Core operator implementations
 // ---------------------------------------------------------------------------
 
+
+/**
+ * sweep-cascade — reacts to a `sweep-pulse`. A fresh, visible, probeable node starts its probe
+ * (stamping `_cascade_ttl`; the completion forwarder propagates ttl-1). An already-probed node — or
+ * a non-probeable visible hub (WAN / owned relay) — instead forwards the pulse THROUGH to its
+ * neighbors without re-probing, so a re-sweep flows across probed territory to reach frontier an
+ * earlier (cancelled) sweep missed. ttl=0 probes-but-doesn't-forward; ttl<0 is exhausted.
+ *
+ * The gate is self-enforced by the RECEIVER: a hidden neighbor (behind an un-owned gate, or
+ * concealed) no-ops on this same operator, so a forwarded pulse can never leak past a reveal
+ * boundary — no gate logic is needed on the sender.
+ */
+registerOperator("sweep-cascade", (_config, attrs, message, _ctx) => {
+  if (!message || message.type !== "sweep-pulse") return {};
+  const ttl = message.payload?.ttl ?? -1;
+  const hidden = attrs.visibility === "hidden";
+  const probeable = typeof attrs.probing === "boolean";
+
+  // Fresh, visible, probeable node → start its probe. Forwarding happens on completion.
+  if (probeable && !hidden && !attrs.probed && !attrs.probing && ttl >= 0) {
+    return {
+      attributes: { visibility: "accessible", probing: true, [_SWEEP_PROBE_PROGRESS]: 0, _cascade_ttl: ttl },
+      events: [{ type: "operator-effect", payload: { effect: "ctx-call", method: "recordHeat", args: [HEAT_COST.sweep] } }],
+    };
+  }
+
+  // Forward THROUGH an already-probed node or a non-probeable visible hub. Not while a node is
+  // mid-probe (its completion forwards instead), and not once depth is exhausted (ttl 0).
+  if (!hidden && ttl > 0 && !attrs.probing && (attrs.probed || !probeable)) {
+    return { outgoing: [{ type: "sweep-pulse", payload: { ttl: ttl - 1, source: message.payload?.source } }] };
+  }
+  return {};
+});
+
 /**
  * relay — forward matching messages to all connected nodes.
  * Supports optional `filter` config (only relay if message.type === filter).
@@ -113,12 +150,29 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
 registerOperator("relay", (config, attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "tick") return {};
+  if (message.type === "sweep-pulse") return {};  // sweep-pulse is consumed by sweep-cascade, not relayed
   if (attrs.forwardingEnabled === false) return {};
   if (config.filter && message.type !== config.filter) return {};
   const destinations = "destinations" in config ? config.destinations : message.destinations;
   return {
     outgoing: [{ type: message.type, payload: message.payload, destinations }],
   };
+});
+
+/**
+ * cascade — relay with a hop limit. Forwards its `kind` message to connected nodes with a
+ * decremented TTL, carrying the payload (source, etc.) forward on the operator `outgoing` path
+ * (which preserves message.path, so the cycle-guard terminates the cascade). Gated by
+ * forwardingEnabled (a shut gate stops it); terminates when ttl reaches 1.
+ * Config: { kind?: string }  — message type to propagate (default "pulse").
+ */
+registerOperator("cascade", (config, attrs, message, _ctx) => {
+  const kind = config.kind ?? "pulse";
+  if (!message || message.type !== kind) return {};
+  if (attrs.forwardingEnabled === false) return {};
+  const ttl = (message.payload?.ttl ?? 0) - 1;
+  if (ttl <= 0) return {};
+  return { outgoing: [{ type: kind, payload: { ...message.payload, ttl } }] };
 });
 
 /**
@@ -520,6 +574,18 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
       payload: { nodeId: attrs.label, action, phase: "progress", progress: newProgress / duration },
     }],
   };
+});
+
+/**
+ * regrade — lower the node's grade one step (worse) on a matching message. A side-effect operator;
+ * compose with `cascade` to make a hostile propagating re-grade pulse.
+ * Config: { on?: string } — message type to react to (default "downgrade").
+ */
+const _GRADE_LADDER = ["S", "A", "B", "C", "D", "F"];
+registerOperator("regrade", (config, attrs, message, _ctx) => {
+  if (!message || message.type !== (config.on ?? "downgrade")) return {};
+  const i = _GRADE_LADDER.indexOf(attrs.grade ?? "D");
+  return { attributes: { grade: _GRADE_LADDER[Math.min(i + 1, _GRADE_LADDER.length - 1)] } };
 });
 
 registerOperator("debounce", (config, attrs, message, _ctx) => {

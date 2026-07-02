@@ -26,6 +26,7 @@
  */
 
 import { getTimedActionAttrNames } from "./timed-actions.js";
+import { registerOperator } from "./operators.js";
 
 /** @type {Map<string, TraitDef>} */
 const _registry = new Map();
@@ -166,6 +167,7 @@ registerTrait("hackable", {
     mineExhausted: false,
   },
   operators: [
+    { name: "sweep-cascade" },
     {
       name: "timed-action",
       action: "probe",

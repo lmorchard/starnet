@@ -222,6 +222,30 @@ export class NodeGraph {
   }
 
   /**
+   * Attach a behavior (a registered operator config) to a live node at runtime.
+   * The operator participates in subsequent deliveries and is serialized by snapshot().
+   * Foundation for the RAM loadout (player-equipped behaviors).
+   * Callers are responsible for not attaching the same operator twice — a duplicate
+   * attach double-propagates (the operator runs once per attached copy per delivery).
+   * @param {string} nodeId
+   * @param {import('./types.js').OperatorConfig} operatorConfig
+   */
+  attachBehavior(nodeId, operatorConfig) {
+    const node = this._requireNode(nodeId);
+    node.operators = [...node.operators, operatorConfig];
+  }
+
+  /**
+   * Remove every operator with the given name from a live node.
+   * @param {string} nodeId
+   * @param {string} operatorName
+   */
+  detachBehavior(nodeId, operatorName) {
+    const node = this._requireNode(nodeId);
+    node.operators = node.operators.filter((op) => op.name !== operatorName);
+  }
+
+  /**
    * Dispatch an init message to every node, then evaluate triggers.
    * Call once after construction, before any tick or action.
    */

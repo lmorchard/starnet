@@ -17,6 +17,7 @@ import { buildActionContext, initActionDispatcher } from "../../js/core/actions/
 import { startIce, handleIceTick, handleIceDetect, initIceHandlers } from "../../js/core/ice.js";
 import { handleTraceTick, handleHeatDecay } from "../../js/core/alert.js";
 import { initNavigationCancelHandler } from "../../js/core/node-graph/game-ctx.js";
+import { initSweepForwarding } from "../../js/core/sweep.js";
 import { initGraphBridge } from "../../js/core/graph-bridge.js";
 import { initDynamicActions } from "../../js/core/console-commands/dynamic-actions.js";
 import { initLog } from "../../js/core/log.js";
@@ -65,6 +66,7 @@ export function wireRunHandlers() {
   // clearHandlers() wiped those, so re-register them explicitly per run.
   initIceHandlers();
   initNavigationCancelHandler();
+  initSweepForwarding();
   initGraphBridge();
   initDynamicActions();
 }
