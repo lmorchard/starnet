@@ -56,8 +56,8 @@ export class OverlayManager {
     } else if (phase === "progress") {
       const entry = this._active.get(action)?.get(nodeId);
       if (!entry) return;
-      if (entry.revealed) entry.el.sync(nodeId, /** @type {number} */ (progress));
-      else entry.pending = /** @type {number} */ (progress); // buffered until reveal
+      if (entry.revealed) entry.el.sync(nodeId, progress ?? 0);
+      else entry.pending = progress ?? 0; // buffered until reveal
     } else if (phase === "complete" || phase === "cancel") {
       const byNode = this._active.get(action);
       const entry = byNode?.get(nodeId);
