@@ -14,8 +14,8 @@ test("resolveDrone maps the 7 timed actions to themselves, unknown → null", ()
   assert.equal(resolveDrone(undefined), null);
 });
 
-test("DRONE_IDS covers exactly the 7 timed actions", () => {
-  assert.deepEqual([...DRONE_IDS].sort(), ["dump", "fetch", "lie-low", "mine", "probe", "reboot", "xploit"]);
+test("DRONE_IDS covers exactly the 7 timed actions plus the generic default (#187 Phase 4b)", () => {
+  assert.deepEqual([...DRONE_IDS].sort(), ["dump", "fetch", "generic", "lie-low", "mine", "probe", "reboot", "xploit"]);
 });
 
 test("noteToFreq converts note names to Hz", () => {
@@ -55,7 +55,15 @@ test("resolveActionDrone preserves every core verb's bespoke drone via the resol
 
 test("resolveActionDrone falls to DEFAULT_PROFILE.drone for an action resolveDrone doesn't know", () => {
   assert.equal(resolveActionDrone("crack-vault"), DEFAULT_PROFILE.drone);
-  assert.equal(DRONES[DEFAULT_PROFILE.drone], undefined, "the generic drone spec isn't registered until Phase 4");
+});
+
+// #187 Phase 4b — the generic drone spec is real (feel-DRAFT) audio, not a silent no-op.
+test("the DEFAULT drone spec is registered and well-formed", () => {
+  const spec = DRONES[DEFAULT_PROFILE.drone];
+  assert.ok(spec, "the generic drone spec should be registered as of Phase 4b");
+  assert.ok(["sawtooth", "sine", "square", "triangle", "noise", "fm", "dual"].includes(spec.source));
+  assert.equal(typeof spec.volume, "number");
+  assert.equal(typeof spec.fade, "number");
 });
 
 test("resolveActionDrone: inline wins over central and the resolveDrone fallback", () => {

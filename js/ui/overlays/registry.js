@@ -33,11 +33,16 @@ export const OVERLAY_DESCRIPTORS = [
   { key: "exploit", name: "exploit-brackets", action: A.XPLOIT,  tag: "exploit-brackets-overlay", label: "XPLOIT",  driver: "action-feedback", demo: { type: "firewall",     grade: "B" } },
   { key: "ice",     name: "ice-detect",       action: null,      tag: "ice-detect-overlay",       label: "ICE DET", driver: "ice-timer",       demo: { type: "ids",          grade: "A" } },
   { key: "lielow",  name: "lie-low-clock",    action: A.LIE_LOW, tag: "lie-low-clock-overlay",    label: "LIE LOW", driver: "action-feedback", demo: { type: "wan",          grade: "F" } },
+  // #187 Phase 4b: the DEFAULT_PROFILE.overlay fallback (feedback-profiles.js) — not keyed to a
+  // single action id (action: null, like ice-detect's timer-driven action: null), used whenever
+  // an action has no bespoke central/inline overlay.
+  { key: "generic", name: "generic-process",  action: null,      tag: "generic-process-overlay",  label: "GENERIC", driver: "action-feedback", demo: { type: "workstation", grade: "C" } },
 ];
 
 /**
- * Resolve a descriptor by its canonical overlay name (#187 Phase 3). Unknown/not-yet-registered
- * names (e.g. the Phase-4-pending "generic-process" default) resolve to null.
+ * Resolve a descriptor by its canonical overlay name (#187 Phase 3). Any truly unregistered name
+ * resolves to null; as of Phase 4b, the DEFAULT_PROFILE fallback name ("generic-process") is a
+ * real registered descriptor, so it no longer degrades to null here.
  * @param {string} name
  * @returns {OverlayDescriptor|null}
  */
@@ -47,7 +52,8 @@ export function descriptorForName(name) {
 
 /**
  * Resolve the action-feedback overlay for an action id, via the action's resolved feedback
- * profile (central ACTION_FEEDBACK_PROFILES override, else the Phase-4-pending DEFAULT).
+ * profile (central ACTION_FEEDBACK_PROFILES override, else DEFAULT_PROFILE — the "generic-process"
+ * fallback, registered as of #187 Phase 4b).
  * @param {string} action
  * @returns {OverlayDescriptor|null}
  */

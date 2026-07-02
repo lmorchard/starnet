@@ -14,10 +14,12 @@
 // only lists `overlay` overrides for the core verbs — listing their drones here too would create
 // a second, redundant source of truth ahead of the real fallback.
 //
-// DEFAULT_PROFILE's ids ("generic-process" overlay, "generic" drone, "process.done" cue) are not
-// yet backed by real assets — that's Phase 4. Until then they must resolve to "nothing" wherever
-// they're consumed (unregistered overlay name → no element; unregistered drone/cue id → the
-// existing lookups already no-op on an unknown id, same as any other unmapped id today).
+// DEFAULT_PROFILE's ids ("generic-process" overlay, "generic" drone, "process.done" cue) are
+// real, registered assets as of #187 Phase 4b (js/ui/overlays/generic-process.js,
+// js/audio/strudel/data/drones.js, js/audio/strudel/data/cues.js) — feel-DRAFT defaults (the
+// Phase 4a session tuned the *visual* overlay with Les; the drone/cue are neutral placeholders,
+// tunable later via preview/sfx.html) so every timed action without a bespoke profile still gets
+// legible feedback.
 
 import { A } from "../core/action-ids.js";
 

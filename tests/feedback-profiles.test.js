@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { resolveFeedback, ACTION_FEEDBACK_PROFILES, DEFAULT_PROFILE } from "../js/ui/feedback-profiles.js";
 import { A } from "../js/core/action-ids.js";
 
-test("DEFAULT_PROFILE is the Phase-4-pending generic profile", () => {
+test("DEFAULT_PROFILE is the generic fallback profile (ids registered as of #187 Phase 4b)", () => {
   assert.deepEqual(DEFAULT_PROFILE, {
     overlay: "generic-process",
     drone: "generic",

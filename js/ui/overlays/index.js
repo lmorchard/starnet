@@ -1,6 +1,6 @@
 // @ts-check
 // Browser-only barrel for node-graph overlay animations. Importing this file
-// registers all six overlay custom elements. mountOverlays() creates one
+// registers all overlay custom elements. mountOverlays() creates one
 // element per registry descriptor, appends them into a container, and returns
 // lookup maps for the game's dispatch (by overlay name, #187 Phase 3) and
 // shared iteration (by key).
@@ -12,6 +12,7 @@ import "./loot-rings.js";
 import "./exploit-brackets.js";
 import "./ice-detect.js";
 import "./lie-low-clock.js";
+import "./generic-process.js";
 import { OVERLAY_DESCRIPTORS } from "./registry.js";
 import { onViewport, setReticleOverlay } from "../graph.js";
 import { mountReticle } from "./selection-reticle.js";

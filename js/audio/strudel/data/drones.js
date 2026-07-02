@@ -41,6 +41,11 @@ export const DRONES = {
   // reboot — offline pulse: adversarial slow-pulsing sour drone, loops (no progress sweep).
   reboot:   { source: "sawtooth", note: "C2", detune: -25, cutoff: 520, q: 5,
               lfo: { rate: 0.5, depth: 0.5, target: "amp" }, volume: -19, fade: 0.35, loop: true },
+  // generic — DEFAULT_PROFILE.drone fallback (#187 Phase 4b): neutral, soft, sustained hum for any
+  // timed action with no bespoke drone. A feel-DRAFT default (the Phase 4a session tuned the
+  // *visual* generic overlay with Les, not audio) — tunable later via preview/sfx.html.
+  generic:  { source: "sine", note: "F2", cutoff: { from: 500, to: 900 }, q: 1.5,
+              lfo: { rate: 4, depth: 0.2, target: "amp" }, volume: -24, fade: 0.18 },
 };
 
 export const DRONE_IDS = Object.freeze(Object.keys(DRONES));
@@ -58,9 +63,8 @@ export function resolveDrone(action) {
  * Resolve the drone id for an ACTION_FEEDBACK "start" event (#187 Phase 3): inline (the payload's
  * `feedback.drone`) → central (ACTION_FEEDBACK_PROFILES[actionId].drone) → resolveDrone(actionId)
  * (the legacy per-action lookup above, preserving every core verb's bespoke drone) →
- * DEFAULT_PROFILE.drone (not backed by a real spec until Phase 4 — DRONES["generic"] is
- * undefined, and createDroneVoice() already no-ops on an undefined spec, so this degrades
- * silently, same as an unknown id does today).
+ * DEFAULT_PROFILE.drone. As of #187 Phase 4b, DRONES["generic"] is a real (feel-DRAFT) spec, so
+ * the DEFAULT fallback resolves to real audio instead of degrading silently.
  * @param {string} actionId
  * @param {{ drone?: string }} [inline]
  * @returns {string}

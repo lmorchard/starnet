@@ -24,8 +24,14 @@ test("resolveActionCue falls to DEFAULT_PROFILE.completionCue when nothing else 
   assert.equal(resolveActionCue("crack-vault"), DEFAULT_PROFILE.completionCue);
 });
 
-test("the DEFAULT completion cue id isn't backed by a real CUES entry until Phase 4", () => {
-  assert.equal(CUES[DEFAULT_PROFILE.completionCue], undefined);
+// #187 Phase 4b — the DEFAULT completion cue is real (feel-DRAFT) audio, not a silent no-op.
+test("the DEFAULT completion cue is registered and well-formed", () => {
+  const spec = CUES[DEFAULT_PROFILE.completionCue];
+  assert.ok(spec, "process.done should be registered as of Phase 4b");
+  assert.equal(typeof spec.note, "string");
+  assert.equal(typeof spec.s, "string");
+  assert.equal(typeof spec._dur, "number");
+  assert.equal(typeof spec.gain, "number");
 });
 
 test("resolveActionCue: inline wins over central and DEFAULT", () => {

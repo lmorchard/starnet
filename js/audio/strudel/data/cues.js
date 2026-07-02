@@ -29,6 +29,10 @@ export const CUES = {
   "ice.detected":{ note: "d3", s: "square",   cutoff: 1200, attack: 0.001, decay: 0.18, sustain: 0,   release: 0.1,  gain: 0.5,  _dur: 0.2 },
   // trace started — low ominous square
   "trace.start": { note: "e2", s: "square",   cutoff: 600,  attack: 0.001, decay: 0.4,  sustain: 0,   release: 0.3,  gain: 0.6,  _dur: 0.5 },
+  // process.done — DEFAULT_PROFILE.completionCue fallback (#187 Phase 4b): short, soft blip for
+  // any timed action with no bespoke completion cue. A feel-DRAFT default (the Phase 4a session
+  // tuned the *visual* generic overlay with Les, not audio) — tunable later via preview/sfx.html.
+  "process.done": { note: "e5", s: "sine",    cutoff: 2200, attack: 0.002, decay: 0.12, sustain: 0,   release: 0.1,  gain: 0.35, _dur: 0.15 },
 };
 
 /**
@@ -53,9 +57,9 @@ export function resolveCue(type, payload) {
 /**
  * Resolve the completion-cue id for a timed action's ACTION_FEEDBACK "complete" phase (#187
  * Phase 3): inline (the "start" payload's `feedback.completionCue`) → central
- * (ACTION_FEEDBACK_PROFILES[actionId].completionCue) → DEFAULT_PROFILE.completionCue. The
- * DEFAULT id ("process.done") isn't backed by a real CUES entry until Phase 4 — sfx.playCue()
- * already no-ops on an unregistered id (see sfx.js `play()`), so this degrades silently.
+ * (ACTION_FEEDBACK_PROFILES[actionId].completionCue) → DEFAULT_PROFILE.completionCue. As of
+ * #187 Phase 4b, CUES["process.done"] is a real (feel-DRAFT) spec, so the DEFAULT fallback plays
+ * real audio instead of degrading silently.
  * @param {string} actionId
  * @param {{ completionCue?: string }} [inline]
  * @returns {string}
