@@ -139,7 +139,10 @@ never import any of it.
 - **`strudel/runtime.js`** — `bootStrudel()`: dynamically imports the vendored `@strudel/web`,
   polls for the async-registered globals (`evaluate`/`superdough`/`signal`/`hush`/…), and installs
   a Firefox `cancelAndHoldAtTime` polyfill (soundfont note-offs throw without it).
-- **`strudel/soundfont.js`** — loads the GeneralUser GS soundfont (`gus_*` instruments) songs use.
+- **`strudel/soundfont.js`** — manifest-driven multi-font loader; loops `SOUNDFONTS`, prefers each
+  font's `deployPath` (HEAD-probe), falls back to `authoringPath`; registers presets under the
+  font's `prefix`. Path resolution uses `import.meta.url` for module-relative URLs that survive
+  GitHub Pages subpath hosting.
 - **`strudel/songs/index.js`** — the **song manifest** (`SONG_MANIFEST`: hub + Corporate variants),
   `loadSongs()` (fetch each `.strudel` file), and `resolveSongQuery`/`songAlias` for the `music`
   command. Songs live under `audio-content/songs/*.strudel` (the "wad" content boundary).
@@ -232,6 +235,7 @@ The engine is browser-only. Confirm the headless entry points never import audio
 1. **Song transitions / crossfade** — smooth hub↔run and song↔song transitions, plus a STOP tail
    instead of a hard `hush()` (#264).
 2. **More / friendlier soundfonts** — vendor additional GM soundfonts for song variety (#277).
+   The manifest + cull tooling makes adding a new font a one-manifest-entry + one-cull-run operation.
 3. **Authoring workflow** — first-class parity for loading the game's `gus_*` + `gameProgress`/
    `gameThreat` inside strudel.cc (#265).
 4. **Vocal/texture one-shots** — BoC-style fragments; triggering model + original samples.
@@ -239,3 +243,81 @@ The engine is browser-only. Confirm the headless entry points never import audio
 6. **Other biomes** — alien/ancient (BoC/weirder); the song manifest already supports more entries.
 7. **More game signals** — expose additional state variables via `SIGNAL_REGISTRY` for richer
    reactivity (e.g. per-node danger, cash momentum).
+
+## Soundfont tooling
+
+### Two-tier model: one prefix ↔ one file
+
+The game ships two tiers of soundfonts:
+
+**`gus_` — GeneralUser GS (monolithic GM font, culled for deployment)**
+
+A single 32 MB GM soundfont. Songs reference `gus_*` presets. The full font is committed to the repo (small enough). A per-preset culled deploy font (`GeneralUser-GS.deploy.sf2`, ~2.5 MB) is also committed — it contains only the presets songs actually reference. `make cull-soundfonts` regenerates it. The loader prefers the deploy font; if absent it falls back to the full font. Songs see identical names either way.
+
+**8 topical MuseScore sets (split from MuseScore_General, shipped whole)**
+
+The full MuseScore_General.sf2 (~206 MB, MIT) was split by GM instrument family into 8 small committed `.sf2` files, **dropping acoustic grand pianos (~107 MB) and all orchestral/organic families** — keeping only the synth-friendly families. Each set ships whole (no per-preset cull — they're already small, 3.7–20 MB):
+
+| Prefix | File | GM family |
+|--------|------|-----------|
+| `msgpad_` | `MuseScore-Pad.sf2` | Synth Pad |
+| `msglead_` | `MuseScore-Lead.sf2` | Synth Lead |
+| `msgfx_` | `MuseScore-FX.sf2` | Synth FX + Sound FX |
+| `msgbass_` | `MuseScore-Bass.sf2` | Bass |
+| `msgkeys_` | `MuseScore-Keys.sf2` | Piano (no grands/honky) + Chromatic Perc |
+| `msgorg_` | `MuseScore-Organ.sf2` | Organ |
+| `msggtr_` | `MuseScore-Guitar.sf2` | Guitar |
+| `msgdrum_` | `MuseScore-Drums.sf2` | Drum kits |
+
+These sets are marked `authoringOnly: true` in the manifest — available to composers in strudel.cc (served via `raw.githubusercontent.com`, which sends CORS headers) but NOT loaded in-game until a song adopts a set. To adopt a set: remove `authoringOnly` from its manifest entry and the game will load that whole topical file.
+
+The full `MuseScore_General.sf2` (206 MB) is gitignored — it is only needed as input to `make split-musescore` (re-curation). Fetch it with `make fetch-musescore-source`.
+
+### Manifest
+
+`audio-content/soundfonts/manifest.js` is the single source of truth. Prefixes are non-fungible — `gus_warm_pad` and `msgpad_warm_pad` are distinct instruments from distinct fonts, never aliased.
+
+Entry shape:
+```js
+{
+  prefix: "gus_",                // non-fungible; all presets registered under this prefix
+  authoringPath: "audio-content/soundfonts/GeneralUser-GS.sf2",
+  deployPath:    "audio-content/soundfonts/GeneralUser-GS.deploy.sf2",  // omit for topical sets
+  license:       "audio-content/soundfonts/GeneralUser-GS.LICENSE.txt",
+  host: "https://raw.githubusercontent.com/...",  // raw.githubusercontent — CORS-ok for strudel.cc
+  allow: [],                     // preset names to keep even if the scanner misses them
+  authoringOnly: true,           // topical sets only — skip in-game loading until adopted
+}
+```
+
+### Makefile targets
+
+```
+make cull-soundfonts          # scan songs + js/audio/strudel/data for used gus_ sounds → GeneralUser-GS.deploy.sf2
+make split-musescore          # split MuseScore_General.sf2 into the 8 topical .sf2 files (needs make fetch-musescore-source first)
+make fetch-musescore-source   # download MuseScore_General.sf2 (~206 MB, gitignored) from OSUOSL — only if absent
+make gen-prebake              # regenerate the strudel.cc prebake from the manifest (loads full authoring fonts)
+make fetch-soundfonts         # download other authoring fonts from their hosts (general case)
+make sf3-to-sf2 IN=foo.sf3 OUT=foo.sf2   # one-time: convert a compressed .sf3 to uncompressed .sf2
+```
+
+`make cull-soundfonts` parses each authoring font, scans `audio-content/songs/*.strudel` and `js/audio/strudel/data/` for `<prefix>*` tokens, prunes the preset→instrument→sample graph to the reachable subset, and writes the deploy font. Re-run after adding a new song sound to keep the deploy font current. Sounds referenced outside those directories can be added to the manifest `allow` list as an escape hatch.
+
+`make split-musescore` is the re-curation step — only needed if the topical `.sf2` files need to be regenerated from the source. The committed topical files are the output of this step and are the files that ship and serve via `raw.githubusercontent.com`.
+
+### CORS and serving (strudel.cc authoring)
+
+The topical MuseScore files and the GeneralUser GS font are committed to the repo. `raw.githubusercontent.com` sends `Access-Control-Allow-Origin: *` for files under the 100 MB per-file limit — all committed soundfonts qualify. This gives free CORS for strudel.cc authoring: composers can load `msg*` and `gus_` presets directly from `raw.githubusercontent.com` without self-hosting.
+
+GitHub release assets do NOT send CORS headers (tried, abandoned). GitHub Pages does send CORS and is a documented fallback if we ever need to host something outside the raw.githubusercontent size window. The full `MuseScore_General.sf2` (206 MB) cannot be committed (GitHub's 100 MB per-file limit) and OSUOSL sends no CORS header, so the full source font is authoring-in-Node only.
+
+### `.sf3` files
+
+Our runtime parser (`soundfont2` via `sfumato`) reads uncompressed SF2 only — it is a pure Int16 PCM parser with no Ogg/Vorbis path. `.sf3` (MuseScore's compressed format) **cannot** be loaded at runtime and cannot be culled without first decompressing. Prefer fetching `.sf2` directly when a host provides it (OSUOSL serves MuseScore_General as a native `.sf2`). The `sf3-to-sf2` Makefile target wraps `sf3convert` (MuseScore tools package) for one-time conversion if needed.
+
+### Pure SF2 modules
+
+- `js/audio/soundfont/sf2-writer.js` — `writeSf2(font)` → SF2 `ArrayBuffer`. Serializes a structure shaped like `soundfont2`'s parsed output. Pure module, no I/O.
+- `js/audio/soundfont/sf2-prune.js` — `prunePresets(font, keepNameSet)` → subsetted structure. Walks the preset→instrument→sample reachability graph, remaps all index references, and returns a new structure ready to pass to `writeSf2`. Pure module, no I/O.
+
+Both are unit-tested via `node:test` (`tests/sf2-writer.test.js`, `tests/sf2-prune.test.js`).
