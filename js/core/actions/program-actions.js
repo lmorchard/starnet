@@ -13,6 +13,9 @@
 
 import { A } from "../action-ids.js";
 import { visibleIncidentFlows, flowId, sniffFlow, replayCredential } from "../programs.js";
+import { startSweep } from "../sweep.js";
+import { activeProcessOnNode } from "../processes.js";
+import { SWEEP_MAX_DEPTH } from "../balance.js";
 
 /**
  * Flow choices for the SNIFF picker — plain DATA (core stays UI-free). The picker component
@@ -45,6 +48,27 @@ export const SNIFF_ACTION = {
   execute: (node, state, _ctx, payload) => sniffFlow(state, node.id, payload?.flowId),
 };
 
+/** Depth options for the SWEEP picker (plain DATA; rendered as "action" choices). */
+export function getSweepChoices() {
+  return [
+    { id: "1", payloadKey: "depth", render: "action", data: { label: "depth 1", desc: "immediate neighbors" } },
+    { id: "2", payloadKey: "depth", render: "action", data: { label: "depth 2" } },
+    { id: "3", payloadKey: "depth", render: "action", data: { label: "depth 3" } },
+    { id: "max", payloadKey: "depth", render: "action", data: { label: "max", desc: "until it runs dry" } },
+  ];
+}
+
+/** @type {ActionDef} */
+export const SWEEP_ACTION = {
+  id: A.SWEEP,
+  label: "SWEEP",
+  available: () => true,
+  desc: () => "Broadcast probe — ripples outward through open nodes, building heat as it goes.",
+  followup: { title: (node) => `SWEEP ${node.id}`, choices: getSweepChoices, empty: () => "" },
+  execute: (node, _state, _ctx, payload) =>
+    startSweep(node.id, payload?.depth === "max" ? SWEEP_MAX_DEPTH : Number(payload?.depth)),
+};
+
 /** @type {ActionDef} */
 export const REPLAY_ACTION = {
   id: A.REPLAY,
@@ -62,6 +86,10 @@ export function getProgramActions(node, state) {
   /** @type {ActionDef[]} */
   const out = [];
   if (!node || node.visibility !== "accessible") return out;
+
+  // SWEEP: broadcast probe from any accessible node (probes the origin itself first). Not offered
+  // while a process is already running on this node (one sweep at a time).
+  if (!activeProcessOnNode(state, node.id)) out.push(SWEEP_ACTION);
 
   // SNIFF: requires the node be PROBED — a measure of careful preparation (you scan/fingerprint
   // the node before reading its traffic), but a single recon act, NOT the locked→open→owned

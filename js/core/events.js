@@ -48,6 +48,10 @@ export const E = Object.freeze({
   HEAT_CHANGED:          "alert:heat-changed",
   HEAT_ALARM:            "alert:heat-alarm",
 
+  PROCESS_STARTED:       "process:started",
+  PROCESS_STEP:          "process:step",
+  PROCESS_ENDED:         "process:ended",
+
   FLOW_SNIFFED:          "flow:sniffed",
   CREDENTIAL_CAPTURED:   "flow:credential-captured",
   CREDENTIAL_REPLAYED:   "flow:credential-replayed",

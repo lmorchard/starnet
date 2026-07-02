@@ -321,6 +321,14 @@
  * }} Flow
  */
 
+/**
+ * A progressive, abortable player operation that advances over ticks and may affect nodes beyond
+ * its origin (js/core/processes.js). Generic seam: `type` selects the registered handler; the rest
+ * is that handler's serializable in-flight state. `nodeId` is the origin (drives busy/abort). SWEEP
+ * is the first client; parallel-XPLOIT etc. plug into the same registry.
+ * @typedef {{ id: number, type: string, nodeId: string, [k: string]: any }} Process
+ */
+
 // ── Top-level state ───────────────────────────────────────
 
 /**
@@ -334,6 +342,7 @@
  *   flows: Flow[],
  *   heat: number,
  *   heatDecayTimerId: number|null,
+ *   processes: Process[],
  *   player: PlayerState,
  *   globalAlert: GlobalAlertLevel,
  *   traceSecondsRemaining: number|null,

@@ -14,6 +14,9 @@ export const CORE_NODE_VERBS = new Set([
   // Flow programs stay top-level: SNIFF hosts its own flow picker (EXEC can't nest a
   // followup), and both are core player verbs rather than node-authored scripts.
   A.SNIFF, A.REPLAY,
+  // SWEEP is a top-level verb too — it hosts its own depth picker (EXEC can't nest a
+  // followup) and must render in the node inspector, not be buried as a script.
+  A.SWEEP,
 ]);
 
 /** @param {string} id @returns {boolean} */

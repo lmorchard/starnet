@@ -286,7 +286,12 @@ These omissions are intentional — they make the bot a pessimistic baseline:
   (at the current decay it matches `main` exactly — no regression). Heat is a
   **burst** detector; the bot doesn't burst instant actions, so it neither exploits
   the mechanic (deliberate pacing) nor stress-tests it. A human blitzing programs /
-  a future SWEEP is what heat is really for.
+  a SWEEP is what heat is really for.
+- **SWEEP (broadcast probe)** — the bot never sweeps; it probes one node at a time via
+  the normal loop. SWEEP is an opt-in progressive process (`state.processes`), so with no
+  sweep running the process framework no-ops for the bot and census is unchanged from
+  `main` (0.3 / 0.767 same-seed). SWEEP is a human breadth-vs-heat choice; the census
+  can't tell us whether its depth/heat feel right.
 
 ### What the census therefore cannot validate
 

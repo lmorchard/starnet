@@ -17,6 +17,7 @@ import { getProgramActions } from "./program-actions.js";
 import { A } from "../action-ids.js";
 import { activeIceInstances } from "../state/ice.js";
 import { isScriptAction } from "./scripts.js";
+import { activeProcessOnNode, abortNodeProcesses } from "../processes.js";
 
 /**
  * Returns all available actions for the given node and game state.
@@ -29,6 +30,17 @@ import { isScriptAction } from "./scripts.js";
 export function getAvailableActions(node, state) {
   const global = getGlobalActions(node, state);
   if (!node || !state.nodeGraph) return global;
+
+  // A node running a progressive process (SWEEP, …) is BUSY: the only node action is ABORT.
+  // Uniform rule at the actions layer (the graph's NOT_BUSY can't see processes) — future
+  // progressive verbs inherit it. Nav-away also aborts (game-ctx nav-cancel handler).
+  if (activeProcessOnNode(state, node.id)) {
+    return [...global, {
+      id: A.ABORT, label: "ABORT", available: () => true,
+      desc: () => "Stop the running operation.",
+      execute: (n) => abortNodeProcesses(n.id),
+    }];
+  }
 
   const graphActions = state.nodeGraph.getAvailableActions(node.id);
 

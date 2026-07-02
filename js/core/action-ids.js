@@ -29,6 +29,9 @@ export const A = Object.freeze({
   SNIFF: "sniff",
   REPLAY: "replay",
 
+  // Verb variants (anti-tedium arc pt.2). SWEEP = progressive probe flood-fill.
+  SWEEP: "sweep",
+
   // Node-specific actions
   EXEC: "exec",
   CORRUPT: "corrupt",

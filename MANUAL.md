@@ -258,6 +258,15 @@ each type's gate level.
 Probing raises the node's local alert from green to yellow. If this node is watched by
 an IDS, that alert will propagate.
 
+**Selective probe vs. SWEEP.** `probe` is the quiet, one-node-at-a-time scan. When you want to
+map fast, **SWEEP** is a *broadcast* probe: choose it (and a depth), and it **ripples outward**
+from the node wave by wave — probing each node it reaches and bringing it fully online — up to the
+depth you set, or until you `abort`. It flows *through* nodes that reveal their neighbors on probe
+and **stops at the ones that gate their connections** (routers, firewalls, IDS, monitors) — so the
+network's chokepoints are its natural sweep-breakers. The catch is **heat**: every node a sweep
+touches adds heat all at once, so a deep/wide sweep spikes fast and can trip the alarm mid-ripple.
+Watch the heat gauge and abort before it's too hot. (Console: `sweep <depth|max>` on the targeted node.)
+
 ### 3. Exploit
 
 Choose **XPLOIT** from the node's action menu, click a card in the hand strip, or type:
@@ -791,7 +800,8 @@ Actions depend on the selected node's type and access level:
 |-------------------|------------------------------------------------|--------|
 | `exec access-darknet` | WAN node is targeted                       | Opens the darknet broker store; pauses the LAN while shopping (run via `exec`) |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
-| `abort`           | Timed action in progress on targeted node      | Aborts the current action (probe, xploit, dump, or fetch) |
+| `sweep` (menu) / `sweep <depth|max>` (console) | Targeted accessible node, no sweep already running | Broadcast probe — ripples outward wave-by-wave up to the chosen depth, probing + fully revealing each reached node, flowing through probe-gate nodes and stopping at gate-controllers. Adds heat per node (a fast spike). Abortable mid-ripple. |
+| `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current action (probe, xploit, dump, fetch, or a running sweep) |
 | `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies. Not offered at all on an already-owned node. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
@@ -821,6 +831,7 @@ you probe them. `status node sig-N` reports `[???]` for an unidentified node's t
 target <node>          Target a node. Alias: t
 untarget               Untarget current node.
 probe [node]           Probe targeted or specified node.
+sweep <depth|max>       Broadcast probe from the targeted node, rippling to depth (or "max"); abort to stop.
 abort                  Abort any in-progress timed action on targeted node.
 xploit <#|name>        Use exploit card by number or name on targeted node.
 dump [node]            Dump contents of targeted/specified node.

@@ -6,6 +6,7 @@
 import { emitEvent, E } from "./events.js";
 import { getVersion, getState } from "./state/index.js";
 import { getActiveRun, requireActiveRun } from "./run-context.js";
+import { stepProcesses } from "./processes.js";
 
 export const TICK_MS = 100; // ms per tick; browser master interval uses this
 
@@ -89,9 +90,13 @@ export function tick(n = 1) {
       }
     }
   }
-  // Advance NodeGraph internal clock (operators: clock, delay, watchdog, debounce)
-  if (ctx.nodeGraph) {
-    for (let i = 0; i < n; i++) ctx.nodeGraph.tick(1);
+  // Advance the NodeGraph clock (operators: clock/delay/watchdog/probe timers/…) and progressive
+  // processes (SWEEP waves, etc.) INTERLEAVED, one virtual tick at a time — so a process that reacts
+  // to graph state (e.g. a sweep waiting on a probe to finish, then starting the next wave's probes)
+  // sees each other's effects tick-by-tick rather than graph-all-then-processes-all. See processes.js.
+  for (let i = 0; i < n; i++) {
+    if (ctx.nodeGraph) ctx.nodeGraph.tick(1);
+    stepProcesses();
   }
 
   // Emit STATE_CHANGED once at the end of the tick cycle if any state mutation occurred.
