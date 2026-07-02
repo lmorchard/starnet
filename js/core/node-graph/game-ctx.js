@@ -37,7 +37,7 @@ import { getState } from "../state.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
 import { launchExploit } from "../combat.js";
-import { getTimedActionAttrNames } from "./timed-actions.js";
+import { getTimedActionAttrNames, ABORTABLE_TIMED_ACTIONS } from "./timed-actions.js";
 
 /** Convenience: `_ta_<action>_progress` for the given timed action. */
 const progressAttr = (action) => getTimedActionAttrNames(action).progressAttr;
@@ -386,47 +386,23 @@ export function initNavigationCancelHandler() {
   const graph = s.nodeGraph;
   if (!graph) return;
 
+  // Derive the abortable set from the TIMED_ACTIONS registry (#225) rather than hand-enumerating
+  // each action — adding a new abortable timed action now cancels correctly with no edit here.
+  // The registry `action` id is exactly the ACTION_FEEDBACK action constant (A.PROBE === "probe",
+  // etc.), so emitting `def.action` matches the former per-branch A.* payloads byte-for-byte.
   for (const nodeId of graph.getNodeIds()) {
     const attrs = graph.getNodeState(nodeId);
-    // Reset duration along with progress on every cancel: the timed-action operator only
-    // re-emits "start" when both are 0, so a stale duration would leave a restarted action's
-    // overlay/log un-armed. (XPLOIT already cleared its ctx-set duration below.)
-    if (attrs.probing) {
-      graph.setNodeAttr(nodeId, "probing", false);
-      graph.setNodeAttr(nodeId, progressAttr("probe"), 0);
-      graph.setNodeAttr(nodeId, durationAttr("probe"), 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.PROBE, phase: "cancel", progress: 0 });
-    }
-    if (attrs.exploiting) {
-      graph.setNodeAttr(nodeId, "exploiting", false);
-      graph.setNodeAttr(nodeId, progressAttr("xploit"), 0);
-      graph.setNodeAttr(nodeId, durationAttr("xploit"), 0);
-      graph.setNodeAttr(nodeId, "activeExploitId", null);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.XPLOIT, phase: "cancel", progress: 0 });
-    }
-    if (attrs.reading) {
-      graph.setNodeAttr(nodeId, "reading", false);
-      graph.setNodeAttr(nodeId, progressAttr("dump"), 0);
-      graph.setNodeAttr(nodeId, durationAttr("dump"), 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.DUMP, phase: "cancel", progress: 0 });
-    }
-    if (attrs.looting) {
-      graph.setNodeAttr(nodeId, "looting", false);
-      graph.setNodeAttr(nodeId, progressAttr("fetch"), 0);
-      graph.setNodeAttr(nodeId, durationAttr("fetch"), 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.FETCH, phase: "cancel", progress: 0 });
-    }
-    if (attrs.mining) {
-      graph.setNodeAttr(nodeId, "mining", false);
-      graph.setNodeAttr(nodeId, progressAttr("mine"), 0);
-      graph.setNodeAttr(nodeId, durationAttr("mine"), 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.MINE, phase: "cancel", progress: 0 });
-    }
-    if (attrs.lyingLow) {
-      graph.setNodeAttr(nodeId, "lyingLow", false);
-      graph.setNodeAttr(nodeId, progressAttr("lie-low"), 0);
-      graph.setNodeAttr(nodeId, durationAttr("lie-low"), 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.LIE_LOW, phase: "cancel", progress: 0 });
+    for (const def of ABORTABLE_TIMED_ACTIONS) {
+      if (!attrs[def.activeAttr]) continue;
+      // Reset duration along with progress on every cancel: the timed-action operator only
+      // re-emits "start" when both are 0, so a stale duration would leave a restarted action's
+      // overlay/log un-armed.
+      graph.setNodeAttr(nodeId, def.activeAttr, false);
+      graph.setNodeAttr(nodeId, progressAttr(def.action), 0);
+      graph.setNodeAttr(nodeId, durationAttr(def.action), 0);
+      // Extra per-action cleanup (e.g. xploit's activeExploitId), centralized in the registry.
+      for (const attr of def.clearOnCancel ?? []) graph.setNodeAttr(nodeId, attr, null);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: def.action, phase: "cancel", progress: 0 });
     }
   }
   });
