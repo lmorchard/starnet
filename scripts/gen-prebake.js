@@ -81,10 +81,27 @@ window.gameThreat   = slider(0.5, 0, 1)
 /** Terse font label for the inline comment on each call, e.g. "msgpad_" → "msgpad". */
 const labelOf = (prefix) => prefix.replace(/_$/, "");
 
-const fontCalls = SOUNDFONTS.map((entry) => {
-  if (!entry.host) throw new Error(`[gen-prebake] manifest entry '${entry.prefix}' has no host URL`);
-  return `await registerSoundfont(${JSON.stringify(entry.host)}, ${JSON.stringify(entry.prefix)}); // ${labelOf(entry.prefix)}`;
-}).join("\n");
+// IMPORTANT: emit SINGLE-quoted string literals. strudel.cc's transpiler rewrites DOUBLE-quoted
+// strings into mini-notation patterns — a URL like "https://…/x.sf2" would then be parsed as
+// mini-notation and crash on the "/". Single-quoted strings pass through as plain JS. (JSON.stringify
+// would emit double quotes, so we hand-wrap in single quotes and reject any value that couldn't be.)
+const sq = (s) => {
+  if (/['\\\n]/.test(s)) {
+    throw new Error(`[gen-prebake] value unsafe for a single-quoted literal (has quote/backslash/newline): ${JSON.stringify(s)}`);
+  }
+  return `'${s}'`;
+};
+
+// Load all fonts CONCURRENTLY (Promise.all) rather than one await at a time — the full palette is
+// ~9 fonts / >100MB, and serial loading leaves a long window where a song can trigger a sound
+// before its font is registered (strudel then retries + warns "Failed to trigger sound").
+const fontCalls =
+  "await Promise.all([\n" +
+  SOUNDFONTS.map((entry) => {
+    if (!entry.host) throw new Error(`[gen-prebake] manifest entry '${entry.prefix}' has no host URL`);
+    return `  registerSoundfont(${sq(entry.host)}, ${sq(entry.prefix)}), // ${labelOf(entry.prefix)}`;
+  }).join("\n") +
+  "\n]);";
 
 const INSTRUMENTS = `\
 // ── 1. Instruments: register every font's presets under its prefix ──
