@@ -122,6 +122,22 @@ registerOperator("relay", (config, attrs, message, _ctx) => {
 });
 
 /**
+ * cascade — relay with a hop limit. Forwards its `kind` message to connected nodes with a
+ * decremented TTL, carrying the payload (source, etc.) forward on the operator `outgoing` path
+ * (which preserves message.path, so the cycle-guard terminates the cascade). Gated by
+ * forwardingEnabled (a shut gate stops it); terminates when ttl reaches 1.
+ * Config: { kind?: string }  — message type to propagate (default "pulse").
+ */
+registerOperator("cascade", (config, attrs, message, _ctx) => {
+  const kind = config.kind ?? "pulse";
+  if (!message || message.type !== kind) return {};
+  if (attrs.forwardingEnabled === false) return {};
+  const ttl = (message.payload?.ttl ?? 0) - 1;
+  if (ttl <= 0) return {};
+  return { outgoing: [{ type: kind, payload: { ...message.payload, ttl } }] };
+});
+
+/**
  * invert — flip signal.active on incoming signal messages before forwarding.
  * Drops non-signal and tick messages silently.
  */
