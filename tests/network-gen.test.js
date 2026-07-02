@@ -340,6 +340,30 @@ describe("Slot-filler: multi-port consumption", () => {
   });
 });
 
+describe("Slot-filler: wire-failure rollback (#164)", () => {
+  // When the orphan-prevention fallback fires (parent has no free outbound port), the just-placed
+  // piece is popped from `pieces`. The rollback must ALSO drop its slot→piece entry in `placed` and
+  // its diversity mark in `usedPieceIds` — otherwise `placed` points at a piece absent from the
+  // network and a later slot is wrongly penalized. Observable invariant: every piece referenced by
+  // `placed` is present in `pieces`. Dense specs trigger the fallback constantly, so a small seed
+  // sweep is a strong reproduction (pre-fix this failed on ~all seeds).
+  const DENSE = { threat: "S", wealth: "S", complexity: "S", depth: "S" };
+
+  it("never leaves a slot mapped to a piece absent from the network", () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const skeleton = generateSkeleton(DENSE, CORPORATE_BIOME, makeRng(seed));
+      const { pieces, placed } = fillSkeleton(skeleton, CORPORATE_BIOME, DENSE, makeRng(seed));
+      const pieceSet = new Set(pieces);
+      for (const [slotId, piece] of placed) {
+        assert.ok(
+          pieceSet.has(piece),
+          `seed ${seed}: slot ${slotId} maps to piece ${piece.pieceDef?.id} that is not in the network`,
+        );
+      }
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Phase 4: Hierarchical skeleton generation
 // ---------------------------------------------------------------------------
