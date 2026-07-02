@@ -10,7 +10,7 @@
 //
 // Locked values from the Phase 4a feel loop with Les (docs/dev-sessions/2026-07-02-1031-timed-
 // actions-phase1/notes.md): hue 141 (green), stroke 2.0, unlit opacity ~0.10, gap 0.18, idle spin
-// ~8deg/s CW, leading-edge pulse amplitude ~0.5, ring radius ~3.4x the node's rendered radius
+// ~8deg/s CW, leading-edge pulse amplitude ~0.5, ring radius = the node's rendered radius (node edge)
 // (the lab used ~54px around a ~16px node).
 
 import { html } from "lit";
@@ -22,7 +22,9 @@ const COLOR = "hsl(141, 100%, 60%)";
 const STROKE_WIDTH = "2";
 const OFF = 0.10; // unlit edge opacity
 const ON = 1;      // lit edge opacity
-const RADIUS_FACTOR = 3.4; // ring radius as a multiple of the node's rendered radius
+// Ring is drawn at the node's rendered radius — matching probe-sweep/lie-low, which size to the
+// node's outer edge (probe-sweep uses r-1). So the ring's diameter equals the node's.
+const RADIUS_FACTOR = 1.0;
 const SPIN_RAD_PER_MS = (8 * Math.PI) / 180 / 1000; // ~8deg/s clockwise idle spin
 const PULSE_PARAM = 0.5;    // leading-edge shimmer amplitude (locked value)
 const PULSE_RATE_MS = 120;  // fast shimmer
@@ -64,8 +66,8 @@ class GenericProcessOverlay extends NodeOverlay {
     const a = this._anchor();
     if (!a) { svg.style.opacity = "0"; return; }
     const { pos, r } = a;
-    // The ring is wider than the node itself (the lab used ~54px around a ~16px node), so give
-    // the SVG enough padding to draw it without clipping.
+    // Ring sits just outside the node's outer edge (see RADIUS_FACTOR) — sized to the node like the
+    // other overlays, not the oversized lab ratio.
     const ringRadius = r * RADIUS_FACTOR;
     this._place(svg, pos, ringRadius);
     const cx = ringRadius, cy = ringRadius;
