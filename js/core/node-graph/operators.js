@@ -503,6 +503,18 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
   };
 });
 
+/**
+ * regrade — lower the node's grade one step (worse) on a matching message. A side-effect operator;
+ * compose with `cascade` to make a hostile propagating re-grade pulse.
+ * Config: { on?: string } — message type to react to (default "downgrade").
+ */
+const _GRADE_LADDER = ["S", "A", "B", "C", "D", "F"];
+registerOperator("regrade", (config, attrs, message, _ctx) => {
+  if (!message || message.type !== (config.on ?? "downgrade")) return {};
+  const i = _GRADE_LADDER.indexOf(attrs.grade ?? "D");
+  return { attributes: { grade: _GRADE_LADDER[Math.min(i + 1, _GRADE_LADDER.length - 1)] } };
+});
+
 registerOperator("debounce", (config, attrs, message, _ctx) => {
   if (!message) return {};
   const ticks = resolveGradedTiming(config, attrs, "ticks");

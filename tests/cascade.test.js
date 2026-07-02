@@ -104,3 +104,32 @@ describe("attachBehavior — runtime-equipped behaviors", () => {
     assert.equal(t.hits["a"] ?? 0, 0, "detached → no propagation");
   });
 });
+
+describe("adversarial parity — hostile downgrade cascade", () => {
+  const EDGES3 = [["origin", "a"], ["a", "b"], ["b", "c"], ["b", "d"]];
+  const build = (gateOpen) => {
+    const nodes = ["origin", "a", "b", "c", "d"].map((id) => ({
+      id, type: id === "origin" ? "malware" : "host",
+      attributes: { grade: "A", forwardingEnabled: id === "b" ? gateOpen : true },
+      operators: [{ name: "regrade", on: "downgrade" }, { name: "cascade", kind: "downgrade" }],
+    }));
+    const g = new NodeGraph({ nodes, edges: EDGES3 }, undefined, () => {});
+    g.init();
+    return g;
+  };
+  const grade = (g, id) => g.getNodeState(id).grade;
+
+  it("the hostile pulse re-grades along its path (same primitive, node-id source)", () => {
+    const g = build(true);
+    g.sendMessage("origin", { type: "downgrade", payload: { ttl: 4, source: "malware:origin" } });
+    assert.equal(grade(g, "a"), "B", "a downgraded A→B");
+    assert.equal(grade(g, "b"), "B", "b downgraded A→B");
+  });
+
+  it("a player-subverted gate walls off the subnet behind it", () => {
+    const g = build(false); // b's forwarding shut by the player
+    g.sendMessage("origin", { type: "downgrade", payload: { ttl: 4, source: "malware:origin" } });
+    assert.equal(grade(g, "c"), "A", "c behind the shut gate stays grade A");
+    assert.equal(grade(g, "d"), "A", "d behind the shut gate stays grade A");
+  });
+});
