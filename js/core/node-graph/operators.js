@@ -382,6 +382,11 @@ registerOperator("tally", (config, _attrs, message, _ctx) => {
  *     Phase 3, threaded from ActionDef.feedback by timed-synthesis.js); echoed onto the "start"
  *     ACTION_FEEDBACK payload for overlay dispatch + the Strudel audio module to layer over the
  *     central/DEFAULT profile (js/ui/feedback-profiles.js)
+ *   emitStartOnArm?: boolean — set only by timed-synthesis.js for a flat `duration` (no
+ *     durationTable): that path seeds `duration` at arm time, bypassing the grade-table
+ *     first-tick branch below (the only other place "start" is emitted), so this flag makes
+ *     the first counting tick emit "start" instead (#187 review fix — flat actions were
+ *     never emitting "start", so their overlay never mounted)
  */
 registerOperator("timed-action", (config, attrs, message, _ctx) => {
   if (!message || message.type !== "tick") return {};
@@ -433,6 +438,26 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
   // Duration not yet set (waiting for ctx to set it, e.g. exploit)
   if (duration === 0) return {};
 
+  // Flat-duration synthesized actions (timed-synthesis.js) seed `duration` directly at arm
+  // time, bypassing the grade-table branch above — the only place that otherwise emits
+  // "start". So this, the first counting tick, is where a flat action's "start" belongs.
+  // Scoped via `emitStartOnArm` (set only for the flat-duration synthesis path) so
+  // durationTable actions (already started above) and ctx-set actions like xploit/reboot
+  // (started from game-ctx.js) never double-fire. Prepended to whichever events array this
+  // tick returns below — progress still increments in the same tick, so completion timing
+  // (tick(duration), not duration+1) is unchanged.
+  /** @type {{type: string, payload: object}[]} */
+  const startEvents = [];
+  if (progress === 0 && config.emitStartOnArm) {
+    startEvents.push({
+      type: "action-feedback",
+      payload: {
+        nodeId: attrs.label, action, phase: "start", progress: 0, durationTicks: duration,
+        ...(config.feedback ? { feedback: config.feedback } : {}),
+      },
+    });
+  }
+
   const newProgress = progress + 1;
 
   // Check progress milestone effects (e.g. exploit noise every 10%)
@@ -463,7 +488,7 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
   if (newProgress >= duration) {
     // Completed — fire onComplete effects via ctx-call events
     /** @type {{type: string, payload: object}[]} */
-    const events = [{
+    const events = [...startEvents, {
       type: "action-feedback",
       payload: { nodeId: attrs.label, action, phase: "complete", progress: 1.0 },
     }];
@@ -490,7 +515,7 @@ registerOperator("timed-action", (config, attrs, message, _ctx) => {
   return {
     attributes: { [progressAttr]: newProgress },
     outgoing,
-    events: [{
+    events: [...startEvents, {
       type: "action-feedback",
       payload: { nodeId: attrs.label, action, phase: "progress", progress: newProgress / duration },
     }],

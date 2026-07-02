@@ -60,6 +60,13 @@ export function synthesizeTimedActions(node) {
         action: action.id,
         activeAttr,
         ...(action.timed.durationTable ? { durationTable: action.timed.durationTable } : {}),
+        // Flat-duration actions seed `duration` directly via the arm effects below, which
+        // bypasses the operator's grade-table first-tick branch (progress===0 && duration===0)
+        // — that branch is the ONLY place the operator emits a "start" ACTION_FEEDBACK, so
+        // without this flag a flat-duration action never starts its overlay animation
+        // (manual-smoke bug, #187 review fix). Not set for durationTable actions — that branch
+        // already emits "start" and must not double-fire.
+        ...(action.timed.duration != null && !action.timed.durationTable ? { emitStartOnArm: true } : {}),
         // Inline feedback-profile override (#187 Phase 3), carried through to the "start"
         // ACTION_FEEDBACK payload by the timed-action operator (operators.js). Additive —
         // absent unless the ActionDef declares `feedback`.

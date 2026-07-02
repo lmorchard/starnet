@@ -57,6 +57,10 @@
  * @property {ActionFeedbackSpec} [feedback] - timed-action: inline feedback-profile override
  *   (#187 Phase 3), threaded from ActionDef.feedback by timed-synthesis.js and echoed on the
  *   "start" ACTION_FEEDBACK payload — see js/ui/feedback-profiles.js
+ * @property {boolean} [emitStartOnArm] - timed-action (synthesized only): set by
+ *   timed-synthesis.js for a flat `duration` (no durationTable); makes the operator emit
+ *   "start" on the first counting tick instead of the grade-table branch, which flat
+ *   durations bypass (#187 review fix — flatstart bug)
  */
 
 /**

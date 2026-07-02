@@ -16,6 +16,7 @@ import assert from "node:assert/strict";
 import { NodeGraph } from "../js/core/node-graph/runtime.js";
 import { mockCtx } from "../js/core/node-graph/ctx.js";
 import { timedActiveAttr, getTimedActionAttrNames } from "../js/core/node-graph/timed-actions.js";
+import { dispatchActionFeedback } from "../js/ui/overlays/dispatch.js";
 
 /**
  * A single node carrying one inline action with a `timed` block: fixed duration of 5
@@ -33,6 +34,31 @@ function makeTimedActionNode(overrides = {}) {
         label: "TEST",
         requires: [],
         timed: { duration: 5 },
+        effects: [{ effect: "set-attr", attr: "done", value: true }],
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * A single node carrying one inline action with a `timed` block using a `durationTable`
+ * (grade-scaled duration, resolved by the operator's own grade-table branch) instead of a
+ * flat `duration`. Used to confirm the flat-duration "start" fix does not also fire for
+ * this path, which already emits "start" from the grade-table branch.
+ * @param {object} [overrides]
+ */
+function makeDurationTableActionNode(overrides = {}) {
+  return {
+    id: "test-node",
+    type: "test",
+    attributes: { label: "test-node", visibility: "accessible", grade: "D", done: false },
+    actions: [
+      {
+        id: "table-act",
+        label: "TABLE",
+        requires: [],
+        timed: { durationTable: { D: 4 } },
         effects: [{ effect: "set-attr", attr: "done", value: true }],
       },
     ],
@@ -106,5 +132,112 @@ describe("timed-action synthesis (#187)", () => {
       (e) => e.type === "action-feedback" && e.payload.phase === "complete" && e.payload.action === "test-act",
     );
     assert.equal(completes.length, 1, "expected exactly one complete action-feedback event for test-act");
+  });
+});
+
+// #187 review fix: a flat-`duration` synthesized action (e.g. the set-piece extract-key/
+// crack-vault conversion in Phase 5) never emitted a "start" ACTION_FEEDBACK — its duration
+// is seeded directly by the arm effects (see timed-synthesis.js), which bypasses the
+// operator's grade-table first-tick branch, the only place "start" was emitted. Without
+// "start", the overlay dispatcher (js/ui/overlays/dispatch.js) never records the action in
+// `activeByAction`, so its "progress" events are silently dropped and no overlay animation
+// ever mounts. Fixed by emitting "start" on the first counting tick for flat-duration
+// actions, scoped via `emitStartOnArm` (set only by timed-synthesis.js's flat-duration path).
+describe("flat-duration 'start' feedback (#187 review fix — flatstart bug)", () => {
+  it("emits a 'start' action-feedback on the first tick for a flat duration (the regression)", () => {
+    /** @type {{type: string, payload: any}[]} */
+    const events = [];
+    const graph = new NodeGraph(
+      { nodes: [makeTimedActionNode()], edges: [] },
+      mockCtx(),
+      (type, payload) => events.push({ type, payload }),
+    );
+
+    graph.executeAction("test-node", "test-act");
+    graph.tick(1);
+
+    const starts = events.filter((e) => e.type === "action-feedback" && e.payload.phase === "start");
+    assert.equal(starts.length, 1, "expected exactly one start action-feedback for the flat-duration action");
+    assert.equal(starts[0].payload.action, "test-act");
+    assert.equal(starts[0].payload.nodeId, "test-node");
+    assert.equal(starts[0].payload.durationTicks, 5);
+
+    // Tick 1 must still carry its own progress event alongside the new start event — the
+    // fix must not swallow or delay the tick's regular output.
+    const progresses = events.filter((e) => e.type === "action-feedback" && e.payload.phase === "progress");
+    assert.equal(progresses.length, 1, "tick 1 should still emit its own progress event");
+  });
+
+  it("does not shift completion timing — still completes at exactly tick(duration), not duration+1", () => {
+    /** @type {{type: string, payload: any}[]} */
+    const events = [];
+    const graph = new NodeGraph(
+      { nodes: [makeTimedActionNode()], edges: [] },
+      mockCtx(),
+      (type, payload) => events.push({ type, payload }),
+    );
+
+    graph.executeAction("test-node", "test-act");
+    graph.tick(4);
+    assert.equal(graph.getNodeState("test-node").done, false, "not yet complete at tick 4 of a 5-tick duration");
+
+    graph.tick(1); // the 5th tick — completes
+    assert.equal(graph.getNodeState("test-node").done, true, "completes at exactly tick(5), no extra setup tick");
+
+    const completes = events.filter((e) => e.type === "action-feedback" && e.payload.phase === "complete");
+    assert.equal(completes.length, 1, "exactly one complete event, still at tick(duration)");
+  });
+
+  it("the emitted 'start' payload wires the overlay dispatcher — activeByAction is populated and the next progress is not dropped", () => {
+    /** @type {{type: string, payload: any}[]} */
+    const events = [];
+    const graph = new NodeGraph(
+      { nodes: [makeTimedActionNode()], edges: [] },
+      mockCtx(),
+      (type, payload) => events.push({ type, payload }),
+    );
+
+    graph.executeAction("test-node", "test-act");
+    graph.tick(1);
+
+    const start = events.find((e) => e.type === "action-feedback" && e.payload.phase === "start");
+    assert.ok(start, "expected a start event to feed into the overlay dispatcher");
+
+    const activeByAction = new Map();
+    const byName = new Map(); // overlay resolution itself is out of scope here
+    dispatchActionFeedback(byName, activeByAction, start.payload);
+    assert.ok(activeByAction.has("test-act"), "overlay dispatcher should now track the flat-duration action");
+
+    // A subsequent progress payload must no longer be dropped (dispatch.js:42 returns early
+    // when the action isn't in activeByAction — that's the observable symptom of the bug).
+    events.length = 0;
+    graph.tick(1);
+    const progress = events.find((e) => e.type === "action-feedback" && e.payload.phase === "progress");
+    assert.ok(progress, "expected a progress event on the next tick");
+    dispatchActionFeedback(byName, activeByAction, progress.payload);
+    assert.ok(activeByAction.has("test-act"), "progress should not have been dropped as unrecorded");
+  });
+
+  it("a durationTable-synthesized action still emits exactly ONE 'start', from the grade-table branch, not doubled", () => {
+    /** @type {{type: string, payload: any}[]} */
+    const events = [];
+    const graph = new NodeGraph(
+      { nodes: [makeDurationTableActionNode()], edges: [] },
+      mockCtx(),
+      (type, payload) => events.push({ type, payload }),
+    );
+
+    const op = /** @type {any} */ (graph)._nodes.get("test-node").operators
+      .find((/** @type {any} */ o) => o.name === "timed-action" && o.action === "table-act");
+    assert.ok(op, "expected a synthesized timed-action operator for table-act");
+    assert.equal(op.emitStartOnArm, undefined, "durationTable synthesis must not set emitStartOnArm");
+
+    graph.executeAction("test-node", "table-act");
+    graph.tick(1); // grade-table branch resolves duration + emits start (no progress yet)
+    graph.tick(4); // all 4 progress ticks of the grade-D duration
+
+    const starts = events.filter((e) => e.type === "action-feedback" && e.payload.phase === "start");
+    assert.equal(starts.length, 1, "exactly one start event, from the grade-table branch only");
+    assert.equal(graph.getNodeState("test-node").done, true, "still completes at the grade-table duration");
   });
 });
