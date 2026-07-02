@@ -3,70 +3,48 @@
 // core/headless never imports audio. Mirrors the hamburger-menu music controls for
 // GUI/console symmetry. Imported once from js/ui/main.js.
 //
-// Engine-aware: on/off go through setMusicEnabled (which emits MUSIC_CHANGED and so drives BOTH the
-// Tone renderer and the Strudel engine). Song selection (list/set/next/random/status) routes to the
-// active engine — the Tone scores (audio-renderer.js) or the Strudel song manifest + MUSIC_SONG_SELECT.
+// On/off go through setMusicEnabled (audio-prefs → emits MUSIC_CHANGED, which drives the Strudel
+// engine + HUD button). Song selection (list/set/next/random/status) uses the Strudel song
+// manifest and emits MUSIC_SONG_SELECT for the engine to switch immediately.
 import { registerCommand } from "../core/console-commands/index.js";
 import { emitEvent, on, E } from "../core/events.js";
-import {
-  isMusicEnabled, getNowPlayingName, isRunMusicLive, setMusicEnabled,
-  listScoreNames, setScoreByName, randomScore,
-} from "./audio-renderer.js";
-import { getAudioEngine } from "./engine-select.js";
+import { isMusicEnabled, setMusicEnabled } from "./audio-prefs.js";
 import { SONG_MANIFEST, resolveSongQuery, songAlias } from "./strudel/songs/index.js";
 
 function log(text, type = "meta") { emitEvent(E.LOG_ENTRY, { text, type }); }
 
 const SUBCOMMANDS = ["status", "on", "off", "list", "next", "random", "set"];
-const isStrudel = () => getAudioEngine() === "strudel";
 
-// Track what the Strudel engine is playing (it reports via MUSIC_SONG_CHANGED); the Tone engine
-// answers getNowPlayingName() directly.
-let _strudelNow = null;
-on(E.MUSIC_SONG_CHANGED, ({ name }) => { _strudelNow = name; });
+// Track what the engine is playing (it reports via MUSIC_SONG_CHANGED).
+let _nowPlaying = null;
+on(E.MUSIC_SONG_CHANGED, ({ name }) => { _nowPlaying = name; });
 
-// ---- engine-aware song helpers ----------------------------------------------------------------
-/** @returns {string[]} display names of the selectable songs/scores for the active engine. */
-function songNames() {
-  return isStrudel() ? SONG_MANIFEST.map((e) => e.name) : listScoreNames();
-}
+/** @returns {string[]} display names of the selectable songs. */
+const songNames = () => SONG_MANIFEST.map((e) => e.name);
 /** @returns {string[]} last-word aliases for tab-completion. */
-function aliases() {
-  return isStrudel()
-    ? SONG_MANIFEST.map(songAlias)
-    : listScoreNames().map((n) => (n.split(/\s+/).pop() || "").toLowerCase());
-}
-/** What's playing now (engine-aware). @returns {string|null} */
-function nowPlaying() {
-  return isStrudel() ? _strudelNow : getNowPlayingName();
-}
-/** Switch to a random song (engine-aware, avoiding the current one where possible). @returns {string|null} name */
+const aliases = () => SONG_MANIFEST.map(songAlias);
+
+/** Switch to a random song (avoiding the current one where possible). @returns {string|null} name */
 function selectRandom() {
-  if (isStrudel()) {
-    const pool = SONG_MANIFEST.filter((e) => e.name !== _strudelNow);
-    const list = pool.length ? pool : SONG_MANIFEST;
-    const entry = list[Math.floor(Math.random() * list.length)];
-    if (!entry) return null;
-    emitEvent(E.MUSIC_SONG_SELECT, { songId: entry.id });
-    return entry.name;
-  }
-  return randomScore();
+  const pool = SONG_MANIFEST.filter((e) => e.name !== _nowPlaying);
+  const list = pool.length ? pool : SONG_MANIFEST;
+  const entry = list[Math.floor(Math.random() * list.length)];
+  if (!entry) return null;
+  emitEvent(E.MUSIC_SONG_SELECT, { songId: entry.id });
+  return entry.name;
 }
-/** Switch to a song matching `query` (engine-aware). @returns {string|null} name */
+
+/** Switch to a song matching `query`. @returns {string|null} name */
 function selectByQuery(query) {
-  if (isStrudel()) {
-    const entry = resolveSongQuery(query);
-    if (!entry) return null;
-    emitEvent(E.MUSIC_SONG_SELECT, { songId: entry.id });
-    return entry.name;
-  }
-  return setScoreByName(query);
+  const entry = resolveSongQuery(query);
+  if (!entry) return null;
+  emitEvent(E.MUSIC_SONG_SELECT, { songId: entry.id });
+  return entry.name;
 }
 
 function showStatus() {
   if (!isMusicEnabled()) { log("[MUSIC] off"); return; }
-  const now = nowPlaying();
-  log(now ? `[MUSIC] playing: ${now}` : "[MUSIC] on (idle — click in to start)");
+  log(_nowPlaying ? `[MUSIC] playing: ${_nowPlaying}` : "[MUSIC] on (idle — click in to start)");
 }
 
 registerCommand({
@@ -89,11 +67,9 @@ registerCommand({
       songNames().forEach((n, i) => log(`  [${i + 1}] ${n}`));
       return;
     }
-    // Strudel selection applies immediately; Tone scores apply to the next run unless one is live.
-    const pending = isStrudel() ? "" : (isRunMusicLive() ? "" : " (applies to your next run)");
     if (sub === "next" || sub === "random") {
       const name = selectRandom();
-      if (name) log(`[MUSIC] switched to: ${name}${pending}`);
+      if (name) log(`[MUSIC] switched to: ${name}`);
       else log("[MUSIC] no songs available", "error");
       return;
     }
@@ -101,7 +77,7 @@ registerCommand({
     const query = (sub === "set" ? args.slice(1) : args).join(" ");
     if (!query) { log("Usage: music [status | on | off | list | next | set <name> | <name>]", "error"); return; }
     const name = selectByQuery(query);
-    if (name) log(`[MUSIC] song: ${name}${pending}`);
+    if (name) log(`[MUSIC] song: ${name}`);
     else log(`[MUSIC] no song matching "${query}" — try: music list`, "error");
   },
 });

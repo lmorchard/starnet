@@ -513,10 +513,12 @@ fresh ad-hoc filter.
 - Alert + trace system and ICE (multiple instances, grade-scaled behavior, detection/dwell)
 - Darknet store, exploit card decay (use/disclosure), health/deck loss-clock pressure
 - Headless playtest harness + automated bot + census for balance testing
-- Reactive procedural music (Tone.js): two-axis (progress/threat) layered scores, 8 selectable
-  Corporate variants, section-breakdown automation; see `docs/audio-direction.md`
-- Synthesized event SFX (Tone.js): one-shot cues on game events, own always-available bus +
-  on/off toggle, independent of music; see `docs/audio-direction.md`
+- Reactive music (Strudel/superdough): two-axis (progress/threat) live signals injected into
+  strudel.cc-dialect songs, a selectable song manifest (hub ambient + Corporate variants),
+  switchable via the `music` command; see `docs/audio-direction.md`
+- Synthesized event SFX + action drones (Strudel/superdough): one-shot cues on game events and
+  sustained progress-driven drones for timed actions, own on/off toggle independent of music;
+  see `docs/audio-direction.md`
 
 ## Out of Scope (Future)
 

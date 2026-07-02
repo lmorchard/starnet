@@ -1,6 +1,6 @@
 // Vendor entry for the Strudel runtime — bundled by esbuild into dist/strudel.js (ESM).
-// Mirrors js/tone-vendor.js. Strudel + superdough are AGPL-3.0; bundling them makes the
-// combined work AGPL-3.0 (see LICENSE).
+// The sole audio vendor bundle (the Tone.js engine + its dist/tone.js were retired in #267).
+// Strudel + superdough are AGPL-3.0; bundling them makes the combined work AGPL-3.0 (see LICENSE).
 //
 // @strudel/web@1.3.0 (matches the strudel.cc dialect: native `$:`, `setcpm`, the current
 // transpiler) — chosen for no-drift between strudel.cc authoring and in-game playback. Its

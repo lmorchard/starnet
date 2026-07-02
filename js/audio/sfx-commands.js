@@ -1,11 +1,18 @@
 // @ts-check
 // Console command for SFX control. Registered from the audio (browser) layer so core/headless
 // never imports audio. Mirrors `music-commands.js` and the SFX menu toggle (GUI/console symmetry).
-import { registerCommand } from "../../core/console-commands/index.js";
-import { emitEvent, E } from "../../core/events.js";
-import { isSfxEnabled, setSfxEnabled, listCues, playCue } from "./renderer.js";
+// On/off go through audio-prefs (emits SFX_CHANGED → drives the Strudel engine + HUD button);
+// `sfx test <cue>` fires a one-shot cue through the live Strudel SFX engine.
+import { registerCommand } from "../core/console-commands/index.js";
+import { emitEvent, E } from "../core/events.js";
+import { isSfxEnabled, setSfxEnabled } from "./audio-prefs.js";
+import { CUES } from "./strudel/data/cues.js";
+import { playSfxCue } from "./strudel/index.js";
 
 function log(text, type = "meta") { emitEvent(E.LOG_ENTRY, { text, type }); }
+
+/** @returns {string[]} all cue ids */
+const listCues = () => Object.keys(CUES);
 
 registerCommand({
   verb: "sfx",
@@ -30,7 +37,7 @@ registerCommand({
       const id = args[1];
       if (!id) { log("Usage: sfx test <cue> — see `sfx list`", "error"); return; }
       if (!listCues().includes(id)) { log(`[SFX] no cue "${id}" — try: sfx list`, "error"); return; }
-      playCue(id);
+      playSfxCue(id);
       log(`[SFX] ▶ ${id}`);
       return;
     }

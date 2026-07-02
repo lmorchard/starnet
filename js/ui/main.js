@@ -8,9 +8,7 @@ import { tick, TICK_MS, TIMER, getVisibleTimers, pauseTimers, resumeTimers } fro
 import { handleTraceTick, handleHeatDecay } from "../core/alert.js";
 import { initVisualRenderer } from "./visual-renderer.js";
 import { initLogRenderer } from "./log-renderer.js";
-import { initAudioRenderer, toggleMusic, isMusicEnabled } from "../audio/audio-renderer.js";
-import { initSfxRenderer, isSfxEnabled, toggleSfx } from "../audio/sfx/renderer.js";
-import { getAudioEngine } from "../audio/engine-select.js";
+import { toggleMusic, isMusicEnabled, isSfxEnabled, toggleSfx } from "../audio/audio-prefs.js";
 import { buildActionContext, initActionDispatcher, buildNodeClickHandler } from "../core/actions/action-context.js";
 import { openDarknetsStore } from "./store.js";
 import { initGraphBridge } from "../core/graph-bridge.js";
@@ -22,8 +20,7 @@ import { initProfileRunCommit } from "./profile-store.js";
 import { initResizers } from "./resizers.js";
 import "./hub-commands.js";
 import "../audio/music-commands.js";
-import "../audio/sfx/commands.js";
-import "../audio/strudel/commands.js";   // `audio engine <tone|strudel>` — registered for both engines
+import "../audio/sfx-commands.js";
 
 import { NAMED_NETWORKS, DEFAULT_NETWORK, buildGenerated } from "../../data/networks/index.js";
 
@@ -73,15 +70,9 @@ function init() {
   initConsole();
   initResizers();  // apply saved layout + wire the resize splitters
   initVisualRenderer();  // must subscribe before initGame fires STATE_CHANGED
-  // Audio engine select (boot-time; switching requires a reload). Strudel is the default; the legacy
-  // Tone engine loads only when explicitly selected, so default users never download its bundle.
-  let audioEngine = null;   // exposed as window.starnet.audio (Tone engine, or null under Strudel)
-  if (getAudioEngine() === "strudel") {
-    import("../audio/strudel/index.js").then((m) => m.initStrudelEngine());
-  } else {
-    audioEngine = initAudioRenderer();   // browser-only reactive audio; silent until a run starts
-    initSfxRenderer();
-  }
+  // In-game Strudel + superdough audio engine (music + one-shot SFX + action drones). Browser-only,
+  // dynamically imported so the @strudel/web bundle downloads lazily. Silent until the first gesture.
+  import("../audio/strudel/index.js").then((m) => m.initStrudelEngine());
   initGraphBridge();
   initDynamicActions();
   initProfileRunCommit();  // wire RUN_ENDED → commit results back to the profile
@@ -100,8 +91,9 @@ function init() {
     prevVisibleCount = count;
   }, TICK_MS);
 
-  // LLM playtesting API — accessible via browser console or Playwright evaluate
-  /** @type {any} */ (window).starnet = { cmd: runCommand, state: getState, audio: audioEngine };
+  // LLM playtesting API — accessible via browser console or Playwright evaluate.
+  // (The live audio engine is exposed separately as window.strudelEngine by the Strudel engine.)
+  /** @type {any} */ (window).starnet = { cmd: runCommand, state: getState };
 
   // Pause timers when tab is hidden; resume when visible again
   document.addEventListener("visibilitychange", () => {
