@@ -18,6 +18,9 @@
  */
 
 import { getTimedActionAttrNames } from "./timed-actions.js";
+import { HEAT_COST } from "../balance.js";
+
+const _SWEEP_PROBE_PROGRESS = getTimedActionAttrNames("probe").progressAttr;
 
 /**
  * Resolve a timing value from a grade table or fall back to a fixed value.
@@ -105,6 +108,23 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
 // Core operator implementations
 // ---------------------------------------------------------------------------
 
+
+/**
+ * sweep-cascade — on a `sweep-pulse`, bring an unprobed probeable node online and start its probe,
+ * stamping the remaining depth as `_cascade_ttl` so the completion forwarder can propagate ttl-1.
+ * No-op on already-probed / probing / non-probeable nodes and on ttl < 1.
+ */
+registerOperator("sweep-cascade", (_config, attrs, message, _ctx) => {
+  if (!message || message.type !== "sweep-pulse") return {};
+  if (typeof attrs.probing !== "boolean" || attrs.probed || attrs.probing) return {};
+  const ttl = message.payload?.ttl ?? -1;
+  if (ttl < 0) return {};  // ttl=0 is valid: probe this node but don't cascade further
+  return {
+    attributes: { visibility: "accessible", probing: true, [_SWEEP_PROBE_PROGRESS]: 0, _cascade_ttl: ttl },
+    events: [{ type: "operator-effect", payload: { effect: "ctx-call", method: "recordHeat", args: [HEAT_COST.sweep] } }],
+  };
+});
+
 /**
  * relay — forward matching messages to all connected nodes.
  * Supports optional `filter` config (only relay if message.type === filter).
@@ -113,6 +133,7 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
 registerOperator("relay", (config, attrs, message, _ctx) => {
   if (!message) return {};
   if (message.type === "tick") return {};
+  if (message.type === "sweep-pulse") return {};  // sweep-pulse is consumed by sweep-cascade, not relayed
   if (attrs.forwardingEnabled === false) return {};
   if (config.filter && message.type !== config.filter) return {};
   const destinations = "destinations" in config ? config.destinations : message.destinations;

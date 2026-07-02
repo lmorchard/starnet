@@ -27,7 +27,6 @@
 
 import { getTimedActionAttrNames } from "./timed-actions.js";
 import { registerOperator } from "./operators.js";
-import { HEAT_COST } from "../balance.js";
 
 /** @type {Map<string, TraitDef>} */
 const _registry = new Map();
@@ -146,22 +145,6 @@ export function clearTraits() {
 // ── Built-in trait definitions ──────────────────────────────────
 
 import { ACTION_TEMPLATES, LIE_LOW_ATTRS, LIE_LOW_OPERATOR } from "./action-templates.js";
-
-// Register the sweep-cascade operator here so it is available whenever any
-// hackable node is constructed — traits.js is always loaded by the NodeGraph
-// runtime, making this the right anchor for node-graph-layer operator registrations
-// that depend only on timed-action names and balance constants.
-const _PROBE_PROGRESS = getTimedActionAttrNames("probe").progressAttr;
-registerOperator("sweep-cascade", (_config, attrs, message, _ctx) => {
-  if (!message || message.type !== "sweep-pulse") return {};
-  if (typeof attrs.probing !== "boolean" || attrs.probed || attrs.probing) return {};
-  const ttl = message.payload?.ttl ?? 0;
-  if (ttl < 1) return {};
-  return {
-    attributes: { visibility: "accessible", probing: true, [_PROBE_PROGRESS]: 0, _cascade_ttl: ttl },
-    events: [{ type: "operator-effect", payload: { effect: "ctx-call", method: "recordHeat", args: [HEAT_COST.sweep] } }],
-  };
-});
 
 registerTrait("graded", {
   attributes: { grade: "D" },

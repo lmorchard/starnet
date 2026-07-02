@@ -38,9 +38,9 @@ import { setCash, addCash, addCardToHand } from "./player.js";
 
 import { NodeGraph } from "../node-graph/runtime.js";
 import { buildGameCtx } from "../node-graph/game-ctx.js";
-// Side-effect import: registers the sweep-cascade operator so it's available
-// whenever initGame constructs a NodeGraph (hackable nodes carry the operator).
-import "../sweep.js";
+// Import sweep.js: registers the sweep-cascade operator (side effect) and also
+// exports initSweepForwarding so initGame can re-register it after clearHandlers().
+import { initSweepForwarding } from "../sweep.js";
 
 // ── State + version counter ──────────────────────────────
 
@@ -116,6 +116,9 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
 
   // Run init lifecycle — operators react to { type: 'init' } messages
   graph.init();
+
+  // Re-register sweep forwarding handler (cleared by clearHandlers() between runs/tests).
+  initSweepForwarding();
 
   // Generate vulnerabilities for each node (seeded RNG)
   for (const nodeId of graph.getNodeIds()) {
