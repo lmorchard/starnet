@@ -170,4 +170,96 @@ banner("EXP 4 — minimal gap-fill: a single `pulse-cascade` operator closes it 
   console.log("  construction — the loadout needs to add this behavior to a node at runtime).");
 }
 
+// =============================================================================
+banner("EXP 5 — adversarial parity: a hostile downgrade pulse on the SAME primitive");
+// The issue's payoff claim: the same propagating primitive, turned hostile. A security/malware node
+// injects a `downgrade` pulse attributed to ITSELF (source = node-id); each node it reaches drops one
+// grade step, then forwards ttl-1 — UNLESS the player has subverted a gate in the way.
+{
+  freshCounters();
+  const LADDER = ["S", "A", "B", "C", "D", "F"];
+  const worse = (g) => LADDER[Math.min(LADDER.indexOf(g) + 1, LADDER.length - 1)] ?? "F";
+
+  // NEW experimental primitive — identical shape to pulse-cascade, but it also mutates the node it
+  // hits. Offense (this) and defense (EXP 2 gate) share one propagation path.
+  registerOperator("downgrade-cascade", (config, attrs, message) => {
+    if (!message || message.type !== "downgrade") return {};
+    if (attrs.forwardingEnabled === false) return {};      // subverted gate stops the attack
+    const patch = { grade: worse(attrs.grade ?? "D") };    // the hostile effect: re-grade this node
+    const ttl = (message.payload?.ttl ?? 0) - 1;
+    if (ttl <= 0) return { attributes: patch };            // hit this node, but don't propagate further
+    return { attributes: patch, outgoing: [{ type: "downgrade", payload: { ttl, source: message.payload.source } }] };
+  });
+
+  const build = (gateOpen) => {
+    const nodes = ["origin", "a", "b", "c", "d"].map((id) => ({
+      id, type: id === "origin" ? "malware" : "host",
+      attributes: { grade: "A", forwardingEnabled: id === "b" ? gateOpen : true },
+      operators: [{ name: "downgrade-cascade" }],
+    }));
+    const g = new NodeGraph({ nodes, edges: EDGES }, undefined, onEvent);
+    g.init();
+    return g;
+  };
+  const grades = (g) => g.getNodeIds().map((id) => `${id}:${g.getNodeState(id).grade}`).join("  ");
+
+  const g1 = build(true);   // gate b OPEN — attack runs
+  g1.sendMessage("origin", { type: "downgrade", payload: { ttl: 4, source: "malware:origin" } });
+  console.log("gate OPEN  →", grades(g1));
+
+  const g2 = build(false);  // gate b SUBVERTED by player — protects c/d behind it
+  g2.sendMessage("origin", { type: "downgrade", payload: { ttl: 4, source: "malware:origin" } });
+  console.log("gate SHUT  →", grades(g2));
+  console.log("→ FINDING: entity-symmetry holds. The hostile cascade is the SAME primitive with a");
+  console.log("  node-id source and a re-grade side-effect. With the gate open the downgrade marches");
+  console.log("  origin→a→b→c (A→B); with b subverted (forwardingEnabled:false) the player has walled");
+  console.log("  off c/d — they stay grade A. Offense + defense on one topology, exactly as pitched.");
+}
+
+// =============================================================================
+banner("EXP 6 — runtime-attached behavior (G6): equip a node with a behavior AFTER construction");
+// The loadout premise: behaviors are player-equipped and injected at runtime, not baked into node
+// defs. Test: (a) can a node gain a behavior post-construction and have it participate? (b) does that
+// runtime-attached behavior survive snapshot → fromSnapshot (state must be fully serializable)?
+{
+  freshCounters();
+  // A graph whose nodes start with NO cascade behavior — plain hosts.
+  const nodes = ["origin", "a", "b", "c", "d"].map((id) => ({
+    id, type: "host", attributes: { forwardingEnabled: true }, operators: [],
+  }));
+  const g = new NodeGraph({ nodes, edges: EDGES }, undefined, onEvent);
+  g.init();
+
+  // Baseline: no behavior → a pulse does nothing.
+  g.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
+  console.log("before equip — delivered to:", hits(), "(only origin; nothing propagates)");
+
+  // EQUIP at runtime. There is NO public API for this today; simulate what a thin
+  // `attachBehavior(nodeId, operatorConfig)` would do — append a registered operator config to a
+  // live node's operators list. (`pulse-cascade` was registered in EXP 4.)
+  freshCounters();
+  for (const id of g.getNodeIds()) {
+    g._nodes.get(id).operators.push({ name: "pulse-cascade" });   // ← the entire "attach" mechanism
+  }
+  g.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
+  console.log("after equip  — delivered to:", hits(), "→ the attached behavior participates immediately.");
+
+  // Now the serialization question: snapshot → fromSnapshot → does the equipped behavior persist?
+  freshCounters();
+  const snap = JSON.parse(JSON.stringify(g.snapshot()));   // force a real JSON round-trip
+  const g2 = NodeGraph.fromSnapshot(snap, undefined, onEvent);
+  g2.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
+  console.log("after reload — delivered to:", hits(), "→ survives snapshot/fromSnapshot.");
+  console.log("→ FINDING: runtime-attach for operator-behaviors is NEARLY FREE. Operators are already");
+  console.log("  data (a {name,...config} object) resolved against a name→fn registry, and snapshot()");
+  console.log("  already serializes node.operators, so fromSnapshot restores an equipped behavior with");
+  console.log("  no extra work. What's missing is only a thin PUBLIC API (attachBehavior/detachBehavior)");
+  console.log("  + the operators must be registered at module load (all are). CAVEATS: (1) per-node");
+  console.log("  TRIGGERS are resolved into the TriggerStore at construction — runtime-attaching a");
+  console.log("  trigger (not just an operator) is the harder, unsolved case; (2) any per-behavior");
+  console.log("  private attrs (e.g. _ta_*, _clock_ticks) must be seeded on attach. Operator-only");
+  console.log("  behaviors (relay/pulse-cascade/timed-action) cover SWEEP/SNIFF/REPLAY — triggers can");
+  console.log("  wait for a later loadout pass.");
+}
+
 console.log("\nDone.\n");

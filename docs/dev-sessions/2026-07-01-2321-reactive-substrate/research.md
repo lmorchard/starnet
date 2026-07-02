@@ -102,6 +102,40 @@ deeper gaps remain that EXP 4 does not touch:
 
 ---
 
+## Adversarial parity + runtime-attach (EXP 5, EXP 6)
+
+Two follow-on experiments, added when scope widened to include G6.
+
+### EXP 5 — the hostile cascade is the same primitive
+A security/malware node injects a `downgrade` pulse attributed to itself (`source:"malware:origin"`);
+a `downgrade-cascade` operator (identical shape to `pulse-cascade`, plus a re-grade side-effect on the
+node it hits) propagates it. Results:
+
+```
+gate OPEN  → origin:B  a:B  b:B  c:B  d:B      (attack marches the whole reachable depth, A→B)
+gate SHUT  → origin:B  a:B  b:A  c:A  d:A      (player subverted b → c/d behind it stay grade A)
+```
+
+**Entity-symmetry holds.** Offense and defense share one propagation path: a hostile pulse with a
+node-id source, walled off by the same `forwardingEnabled` gate the player controls. This is the
+issue's core payoff ("the network pushes back on the same substrate") demonstrated, not asserted.
+
+### EXP 6 — runtime-attach is nearly free (this reframes G6)
+Starting from plain nodes with no cascade behavior, a pulse did nothing. After appending a
+`pulse-cascade` operator config to a live node's operator list (the entire "attach" mechanism), the
+pulse propagated (`origin→a→b`, ttl-bounded) — **and it survived a real `snapshot()` →
+`JSON` round-trip → `fromSnapshot()`**, still propagating after reload.
+
+- Operators are already **data** (`{name,...config}`) resolved against a name→fn registry, and
+  `snapshot()` already serializes `node.operators`. So runtime-attaching an operator-behavior needs
+  **only a thin public API** (`attachBehavior`/`detachBehavior`) — the participation and serialization
+  fall out for free.
+- **Caveats:** (1) per-node **triggers** are resolved into the `TriggerStore` at construction —
+  runtime-attaching a *trigger* (not just an operator) is the harder, still-unsolved case; (2)
+  behaviors with private state (`_ta_*`, `_clock_ticks`) need those attrs seeded on attach.
+- **Reframe:** G6-for-operators is cheap and safe to include now; G6-for-triggers can wait. SWEEP/
+  SNIFF/REPLAY are operator-behaviors, so the loadout's first cut is unblocked by the cheap half.
+
 ## Gap scorecard (vs. the issue's "likely gaps")
 
 | Issue's predicted gap | Verdict | Evidence |
@@ -110,7 +144,8 @@ deeper gaps remain that EXP 4 does not touch:
 | Timed-then-forward + TTL(depth) | **Real, but small** — path-loss (G1) + no computed payload (G2/G3); closes in ~20 lines | EXP 3, EXP 4 |
 | Gate-bounded propagation | **NOT a gap** — `relay`+`forwardingEnabled` already does it, both ways | EXP 2 |
 | Cascade lifecycle / abort / serializable (G5) | **Real** — graph has no cascade identity; `processes.js` supplies it | EXP 3 non-termination; code read |
-| Runtime-attached behaviors (G6) | **Real & deepest** — operators are construction-time only | code read (`runtime.js` constructor) |
+| Adversarial parity (offense/defense symmetry) | **Confirmed free** — same primitive, node-id source, same gate | EXP 5 |
+| Runtime-attached behaviors (G6) | **Operators: nearly free** (thin API, already serializable). **Triggers: still hard.** | EXP 6 |
 
 ---
 
