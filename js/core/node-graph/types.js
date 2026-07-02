@@ -104,6 +104,31 @@
  * @property {FollowupStep} [followup]  - if set, choosing this action opens a node-anchored choice panel instead of executing immediately
  * @property {Condition[]} requires   - implicit all-of; all must pass
  * @property {Effect[]} effects
+ * @property {TimedActionSpec} [timed]  - if set, synthesizeTimedActions() (timed-synthesis.js) rewrites
+ *   this action into a timed one at node construction: a `timed-action` operator (operators.js) is
+ *   generated with `onComplete` set to this action's original `effects`, and `effects` itself is
+ *   replaced with the "arm" pattern (set active flag, zero progress, seed duration if given). See #187.
+ * @property {ActionFeedbackSpec} [feedback]  - reserved for a later phase: periodic progress-milestone
+ *   effects (mirrors the timed-action operator's onProgressInterval/onProgressEffects). Not read by
+ *   Phase 1 synthesis.
+ * @property {boolean} [_timedSynthesized]  - set by synthesizeTimedActions() on the *replacement*
+ *   action object it returns; guards against re-synthesizing an already-synthesized node. Never set
+ *   on an author-supplied ActionDef directly (see timed-synthesis.js for why).
+ */
+
+/**
+ * Declares an ActionDef as a timed action (#187, Phase 1). See `timed` on ActionDef.
+ * @typedef {Object} TimedActionSpec
+ * @property {number} [duration]        - fixed duration in ticks, seeded directly by the arm effects
+ * @property {Record<string, number>} [durationTable] - grade → ticks, resolved by the timed-action operator itself
+ * @property {boolean} [abortable]      - reserved for a later phase (nav-cancel/ABORT wiring); unused by Phase 1
+ */
+
+/**
+ * Reserved for a later phase — see `feedback` on ActionDef.
+ * @typedef {Object} ActionFeedbackSpec
+ * @property {number} [interval]
+ * @property {any[]} [effects]
  */
 
 /**

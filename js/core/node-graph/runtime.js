@@ -16,6 +16,7 @@ import { applyEffect } from "./effects.js";
 import { nullCtx } from "./ctx.js";
 import { resolveTraits } from "./traits.js";
 import { getTimedActionAttrNames } from "./timed-actions.js";
+import { synthesizeTimedActions } from "./timed-synthesis.js";
 
 // Re-exported so callers can reach the timed-action attr-name helper via runtime.
 export { getTimedActionAttrNames } from "./timed-actions.js";
@@ -60,6 +61,10 @@ export class NodeGraph {
     const allTriggers = [...triggers];
     for (const raw of nodes) {
       const n = resolveTraits(raw);
+      // Declarable `timed` actions (#187, Phase 1) synthesize their timed-action operator
+      // + arm effects here, once per constructed node — covers both trait-supplied and
+      // inline actions, since both have passed through resolveTraits by this point.
+      synthesizeTimedActions(n);
       this._nodes.set(n.id, {
         id: n.id,
         type: n.type,

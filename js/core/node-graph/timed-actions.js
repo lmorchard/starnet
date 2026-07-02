@@ -62,3 +62,17 @@ export function getTimedActionAttrNames(action) {
     durationAttr: `_ta_${action}_duration`,
   };
 }
+
+/**
+ * The active-flag attribute name for a *synthesized* timed action (#187, Phase 1):
+ * an ActionDef's declarative `timed` block doesn't hand-pick an irregular activeAttr
+ * name the way the seven hand-wired TIMED_ACTIONS entries do (`probing`, `exploiting`,
+ * etc.) — it mints one deterministically from the action id instead. Not registered in
+ * TIMED_ACTIONS: synthesized actions aren't part of the nav-cancel/ABORT flow this
+ * registry drives (that wiring is a later phase).
+ * @param {string} actionId
+ * @returns {string}
+ */
+export function timedActiveAttr(actionId) {
+  return `_ta_active_${actionId}`;
+}
