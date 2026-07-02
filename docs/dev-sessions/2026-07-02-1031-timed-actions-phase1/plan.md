@@ -172,8 +172,13 @@ generality; it renames nothing.
   resolve). Keep `overlayDescriptorForAction` working via `resolveFeedback(action).overlay`.
 - Modify `js/ui/overlays/dispatch.js` — resolve `action → resolveFeedback → profile.overlay → element`;
   no element (unmapped/not-yet-built) → early return (safe, like `reboot`).
-- Modify the Strudel drone player (`js/audio/strudel/index.js`) — resolve `profile.drone` (fallback to
-  the generic drone id) instead of `resolveDrone(action)`; resolve `profile.completionCue` on complete.
+- Modify the Strudel drone player (`js/audio/strudel/index.js`) — resolve the drone as
+  `inline ?? central ?? resolveDrone(action) ?? DEFAULT.drone`, and the completion cue as
+  `inline ?? central ?? <existing cue map> ?? DEFAULT.completionCue`. **The existing `resolveDrone`/cue
+  maps stay as a fallback layer** so every core verb keeps its bespoke drone with zero enumeration and
+  zero regression; `DEFAULT` only applies to actions the legacy maps don't know (the set-piece duds).
+  (So `ACTION_FEEDBACK_PROFILES` need only list *overlay* overrides for core verbs — their audio is
+  preserved by the resolveDrone fallback, not by re-listing drone ids here.)
 - Test: `tests/feedback-profiles.test.js` (pure resolution) + assert the operator's `start` payload
   carries `feedback`.
 
