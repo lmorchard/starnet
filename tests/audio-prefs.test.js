@@ -41,9 +41,10 @@ test("setMusicEnabled persists, updates state, emits MUSIC_CHANGED", () => {
 });
 
 test("toggleMusic flips and emits", () => {
+  prefs.setMusicEnabled(true);        // explicit starting state (self-contained, order-independent)
   let seen = null;
   const h = (p) => { seen = p; }; on(E.MUSIC_CHANGED, h);
-  const rv = prefs.toggleMusic();   // was true → false
+  const rv = prefs.toggleMusic();     // true → false
   off(E.MUSIC_CHANGED, h); off(E.SFX_CHANGED, h);
   assert.equal(rv, false);
   assert.equal(prefs.isMusicEnabled(), false);
@@ -62,9 +63,10 @@ test("setSfxEnabled persists, updates state, emits SFX_CHANGED", () => {
 });
 
 test("toggleSfx flips and emits", () => {
+  prefs.setSfxEnabled(true);          // explicit starting state (self-contained, order-independent)
   let seen = null;
   const h = (p) => { seen = p; }; on(E.SFX_CHANGED, h);
-  const rv = prefs.toggleSfx();   // was true → false
+  const rv = prefs.toggleSfx();       // true → false
   off(E.MUSIC_CHANGED, h); off(E.SFX_CHANGED, h);
   assert.equal(rv, false);
   assert.equal(prefs.isSfxEnabled(), false);
