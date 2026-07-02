@@ -65,6 +65,9 @@ Implications for this work (it does not change the tooling, which is genre-agnos
    independently; prefixes never aliased across sets.
 4. **Vendor MuseScore_General** as a second authoring font (`msg_`), proving the seam and cull
    end-to-end across N fonts and widening the authoring palette immediately.
+5. **Automation-first.** Every step — fetch the authoring font, convert `.sf3`→`.sf2` if needed,
+   scan usage, cull, validate — is scripted behind `make` targets with no manual ritual. A human
+   should run one command, not click through Polyphone. Manual tools are a fallback only.
 
 ## Non-goals
 
@@ -196,12 +199,19 @@ the writer is finished — but the goal is the reproducible build step, not the 
 
 ## Sequencing
 
+0. **SF2-writer de-risk spike (front-loaded).** Before building the surrounding machinery, prove
+   the riskiest piece in isolation: parse GeneralUser GS with `soundfont2`, prune to a hand-picked
+   handful of presets, serialize with a first-cut `sf2-writer`, and reparse the output with
+   `soundfont2` — asserting the kept presets survive and the file shrinks. If the writer is deeper
+   than expected, we learn it here, cheaply, before committing the full plan. Output: a working
+   (if minimal) writer + the round-trip harness the later phases reuse.
 1. **Seam** — manifest + generalized `soundfont.js` with `deployPath → authoringPath` fallback.
    Game behavior unchanged (no deploy fonts yet → falls back to authoring).
 2. **Usage scanner** — songs + data + `allow`, with logged kept/dropped sets.
-3. **SF2 writer + cull script** — the hard part; prove it on `gus_` (32 MB → ≪ 1 MB) with the
-   round-trip validation.
-4. **`make cull-soundfonts`** target.
+3. **Cull script** — wire the spike's writer to the scanner + prune; prove `gus_` (32 MB → ≪ 1 MB)
+   with round-trip validation. Behind `make cull-soundfonts`.
+4. **Automation glue** — scripted authoring-font fetch + `.sf3`→`.sf2` conversion wrapper as
+   `make` targets, so the whole pipeline runs from one command.
 5. **Vendor MuseScore_General** — sourcing + license/host verification + `msg_` manifest entry +
    cull; end-to-end N-font proof.
 
