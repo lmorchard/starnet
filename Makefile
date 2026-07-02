@@ -1,4 +1,4 @@
-.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts sf3-to-sf2 gen-prebake census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts sf3-to-sf2 gen-prebake split-musescore census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js dist/strudel.js
@@ -60,6 +60,10 @@ bundle-vendor:
 # MuseScore_General.sf2 is ~206MB; --max-old-space-size=4096 prevents OOM on large parses.
 cull-soundfonts:
 	node --max-old-space-size=4096 scripts/cull-soundfonts.js
+
+# Split the full MuseScore authoring font into small topical .sf2 sets (needs MuseScore_General.sf2 fetched)
+split-musescore:
+	node --max-old-space-size=4096 scripts/split-musescore-topical.js
 
 # Download authoring soundfonts (large; gitignored) from their hosts
 fetch-soundfonts:
