@@ -89,8 +89,10 @@ export function initVisualRenderer() {
 
   // action id → node id of the in-flight animation (tracked across feedback events)
   const activeNodeIds = new Map();
-  on(E.ACTION_FEEDBACK, (payload) =>
-    dispatchActionFeedback(overlays.byAction, activeNodeIds, payload, { onXploitProgress: updateExploitProgress }));
+  on(E.ACTION_FEEDBACK, (payload) => {
+    if (overlays.manager.handles(payload.action)) overlays.manager.handleFeedback(payload);
+    else dispatchActionFeedback(overlays.byAction, activeNodeIds, payload, { onXploitProgress: updateExploitProgress });
+  });
 
   // Exploit result flash — driven by ACTION_RESOLVED
   on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
@@ -106,6 +108,7 @@ export function initVisualRenderer() {
 
   on(E.RUN_STARTED, () => {
     overlays.byKey.forEach((o) => o.clear());
+    overlays.manager.clearAll();
     activeNodeIds.clear();
   });
 

@@ -15,21 +15,31 @@ import { OVERLAY_DESCRIPTORS } from "./registry.js";
 import { onViewport, setReticleOverlay } from "../graph.js";
 import { mountReticle } from "./selection-reticle.js";
 import { FlowLayer } from "./flow-layer.js";
+import { OverlayManager } from "./manager.js";
+import { A } from "../../core/action-ids.js";
+
+// Actions rendered by the pooled multi-node manager (this session: probe only — the SWEEP fan-out
+// case). Others stay on the singleton byAction path until they too need concurrency.
+/** @type {Map<string, string>} */
+const MANAGED_ACTIONS = new Map([[A.PROBE, "probe-sweep-overlay"]]);
 
 /**
  * @param {HTMLElement} container
- * @returns {{ byKey: Map<string, any>, byAction: Map<string, any> }}
+ * @returns {{ byKey: Map<string, any>, byAction: Map<string, any>, manager: OverlayManager }}
  */
 export function mountOverlays(container) {
   const byKey = new Map();
   const byAction = new Map();
+  const manager = new OverlayManager(MANAGED_ACTIONS);
+  manager.mount(container);
   for (const d of OVERLAY_DESCRIPTORS) {
+    if (d.driver === "action-feedback" && d.action && MANAGED_ACTIONS.has(d.action)) continue; // pooled, not a singleton
     const el = document.createElement(d.tag);
     container.appendChild(el);
     byKey.set(d.key, el);
     if (d.driver === "action-feedback" && d.action) byAction.set(d.action, el);
   }
-  return { byKey, byAction };
+  return { byKey, byAction, manager };
 }
 
 /**
@@ -45,6 +55,7 @@ export function initializeGraphOverlays(
 ) {
   const overlays = mountOverlays(layer);
   onViewport(() => overlays.byKey.forEach((o) => o.reposition()));
+  onViewport(() => overlays.manager.repositionAll());
 
   const reticle = mountReticle(layer);
   setReticleOverlay(reticle);

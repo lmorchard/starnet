@@ -2,6 +2,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { OverlayManager, JITTER_MAX_MS } from "../js/ui/overlays/manager.js";
+import { A } from "../js/core/action-ids.js";
 
 /** A fake overlay element recording sync/clear/reposition calls. */
 function fakeOverlay(tag) {
@@ -106,5 +107,31 @@ describe("OverlayManager — random start jitter (view-layer)", () => {
     assert.equal(cleared, 42, "jitter timer cancelled");
     assert.equal(created[0].synced.length, 0, "overlay never synced (never shown)");
     assert.equal(mgr.activeCount("probe"), 0, "released");
+  });
+});
+
+describe("mountOverlays — probe is managed, others stay singletons", () => {
+  it("returns a manager owning probe, and byAction excludes probe", async () => {
+    // mountOverlays calls document.createElement; stub it before the dynamic import.
+    // Lit also reads document at module-eval time (createTreeWalker, createComment,
+    // createElement) — the stub covers those calls so the import doesn't throw.
+    // The stub returns no-op elements; we don't need full custom-element behaviour here.
+    if (!globalThis.document) {
+      const fakeEl = () => ({ innerHTML: "", content: { firstChild: null }, appendChild() {}, sync() {}, clear() {}, reposition() {}, getAttributeNames: () => [], hasAttributes: () => false });
+      globalThis.document = /** @type {any} */ ({
+        createElement: (_tag) => fakeEl(),
+        createElementNS: () => fakeEl(),
+        createComment: () => ({ data: "" }),
+        createTextNode: (t) => ({ data: t }),
+        createTreeWalker: () => ({ currentNode: null, nextNode: () => null }),
+      });
+    }
+    const { mountOverlays } = await import("../js/ui/overlays/index.js");
+    const fakeLayer = { appendChild() {} };
+    const { byAction, manager } = mountOverlays(fakeLayer);
+    assert.ok(manager, "a manager is returned");
+    assert.equal(manager.handles(A.PROBE), true, "manager owns probe");
+    assert.equal(byAction.has(A.PROBE), false, "probe removed from the singleton byAction map");
+    assert.ok(byAction.has(A.XPLOIT), "other actions still singletons in byAction");
   });
 });
