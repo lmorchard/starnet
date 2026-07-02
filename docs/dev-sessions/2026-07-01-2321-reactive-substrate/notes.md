@@ -1,9 +1,42 @@
 # Reactive substrate — entity-injected propagating behaviors — session notes
 
-**Status: PROTOTYPE DONE (2026-07-02). Findings in `research.md`, runnable probe in `prototype.mjs`.
-Next: brainstorm → `spec.md` for G1–G5 (see research.md open questions).** Tracking issue: **#286**
-(under epic #279). Branch `reactive-substrate` off `origin/main`@c48b3dc (includes #261
-hub-reachability; #282 SWEEP is in branch history). Baseline green.
+**Status: SESSION COMPLETE (2026-07-02). Cascade substrate shipped + SWEEP moved onto it. PR opening.**
+Tracking issue: **#286** (under epic #279). Branch `reactive-substrate` on `origin/main`@eb3d9da
+(#282 now merged upstream — no entanglement). `make check` 1369/0.
+
+## Shipped (6 TDD tasks, subagent-driven, whole-branch reviewed on opus)
+- `cascade` operator — TTL-bounded propagation (relay + hop-limit), forwards on the `outgoing` path
+  (cycle-guard terminates it), gated by `forwardingEnabled`, carries `source` (entity attribution).
+- `attachBehavior`/`detachBehavior` runtime API (G6, operator-half) — equip a live node with a
+  registered operator; survives snapshot/fromSnapshot. Foundation for the RAM loadout.
+- `regrade` operator + adversarial downgrade-cascade demo — proves entity-symmetry (same primitive,
+  node-id source, walled off by the same gate the player controls).
+- **SWEEP reimplemented on the substrate** — `startSweep` injects a `sweep-pulse` graph message;
+  `sweep-cascade` operator (single home: `operators.js`) starts each node's probe; `initSweepForwarding`
+  forwards `ttl-1` on probe completion to `reachableFrom` neighbors (gate-bounded via reveal). The
+  `processes.js` record is KEPT (coexist); `step()` slimmed to a `_cascade_ttl` liveness watcher;
+  `startWave`/frontier-recursion deleted. Ragged waves (each branch at its own probe-speed).
+
+## Decisions
+- **Coexist with `processes.js`, defer the dissolve to #288** (reversed the earlier dissolve call once
+  an agent was found actively on #187/#288 — the shared busy/abort surface). Spike evidence relayed to
+  the #187 agent + destined for #288.
+- Census: origin/main (incl. #282) = success 0.2 / trace 1.0; branch = identical → **zero bot regression**
+  (my work is inert for bot play by design; the delta-from-old-main was entirely #282).
+
+## Follow-ups (not blockers)
+- relay guards `sweep-pulse` by name → won't scale; future cascade types want a `hop_limited` payload
+  convention (→ #288).
+- `regrade` unknown-grade clamps to "S" (demo-only operator).
+- `attachBehavior` duplicate-attach unguarded (fine for foundation; guard when the loadout UI lands).
+- G6 runtime-attached *triggers* (vs operators) still unsolved — deferred to the loadout session.
+
+## Artifacts
+`spec.md`, `plan.md`, `research.md`, `prototype.mjs` (6 runnable experiments). SDD ledger + per-task
+briefs/reports under `.superpowers/sdd/` (gitignored scratch).
+
+---
+_(original prototype-phase notes below)_
 
 ## Prototype results (2026-07-02) — see research.md for the full writeup
 Composed existing primitives into a pulse cascade against the real runtime; found the walls empirically.
