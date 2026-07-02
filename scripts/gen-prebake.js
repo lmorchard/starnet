@@ -92,10 +92,16 @@ const sq = (s) => {
   return `'${s}'`;
 };
 
-const fontCalls = SOUNDFONTS.map((entry) => {
-  if (!entry.host) throw new Error(`[gen-prebake] manifest entry '${entry.prefix}' has no host URL`);
-  return `await registerSoundfont(${sq(entry.host)}, ${sq(entry.prefix)}); // ${labelOf(entry.prefix)}`;
-}).join("\n");
+// Load all fonts CONCURRENTLY (Promise.all) rather than one await at a time — the full palette is
+// ~9 fonts / >100MB, and serial loading leaves a long window where a song can trigger a sound
+// before its font is registered (strudel then retries + warns "Failed to trigger sound").
+const fontCalls =
+  "await Promise.all([\n" +
+  SOUNDFONTS.map((entry) => {
+    if (!entry.host) throw new Error(`[gen-prebake] manifest entry '${entry.prefix}' has no host URL`);
+    return `  registerSoundfont(${sq(entry.host)}, ${sq(entry.prefix)}), // ${labelOf(entry.prefix)}`;
+  }).join("\n") +
+  "\n]);";
 
 const INSTRUMENTS = `\
 // ── 1. Instruments: register every font's presets under its prefix ──

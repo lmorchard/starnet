@@ -55,15 +55,17 @@ async function registerSoundfont(url, prefix) {
   });
 }
 
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/GeneralUser-GS.sf2', 'gus_'); // gus
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Pad.sf2', 'msgpad_'); // msgpad
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Lead.sf2', 'msglead_'); // msglead
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-FX.sf2', 'msgfx_'); // msgfx
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Bass.sf2', 'msgbass_'); // msgbass
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Keys.sf2', 'msgkeys_'); // msgkeys
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Organ.sf2', 'msgorg_'); // msgorg
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Guitar.sf2', 'msggtr_'); // msggtr
-await registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Drums.sf2', 'msgdrum_'); // msgdrum
+await Promise.all([
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/GeneralUser-GS.sf2', 'gus_'), // gus
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Pad.sf2', 'msgpad_'), // msgpad
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Lead.sf2', 'msglead_'), // msglead
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-FX.sf2', 'msgfx_'), // msgfx
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Bass.sf2', 'msgbass_'), // msgbass
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Keys.sf2', 'msgkeys_'), // msgkeys
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Organ.sf2', 'msgorg_'), // msgorg
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Guitar.sf2', 'msggtr_'), // msggtr
+  registerSoundfont('https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/MuseScore-Drums.sf2', 'msgdrum_'), // msgdrum
+]);
 
 // ── 2. Signals: stub gameProgress / gameThreat so reactive songs play + react while authoring ──
 // Keep this list in sync with js/audio/signal-registry.js (currently: gameProgress, gameThreat).
