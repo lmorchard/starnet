@@ -14,4 +14,12 @@ export const SOUNDFONTS = [
     host: "https://raw.githubusercontent.com/lmorchard/starnet/main/audio-content/soundfonts/GeneralUser-GS.sf2",
     allow: [],
   },
+  {
+    prefix: "msg_",
+    authoringPath: "audio-content/soundfonts/MuseScore_General.sf2",
+    deployPath: "audio-content/soundfonts/MuseScore_General.deploy.sf2",
+    license: "audio-content/soundfonts/MuseScore_General.LICENSE.txt",
+    host: "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General.sf2",
+    allow: [],
+  },
 ];
