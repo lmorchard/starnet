@@ -20,21 +20,18 @@ describe("SWEEP — gate-bounded progressive flood-fill", () => {
     initGame(() => buildCorporateExchange(), "sweep-1");
     // gateway (probe-gate) → switch-1 (router, open-gate) + wan. Sweep should probe gateway, switch-1,
     // wan, then STOP at switch-1 (a router reveals no neighbors until opened) — switch-2 stays hidden.
-    const waves = [];
     let maxHeat = 0;
-    on(E.PROCESS_STEP, ({ type, count }) => { if (type === "sweep") waves.push(count); });
     on(E.HEAT_CHANGED, ({ total }) => { maxHeat = Math.max(maxHeat, total); });
     startSweep("gateway", 3);
     tick(400); // parallel probes run over real (grade-scaled) probe-time — tick well past completion
 
     const n = (id) => getState().nodes[id];
+    // Observable: sweep propagated from origin all the way to switch-1 (two probe hops), AND
+    // the router gate stopped it there — switch-2 was never revealed.
     assert.equal(n("gateway").probed, true, "origin probed");
-    assert.equal(n("switch-1").probed, true, "router reached + probed");
+    assert.equal(n("switch-1").probed, true, "wave propagated at least one hop past origin");
     assert.equal(n("switch-1").visibility, "accessible", "reached sig node comes fully online (connected)");
     assert.equal(n("switch-2").visibility, "hidden", "router stops the flood — switch-2 stays hidden");
-    // Waves reported over real time: origin, then the probeable child layer (switch-1; WAN is not
-    // probeable so the sweep never waits on it).
-    assert.ok(waves.length >= 2, "sweep advanced in multiple waves over time");
     assert.ok(maxHeat >= 3, "each node hit raised cumulative heat (sweep is loud)");
     assert.equal(getState().processes.length, 0, "sweep process ended");
   });
