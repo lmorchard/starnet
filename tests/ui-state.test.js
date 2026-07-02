@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { createGateway, createRouter } from "../js/core/node-graph/node-factories.js";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
 import { toggleMenuOpen, toggleHandCollapsed } from "../js/core/state/game.js";
+import { setActiveRun } from "../js/core/run-context.js";
 
 function buildMinimalLAN() {
   return {
@@ -57,6 +58,24 @@ test("ui flags survive a JSON round-trip via serializeState", () => {
   const snapshot = JSON.parse(JSON.stringify(serializeState()));
   assert.equal(snapshot.ui.menuOpen, true);
   assert.equal(snapshot.ui.handCollapsed, false);
+});
+
+// #236 — the hub has no active run; the UI toggles must not require one.
+test("toggleMenuOpen works with no active run (hub) and does not throw", () => {
+  setActiveRun(null);   // simulate the overworld hub — no run in progress
+  assert.equal(getState(), null);
+  let open;
+  assert.doesNotThrow(() => { open = toggleMenuOpen(); });
+  assert.equal(open, true);
+  assert.equal(toggleMenuOpen(), false);   // flips back
+});
+
+test("toggleHandCollapsed works with no active run (hub) and does not throw", () => {
+  setActiveRun(null);
+  let collapsed;
+  assert.doesNotThrow(() => { collapsed = toggleHandCollapsed(); });
+  assert.equal(collapsed, true);
+  assert.equal(toggleHandCollapsed(), false);
 });
 
 test("loading a pre-ui save heals state.ui so the toggle setters don't crash", () => {

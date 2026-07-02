@@ -198,8 +198,10 @@ From the hub you:
    into the run; these become your hand. (Click a card, or `equip <#>`.)
 2. **Carry cash** — decide how much of your bank to bring along, e.g. to shop the
    darknet broker mid-run. (`carry <amount>`.)
-3. **Pick a target** — the hub offers a short list of targets at varying
-   difficulty. Selecting one launches the run. (`launch <id>`.)
+3. **Pick a target** — the hub offers a short list of **procedurally-generated
+   jobs** at varying difficulty (soft / standard / hard), plus a set of
+   **authored networks** (hand-crafted set-piece LANs). Selecting one launches the
+   run. (`targets` lists them, `launch <id>`.)
 
 From the hub you can also **discard disclosed exploits** (burned-out cards
 cluttering your inventory) and **visit the darknet broker** — opened from the

@@ -57,7 +57,10 @@ registerCommand({
   execute() {
     const { targets } = getHub();
     log("AVAILABLE TARGETS:");
-    targets.forEach((t) => log(`  ${t.id}  —  ${t.label}  (threat ${t.spec.threat} / wealth ${t.spec.wealth})`));
+    targets.forEach((t) => {
+      const detail = t.spec ? `threat ${t.spec.threat} / wealth ${t.spec.wealth}` : "authored network";
+      log(`  ${t.id}  —  ${t.label}  (${detail})`);
+    });
     log("Use: launch <id>");
   },
 });

@@ -11,6 +11,7 @@ import { buyFromStoreToProfile } from "../core/store-logic.js";
 import { getStoreCatalog } from "../core/exploits.js";
 import { startRun } from "./run-control.js";
 import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
+import { NAMED_NETWORKS } from "../../data/networks/index.js";
 import { emitEvent, E } from "../core/events.js";
 
 const MAX_LOADOUT = 5;
@@ -137,7 +138,15 @@ export function launchTarget(targetId) {
     withdrawAmount: selection.withdrawAmount,
   });
   if (!launchMeta) { log("[HUB] Insufficient bank for that carry amount.", "error"); return; }
-  const result = buildGenerated({ seed: target.seed, spec: target.spec });
+  // Authored jobs build a hand-crafted named network; procedural targets build from seed + spec (#261).
+  let result;
+  if (target.network) {
+    const build = NAMED_NETWORKS[target.network];
+    if (!build) { log(`[HUB] Unknown authored network: ${target.network}`, "error"); return; }
+    result = build();
+  } else {
+    result = buildGenerated({ seed: target.seed, spec: target.spec });
+  }
   const el = hubEl();
   if (el) el.open = false;
   log(`[HUB] Jacking into ${target.label}…`, "success");

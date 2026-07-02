@@ -95,7 +95,7 @@ class StarnetHub extends StarnetElement {
           ${repeat(this.targets, (t) => t.id, (t) => html`
             <div class="hub-target" @click=${() => this._launch(t.id)}>
               <span class="hub-target-label">▸ ${t.label}</span>
-              <span class="hub-target-grade">threat ${t.spec.threat} · wealth ${t.spec.wealth}</span>
+              <span class="hub-target-grade">${t.spec ? html`threat ${t.spec.threat} · wealth ${t.spec.wealth}` : "authored network"}</span>
             </div>`)}
         </div>
       </div>`;
