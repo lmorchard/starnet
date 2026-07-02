@@ -114,6 +114,58 @@ describe("SWEEP — action, availability, abort", () => {
     assert.equal(getState().nodes["gateway"].probing, false, "ABORT cancelled the in-flight probe");
   });
 
+  it("aborting a sweep emits a probe CANCEL feedback + resets duration (so the overlay tears down, not completes)", () => {
+    initGame(() => buildCorporateExchange(), "sweep-abort-fb");
+    startSweep("gateway", 3);
+    tick(2); // gateway probe in flight
+    assert.equal(getState().nodes["gateway"].probing, true, "gateway probing mid-sweep");
+    const cancels = [];
+    on(E.ACTION_FEEDBACK, (p) => { if (p.phase === "cancel") cancels.push(p); });
+    const abort = getAvailableActions(getState().nodes["gateway"], getState()).find((a) => a.id === A.ABORT);
+    abort.execute(getState().nodes["gateway"], getState(), buildActionContext(), { nodeId: "gateway" });
+    // The overlay dispatch only tears down on a "cancel" (or "complete") feedback. Without this,
+    // the in-flight probe ring is orphaned and reads as completed. Assert the observable signal.
+    assert.ok(
+      cancels.some((c) => c.action === A.PROBE && c.nodeId === "gateway"),
+      "abort emits a probe cancel feedback for the in-flight node",
+    );
+    assert.equal(getState().nodes["gateway"]._ta_probe_duration ?? 0, 0, "duration reset so a re-sweep re-arms the start phase");
+  });
+
+  it("forwards THROUGH already-probed/owned revealing nodes to reach frontier a cancelled sweep missed", () => {
+    initGame(() => buildCorporateExchange(), "sweep-fwd-through");
+    const g = getState().nodeGraph;
+    // Simulate the aftermath of a cancelled sweep: gateway + switch-1 already probed, switch-1 owned
+    // (so it revealed switch-2), but switch-2 is revealed-yet-unprobed — the node the sweep missed.
+    // A probed node is necessarily visible (you can't probe a hidden node), so mirror the real
+    // post-sweep state: gateway + switch-1 probed & accessible; switch-1 owned → it revealed switch-2.
+    g.setNodeAttr("gateway", "probed", true);
+    g.setNodeAttr("switch-1", "probed", true);
+    g.setNodeAttr("switch-1", "accessLevel", "owned");
+    g.setNodeAttr("switch-1", "visibility", "accessible");
+    g.setNodeAttr("switch-2", "visibility", "accessible");
+    assert.equal(getState().nodes["switch-2"].probed, false, "precondition: switch-2 unprobed");
+    // Re-sweep from the already-probed gateway. Its immediate probeable-unprobed frontier is empty
+    // (switch-1 probed, wan non-probeable), so the old sweep no-oped. The pulse must flow through the
+    // probed nodes to reach switch-2.
+    startSweep("gateway", 3);
+    tick(400);
+    assert.equal(getState().nodes["switch-2"].probed, true, "re-sweep reached the missed node through probed territory");
+  });
+
+  it("forward-through still respects the gate: a probed node whose neighbors are HIDDEN doesn't probe them", () => {
+    initGame(() => buildCorporateExchange(), "sweep-fwd-gate");
+    const g = getState().nodeGraph;
+    // gateway + switch-1 probed & visible, but switch-1 never revealed switch-2 (not owned) → switch-2
+    // stays hidden. The pulse forwards through switch-1 but must NOT probe a hidden node.
+    g.setNodeAttr("gateway", "probed", true);
+    g.setNodeAttr("switch-1", "probed", true);
+    g.setNodeAttr("switch-2", "visibility", "hidden");
+    startSweep("gateway", 3);
+    tick(400);
+    assert.equal(getState().nodes["switch-2"].probed, false, "hidden node behind a probed gate stays unprobed");
+  });
+
   it("GUI/console parity: dispatching a sweep action starts the same sweep as startSweep", () => {
     initGame(() => buildCorporateExchange(), "sweep-act-3");
     initActionDispatcher(buildActionContext());

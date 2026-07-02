@@ -24,6 +24,7 @@ import { on, off, emitEvent, E } from "./events.js";
 import { A } from "./action-ids.js";
 
 const PROBE_PROGRESS = getTimedActionAttrNames("probe").progressAttr;
+const PROBE_DURATION = getTimedActionAttrNames("probe").durationAttr;
 
 /** Neighbors a wave can reach next: visible, PROBEABLE (hackable — has a `probing` flag; WAN-likes
  *  don't and can't be probed, so we never wait on them), not already probed/probing. */
@@ -72,14 +73,15 @@ export function startSweep(originId, depthCap) {
   const graph = s.nodeGraph;
   if (!graph || activeProcessOnNode(s, originId)) return;
   const cap = Number.isFinite(depthCap) ? Math.min(Math.max(1, depthCap), SWEEP_MAX_DEPTH) : SWEEP_MAX_DEPTH;
-  const origin = s.nodes[originId];
-  const probeOrigin = typeof origin?.probing === "boolean" && !origin.probed;
-  // Wave-0 targets: the origin itself if it's still probeable, else its already-revealed children.
-  const targets = probeOrigin ? [originId] : reachableFrom(s, originId);
-  if (targets.length === 0) return;
+  // Inject the pulse at the origin and let the sweep-cascade operator decide per node: probe a fresh
+  // probeable node, or forward THROUGH an already-probed / non-probeable-hub origin to the frontier
+  // beyond (so a re-sweep reaches nodes an earlier, cancelled sweep missed). Register the process
+  // only if the pulse actually started a probe somewhere — otherwise it's a no-op sweep over
+  // fully-probed / dead-end territory and shouldn't leave a dangling process or log line.
+  graph.sendMessage(originId, { type: "sweep-pulse", payload: { ttl: cap, source: "player" } });
+  if (!Object.values(s.nodes).some((n) => n._cascade_ttl != null)) return;
   addProcess({ id: nextProcessId(), type: "sweep", nodeId: originId, source: "player", depthCap: cap });
   emitEvent(E.PROCESS_STARTED, { type: "sweep", nodeId: originId, depthCap: cap });
-  for (const id of targets) graph.sendMessage(id, { type: "sweep-pulse", payload: { ttl: cap, source: "player" } });
 }
 
 registerProcess("sweep", {
@@ -94,7 +96,17 @@ registerProcess("sweep", {
     for (const n of Object.values(s.nodes)) {
       if (n._cascade_ttl == null) continue;
       graph.setNodeAttr(n.id, "_cascade_ttl", null);
-      if (n.probing) { graph.setNodeAttr(n.id, "probing", false); graph.setNodeAttr(n.id, PROBE_PROGRESS, 0); }
+      if (n.probing) {
+        graph.setNodeAttr(n.id, "probing", false);
+        graph.setNodeAttr(n.id, PROBE_PROGRESS, 0);
+        // Reset duration too: the timed-action operator only re-emits the "start" phase when BOTH
+        // progress and duration are 0, so a stale duration would leave a re-swept node's overlay un-armed.
+        graph.setNodeAttr(n.id, PROBE_DURATION, 0);
+        // Emit the cancel feedback so the overlay dispatch tears the probe ring down. Without this the
+        // in-flight ring is orphaned mid-progress and visually reads as completed (parity with the
+        // nav-cancel handler, which emits the same for individually-aborted timed actions).
+        emitEvent(E.ACTION_FEEDBACK, { nodeId: n.id, action: A.PROBE, phase: "cancel", progress: 0 });
+      }
     }
   },
 });

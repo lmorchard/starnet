@@ -110,19 +110,36 @@ export function applyOperators(operatorConfigs, nodeAttributes, message, ctx) {
 
 
 /**
- * sweep-cascade — on a `sweep-pulse`, bring an unprobed probeable node online and start its probe,
- * stamping the remaining depth as `_cascade_ttl` so the completion forwarder can propagate ttl-1.
- * No-op on already-probed / probing / non-probeable nodes and on ttl < 0 (ttl=0 probes this node but does not forward further).
+ * sweep-cascade — reacts to a `sweep-pulse`. A fresh, visible, probeable node starts its probe
+ * (stamping `_cascade_ttl`; the completion forwarder propagates ttl-1). An already-probed node — or
+ * a non-probeable visible hub (WAN / owned relay) — instead forwards the pulse THROUGH to its
+ * neighbors without re-probing, so a re-sweep flows across probed territory to reach frontier an
+ * earlier (cancelled) sweep missed. ttl=0 probes-but-doesn't-forward; ttl<0 is exhausted.
+ *
+ * The gate is self-enforced by the RECEIVER: a hidden neighbor (behind an un-owned gate, or
+ * concealed) no-ops on this same operator, so a forwarded pulse can never leak past a reveal
+ * boundary — no gate logic is needed on the sender.
  */
 registerOperator("sweep-cascade", (_config, attrs, message, _ctx) => {
   if (!message || message.type !== "sweep-pulse") return {};
-  if (typeof attrs.probing !== "boolean" || attrs.probed || attrs.probing) return {};
   const ttl = message.payload?.ttl ?? -1;
-  if (ttl < 0) return {};  // ttl=0 is valid: probe this node but don't cascade further
-  return {
-    attributes: { visibility: "accessible", probing: true, [_SWEEP_PROBE_PROGRESS]: 0, _cascade_ttl: ttl },
-    events: [{ type: "operator-effect", payload: { effect: "ctx-call", method: "recordHeat", args: [HEAT_COST.sweep] } }],
-  };
+  const hidden = attrs.visibility === "hidden";
+  const probeable = typeof attrs.probing === "boolean";
+
+  // Fresh, visible, probeable node → start its probe. Forwarding happens on completion.
+  if (probeable && !hidden && !attrs.probed && !attrs.probing && ttl >= 0) {
+    return {
+      attributes: { visibility: "accessible", probing: true, [_SWEEP_PROBE_PROGRESS]: 0, _cascade_ttl: ttl },
+      events: [{ type: "operator-effect", payload: { effect: "ctx-call", method: "recordHeat", args: [HEAT_COST.sweep] } }],
+    };
+  }
+
+  // Forward THROUGH an already-probed node or a non-probeable visible hub. Not while a node is
+  // mid-probe (its completion forwards instead), and not once depth is exhausted (ttl 0).
+  if (!hidden && ttl > 0 && !attrs.probing && (attrs.probed || !probeable)) {
+    return { outgoing: [{ type: "sweep-pulse", payload: { ttl: ttl - 1, source: message.payload?.source } }] };
+  }
+  return {};
 });
 
 /**
