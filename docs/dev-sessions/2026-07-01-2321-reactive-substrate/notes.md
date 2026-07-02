@@ -1,8 +1,24 @@
 # Reactive substrate — entity-injected propagating behaviors — session notes
 
-**Status: brainstorm teed up, approach locked (prototype-first). Prototype not yet started —
-resume here.** Tracking issue: **#286** (under epic #279). Branch `reactive-substrate` off
-`origin/main`@c48b3dc (includes #261 hub-reachability). Baseline green.
+**Status: PROTOTYPE DONE (2026-07-02). Findings in `research.md`, runnable probe in `prototype.mjs`.
+Next: brainstorm → `spec.md` for G1–G5 (see research.md open questions).** Tracking issue: **#286**
+(under epic #279). Branch `reactive-substrate` off `origin/main`@c48b3dc (includes #261
+hub-reachability; #282 SWEEP is in branch history). Baseline green.
+
+## Prototype results (2026-07-02) — see research.md for the full writeup
+Composed existing primitives into a pulse cascade against the real runtime; found the walls empirically.
+- **Works today, no new code:** cascade propagation (`relay`), entity attribution (rides in payload),
+  **two-way gate control** (`forwardingEnabled` — the corrupt mechanic, generalized). Gate-bounding is
+  NOT a gap.
+- **Real gaps:** G1 timed-forward loses `message.path` (`_emitFrom` resets it) → ping-pong
+  non-termination; G2 no TTL-decrement / computed outgoing payload; G3 no payload→attr copy; G5 no
+  cascade identity/abort (this is what `processes.js` legitimately owns); G6 no runtime-attach of
+  behaviors (deepest; the loadout's prerequisite).
+- **Gap is small:** a ~20-line `pulse-cascade` operator (EXP 4) gives a depth-bounded, attributed,
+  gate-gated cascade that terminates. Substrate = "compose + small gap-fill," not from-scratch.
+- **Recommendation:** `processes.js` and the graph **coexist** — graph owns propagation/timing/gating,
+  `processes.js` (or successor) owns cascade identity+abort. SWEEP reimplements as a cascade + record.
+  **Spec G1–G5 now; defer G6** to a loadout-tied session (not on SWEEP's critical path).
 
 ## The idea (why)
 SWEEP (#282) needed a progressive, propagating, abortable behavior the node-graph couldn't host, so
