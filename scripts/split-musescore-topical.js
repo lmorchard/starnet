@@ -35,7 +35,7 @@ const SOURCE_PATH = resolve(REPO_ROOT, "audio-content/soundfonts/MuseScore_Gener
 const OUT_DIR = resolve(REPO_ROOT, "audio-content/soundfonts");
 
 /**
- * @typedef {{ file: string, test: (header: { preset: number, bank: number }) => boolean }} TopicalEntry
+ * @typedef {{ file: string, test: (header: { preset: number, bank: number, name: string }) => boolean }} TopicalEntry
  */
 
 /** @type {TopicalEntry[]} */

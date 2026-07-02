@@ -20,8 +20,11 @@ import { SOUNDFONTS } from "../audio-content/soundfonts/manifest.js";
  * @returns {{ kept: string[], dropped: number, authoringBytes: number, deployBytes: number }}
  */
 export function cullFont(entry, usedNames) {
-  const authoringBytes = readFileSync(entry.authoringPath).length;
-  const src = new SoundFont2(new Uint8Array(readFileSync(entry.authoringPath)));
+  // Read the authoring font once; reuse the buffer for both the byte count and parsing
+  // (these fonts are large — 32MB+ — so a second read would double I/O and memory).
+  const buf = readFileSync(entry.authoringPath);
+  const authoringBytes = buf.length;
+  const src = new SoundFont2(new Uint8Array(buf));
 
   // Map each authoring preset's sanitized name to select which raw presets to keep.
   // Deduplicates the same way the loader does (append _2, _3 ... for collisions).
@@ -68,10 +71,13 @@ export function cullFont(entry, usedNames) {
   };
 }
 
-/** CLI: cull every manifest font whose authoring input is present. */
+/** CLI: cull every deploy-cullable manifest font whose authoring input is present. */
 export function main() {
   const content = gatherContent();
   for (const entry of SOUNDFONTS) {
+    // Only entries with a deployPath are per-preset culled. Topical sets (no deployPath) are
+    // shipped whole — skip them here (their .sf2 is committed as-is).
+    if (!entry.deployPath) continue;
     if (!existsSync(entry.authoringPath)) {
       console.log(
         `[cull] skip ${entry.prefix} — authoring font absent (${entry.authoringPath})`,

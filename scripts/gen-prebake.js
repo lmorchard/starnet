@@ -3,7 +3,6 @@
 // Run via: make gen-prebake
 // Do NOT edit the generated file by hand — edit the manifest or this generator.
 
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { writeFileSync } from "node:fs";
@@ -11,8 +10,7 @@ import { writeFileSync } from "node:fs";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
 
-// Import the manifest using createRequire so we can resolve it absolutely.
-// (The manifest uses ESM export; import() works fine from a Node script.)
+// Import the manifest (ESM) by absolute path via dynamic import().
 const { SOUNDFONTS } = await import(
   resolve(projectRoot, "audio-content/soundfonts/manifest.js")
 );
