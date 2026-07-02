@@ -972,6 +972,7 @@ describe("scatteredLock3: crack-vault requires all switches + owned", () => {
     assert.ok(available.includes("crack-vault"));
 
     graph.executeAction("sl/vault", "crack-vault");
+    graph.tick(20); // crack-vault is timed (#187 Phase 5) — flat duration:20
     assert.equal(ctx.calls.giveReward?.length, 1);
     assert.deepEqual(ctx.calls.giveReward[0], [1500]);
   });
@@ -989,8 +990,9 @@ describe("scatteredLock3: crack-vault requires all switches + owned", () => {
     graph.executeAction("sl/switch-c", "activate");
     graph._nodes.get("sl/vault").attributes.accessLevel = "owned";
 
-    // First crack pays out.
+    // First crack pays out (timed — #187 Phase 5 — flat duration:20).
     graph.executeAction("sl/vault", "crack-vault");
+    graph.tick(20);
     assert.equal(ctx.calls.giveReward?.length, 1);
 
     // The vault is now spent: crack-vault is no longer offered, so the player
@@ -1072,10 +1074,11 @@ describe("scatteredEncryptedVault: quality communication", () => {
     const inst = instantiate(scatteredEncryptedVault2, "ev");
     const graph = new NodeGraph(inst, ctx);
 
-    // Own and extract from both key-gens
+    // Own and extract from both key-gens (extract-key is timed — #187 Phase 5 — flat duration:20)
     for (const kg of ["ev/key-gen-1", "ev/key-gen-2"]) {
       graph._nodes.get(kg).attributes.accessLevel = "owned";
       graph.executeAction(kg, "extract-key");
+      graph.tick(20);
     }
 
     // Own vault and decrypt

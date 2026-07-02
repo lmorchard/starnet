@@ -91,7 +91,14 @@ function makeScatteredLock(n, cost) {
               // (owned + locks-opened>=n) are monotonic and never revert, so without
               // this the action stays available forever and farms cash on every click.
               /** @type {const} */ ({ type: "node-attr", attr: "cracked", eq: false }),
+              // One-at-a-time gate (#187 Phase 5): structural check, same as the core
+              // verbs' NOT_BUSY — blocks re-triggering while the crack is already in flight.
+              /** @type {const} */ ({ type: "no-active-timed-action" }),
             ],
+            // Timed (#187 Phase 5): flat feel-draft duration — turns the instant payout
+            // into a legible crack rather than a silent dud. Synthesis rewrites `effects`
+            // below into the timed-action operator's onComplete.
+            timed: { duration: 20 },
             effects: [
               /** @type {const} */ ({ effect: "ctx-call", method: "giveReward", args: [1500] }),
               /** @type {const} */ ({ effect: "set-attr", attr: "cracked", value: true }),
@@ -245,7 +252,14 @@ function makeScatteredEncryptedVault(n, cost) {
           requires: [
             /** @type {const} */ ({ type: "node-attr", attr: "accessLevel", eq: "owned" }),
             /** @type {const} */ ({ type: "node-attr", attr: "keyExtracted", eq: false }),
+            // One-at-a-time gate (#187 Phase 5): structural check, same as the core
+            // verbs' NOT_BUSY — blocks re-triggering while the extraction is in flight.
+            /** @type {const} */ ({ type: "no-active-timed-action" }),
           ],
+          // Timed (#187 Phase 5): flat feel-draft duration — turns the instant extraction
+          // into a legible process rather than a silent dud. Synthesis rewrites `effects`
+          // below into the timed-action operator's onComplete.
+          timed: { duration: 20 },
           effects: [
             /** @type {const} */ ({ effect: "set-attr", attr: "keyExtracted", value: true }),
             /** @type {const} */ ({ effect: "quality-delta", name: "decryption-keys", delta: 1 }),

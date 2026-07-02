@@ -1618,12 +1618,15 @@ describe("EXEC synthetic action injection", () => {
     assert.ok(!actions.some((a) => a.id === A.EXEC), "no EXEC when no scripts");
   });
 
-  it("EXEC.execute runs the chosen script (forwarding disabled), same as dispatching it directly", () => {
+  it("EXEC.execute runs the chosen script (forwarding disabled on completion), same as dispatching it directly", () => {
     const s = getState();
     s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
     s.nodeGraph.setNodeAttr("ids-1", "forwardingEnabled", true);
     const exec = getAvailableActions(s.nodes["ids-1"], s).find((a) => a.id === A.EXEC);
     exec.execute(s.nodes["ids-1"], s, {}, { scriptId: "corrupt", nodeId: "ids-1" });
+    // corrupt is timed (#187 Phase 5) — EXEC only arms it; tick to completion (grade C: 15 ticks
+    // + 1 to resolve duration from the table).
+    s.nodeGraph.tick(16);
     assert.equal(s.nodes["ids-1"].forwardingEnabled, false);
   });
 });
@@ -1669,6 +1672,10 @@ describe("EXEC dispatch echo", () => {
     off(E.COMMAND_ISSUED, h);
 
     assert.deepEqual(echoes, ["exec corrupt"], "exactly one echo reading 'exec corrupt'");
+
+    // corrupt is timed (#187 Phase 5) — the dispatch only arms it; tick to completion
+    // (grade C: 15 ticks + 1 to resolve duration from the table).
+    s.nodeGraph.tick(16);
     assert.equal(getState().nodes["ids-1"].forwardingEnabled, false, "script ran");
   });
 });

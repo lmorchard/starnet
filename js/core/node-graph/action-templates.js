@@ -227,7 +227,13 @@ const RECONFIGURE_ACTION = {
       ],
     },
     { type: "node-attr", attr: "forwardingEnabled", eq: true },
+    ...NOT_BUSY,
   ],
+  // Timed (#187 Phase 5): subverting an IDS takes time, grade-scaled — a higher-grade
+  // IDS resists longer. Feel-draft numbers. Synthesis (timed-synthesis.js) rewrites these
+  // `effects` into the timed-action operator's `onComplete`, so forwardingEnabled only
+  // flips (and reconfigureNode only fires) once the subversion completes, not at dispatch.
+  timed: { durationTable: { S: 30, A: 25, B: 20, C: 15, D: 12, F: 8 } },
   effects: [
     { effect: "set-attr", attr: "forwardingEnabled", value: false },
     { effect: "ctx-call", method: "reconfigureNode", args: ["$nodeId"] },
