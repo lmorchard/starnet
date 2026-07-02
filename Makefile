@@ -1,4 +1,4 @@
-.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts sf3-to-sf2 gen-prebake split-musescore census bot-run generate gen-bot gen-json
+.PHONY: all serve dev lint lint-imports test check bundle-vendor cull-soundfonts fetch-soundfonts fetch-musescore-source sf3-to-sf2 gen-prebake split-musescore census bot-run generate gen-bot gen-json
 
 # Install dependencies and build vendor bundles
 all: node_modules dist/vendor.js dist/lit.js dist/strudel.js
@@ -68,6 +68,12 @@ split-musescore:
 # Download authoring soundfonts (large; gitignored) from their hosts
 fetch-soundfonts:
 	node scripts/fetch-authoring-soundfonts.js
+
+# Download the full MuseScore_General.sf2 (~206MB, gitignored) — the input for `make split-musescore`.
+# Upstream: OSUOSL (see docs/dev-sessions/2026-07-01-1708-soundfont-seam-cull/musescore-sourcing.md).
+fetch-musescore-source:
+	@test -f audio-content/soundfonts/MuseScore_General.sf2 && echo "present, skip" || \
+		curl -L -o audio-content/soundfonts/MuseScore_General.sf2 https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General.sf2
 
 # Regenerate the strudel.cc prebake from the soundfont manifest (loads FULL authoring fonts)
 gen-prebake:

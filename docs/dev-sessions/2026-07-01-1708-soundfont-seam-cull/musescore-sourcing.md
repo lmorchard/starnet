@@ -181,3 +181,19 @@ depends on browser-fetching this soundfont, budget for hosting it ourselves.
 - `sf3convert` Debian/Ubuntu package: <https://launchpad.net/ubuntu/jammy/+package/sf3convert>
 - LibreScore/sf3 (mirror repo, over jsDelivr size limit): <https://github.com/LibreScore/sf3>
 - S. Christian Collins (adapter): <https://schristiancollins.com/generaluser.php>
+
+---
+
+## Post-investigation update: CORS hosting resolved via committed files
+
+After this investigation, a GitHub release asset was tried as a CORS host for the topical
+MuseScore `.sf2` files. **Release assets do NOT send `Access-Control-Allow-Origin` headers** —
+browser fetches from strudel.cc failed silently. The release was deleted.
+
+The solution: commit the topical `.sf2` files directly to the repo (each is under GitHub's
+100 MB per-file limit). `raw.githubusercontent.com` sends `Access-Control-Allow-Origin: *` for
+these files, giving free CORS for strudel.cc authoring without any self-hosting. GitHub Pages
+also sends CORS and remains a documented fallback.
+
+**OSUOSL remains the re-curation source** for the full `MuseScore_General.sf2` (Node build
+step only — it never runs in a browser). Use `make fetch-musescore-source` to download it.

@@ -142,3 +142,27 @@ The MuseScore font has been stable on OSUOSL since 2020-07-10, but a pinned sha2
 - `Makefile` — `cull-soundfonts`, `fetch-soundfonts`, `sf3-to-sf2` targets
 - `.gitignore` — gitignore the large authoring MuseScore font
 - `docs/audio-direction.md` — expanded soundfont tooling section
+
+---
+
+## Topical split (the pivot)
+
+After the initial seam landed, the `msg_` deploy font approach hit a size problem: a family-level cull of MuseScore_General still produced ~136 MB — because acoustic grand pianos alone account for ~107 MB. That's the elephant in the room. The per-preset cull was designed for "pick a few sounds," not "keep a whole GM family."
+
+**The pivot:** instead of one `msg_` deploy font containing whole families, split the 206 MB source by GM instrument family into 8 small committed topical sets, **dropping acoustic grands and all orchestral/organic families**. The retained families are the synth-friendly ones — pads, leads, FX, bass, keys (no grands), organ, guitar, drums. Each topical file ships whole (no further per-preset cull — they're already small enough to commit, 3.7–20 MB). Total committed size: ~84 MB across all 8 files.
+
+### The double-prefix bug
+
+During loader development, a silent in-game miss was traced to a naming mismatch: the cull script was pre-sanitizing preset names (e.g. "Halo Pad" → "msg_halo_pad") before writing them into the deploy font. The loader applies `sanitize()` at load time to derive in-game sound names — so a name already sanitized got re-prefixed ("msg_halo_pad" → "msg_msg_halo_pad"), producing a silent miss. Fix: soundfont files store RAW GM preset names only; the loader applies the prefix via `sanitize()`. Caught by a loader round-trip test (load the file, look up the expected name, confirm it resolves).
+
+### The release-asset detour
+
+A GitHub release asset was tried as a CORS host for the topical fonts. Release assets do NOT send `Access-Control-Allow-Origin` headers — browser fetches from strudel.cc failed silently. The release was deleted. The correct path: commit the files to the repo. `raw.githubusercontent.com` sends CORS for files under the 100 MB per-file limit, and all topical files qualify. GitHub Pages also sends CORS and is a documented fallback.
+
+### Adoption model (`authoringOnly`)
+
+Topical sets land with `authoringOnly: true` in the manifest. This means strudel.cc composers can use `msg*` sounds (served via `raw.githubusercontent.com` CORS), but the game does not load those files in-game until a song actually adopts a set. Adoption = remove `authoringOnly` from the manifest entry. This keeps the in-game audio footprint minimal until sounds are actually used.
+
+### Source font for re-curation
+
+`MuseScore_General.sf2` (206 MB, gitignored) is only needed to re-run `make split-musescore`. Its upstream is OSUOSL — see `musescore-sourcing.md`. `make fetch-musescore-source` downloads it only if absent (idempotent). The committed topical `.sf2` files are the output of the split; re-running the split is only needed if the family taxonomy changes.

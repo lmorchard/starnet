@@ -91,7 +91,7 @@ export function main() {
   if (!existsSync(SOURCE_PATH)) {
     console.error(
       `ERROR: MuseScore_General.sf2 not found at ${SOURCE_PATH}\n` +
-        "Run `make fetch-soundfonts` first to download the authoring font.",
+        "Run `make fetch-musescore-source` first to download the full source font.",
     );
     process.exit(1);
   }
