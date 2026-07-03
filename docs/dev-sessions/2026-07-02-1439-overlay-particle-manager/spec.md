@@ -107,3 +107,26 @@ Original phase intent (for the record):
    the plan with a focused test.
 3. **Pool teardown leaks** — a released element that keeps a RAF loop or stays visible; `clear()` must
    fully stop loops (it does today, `node-overlay.js:208-215`) and the pool must reset on `RUN_STARTED`.
+
+---
+
+## Addendum — re-integration against #187 Phase 3/4 (option B, no transition)
+
+While #298 was in review, `main` merged #187's overlay refactor: dispatch is now **name-keyed** via a
+**feedback-profile** system (`action → resolveFeedback(action).overlay → name → byName[name]`), with a
+`generic-process` default fallback (`js/ui/feedback-profiles.js`, `js/ui/overlays/dispatch.js`,
+`registry.js` descriptors now carry `name`).
+
+**Decision (Les): integrate pooling INTO that model — no transitional two-routing seam.**
+- **`pooled?: boolean` on the overlay descriptor** (`registry.js`); `probe-sweep` → `pooled: true`. It's
+  a rendering property (descriptor owns `tag`/`name`/`driver`), not a `FeedbackProfile` (overlay/drone/cue) concern.
+- **Routing lives in `dispatch.js`, keyed by resolved overlay NAME** (not an action-branch in
+  visual-renderer): resolve `name`; if pooled → the manager (multi-node, keyed by `(name, nodeId)`, by
+  `payload.nodeId`); else the existing `byName` singleton path (`activeByAction` memory + xploit hook, unchanged).
+- **Manager reshaped to name-keyed:** `handles(name)`, `start(name,nodeId)`, `progress(name,nodeId,p)`,
+  `end(name,nodeId)`, `repositionAll`, `clearAll`; pool + random-jitter internals unchanged.
+- **Constraint:** a pooled overlay must resolve from the action's central/default profile (progress/complete
+  payloads carry no inline `feedback`, so dispatch re-resolves the name to detect pooling). probe satisfies this.
+- visual-renderer makes ONE `dispatchActionFeedback(byName, activeByAction, payload, {onXploitProgress, manager})`
+  call; RUN_STARTED clears the manager; onViewport repositions it. `mountOverlays` derives the manager's
+  pooled `name→tag` from `descriptor.pooled`, skips pooled descriptors from `byName`, returns `{byKey, byName, manager}`.
