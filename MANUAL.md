@@ -850,7 +850,7 @@ sniff [flow]           Read a flow on the targeted node (decrypt / capture crede
 replay                 Replay a captured credential into the targeted finesse node that trusts it.
 exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, disconnect, …). No arg lists scripts.
 kick                   Push ICE off current node to adjacent node.
-reboot [node]          Force ICE home; node goes briefly offline.
+reboot                 Force ICE home; node goes briefly offline.
 jackout                End run.
 
 menu                   Toggle the status-bar controls panel (NEW RUN / PAUSE / SAVE / LOAD).
