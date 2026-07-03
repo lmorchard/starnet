@@ -63,16 +63,23 @@ export function initSweepLab(_overlayLayer, manager) {
   // Track active animating nodes so loop knows when all are done.
   const active = new Set();
 
+  // Generation counter: incremented by sweep() to invalidate stale rAF loops from prior runs.
+  // Each runOne captures the generation at start; frame() exits early if it no longer matches.
+  let generation = 0;
+
   /**
    * Animate one node from 0→1 over `duration` ms, then fire complete.
    * @param {string} nodeId
    * @param {number} duration
    */
   function runOne(nodeId, duration) {
+    const myGen = generation;
     active.add(nodeId);
     manager.start("probe-sweep", nodeId);
     const start = performance.now();
     function frame(/** @type {number} */ now) {
+      // If sweep() has been called since this runOne started, this loop is stale — exit cleanly.
+      if (generation !== myGen) return;
       const t = Math.min((now - start) / duration, 1);
       if (t < 1) {
         manager.progress("probe-sweep", nodeId, t);
@@ -94,7 +101,9 @@ export function initSweepLab(_overlayLayer, manager) {
   }
 
   function sweep() {
-    // Cancel any in-flight by ending all active nodes.
+    // Increment generation to invalidate any in-flight rAF loops from prior runs.
+    generation++;
+    // Cancel any in-flight overlays (the rAF loops will exit on their next tick via generation check).
     for (const nodeId of active) {
       manager.end("probe-sweep", nodeId);
     }

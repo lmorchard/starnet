@@ -26,15 +26,17 @@
 - Create: `js/ui/overlays/manager.js`
 - Test: `tests/overlay-manager.test.js`
 
-**Interfaces:**
+**Interfaces (shipped — "option B" name-keyed API; re-integrated with dispatch.js per spec addendum):**
 - Produces:
-  - `class OverlayManager` with constructor `(actionTags: Map<string,string>, deps?: { createOverlay?, random?, setTimer?, clearTimer? })`. `actionTags` maps an action id → overlay tag name (e.g. `Map([["probe","probe-sweep-overlay"]])`). `deps` are injectable for tests (default to real `document.createElement` / `Math.random` / `setTimeout` / `clearTimeout`).
+  - `class OverlayManager` with constructor `(nameTags: Map<overlayName,tag>, deps?: { createOverlay?, random?, setTimer?, clearTimer? })`. `nameTags` maps a resolved overlay NAME → overlay tag name (e.g. `Map([["probe-sweep","probe-sweep-overlay"]])`). `deps` are injectable for tests (default to real `document.createElement` / `Math.random` / `setTimeout` / `clearTimeout`). The manager is keyed by overlay NAME (not action id); pooled routing by action lives in `dispatch.js` which resolves the overlay name at "start" and calls into the manager.
   - `mount(layer)` — set the DOM container pooled elements attach to.
-  - `handles(action): boolean` — whether this manager owns the action.
-  - `handleFeedback({ nodeId, action, phase, progress })` — the multi-node state machine.
+  - `handles(overlayName): boolean` — whether this manager owns the overlay name.
+  - `start(overlayName, nodeId)` — acquire an element from the pool and begin jitter-delayed animation.
+  - `progress(overlayName, nodeId, progress)` — update animation progress (buffered until after jitter).
+  - `end(overlayName, nodeId)` — complete or cancel; release element back to pool.
   - `repositionAll()` — reposition every active (revealed) overlay.
   - `clearAll()` — release every active overlay (call on RUN_STARTED).
-  - `activeCount(action): number` — count of in-flight overlays for an action (test/inspection).
+  - `activeCount(overlayName): number` — count of in-flight overlays for a name (test/inspection).
   - Exported const `JITTER_MAX_MS = 150`.
 - Each overlay element is expected to implement the `NodeOverlay` contract: `sync(nodeId, progress)`, `clear()`, `reposition()`.
 

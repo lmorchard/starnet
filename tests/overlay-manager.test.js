@@ -84,7 +84,7 @@ describe("OverlayManager — random start jitter (view-layer)", () => {
     });
     mgr.mount({ appendChild() {} });
     mgr.start("probe-sweep", "a");
-    assert.ok(fire && fire.ms <= JITTER_MAX_MS && fire.ms > 0, "a jitter delay in (0, 150] was scheduled");
+    assert.ok(fire && fire.ms >= 0 && fire.ms <= JITTER_MAX_MS, "a jitter delay in [0, 150] was scheduled");
     assert.equal(created[0].synced.length, 0, "not synced during the jitter window");
     mgr.progress("probe-sweep", "a", 0.4); // buffered
     assert.equal(created[0].synced.length, 0, "progress buffered, still not synced");
@@ -111,11 +111,12 @@ describe("OverlayManager — random start jitter (view-layer)", () => {
 });
 
 describe("mountOverlays — probe-sweep is managed (pooled), others stay singletons", () => {
-  it("returns a manager owning probe-sweep by name, and byName excludes probe-sweep", async () => {
+  it("returns a manager owning probe-sweep by name, and byName excludes probe-sweep", async (t) => {
     // mountOverlays calls document.createElement; stub it before the dynamic import.
     // Lit also reads document at module-eval time (createTreeWalker, createComment,
     // createElement) — the stub covers those calls so the import doesn't throw.
     // The stub returns no-op elements; we don't need full custom-element behaviour here.
+    const priorDocument = globalThis.document;
     if (!globalThis.document) {
       const fakeEl = () => ({ innerHTML: "", content: { firstChild: null }, appendChild() {}, sync() {}, clear() {}, reposition() {}, getAttributeNames: () => [], hasAttributes: () => false });
       globalThis.document = /** @type {any} */ ({
@@ -126,6 +127,7 @@ describe("mountOverlays — probe-sweep is managed (pooled), others stay singlet
         createTreeWalker: () => ({ currentNode: null, nextNode: () => null }),
       });
     }
+    t.after(() => { globalThis.document = priorDocument; });
     const { mountOverlays } = await import("../js/ui/overlays/index.js");
     const fakeLayer = { appendChild() {} };
     const { byName, manager } = mountOverlays(fakeLayer);

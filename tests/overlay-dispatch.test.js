@@ -102,13 +102,15 @@ test("an inline feedback.overlay override on 'start' picks the overridden overla
 // #298 — pooled overlay dispatch: a pooled action's concurrent starts drive the manager for N nodes,
 // while a non-pooled action still drives the byName singleton.
 test("pooled action (probe) routes to manager; N concurrent nodes grow activeCount", () => {
-  // A minimal manager stub tracking calls.
+  // A minimal manager stub tracking calls; activeCount returns remaining active count.
   const managerCalls = { starts: [], progresses: [], ends: [] };
+  let activeNodeCount = 0;
   const manager = {
     handles: (name) => name === PROBE_OVERLAY,
-    start: (name, nodeId) => managerCalls.starts.push({ name, nodeId }),
+    start: (name, nodeId) => { managerCalls.starts.push({ name, nodeId }); activeNodeCount++; },
     progress: (name, nodeId, p) => managerCalls.progresses.push({ name, nodeId, p }),
-    end: (name, nodeId) => managerCalls.ends.push({ name, nodeId }),
+    end: (name, nodeId) => { managerCalls.ends.push({ name, nodeId }); activeNodeCount--; },
+    activeCount: (_name) => activeNodeCount,
   };
 
   const probe = fakeOverlay();
@@ -122,18 +124,26 @@ test("pooled action (probe) routes to manager; N concurrent nodes grow activeCou
   dispatchActionFeedback(byName, active, { nodeId: "c", action: A.PROBE, phase: "start" }, hooks);
 
   assert.equal(managerCalls.starts.length, 3, "3 manager.start calls for 3 nodes");
-  assert.equal(active.has(A.PROBE), false, "pooled action NOT in activeByAction singleton map");
+  // Pooled entry is now stored in activeByAction with pooled:true so later phases reuse the name.
+  assert.ok(active.has(A.PROBE), "pooled action stored in activeByAction (pooled:true)");
+  assert.equal(active.get(A.PROBE)?.pooled, true, "stored entry has pooled:true");
   assert.equal(probe.syncs.length, 0, "singleton overlay not touched for pooled action");
 
-  // Progress on b.
+  // Progress on b — uses the stored overlayName, not a re-resolve.
   dispatchActionFeedback(byName, active, { nodeId: "b", action: A.PROBE, phase: "progress", progress: 0.5 }, hooks);
   assert.equal(managerCalls.progresses.length, 1);
   assert.deepEqual(managerCalls.progresses[0], { name: PROBE_OVERLAY, nodeId: "b", p: 0.5 });
 
-  // Complete on a.
+  // Complete on a — still 2 active after, so activeByAction entry is kept.
   dispatchActionFeedback(byName, active, { nodeId: "a", action: A.PROBE, phase: "complete" }, hooks);
   assert.equal(managerCalls.ends.length, 1);
   assert.deepEqual(managerCalls.ends[0], { name: PROBE_OVERLAY, nodeId: "a" });
+  assert.ok(active.has(A.PROBE), "entry kept while other nodes still active");
+
+  // Complete remaining 2 — entry removed when activeCount hits 0.
+  dispatchActionFeedback(byName, active, { nodeId: "b", action: A.PROBE, phase: "complete" }, hooks);
+  dispatchActionFeedback(byName, active, { nodeId: "c", action: A.PROBE, phase: "complete" }, hooks);
+  assert.equal(active.has(A.PROBE), false, "entry removed once all nodes complete (activeCount=0)");
 });
 
 test("non-pooled action (xploit) still goes through byName singleton when manager present", () => {
@@ -142,6 +152,7 @@ test("non-pooled action (xploit) still goes through byName singleton when manage
     start: () => {},
     progress: () => {},
     end: () => {},
+    activeCount: () => 0,
   };
 
   const xploit = fakeOverlay();
@@ -170,4 +181,46 @@ test("an unregistered resolved overlay name degrades safely (no throw, no sync/c
     dispatchActionFeedback(byName, active, { nodeId: "n1", action: "crack-vault", phase: "complete", progress: 1 });
   });
   assert.equal(active.has("crack-vault"), false, "complete should still forget the action even with no overlay element");
+});
+
+// #298 Fix 1 regression: pooled action with an inline feedback.overlay override on "start"
+// must route progress/complete to the SAME (started) overlay name, not re-resolve (which
+// would pick the default name and miss the started manager entry).
+test("pooled action with inline feedback.overlay override routes later phases to the started name", () => {
+  const customName = "custom-probe-overlay";
+  const managerCalls = { starts: [], progresses: [], ends: [] };
+  let activeNodeCount = 0;
+  const manager = {
+    // Manager handles both the default probe overlay AND the custom override name.
+    handles: (name) => name === PROBE_OVERLAY || name === customName,
+    start: (name, nodeId) => { managerCalls.starts.push({ name, nodeId }); activeNodeCount++; },
+    progress: (name, nodeId, p) => managerCalls.progresses.push({ name, nodeId, p }),
+    end: (name, nodeId) => { managerCalls.ends.push({ name, nodeId }); activeNodeCount--; },
+    activeCount: (_name) => activeNodeCount,
+  };
+
+  const byName = new Map([[PROBE_OVERLAY, fakeOverlay()], [customName, fakeOverlay()]]);
+  const active = new Map();
+  const hooks = { manager };
+
+  // Start probe with an inline feedback override → routes to customName.
+  dispatchActionFeedback(byName, active, {
+    nodeId: "n1", action: A.PROBE, phase: "start", feedback: { overlay: customName },
+  }, hooks);
+  assert.equal(managerCalls.starts.length, 1, "start called on manager");
+  assert.deepEqual(managerCalls.starts[0], { name: customName, nodeId: "n1" }, "started with custom overlay name");
+  assert.equal(active.get(A.PROBE)?.overlayName, customName, "stored overlayName is the custom name");
+  assert.equal(active.get(A.PROBE)?.pooled, true, "stored entry is pooled");
+
+  // Progress — must route to customName, NOT the default PROBE_OVERLAY (the regression this fixes).
+  dispatchActionFeedback(byName, active, { nodeId: "n1", action: A.PROBE, phase: "progress", progress: 0.5 }, hooks);
+  assert.equal(managerCalls.progresses.length, 1, "progress routed to manager");
+  assert.deepEqual(managerCalls.progresses[0], { name: customName, nodeId: "n1", p: 0.5 },
+    "progress uses the custom name from start, not a re-resolved default");
+
+  // Complete — must route to customName.
+  dispatchActionFeedback(byName, active, { nodeId: "n1", action: A.PROBE, phase: "complete" }, hooks);
+  assert.equal(managerCalls.ends.length, 1, "end called on manager");
+  assert.deepEqual(managerCalls.ends[0], { name: customName, nodeId: "n1" },
+    "complete uses the custom name from start");
 });
