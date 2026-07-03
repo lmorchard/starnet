@@ -1,13 +1,12 @@
 // @ts-check
 /**
  * Sweep Fan-out Demo — permanent preview for concurrent multi-node probe animations.
- * Drives N grid nodes through OverlayManager.handleFeedback (start → progress → complete)
- * with the manager's built-in random jitter destaggers simultaneous starts.
+ * Drives N grid nodes through OverlayManager.start/progress/end keyed by overlay name
+ * ("probe-sweep"), with the manager's built-in random jitter destaggers simultaneous starts.
  * No direct overlay mounting — exercises the real manager path end-to-end.
  */
 
 import { getCy, updateNodeStyle } from "./graph.js";
-import { A } from "../core/action-ids.js";
 
 const COLS = 6;
 const ROWS = 4;
@@ -71,15 +70,15 @@ export function initSweepLab(_overlayLayer, manager) {
    */
   function runOne(nodeId, duration) {
     active.add(nodeId);
-    manager.handleFeedback({ nodeId, action: A.PROBE, phase: "start", progress: 0 });
+    manager.start("probe-sweep", nodeId);
     const start = performance.now();
     function frame(/** @type {number} */ now) {
       const t = Math.min((now - start) / duration, 1);
       if (t < 1) {
-        manager.handleFeedback({ nodeId, action: A.PROBE, phase: "progress", progress: t });
+        manager.progress("probe-sweep", nodeId, t);
         requestAnimationFrame(frame);
       } else {
-        manager.handleFeedback({ nodeId, action: A.PROBE, phase: "complete", progress: 1 });
+        manager.end("probe-sweep", nodeId);
         active.delete(nodeId);
         onOneDone();
       }
@@ -95,9 +94,9 @@ export function initSweepLab(_overlayLayer, manager) {
   }
 
   function sweep() {
-    // Cancel any in-flight by sending complete to all active nodes.
+    // Cancel any in-flight by ending all active nodes.
     for (const nodeId of active) {
-      manager.handleFeedback({ nodeId, action: A.PROBE, phase: "cancel" });
+      manager.end("probe-sweep", nodeId);
     }
     active.clear();
     const n = numVal("#lab-n");

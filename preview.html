@@ -300,6 +300,32 @@
         </div>
       </div>
 
+      <!-- Heat Scope — <starnet-heat-scope> component demo (js/ui/preview.js). -->
+      <div class="section">
+        <h2>Heat Scope</h2>
+        <div id="heat-scope-demo"></div>
+        <div class="btn-row">
+          <label>HEAT</label>
+          <input type="range" id="heat-scope" min="0" max="100" step="1" value="40">
+          <span id="heat-scope-val">40</span>
+        </div>
+        <div class="btn-row">
+          <label>SPEED</label>
+          <input type="range" id="heat-scope-speed" min="20" max="220" step="5" value="100">
+          <span id="heat-scope-speed-val">100</span>
+        </div>
+        <div class="btn-row">
+          <label>GAP</label>
+          <input type="range" id="heat-scope-gap" min="2" max="14" step="0.5" value="4">
+          <span id="heat-scope-gap-val">4.0</span>
+        </div>
+        <div class="btn-row">
+          <label>BLOOM</label>
+          <input type="range" id="heat-scope-bloom" min="0" max="16" step="1" value="6">
+          <span id="heat-scope-bloom-val">6</span>
+        </div>
+      </div>
+
       <!-- FPS Meter — dev frame-time readout (js/ui/fps-meter.js, `cheat fps` in game). -->
       <div class="section">
         <h2>FPS Meter</h2>
@@ -314,6 +340,7 @@
   <script src="dist/vendor.js"></script>
   <script type="module" src="js/ui/components/starnet-hand.js"></script>
   <script type="module" src="js/ui/components/starnet-waveform.js"></script>
+  <script type="module" src="js/ui/components/starnet-heat-scope.js"></script>
   <script type="module" src="js/ui/preview.js"></script>
 </body>
 </html>

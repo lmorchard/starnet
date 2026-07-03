@@ -301,13 +301,18 @@ describe("action execution", () => {
     assert.equal(graph.getNodeState("gw").probing, true);
   });
 
-  it("corrupt action sets forwardingEnabled false and calls ctx", () => {
+  it("corrupt action sets forwardingEnabled false and calls ctx (timed — #187 Phase 5)", () => {
     const ctx = mockCtx();
     const ids = createIDS("ids-1", {
       attributes: { visibility: "accessible", accessLevel: "owned" },
     });
     const graph = new NodeGraph({ nodes: [ids], edges: [] }, ctx);
     graph.executeAction("ids-1", "corrupt");
+    // Dispatch only arms it — forwardingEnabled/reconfigureNode resolve on completion.
+    assert.equal(graph.getNodeState("ids-1").forwardingEnabled, true);
+    assert.equal(ctx.calls.reconfigureNode, undefined);
+
+    graph.tick(16); // grade C: 1 tick to resolve duration from the table + 15 progress ticks
     assert.equal(graph.getNodeState("ids-1").forwardingEnabled, false);
     assert.equal(ctx.calls.reconfigureNode?.length, 1);
     assert.deepEqual(ctx.calls.reconfigureNode[0], ["ids-1"]);

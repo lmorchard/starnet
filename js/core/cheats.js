@@ -16,7 +16,8 @@ import {
   setPlayerHealth, setPlayerDeckIntegrity,
 } from "./player-orchestration.js";
 import { setCheating } from "./state/game.js";
-import { forceGlobalAlert, cancelTraceCountdown } from "./alert.js";
+import { forceGlobalAlert, cancelTraceCountdown, recordHeat } from "./alert.js";
+import { decayHeat } from "./state/flow.js";
 import { teleportIce } from "./ice.js";
 import { activeIceInstances, hasActiveIce } from "./state/ice.js";
 import { addLogEntry } from "./log.js";
@@ -192,11 +193,12 @@ function resolvePool(token) {
   }
 }
 
-// CHEAT: hurt <health|deck> <amount> — deal damage (ends the run if it depletes the pool).
+// CHEAT: hurt <health|deck|heat> <amount> — damage a pool (ends run if depleted), or RAISE heat.
 function cheatHurt(args) {
+  if (args[0]?.toLowerCase() === "heat") return cheatHeatAdjust("hurt", args.slice(1));
   const pool = resolvePool(args[0]);
   if (!pool) {
-    addLogEntry("Usage: cheat hurt <health|deck> <amount>", "error");
+    addLogEntry("Usage: cheat hurt <health|deck|heat> <amount>", "error");
     return false;
   }
   const amount = parseInt(args[1], 10);
@@ -212,11 +214,12 @@ function cheatHurt(args) {
   return true;
 }
 
-// CHEAT: heal <health|deck> [amount] — restore by amount, or to full if amount omitted.
+// CHEAT: heal <health|deck|heat> [amount] — restore a pool (or to full), or LOWER heat (or to 0).
 function cheatHeal(args) {
+  if (args[0]?.toLowerCase() === "heat") return cheatHeatAdjust("heal", args.slice(1));
   const pool = resolvePool(args[0]);
   if (!pool) {
-    addLogEntry("Usage: cheat heal <health|deck> [amount]", "error");
+    addLogEntry("Usage: cheat heal <health|deck|heat> [amount]", "error");
     return false;
   }
   const p = getState().player[pool.key];
@@ -235,6 +238,37 @@ function cheatHeal(args) {
   pool.set(target);
   const cur = getState().player[pool.key].current;
   addLogEntry(`[CHEAT] ${pool.label} restored to ${cur}/${p.max}.`, "success");
+  emitEvent(E.STATE_CHANGED, getState());
+  return true;
+}
+
+// CHEAT: hurt/heal heat — heat isn't a pooled vital (bare number, no max), so it's handled apart
+// from resolvePool. `hurt heat <amount>` RAISES heat via the real recordHeat pathway (so it can
+// trip the alarm just like real activity); `heal heat [amount]` LOWERS it via decayHeat (no trip),
+// falling all the way to 0 when no amount is given.
+function cheatHeatAdjust(verb, args) {
+  if (verb === "hurt") {
+    const amount = parseInt(args[0], 10);
+    if (isNaN(amount) || amount <= 0) {
+      addLogEntry("Usage: cheat hurt heat <amount>", "error");
+      return false;
+    }
+    activateCheat();
+    recordHeat(amount); // emits HEAT_CHANGED + runs the trip ratchet
+    addLogEntry(`[CHEAT] +${amount} HEAT (${Math.round(getState().heat)} total).`, "warning");
+  } else {
+    const cur = getState().heat;
+    const amount = args[0] === undefined ? cur : parseInt(args[0], 10);
+    if (args[0] !== undefined && (isNaN(amount) || amount <= 0)) {
+      addLogEntry("Usage: cheat heal heat [amount]", "error");
+      return false;
+    }
+    activateCheat();
+    const dropped = Math.min(amount, cur);
+    const total = decayHeat(amount);
+    emitEvent(E.HEAT_CHANGED, { amount: -dropped, total });
+    addLogEntry(`[CHEAT] −${dropped} HEAT (${Math.round(total)} total).`, "success");
+  }
   emitEvent(E.STATE_CHANGED, getState());
   return true;
 }
@@ -371,8 +405,8 @@ function cheatHelp() {
     "  cheat give cash <amount>    Add credits to wallet.",
     "  cheat alert set <level>     Force alert level: green yellow red trace",
     "  cheat alert raise|lower     Step the global alert up/down one level",
-    "  cheat hurt <pool> <amount>  Damage health|deck (ends run if depleted).",
-    "  cheat heal <pool> [amount]  Restore health|deck by amount, or to full.",
+    "  cheat hurt <pool> <amount>  Damage health|deck (ends run if depleted), or raise heat.",
+    "  cheat heal <pool> [amount]  Restore health|deck (or to full), or lower heat (or to 0).",
     "  cheat own <node>            Set node to owned + reveal neighbors.",
     "  cheat own-all               Own every node, reveal entire map.",
     "  cheat trace start           Start the 60s trace countdown immediately.",

@@ -38,7 +38,7 @@ import { abortNodeProcesses } from "../processes.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
 import { launchExploit } from "../combat.js";
-import { getTimedActionAttrNames, ABORTABLE_TIMED_ACTIONS } from "./timed-actions.js";
+import { getTimedActionAttrNames, ABORTABLE_TIMED_ACTIONS, TIMED_ACTIONS } from "./timed-actions.js";
 
 /** Convenience: `_ta_<action>_progress` for the given timed action. */
 const progressAttr = (action) => getTimedActionAttrNames(action).progressAttr;
@@ -65,6 +65,7 @@ export function buildGameCtx(opts = {}) {
     recordMonitorAlert: (nodeId) => recordMonitorAlert(nodeId),
     scrubLogs: (nodeId) => scrubLogs(nodeId),
     lieLow: (nodeId) => lieLow(nodeId),
+    recordHeat: (amount) => recordHeat(amount),
     giveReward: (amount) => addCash(amount),
     spawnICE: (_nodeId) => startIce(),
     stopIce: () => stopIce(),
@@ -128,8 +129,12 @@ export function buildGameCtx(opts = {}) {
     abortTimedAction: (nodeId) => {
       // Unified abort — query the node's timed-action operators to find whichever
       // one is active, then clear it generically. No hardcoded action list.
+      // getActiveAbortableTimedAction (not getActiveTimedAction) is deliberate
+      // (#187 Phase 2 review fix): defense in depth so this is a no-op on a
+      // non-abortable active action (reboot) even if invoked outside the normal
+      // ABORT_ACTION.requires gate, which already excludes it.
       if (!ctx._graph) return;
-      const active = ctx._graph.getActiveTimedAction(nodeId);
+      const active = ctx._graph.getActiveAbortableTimedAction(nodeId);
       if (!active) return;
 
       // Exploit is special — has extra attributes (activeExploitId) beyond the
@@ -404,6 +409,20 @@ export function initNavigationCancelHandler() {
       // Extra per-action cleanup (e.g. xploit's activeExploitId), centralized in the registry.
       for (const attr of def.clearOnCancel ?? []) graph.setNodeAttr(nodeId, attr, null);
       emitEvent(E.ACTION_FEEDBACK, { nodeId, action: def.action, phase: "cancel", progress: 0 });
+    }
+
+    // Generalized fallback (#187 Phase 2): a synthesized timed action (declarative
+    // ActionDef.timed) isn't in the TIMED_ACTIONS registry, so the enumerated loop
+    // above can't see it by name. getActiveTimedAction finds it structurally (any
+    // active timed-action operator) instead — cancel it the same way. Skip anything
+    // already IN the registry: the loop above either already reset it (abortable),
+    // or it's intentionally excluded (reboot — involuntary, ABORT can't touch it).
+    const active = graph.getActiveTimedAction(nodeId);
+    if (active && !TIMED_ACTIONS.some((t) => t.action === active.action)) {
+      graph.setNodeAttr(nodeId, active.activeAttr, false);
+      graph.setNodeAttr(nodeId, active.progressAttr, 0);
+      graph.setNodeAttr(nodeId, active.durationAttr, 0);
+      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: active.action, phase: "cancel", progress: 0 });
     }
   }
   // Progressive processes (SWEEP, …) also cancel on navigation — parity with timed actions.

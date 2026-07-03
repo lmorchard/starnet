@@ -15,7 +15,6 @@ import {
 } from "./graph.js";
 import { initializeGraphOverlays } from "./overlays/index.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
-import { A } from "../core/action-ids.js";
 import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { FLOW_TYPES } from "./flow-glyphs.js";
@@ -167,10 +166,11 @@ const { overlays, flowLayer } = initializeGraphOverlays(overlayLayer);
 const { manager } = overlays;
 
 // Drive the probe demo through the manager (pooled, not a byKey singleton).
-// Maps t → { start, progress, complete } phases matching ACTION_FEEDBACK payloads.
+// Maps t=0 → start, 0<t<1 → progress, t=1 → end.
 function driveProbeDemo(nodeId, t) {
-  const phase = t <= 0 ? "start" : t >= 1 ? "complete" : "progress";
-  manager.handleFeedback({ nodeId, action: A.PROBE, phase, progress: t });
+  if (t <= 0) manager.start("probe-sweep", nodeId);
+  else if (t >= 1) manager.end("probe-sweep", nodeId);
+  else manager.progress("probe-sweep", nodeId, t);
 }
 
 // Sweep Fan-out demo — drives N nodes through the manager concurrently.
@@ -240,7 +240,7 @@ const EFFECTS = OVERLAY_DESCRIPTORS.map((d) => {
       name: d.key,
       nodeId: `demo-${d.key}`,
       sync: driveProbeDemo,
-      clear: () => manager.handleFeedback({ nodeId: `demo-${d.key}`, action: A.PROBE, phase: "cancel" }),
+      clear: () => manager.end("probe-sweep", `demo-${d.key}`),
     };
   }
   return {
@@ -489,6 +489,36 @@ if (wfDemo && waveHealth && waveDeck && waveToggle) {
       waveToggle.textContent = "STRIP";
     }
   });
+}
+
+// Heat scope demo — <starnet-heat-scope>. Slider is 0..100 = frac 0..1 (the HEAT_GAUGE_MAX scale).
+const heatDemo = $("heat-scope-demo");
+const heatSlider = $("heat-scope");
+if (heatDemo && heatSlider) {
+  const scope = /** @type {any} */ (document.createElement("starnet-heat-scope"));
+  scope.className = "vital-strip";
+  scope.style.width = "204px";
+  scope.frac = +heatSlider.value / 100;
+  heatDemo.append(scope);
+
+  const heatVal = $("heat-scope-val");
+  heatSlider.addEventListener("input", () => {
+    scope.frac = +heatSlider.value / 100;
+    if (heatVal) heatVal.textContent = String(heatSlider.value);
+  });
+
+  const bindHeat = (id, valId, prop, scale, fmt) => {
+    const el = $(id);
+    if (!el) return;
+    const out = $(valId);
+    el.addEventListener("input", () => {
+      scope[prop] = scale ? +el.value / scale : +el.value;
+      if (out) out.textContent = fmt ? fmt(el.value) : String(el.value);
+    });
+  };
+  bindHeat("heat-scope-speed", "heat-scope-speed-val", "speed", 0);
+  bindHeat("heat-scope-gap", "heat-scope-gap-val", "bandGap", 0, (v) => (+v).toFixed(1));
+  bindHeat("heat-scope-bloom", "heat-scope-bloom-val", "bloom", 0);
 }
 
 // FPS meter toggle — dev frame-time readout (js/ui/fps-meter.js; `cheat fps` in game).

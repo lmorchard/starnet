@@ -8,9 +8,12 @@ const attrs = {
 };
 const qualities = { tokens: 5, panels: 2 };
 
+const busy = { "node-A": true, "node-B": false };
+
 const accessors = {
   getNodeAttr: (nodeId, attr) => attrs[nodeId]?.[attr],
   getQuality: (name) => qualities[name] ?? 0,
+  isNodeBusy: (nodeId) => busy[nodeId] ?? false,
 };
 
 describe("evaluateCondition: node-attr", () => {
@@ -104,6 +107,28 @@ describe("evaluateCondition: not", () => {
   });
 });
 
+describe("evaluateCondition: no-active-timed-action (#187 Phase 2)", () => {
+  it("returns false when the node is busy", () => {
+    assert.equal(evaluateCondition({ type: "no-active-timed-action", nodeId: "node-A" }, accessors), false);
+  });
+
+  it("returns true when the node is idle", () => {
+    assert.equal(evaluateCondition({ type: "no-active-timed-action", nodeId: "node-B" }, accessors), true);
+  });
+
+  it("composes through not/any-of (the ABORT-style structural check)", () => {
+    assert.equal(evaluateCondition({
+      type: "not",
+      condition: { type: "no-active-timed-action", nodeId: "node-A" },
+    }, accessors), true, "not(no-active-timed-action) is true when busy");
+
+    assert.equal(evaluateCondition({
+      type: "any-of",
+      conditions: [{ type: "not", condition: { type: "no-active-timed-action", nodeId: "node-B" } }],
+    }, accessors), false, "not(no-active-timed-action) is false when idle");
+  });
+});
+
 describe("evaluateCondition: unknown type", () => {
   it("throws for unknown condition type", () => {
     assert.throws(() => evaluateCondition(/** @type {any} */ ({ type: "bogus" }), accessors));
@@ -118,6 +143,11 @@ describe("fillConditionNodeId", () => {
 
   it("fills a missing nodeId on a quality-from-attr condition", () => {
     const filled = fillConditionNodeId({ type: "quality-from-attr", attr: "tokenName", gte: 1 }, "self");
+    assert.equal(filled.nodeId, "self");
+  });
+
+  it("fills a missing nodeId on a no-active-timed-action condition", () => {
+    const filled = fillConditionNodeId({ type: "no-active-timed-action" }, "self");
     assert.equal(filled.nodeId, "self");
   });
 

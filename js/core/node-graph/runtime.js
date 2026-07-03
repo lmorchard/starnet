@@ -15,7 +15,26 @@ import { fillConditionNodeId } from "./conditions.js";
 import { applyEffect } from "./effects.js";
 import { nullCtx } from "./ctx.js";
 import { resolveTraits } from "./traits.js";
-import { getTimedActionAttrNames } from "./timed-actions.js";
+import { getTimedActionAttrNames, TIMED_ACTIONS } from "./timed-actions.js";
+import { synthesizeTimedActions } from "./timed-synthesis.js";
+
+/**
+ * True if a `timed-action` operator's action can be cancelled by ABORT. Hand-wired
+ * core verbs look themselves up in the TIMED_ACTIONS registry (reboot is the only
+ * `abortable: false` entry there); a synthesized action (declarative ActionDef.timed,
+ * not registered in TIMED_ACTIONS) instead carries its own `_abortable` flag on the
+ * operator config (set by timed-synthesis.js from `ActionDef.timed.abortable`),
+ * defaulting to abortable when unset — matching the pre-#187-Phase-2 behavior for
+ * synthesized actions and for any other hand-authored `timed-action` operator that
+ * doesn't opt out (e.g. the `volatile` trait).
+ * @param {{ action?: string, _abortable?: boolean }} op
+ * @returns {boolean}
+ */
+function isOperatorAbortable(op) {
+  const def = TIMED_ACTIONS.find((t) => t.action === op.action);
+  if (def) return def.abortable;
+  return op._abortable !== false;
+}
 
 // Re-exported so callers can reach the timed-action attr-name helper via runtime.
 export { getTimedActionAttrNames } from "./timed-actions.js";
@@ -60,6 +79,10 @@ export class NodeGraph {
     const allTriggers = [...triggers];
     for (const raw of nodes) {
       const n = resolveTraits(raw);
+      // Declarable `timed` actions (#187, Phase 1) synthesize their timed-action operator
+      // + arm effects here, once per constructed node — covers both trait-supplied and
+      // inline actions, since both have passed through resolveTraits by this point.
+      synthesizeTimedActions(n);
       this._nodes.set(n.id, {
         id: n.id,
         type: n.type,
@@ -199,6 +222,30 @@ export class NodeGraph {
   }
 
   /**
+   * Attach a behavior (a registered operator config) to a live node at runtime.
+   * The operator participates in subsequent deliveries and is serialized by snapshot().
+   * Foundation for the RAM loadout (player-equipped behaviors).
+   * Callers are responsible for not attaching the same operator twice — a duplicate
+   * attach double-propagates (the operator runs once per attached copy per delivery).
+   * @param {string} nodeId
+   * @param {import('./types.js').OperatorConfig} operatorConfig
+   */
+  attachBehavior(nodeId, operatorConfig) {
+    const node = this._requireNode(nodeId);
+    node.operators = [...node.operators, operatorConfig];
+  }
+
+  /**
+   * Remove every operator with the given name from a live node.
+   * @param {string} nodeId
+   * @param {string} operatorName
+   */
+  detachBehavior(nodeId, operatorName) {
+    const node = this._requireNode(nodeId);
+    node.operators = node.operators.filter((op) => op.name !== operatorName);
+  }
+
+  /**
    * Dispatch an init message to every node, then evaluate triggers.
    * Call once after construction, before any tick or action.
    */
@@ -211,17 +258,20 @@ export class NodeGraph {
   }
 
   /**
-   * Find the active timed-action on a node, if any.
-   * Scans timed-action operators and returns the first whose activeAttr is true.
+   * Scan a node's operators for the first active `timed-action`, optionally
+   * restricted to abortable ones. Shared by getActiveTimedAction and
+   * getActiveAbortableTimedAction.
    * @param {string} nodeId
+   * @param {{ abortableOnly?: boolean }} [opts]
    * @returns {{ action: string, activeAttr: string, progressAttr: string, durationAttr: string } | null}
    */
-  getActiveTimedAction(nodeId) {
+  _findActiveTimedAction(nodeId, { abortableOnly = false } = {}) {
     const node = this._requireNode(nodeId);
     for (const op of node.operators) {
       if (op.name !== "timed-action") continue;
       const activeAttr = op.activeAttr;
       if (!activeAttr || !node.attributes[activeAttr]) continue;
+      if (abortableOnly && !isOperatorAbortable(op)) continue;
       const action = op.action ?? "unknown";
       const names = getTimedActionAttrNames(action);
       return {
@@ -232,6 +282,55 @@ export class NodeGraph {
       };
     }
     return null;
+  }
+
+  /**
+   * Find the active timed-action on a node, if any (including a non-abortable one,
+   * e.g. reboot). Scans timed-action operators and returns the first whose
+   * activeAttr is true.
+   * @param {string} nodeId
+   * @returns {{ action: string, activeAttr: string, progressAttr: string, durationAttr: string } | null}
+   */
+  getActiveTimedAction(nodeId) {
+    return this._findActiveTimedAction(nodeId);
+  }
+
+  /**
+   * Find the active timed-action on a node, if any, EXCLUDING one marked
+   * non-abortable (e.g. reboot — involuntary, ABORT can't cancel it). Backs the
+   * `active-abortable-timed-action` condition that scopes ABORT's visibility
+   * (review fix, #187 Phase 2) — distinct from getActiveTimedAction/isNodeBusy,
+   * which intentionally still count a non-abortable action as "busy" (a rebooting
+   * node still can't start something new).
+   * @param {string} nodeId
+   * @returns {{ action: string, activeAttr: string, progressAttr: string, durationAttr: string } | null}
+   */
+  getActiveAbortableTimedAction(nodeId) {
+    return this._findActiveTimedAction(nodeId, { abortableOnly: true });
+  }
+
+  /**
+   * True if the node has an active timed-action that ABORT is allowed to cancel.
+   * @param {string} nodeId
+   * @returns {boolean}
+   */
+  hasActiveAbortableTimedAction(nodeId) {
+    return this.getActiveAbortableTimedAction(nodeId) != null;
+  }
+
+  /**
+   * True if the node has any active timed-action operator (#187 Phase 2) — the
+   * structural "is this node busy?" check that spans both the hand-wired core
+   * verbs and any synthesized `timed` action, without needing to know its
+   * (dynamically-named) activeAttr in advance. Does NOT know about the #282
+   * process framework (`state.processes`) — that's a separate busy source
+   * layered on top at the getAvailableActions level (node-actions.js), since
+   * this graph has no access to game state.
+   * @param {string} nodeId
+   * @returns {boolean}
+   */
+  isNodeBusy(nodeId) {
+    return this.getActiveTimedAction(nodeId) != null;
   }
 
   /**
@@ -400,12 +499,18 @@ export class NodeGraph {
 
   /**
    * Build state accessor object for conditions and trigger evaluation.
-   * @returns {{ getNodeAttr: (nodeId: string, attr: string) => any, getQuality: (name: string) => number }}
+   * @returns {{ getNodeAttr: (nodeId: string, attr: string) => any, getQuality: (name: string) => number, isNodeBusy: (nodeId: string) => boolean, hasActiveAbortableTimedAction: (nodeId: string) => boolean }}
    */
   _stateAccessors() {
     return {
       getNodeAttr: (nodeId, attr) => this._nodes.get(nodeId)?.attributes[attr],
       getQuality: (name) => this._qualities.get(name),
+      // Guard against an unknown nodeId rather than throwing (matches the other
+      // accessors here, which read via optional chaining) — isNodeBusy() itself
+      // throws for a missing node, like the rest of the public API (getNodeState, …).
+      isNodeBusy: (nodeId) => (this._nodes.has(nodeId) ? this.isNodeBusy(nodeId) : false),
+      hasActiveAbortableTimedAction: (nodeId) =>
+        this._nodes.has(nodeId) ? this.hasActiveAbortableTimedAction(nodeId) : false,
     };
   }
 

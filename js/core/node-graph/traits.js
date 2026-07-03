@@ -26,6 +26,7 @@
  */
 
 import { getTimedActionAttrNames } from "./timed-actions.js";
+import { registerOperator } from "./operators.js";
 
 /** @type {Map<string, TraitDef>} */
 const _registry = new Map();
@@ -166,6 +167,7 @@ registerTrait("hackable", {
     mineExhausted: false,
   },
   operators: [
+    { name: "sweep-cascade" },
     {
       name: "timed-action",
       action: "probe",
@@ -377,6 +379,9 @@ registerTrait("volatile", {
     activeAttr: "_volatile_armed",
     durationAttrSource: "volatileDelay",
     onComplete: [{ effect: "ctx-call", method: "volatileDetonate", args: ["$nodeId"] }],
+    // Involuntary, like reboot: it self-arms on an owned node and detonates on
+    // its own — ABORT must not be able to disarm it (final review, #187).
+    _abortable: false,
   }],
   actions: [],
   triggers: [{

@@ -4,6 +4,11 @@
 // ACTION_FEEDBACK `action` string. `loop:true` ignores progress (reboot — a system state, not a
 // player sweep). Ported from the retired Tone drone specs (removed in #267); same character.
 //
+// #187 Phase 3: `resolveActionDrone` layers inline → central (ACTION_FEEDBACK_PROFILES) →
+// resolveDrone(action) (this file's legacy per-action lookup, kept as-is) → DEFAULT_PROFILE.drone.
+// resolveDrone() stays untouched and is NOT re-enumerated centrally — every core verb keeps its
+// bespoke drone via that existing fallback, with zero regression risk.
+//
 // Spec shape (interpreted in drones.js): {
 //   source: "sawtooth"|"sine"|"square"|"triangle"|"noise"|"fm"|"dual",
 //   note, osc?, harmonicity?/modIndex? (fm), type? (noise),
@@ -11,6 +16,8 @@
 //   lfo?: { rate, depth, target:"amp"|"cutoff" },  fade?, volume? (dB), loop?
 // }
 // {from,to} values sweep with progress; amp-LFO and progress-gain are mutually exclusive.
+
+import { ACTION_FEEDBACK_PROFILES, DEFAULT_PROFILE } from "../../../ui/feedback-profiles.js";
 
 export const DRONES = {
   // probe — radar sweep: thin scanning pulse, filter brightens as the ring fills.
@@ -34,6 +41,11 @@ export const DRONES = {
   // reboot — offline pulse: adversarial slow-pulsing sour drone, loops (no progress sweep).
   reboot:   { source: "sawtooth", note: "C2", detune: -25, cutoff: 520, q: 5,
               lfo: { rate: 0.5, depth: 0.5, target: "amp" }, volume: -19, fade: 0.35, loop: true },
+  // generic — DEFAULT_PROFILE.drone fallback (#187 Phase 4b): neutral, soft, sustained hum for any
+  // timed action with no bespoke drone. A feel-DRAFT default (the Phase 4a session tuned the
+  // *visual* generic overlay with Les, not audio) — tunable later via preview/sfx.html.
+  generic:  { source: "sine", note: "F2", cutoff: { from: 500, to: 900 }, q: 1.5,
+              lfo: { rate: 4, depth: 0.2, target: "amp" }, volume: -24, fade: 0.18 },
 };
 
 export const DRONE_IDS = Object.freeze(Object.keys(DRONES));
@@ -45,4 +57,19 @@ export const DRONE_IDS = Object.freeze(Object.keys(DRONES));
  */
 export function resolveDrone(action) {
   return action && Object.prototype.hasOwnProperty.call(DRONES, action) ? action : null;
+}
+
+/**
+ * Resolve the drone id for an ACTION_FEEDBACK "start" event (#187 Phase 3): inline (the payload's
+ * `feedback.drone`) → central (ACTION_FEEDBACK_PROFILES[actionId].drone) → resolveDrone(actionId)
+ * (the legacy per-action lookup above, preserving every core verb's bespoke drone) →
+ * DEFAULT_PROFILE.drone. As of #187 Phase 4b, DRONES["generic"] is a real (feel-DRAFT) spec, so
+ * the DEFAULT fallback resolves to real audio instead of degrading silently.
+ * @param {string} actionId
+ * @param {{ drone?: string }} [inline]
+ * @returns {string}
+ */
+export function resolveActionDrone(actionId, inline = {}) {
+  const central = ACTION_FEEDBACK_PROFILES[actionId] ?? {};
+  return inline?.drone ?? central.drone ?? resolveDrone(actionId) ?? DEFAULT_PROFILE.drone;
 }

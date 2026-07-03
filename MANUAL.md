@@ -260,12 +260,13 @@ an IDS, that alert will propagate.
 
 **Selective probe vs. SWEEP.** `probe` is the quiet, one-node-at-a-time scan. When you want to
 map fast, **SWEEP** is a *broadcast* probe: choose it (and a depth), and it **ripples outward**
-from the node wave by wave — probing each node it reaches and bringing it fully online — up to the
-depth you set, or until you `abort`. It flows *through* nodes that reveal their neighbors on probe
-and **stops at the ones that gate their connections** (routers, firewalls, IDS, monitors) — so the
-network's chokepoints are its natural sweep-breakers. The catch is **heat**: every node a sweep
-touches adds heat all at once, so a deep/wide sweep spikes fast and can trip the alarm mid-ripple.
-Watch the heat gauge and abort before it's too hot. (Console: `sweep <depth|max>` on the targeted node.)
+from the node — each branch advancing as its own probes complete, probing each node it reaches and
+bringing it fully online — up to the depth you set, or until you `abort`. It flows *through* nodes
+that reveal their neighbors on probe and **stops at the ones that gate their connections** (routers,
+firewalls, IDS, monitors) — so the network's chokepoints are its natural sweep-breakers. The catch
+is **heat**: every node a sweep touches adds heat all at once, so a deep/wide sweep spikes fast and
+can trip the alarm mid-ripple. Watch the heat gauge and abort before it's too hot.
+(Console: `sweep <depth|max>` on the targeted node.)
 
 ### 3. Exploit
 
@@ -546,9 +547,13 @@ and the global alert ratchets up a level (it can climb all the way to a trace). 
 different, **unadvertised** tolerance: a sleepy low-threat LAN absorbs a flurry that a hardened one
 would trip on instantly — you learn a network's patience by feel, not from a number.
 
-Heat shows as a **gauge** beside the alert in the status bar (cool → warm → hot). It's deliberately
-*relative* — it tells you how hot you're running, never exactly how close the line is. The skill is
-pacing: read the network, act in measured steps, and let it cool between moves rather than blitzing.
+Heat shows two ways. A **gauge** beside the alert in the status bar reads your heat *right now*
+(cool → warm → hot). And in the upper-right vitals stack — below the HEALTH and DECK traces — a
+**heat strip** draws it *over time* as a rising vector flame: it climbs as you act and sinks back as
+you pace or lie low, so you can watch a spike building and the cooldown taking hold. Both are
+deliberately *relative* — they tell you how hot you're running, never exactly how close the line is
+(the network's tolerance stays hidden). The skill is pacing: read the network, act in measured
+steps, and let it cool between moves rather than blitzing.
 
 ---
 
@@ -649,8 +654,10 @@ If you can open and then **corrupt** an IDS node:
 > exec corrupt
 ```
 
-Event forwarding from that IDS to its connected security monitor is severed — that monitor
-goes dark and stops climbing the alert ladder, no matter how many exploits you fail. (A LAN
+This is a **timed action** — subverting the IDS takes a few seconds, longer on a higher-grade
+IDS, and can be aborted mid-run. Once it completes, event forwarding from that IDS to its
+connected security monitor is severed — that monitor goes dark and stops climbing the alert
+ladder, no matter how many exploits you fail. (A LAN
 with more than one IDS/monitor pair needs each IDS corrupted to fully go dark.) This is often
 worth the detour, especially on an ICE-less LAN where the grid is your only clock.
 
@@ -800,16 +807,16 @@ Actions depend on the selected node's type and access level:
 |-------------------|------------------------------------------------|--------|
 | `exec access-darknet` | WAN node is targeted                       | Opens the darknet broker store; pauses the LAN while shopping (run via `exec`) |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
-| `sweep` (menu) / `sweep <depth|max>` (console) | Targeted accessible node, no sweep already running | Broadcast probe — ripples outward wave-by-wave up to the chosen depth, probing + fully revealing each reached node, flowing through probe-gate nodes and stopping at gate-controllers. Adds heat per node (a fast spike). Abortable mid-ripple. |
-| `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current action (probe, xploit, dump, fetch, or a running sweep) |
+| `sweep` (menu) / `sweep <depth|max>` (console) | Targeted accessible node, no sweep already running | Broadcast probe — ripples outward (each branch advances as its own probes complete) up to the chosen depth, probing + fully revealing each reached node, flowing through probe-gate nodes and stopping at gate-controllers. Adds heat per node (a fast spike). Abortable mid-ripple. |
+| `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current action (probe, xploit, dump, fetch, corrupt, or a running sweep) |
 | `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies. Not offered at all on an already-owned node. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
 | `sniff`        | Probed node with a visible flow touching it    | Opens a flow picker (only flows to already-revealed nodes). Reads a flow (decrypts an encrypted one; captures a credential token from a credential flow). Adds heat. Needs the node probed first — not available on an unprobed node. |
 | `replay`       | Finesse-locked node you hold its trusted credential for | Replays the captured credential → node jumps to owned (reveals what it gated). Adds heat. |
-| `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …) |
-| `corrupt`      | IDS node is open or owned                      | Severs event forwarding to security monitor (run via `exec`) |
+| `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …). Set-piece/puzzle scripts run as timed actions by default (brief, ~2s, with the generic-process animation) unless they're a UI/exit action like cancel-trace, access-darknet, or disconnect |
+| `corrupt`      | IDS node is open or owned                      | Timed subversion — severs event forwarding to security monitor once complete; grade-scaled duration (run via `exec`) |
 | `scrub-logs`   | Security-monitor, open or owned                | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
 | `lie-low`      | WAN node, uses remaining this run              | Timed wait that sheds **heat** (does not lower the alert ladder); limited per run (run via `exec`) |
 | `spoof`        | Security-monitor node, open or owned           | Recalibrates security monitor (run via `exec`) |
@@ -919,11 +926,12 @@ cards escalate by rarity (common → uncommon → rare); a big-value loot haul g
 a small one; and **revealing nodes is a "discovery rush"** — a single reveal is a bright blip, but
 unlocking a cluster of neighbors cascades into a quick rising run.
 
-Every **timed action** (probe, xploit, dump, fetch, mine, lie-low, reboot) also gets its own
-**sustained drone** that plays while the action is in progress and evolves as it advances —
-echoing the action's on-graph animation (a scanning pulse for probe, a grinding tighten for xploit,
-a lock-on beat that settles for mine, and so on). The drone stops when the action completes or is
-cancelled, and the usual one-shot fires at the end.
+Every **timed action** (probe, xploit, dump, fetch, mine, lie-low, reboot, corrupt, and — by
+default — set-piece/EXEC scripts) also gets its own **sustained drone** that plays while the
+action is in progress and evolves as it advances — echoing the action's on-graph animation (a
+scanning pulse for probe, a grinding tighten for xploit, a lock-on beat that settles for mine,
+a neutral pulse for a generic set-piece script, and so on). The drone stops when the action
+completes or is cancelled, and the usual one-shot fires at the end.
 
 SFX are **independent of the music** — they have their own on/off and run on their own audio bus,
 so you can have effects with the music off, and they play in the hub as well as in a run.

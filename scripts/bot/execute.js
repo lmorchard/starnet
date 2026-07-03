@@ -8,12 +8,27 @@ import { emitEvent, on, off, E, tick, getState } from "../lib/headless-engine.js
 import { buyFromStore } from "../../js/core/store-logic.js";
 import { A } from "../../js/core/action-ids.js";
 
-/** Actions that start a timed process and need tick-forward */
-const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT, A.MINE]);
+/**
+ * Actions that start a timed process and need tick-forward. CORRUPT joined this set
+ * in #187 Phase 5 (was instant) — it now emits ACTION_RESOLVED on completion
+ * (reconfigureNode), same as the other timed verbs here, so tickUntilResolved can wait
+ * for it properly.
+ */
+const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT, A.MINE, A.CORRUPT]);
 
-/** Actions that are instant (no ticking needed) */
+/**
+ * Actions that are instant (no ticking needed). crack-vault/extract-key became timed
+ * node-graph actions in #187 Phase 5, but they're kept here deliberately: they don't
+ * emit ACTION_RESOLVED (only giveReward/set-attr/log via onComplete), so
+ * tickUntilResolved would never see them resolve and would spin to the tick budget.
+ * They're one-shot puzzle actions the bot proposes at most once per node
+ * (puzzleStrategy's `completed` set) — firing-and-forgetting is safe, since the main
+ * loop always advances at least one tick per cycle (`totalTicks += result.ticksUsed || 1`
+ * in loop.js), so the armed action completes naturally in the background over the
+ * following cycles.
+ */
 const INSTANT_ACTIONS = new Set([
-  A.TARGET, A.UNTARGET, A.JACKOUT, A.CORRUPT, A.CANCEL_TRACE,
+  A.TARGET, A.UNTARGET, A.JACKOUT, A.CANCEL_TRACE,
   A.ABORT, A.KICK, A.ACCESS_DARKNET,
   // Set-piece puzzle actions
   "activate", "scan-lock", "scan-vault", "crack-vault",
