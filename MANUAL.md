@@ -523,7 +523,7 @@ today:
   flow additionally **captures the token** for later use. Quiet — low heat.
 - **REPLAY** — replay a captured credential into a node that trusts it. Louder than SNIFF.
 
-Console: `sniff <node> [flow]` (no flow argument → lists the node's flows, numbered), `replay <node>`.
+Console (act on the targeted node): `sniff [flow]` (no flow argument → lists the targeted node's flows, numbered), `replay`.
 
 ### Finesse access — the nodes you can't smash
 
@@ -808,7 +808,7 @@ Actions depend on the selected node's type and access level:
 | `exec access-darknet` | WAN node is targeted                       | Opens the darknet broker store; pauses the LAN while shopping (run via `exec`) |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
 | `sweep` (menu) / `sweep <depth|max>` (console) | Targeted accessible node, no sweep already running | Broadcast probe — ripples outward (each branch advances as its own probes complete) up to the chosen depth, probing + fully revealing each reached node, flowing through probe-gate nodes and stopping at gate-controllers. Adds heat per node (a fast spike). Abortable mid-ripple. |
-| `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current action (probe, xploit, dump, fetch, corrupt, or a running sweep) |
+| `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current timed action (any abortable verb — reboot is involuntary) or a running sweep on the targeted node |
 | `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies. Not offered at all on an already-owned node. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
@@ -833,22 +833,24 @@ Actions depend on the selected node's type and access level:
 The console accepts the following commands. Tab-complete works on node IDs — and on the
 `sig-N` tags of detected-but-unidentified nodes, which you refer to by tag (not id) until
 you probe them. `status node sig-N` reports `[???]` for an unidentified node's type/grade.
+Action verbs (`probe`, `xploit`, `dump`, `fetch`, `mine`, `sniff`, `replay`) act on the
+**targeted** node — `target <node>` first, then issue the action.
 
 ```
 target <node>          Target a node. Alias: t
 untarget               Untarget current node.
-probe [node]           Probe targeted or specified node.
+probe                  Probe the targeted node.
 sweep <depth|max>       Broadcast probe from the targeted node, rippling to depth (or "max"); abort to stop.
 abort                  Abort any in-progress timed action on targeted node.
 xploit <#|name>        Use exploit card by number or name on targeted node.
-dump [node]            Dump contents of targeted/specified node.
-fetch [node]           Extract macguffins from owned node.
-mine [node]            Data-mine owned node for an exploit card (timed; diminishing returns).
-sniff [node] [flow]    Read a flow on a node (decrypt / capture credential). No flow arg lists the node's flows.
-replay [node]          Replay a captured credential into a finesse node that trusts it.
+dump                   Dump contents of the targeted node.
+fetch                  Extract macguffins from the targeted owned node.
+mine                   Data-mine the targeted owned node for an exploit card (timed; diminishing returns).
+sniff [flow]           Read a flow on the targeted node (decrypt / capture credential). No flow arg lists the node's flows.
+replay                 Replay a captured credential into the targeted finesse node that trusts it.
 exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, disconnect, …). No arg lists scripts.
 kick                   Push ICE off current node to adjacent node.
-reboot [node]          Force ICE home; node goes briefly offline.
+reboot                 Force ICE home; node goes briefly offline.
 jackout                End run.
 
 menu                   Toggle the status-bar controls panel (NEW RUN / PAUSE / SAVE / LOAD).

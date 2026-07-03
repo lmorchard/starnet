@@ -6,8 +6,9 @@
 //
 // Usage:
 //   node scripts/playtest.js reset
-//   node scripts/playtest.js "probe gateway"
-//   node scripts/playtest.js "exploit ids-1 2"
+//   node scripts/playtest.js "target gateway"
+//   node scripts/playtest.js "probe"
+//   node scripts/playtest.js "xploit 2"
 //   node scripts/playtest.js "tick 10"
 //   node scripts/playtest.js --state scenario.json reset
 //   node scripts/playtest.js --state scenario.json "status"
@@ -110,9 +111,9 @@ if (generatedArg) {
 if (!cmdStr) {
   console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] [--force-piece <id>] <command>");
   console.error("Commands: reset  tick <n>  target <node>  untarget");
-  console.error("          probe [node]  xploit <node> <card>  dump [node]");
-  console.error("          fetch [node]  exec [<script>]  jackout");
-  console.error("          abort  kick   reboot [node]");
+  console.error("          probe  xploit <card>  dump  fetch  mine");
+  console.error("          sniff [flow]  replay  sweep <depth>  exec [<script>]  jackout");
+  console.error("          abort  kick   reboot");
   console.error("          status [summary|full|ice|hand|node|alert|mission]");
   console.error("          actions  log [n]  help  cheat ...");
   process.exit(1);

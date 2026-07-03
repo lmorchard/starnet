@@ -221,36 +221,74 @@ describe("tabComplete: card completion (exploit, implicit form)", () => {
     assert.deepEqual(r.suggestions, []);
   });
 
-  it("without selected node, exploit completes nodes instead", () => {
+  it("without a selected node, xploit offers no completions (node arg is gone)", () => {
     const state2 = makeState({
       selectedNodeId: null,
       nodes: { gateway: makeNode("gateway", "Gateway") },
       hand,
     });
     const r = tabComplete("xploit ga", state2);
-    assert.equal(r.completed, "xploit gateway ");
+    assert.equal(r.completed, null);
+    assert.deepEqual(r.suggestions, []);
   });
 });
 
-describe("tabComplete: card completion (exploit, explicit form)", () => {
+// ── Targeted-node-only completion (#284) ──────────────────
+//
+// xploit/sniff/replay act on the targeted node — they must never offer node
+// candidates for completion, whether or not a node is selected.
+
+describe("tabComplete: targeted-node commands never complete node ids", () => {
   const hand = [
     makeCard("weak-auth-1", "AuthBrute Prime"),
     makeCard("stale-firmware-2", "SnmpWalker Zero"),
   ];
-  const state = makeState({
-    selectedNodeId: null,
-    nodes: { gateway: makeNode("gateway", "Gateway") },
-    hand,
+  const nodes = { gateway: makeNode("gateway", "Gateway"), "ids-1": makeNode("ids-1", "IDS Primary") };
+
+  it("xploit with a targeted node returns only card candidates", () => {
+    const state = makeState({ selectedNodeId: "gateway", nodes, hand });
+    const r = tabComplete("xploit ", state);
+    assert.ok(r.suggestions.length > 0);
+    for (const id of Object.keys(nodes)) {
+      assert.ok(!r.suggestions.some((s) => s.includes(id)), `suggestion leaked node id ${id}`);
+    }
   });
 
-  it("3-token form completes the card by id prefix", () => {
-    const r = tabComplete("xploit gateway stale", state);
-    assert.equal(r.completed, "xploit gateway stale-firmware-2 ");
+  it("xploit with no targeted node returns null (no cards, no nodes)", () => {
+    const state = makeState({ selectedNodeId: null, nodes, hand });
+    const r = tabComplete("xploit ", state);
+    assert.equal(r.completed, null);
+    assert.deepEqual(r.suggestions, []);
   });
 
-  it("3-token form completes by name prefix", () => {
-    const r = tabComplete("xploit gateway Auth", state);
-    assert.equal(r.completed, "xploit gateway AuthBrute Prime ");
+  it("sniff never offers node candidates, targeted or not", () => {
+    const targeted = makeState({ selectedNodeId: "gateway", nodes, hand });
+    const untargeted = makeState({ selectedNodeId: null, nodes, hand });
+    for (const state of [targeted, untargeted]) {
+      const r = tabComplete("sniff ", state);
+      assert.equal(r.completed, null);
+      assert.deepEqual(r.suggestions, []);
+    }
+  });
+
+  it("replay never offers node candidates, targeted or not", () => {
+    const targeted = makeState({ selectedNodeId: "gateway", nodes, hand });
+    const untargeted = makeState({ selectedNodeId: null, nodes, hand });
+    for (const state of [targeted, untargeted]) {
+      const r = tabComplete("replay ", state);
+      assert.equal(r.completed, null);
+      assert.deepEqual(r.suggestions, []);
+    }
+  });
+
+  it("a core verb (probe) never offers node candidates, targeted or not", () => {
+    const targeted = makeState({ selectedNodeId: "gateway", nodes, hand });
+    const untargeted = makeState({ selectedNodeId: null, nodes, hand });
+    for (const state of [targeted, untargeted]) {
+      const r = tabComplete("probe ", state);
+      assert.equal(r.completed, null);
+      assert.deepEqual(r.suggestions, []);
+    }
   });
 });
 

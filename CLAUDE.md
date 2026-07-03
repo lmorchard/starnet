@@ -242,6 +242,10 @@ Most recent session: `docs/dev-sessions/2026-02-27-1423-wan-node-darknet-store/`
 
 ### Usage
 
+Action verbs (`probe`, `xploit`, `dump`, `fetch`, `mine`, `sniff`, `replay`, `sweep`, …) act on
+the **targeted** node — `target <node>` first, then issue the arg-less (or, for `xploit`,
+card-only) command.
+
 ```bash
 node scripts/playtest.js reset                         # fresh game, saves to scripts/playtest-state.json
 node scripts/playtest.js "status"                      # print current state summary
@@ -249,14 +253,16 @@ node scripts/playtest.js "status full"                 # full state dump (networ
 node scripts/playtest.js "target gateway"              # target a node
 node scripts/playtest.js "probe"                       # probe targeted node
 node scripts/playtest.js "xploit 2"                   # xploit with card #2 (targeted node)
-node scripts/playtest.js "xploit ids-1 AuthBrute"    # explicit node + card
+node scripts/playtest.js "target ids-1"
+node scripts/playtest.js "xploit AuthBrute"
 node scripts/playtest.js "tick 100"                    # advance 100 virtual ticks (10 real-seconds)
 node scripts/playtest.js "actions"                     # list all valid actions with context
 node scripts/playtest.js "jackout"                     # end run
 
 # Named state files — start from a checkpoint, run parallel scenarios
 node scripts/playtest.js --state /tmp/scenario.json reset
-node scripts/playtest.js --state /tmp/scenario.json "probe gateway"
+node scripts/playtest.js --state /tmp/scenario.json "target gateway"
+node scripts/playtest.js --state /tmp/scenario.json "probe"
 
 # JSON mode — structured output for scripts and LLMs
 node scripts/playtest.js --json "status"              # { events, state, log }

@@ -81,28 +81,17 @@ export const COMMANDS = [
 
   { verb: "xploit",
     complete(args, partial, state) {
+      // Only cards (from the targeted node's hand ordering). Never node candidates.
       if (args.length === 0 && state.selectedNodeId) return fromCards(state.player.hand, partial);
-      if (args.length === 0) return fromNodes(state.nodes, partial);
-      if (args.length === 1) return fromCards(state.player.hand, partial);
       return null;
     },
     execute(args) {
-      const s = getState();
-      if (args.length >= 2) {
-        const node = resolveNode(args[0]);
-        if (!node) return;
-        const card = resolveCard(args.slice(1).join(" "));
-        if (!card) return;
-        dispatch(A.XPLOIT, { nodeId: node.id, exploitId: card.id });
-      } else if (args.length === 1 && s.selectedNodeId) {
-        const node = resolveImplicitNode();
-        if (!node) return;
-        const card = resolveCard(args[0]);
-        if (!card) return;
-        dispatch(A.XPLOIT, { nodeId: node.id, exploitId: card.id });
-      } else {
-        addLogEntry("Usage: xploit <node> <card>  (or select a node first: xploit <card>)", "error");
-      }
+      const node = resolveImplicitNode();                 // targeted node or logs the error
+      if (!node) return;
+      if (args.length < 1) { addLogEntry("Usage: xploit <card>  (target a node first)", "error"); return; }
+      const card = resolveCard(args.join(" "));
+      if (!card) return;
+      dispatch(A.XPLOIT, { nodeId: node.id, exploitId: card.id });
     },
   },
 
@@ -112,19 +101,12 @@ export const COMMANDS = [
   // Not dynamically discovered: they're actions-layer injections, not graph actions,
   // and SNIFF takes a flow argument (like xploit takes a card).
   { verb: "sniff",
-    complete(args, partial, state) {
-      if (args.length === 0 && !state.selectedNodeId) return fromNodes(state.nodes, partial);
-      return null;
-    },
+    complete() { return null; },                          // no node candidates; flows aren't node-completed
     execute(args) {
       const s = getState();
-      let node = null, ref = null;
-      if (args.length >= 2)              { node = resolveNode(args[0]); ref = args.slice(1).join(" "); }
-      else if (args.length === 1 && s.selectedNodeId) { node = resolveImplicitNode(); ref = args[0]; }
-      else if (args.length === 1)        { node = resolveNode(args[0]); }        // sniff <node> → list
-      else if (s.selectedNodeId)         { node = resolveImplicitNode(); }        // sniff → list
-      else { addLogEntry("Usage: sniff <node> [flow]  (or select a node: sniff [flow])", "error"); return; }
+      const node = resolveImplicitNode();
       if (!node) return;
+      const ref = args.length >= 1 ? args.join(" ") : null;
       const flows = visibleIncidentFlows(s, node.id);
       if (flows.length === 0) { addLogEntry(`no flows on ${node.id}.`, "meta"); return; }
       if (!ref) {
@@ -139,10 +121,10 @@ export const COMMANDS = [
   },
 
   { verb: "replay",
-    complete: completeNodeArg,
     execute(args) {
-      const node = args.length >= 1 ? resolveNode(args[0]) : resolveImplicitNode();
-      if (!node) { addLogEntry("Usage: replay <node>  (or select a node first)", "error"); return; }
+      if (args.length) { addLogEntry("replay takes no arguments — it acts on the targeted node.", "error"); return; }
+      const node = resolveImplicitNode();
+      if (!node) return;
       dispatch(A.REPLAY, { nodeId: node.id });
     },
   },
@@ -376,14 +358,14 @@ export const COMMANDS = [
         "[SYS] Available commands:",
         "  target <node>             Set active node (by id or label prefix)",
         "  untarget                  Clear node selection",
-        "  probe [node]              Reveal vulnerabilities. Raises local alert.",
-        "  xploit [node] <card>      Launch exploit. Card by index, id, or name prefix.",
-        "  dump [node]               Scan node contents.",
-        "  fetch [node]              Collect macguffins from owned node.",
+        "  probe                     Reveal vulnerabilities. Raises local alert.",
+        "  xploit <card>             Launch exploit. Card by index, id, or name prefix.",
+        "  dump                      Scan node contents.",
+        "  fetch                     Collect macguffins from owned node.",
         "  exec [<script>]           Run a node script (corrupt, cancel-trace, unlock-vault, …). No arg lists scripts.",
-        "  abort                     Cancel the current timed action (probe, xploit, dump, fetch).",
+        "  abort                     Cancel the current timed action on the targeted node.",
         "  kick                      Push ICE attention to adjacent node.",
-        "  reboot [node]             Send ICE home. Node offline briefly.",
+        "  reboot                    Send ICE home. Node offline briefly.",
         "  jackout                   Disconnect and end run.",
         "  actions                   List all currently valid actions with context.",
         "  status [noun]             Game state. Nouns: summary ice hand node alert mission",

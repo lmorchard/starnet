@@ -47,7 +47,7 @@ export function resolveImplicitNode() {
   const s = getState();
   const nodeId = s.selectedNodeId;
   if (!nodeId || !s.nodes[nodeId]) {
-    addLogEntry("No node selected. Use: select <node>", "error");
+    addLogEntry("No node targeted. Use: target <node>", "error");
     return null;
   }
   return s.nodes[nodeId];
