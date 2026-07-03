@@ -9,6 +9,11 @@
 // (js/ui/feedback-profiles.js) — the central ACTION_FEEDBACK_PROFILES map and any inline
 // ActionDef.feedback override name overlays by this id, not by action id. dispatch.js resolves
 // action → resolveFeedback(action, inline).overlay → this name → the mounted element.
+//
+// `pooled` (#298): if true, this overlay is managed by OverlayManager (one element per node, pooled/
+// reused) rather than a singleton element in byName. Pooled overlays must be centrally-profiled
+// (in ACTION_FEEDBACK_PROFILES) — not inline-only — since progress/complete payloads carry no
+// inline `feedback`, so dispatch re-resolves the name to detect pooling.
 
 import { A } from "../../core/action-ids.js";
 import { resolveFeedback } from "../feedback-profiles.js";
@@ -22,11 +27,12 @@ import { resolveFeedback } from "../feedback-profiles.js";
  * @property {string} label - human label (preview controls / demo node)
  * @property {"action-feedback"|"ice-timer"} driver - what drives the overlay
  * @property {{ type: string, grade: string }} demo - preview demo node config
+ * @property {boolean} [pooled] - if true, managed by OverlayManager (multi-node, pooled); not a byName singleton
  */
 
 /** @type {OverlayDescriptor[]} */
 export const OVERLAY_DESCRIPTORS = [
-  { key: "probe",   name: "probe-sweep",      action: A.PROBE,   tag: "probe-sweep-overlay",      label: "PROBE",   driver: "action-feedback", demo: { type: "router",      grade: "C" } },
+  { key: "probe",   name: "probe-sweep",      action: A.PROBE,   tag: "probe-sweep-overlay",      label: "PROBE",   driver: "action-feedback", pooled: true,  demo: { type: "router",      grade: "C" } },
   { key: "mine",    name: "mine-scan",        action: A.MINE,    tag: "mine-scan-overlay",        label: "MINE",    driver: "action-feedback", demo: { type: "cryptovault", grade: "A" } },
   { key: "read",    name: "read-sectors",     action: A.DUMP,    tag: "read-sectors-overlay",     label: "DUMP",    driver: "action-feedback", demo: { type: "fileserver",  grade: "C" } },
   { key: "loot",    name: "loot-rings",       action: A.FETCH,   tag: "loot-rings-overlay",       label: "FETCH",   driver: "action-feedback", demo: { type: "fileserver",  grade: "B" } },

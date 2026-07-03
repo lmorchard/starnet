@@ -163,6 +163,18 @@ cy.userPanningEnabled(true);
 // element is kept for the preview-only ICE-presence demo node mounted below.
 const overlayLayer = $("overlay-layer");
 const { overlays, flowLayer } = initializeGraphOverlays(overlayLayer);
+const { manager } = overlays;
+
+// Drive the probe demo through the manager (pooled, not a byKey singleton).
+// Maps t=0 → start, 0<t<1 → progress, t=1 → end.
+function driveProbeDemo(nodeId, t) {
+  if (t <= 0) manager.start("probe-sweep", nodeId);
+  else if (t >= 1) manager.end("probe-sweep", nodeId);
+  else manager.progress("probe-sweep", nodeId, t);
+}
+
+// Sweep Fan-out demo — drives N nodes through the manager concurrently.
+import("./preview-sweep-lab.js").then((m) => m.initSweepLab(overlayLayer, manager));
 
 // ── Animation helpers ────────────────────────────────────────
 
@@ -191,6 +203,10 @@ function animateEffect(sliderId, valId, syncFn, nodeId) {
     syncFn(nodeId, t);
     if (t < 1) requestAnimationFrame(frame);
   }
+  // Emit t=0 synchronously so overlay managers that require a "start" phase
+  // (e.g. probe's OverlayManager, which ignores "progress" with no active entry)
+  // receive the initialising call before the first rAF tick arrives ~16ms later.
+  syncFn(nodeId, 0);
   requestAnimationFrame(frame);
   return { cancel: () => { cancelled = true; } };
 }
@@ -217,12 +233,23 @@ for (const d of OVERLAY_DESCRIPTORS) {
 }
 
 // Each effect drives its mounted overlay element via the sync/clear contract.
-const EFFECTS = OVERLAY_DESCRIPTORS.map((d) => ({
-  name: d.key,
-  nodeId: `demo-${d.key}`,
-  sync: (id, t) => overlays.byKey.get(d.key).sync(id, t),
-  clear: () => overlays.byKey.get(d.key).clear(),
-}));
+// Probe is pooled (managed), so its EFFECT uses driveProbeDemo instead of byKey.
+const EFFECTS = OVERLAY_DESCRIPTORS.map((d) => {
+  if (d.key === "probe") {
+    return {
+      name: d.key,
+      nodeId: `demo-${d.key}`,
+      sync: driveProbeDemo,
+      clear: () => manager.end("probe-sweep", `demo-${d.key}`),
+    };
+  }
+  return {
+    name: d.key,
+    nodeId: `demo-${d.key}`,
+    sync: (id, t) => overlays.byKey.get(d.key).sync(id, t),
+    clear: () => overlays.byKey.get(d.key).clear(),
+  };
+});
 
 for (const effect of EFFECTS) {
   const slider = $(`slider-${effect.name}`);

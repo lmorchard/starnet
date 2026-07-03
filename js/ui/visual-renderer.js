@@ -93,7 +93,7 @@ export function initVisualRenderer() {
   // phases don't carry the action's feedback profile)
   const activeNodeIds = new Map();
   on(E.ACTION_FEEDBACK, (payload) =>
-    dispatchActionFeedback(overlays.byName, activeNodeIds, payload, { onXploitProgress: updateExploitProgress }));
+    dispatchActionFeedback(overlays.byName, activeNodeIds, payload, { onXploitProgress: updateExploitProgress, manager: overlays.manager }));
 
   // Exploit result flash — driven by ACTION_RESOLVED
   on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
@@ -109,6 +109,7 @@ export function initVisualRenderer() {
 
   on(E.RUN_STARTED, () => {
     overlays.byKey.forEach((o) => o.clear());
+    overlays.manager.clearAll();
     activeNodeIds.clear();
   });
 
