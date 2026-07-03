@@ -833,19 +833,21 @@ Actions depend on the selected node's type and access level:
 The console accepts the following commands. Tab-complete works on node IDs — and on the
 `sig-N` tags of detected-but-unidentified nodes, which you refer to by tag (not id) until
 you probe them. `status node sig-N` reports `[???]` for an unidentified node's type/grade.
+Action verbs (`probe`, `xploit`, `dump`, `fetch`, `mine`, `sniff`, `replay`) act on the
+**targeted** node — `target <node>` first, then issue the action.
 
 ```
 target <node>          Target a node. Alias: t
 untarget               Untarget current node.
-probe [node]           Probe targeted or specified node.
+probe                  Probe the targeted node.
 sweep <depth|max>       Broadcast probe from the targeted node, rippling to depth (or "max"); abort to stop.
 abort                  Abort any in-progress timed action on targeted node.
 xploit <#|name>        Use exploit card by number or name on targeted node.
-dump [node]            Dump contents of targeted/specified node.
-fetch [node]           Extract macguffins from owned node.
-mine [node]            Data-mine owned node for an exploit card (timed; diminishing returns).
-sniff [node] [flow]    Read a flow on a node (decrypt / capture credential). No flow arg lists the node's flows.
-replay [node]          Replay a captured credential into a finesse node that trusts it.
+dump                   Dump contents of the targeted node.
+fetch                  Extract macguffins from the targeted owned node.
+mine                   Data-mine the targeted owned node for an exploit card (timed; diminishing returns).
+sniff [flow]           Read a flow on the targeted node (decrypt / capture credential). No flow arg lists the node's flows.
+replay                 Replay a captured credential into the targeted finesse node that trusts it.
 exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, disconnect, …). No arg lists scripts.
 kick                   Push ICE off current node to adjacent node.
 reboot [node]          Force ICE home; node goes briefly offline.
