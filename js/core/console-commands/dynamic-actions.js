@@ -16,6 +16,7 @@
 import { getState } from "../state.js";
 import { A } from "../action-ids.js";
 import { on, E, emitEvent } from "../events.js";
+import { addLogEntry } from "../log.js";
 import { registry, registerCommand } from "./registry.js";
 import { isScriptAction } from "../actions/scripts.js";
 
@@ -63,7 +64,11 @@ function syncDynamicActions() {
 
     registerCommand({
       verb: actionId,
-      execute: () => {
+      execute: (args) => {
+        if (args && args.length) {
+          addLogEntry(`${actionId} takes no arguments — it acts on the targeted node.`, "error");
+          return;
+        }
         // Read current state at execution time, not registration time —
         // selection may have changed since the command was registered.
         const current = getState();

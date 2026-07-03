@@ -121,7 +121,8 @@ export const COMMANDS = [
   },
 
   { verb: "replay",
-    execute() {
+    execute(args) {
+      if (args.length) { addLogEntry("replay takes no arguments — it acts on the targeted node.", "error"); return; }
       const node = resolveImplicitNode();
       if (!node) return;
       dispatch(A.REPLAY, { nodeId: node.id });
@@ -362,7 +363,7 @@ export const COMMANDS = [
         "  dump                      Scan node contents.",
         "  fetch                     Collect macguffins from owned node.",
         "  exec [<script>]           Run a node script (corrupt, cancel-trace, unlock-vault, …). No arg lists scripts.",
-        "  abort                     Cancel the current timed action (probe, xploit, dump, fetch).",
+        "  abort                     Cancel the current timed action (probe, xploit, dump, fetch, mine).",
         "  kick                      Push ICE attention to adjacent node.",
         "  reboot                    Send ICE home. Node offline briefly.",
         "  jackout                   Disconnect and end run.",

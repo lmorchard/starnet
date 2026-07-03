@@ -245,6 +245,14 @@ describe("replay", () => {
     assert.ok(ls.some((l) => l.type === "error" && l.text.includes("No node targeted")));
     assert.equal(evts.length, 0);
   });
+
+  it("rejects a stray positional arg instead of silently acting on it", () => {
+    navigateTo("gateway");
+    let evts;
+    const ls = logs(() => { evts = actions(() => getCommand("replay").execute(["gateway"])); });
+    assert.ok(ls.some((l) => l.type === "error"), "expected an error log entry");
+    assert.equal(evts.length, 0, "must not dispatch when given a stray arg");
+  });
 });
 
 // reboot, cancel-* — now dynamically discovered from graph. Static tests removed.
@@ -325,6 +333,13 @@ describe("help", () => {
     for (const verb of ["target", "probe", "xploit", "jackout", "status", "cheat", "exec"]) {
       assert.ok(text.includes(verb), `expected help to mention "${verb}"`);
     }
+  });
+
+  it("abort line mentions mine as an abortable timed action", () => {
+    const ls = logs(() => getCommand("help").execute([]));
+    const abortLine = ls.map((l) => l.text).find((t) => t.trim().startsWith("abort"));
+    assert.ok(abortLine, "expected an abort line in help output");
+    assert.ok(abortLine.includes("mine"), `expected abort line to mention "mine": ${abortLine}`);
   });
 });
 
