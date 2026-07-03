@@ -808,7 +808,7 @@ Actions depend on the selected node's type and access level:
 | `exec access-darknet` | WAN node is targeted                       | Opens the darknet broker store; pauses the LAN while shopping (run via `exec`) |
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
 | `sweep` (menu) / `sweep <depth|max>` (console) | Targeted accessible node, no sweep already running | Broadcast probe — ripples outward (each branch advances as its own probes complete) up to the chosen depth, probing + fully revealing each reached node, flowing through probe-gate nodes and stopping at gate-controllers. Adds heat per node (a fast spike). Abortable mid-ripple. |
-| `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current action (probe, xploit, dump, fetch, corrupt, or a running sweep) |
+| `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current timed action (any abortable verb — reboot is involuntary) or a running sweep on the targeted node |
 | `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies. Not offered at all on an already-owned node. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
 | `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |

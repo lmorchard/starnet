@@ -363,7 +363,7 @@ export const COMMANDS = [
         "  dump                      Scan node contents.",
         "  fetch                     Collect macguffins from owned node.",
         "  exec [<script>]           Run a node script (corrupt, cancel-trace, unlock-vault, …). No arg lists scripts.",
-        "  abort                     Cancel the current timed action (probe, xploit, dump, fetch, mine).",
+        "  abort                     Cancel the current timed action on the targeted node.",
         "  kick                      Push ICE attention to adjacent node.",
         "  reboot                    Send ICE home. Node offline briefly.",
         "  jackout                   Disconnect and end run.",

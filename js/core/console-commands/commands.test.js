@@ -335,11 +335,16 @@ describe("help", () => {
     }
   });
 
-  it("abort line mentions mine as an abortable timed action", () => {
+  it("abort help is generic (no fragile per-verb enumeration)", () => {
+    // Post timed-by-default, the abortable set is large/dynamic (probe/xploit/dump/fetch/mine/
+    // lie-low/corrupt/set-piece actions — everything except involuntary reboot/volatile), so the
+    // abort help must NOT enumerate specific verbs (that list rots). It describes the generic action.
     const ls = logs(() => getCommand("help").execute([]));
     const abortLine = ls.map((l) => l.text).find((t) => t.trim().startsWith("abort"));
     assert.ok(abortLine, "expected an abort line in help output");
-    assert.ok(abortLine.includes("mine"), `expected abort line to mention "mine": ${abortLine}`);
+    assert.ok(/timed action/i.test(abortLine), `expected abort line to describe the timed action: ${abortLine}`);
+    assert.ok(!/\bprobe\b/.test(abortLine) && !/\bmine\b/.test(abortLine),
+      `abort line should not enumerate specific verbs (rots as the abortable set grows): ${abortLine}`);
   });
 });
 
