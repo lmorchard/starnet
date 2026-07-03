@@ -17,13 +17,15 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { buildNetwork as buildCorporateFoothold } from "../../../data/networks/corporate-foothold.js";
+import { buildNetwork as buildCorporateExchange } from "../../../data/networks/corporate-exchange.js";
 import { initGame, getState, revealNeighbors } from "../state.js";
 import { navigateTo } from "../navigation.js";
 import { resolveNode } from "./resolvers.js";
 import { cmdStatusNode } from "./cmd-status.js";
 import { addCardToHand } from "../state/player.js";
-import { setNodeAccessLevel } from "../state/node.js";
+import { setNodeAccessLevel, setNodeVisible, setNodeProbed } from "../state/node.js";
 import { generateExploit, exploitSortKey } from "../exploits.js";
+import { flowId } from "../programs.js";
 import { clearAll } from "../timers.js";
 import { on, off, E } from "../events.js";
 import { getCommand, registerCommand } from "./index.js";
@@ -136,7 +138,7 @@ describe("untarget", () => {
 // ── exploit ───────────────────────────────────────────────────────────────────
 
 describe("xploit", () => {
-  it("dispatches exploit in implicit form: selected node + card by 1-based index", () => {
+  it("dispatches exploit on the targeted node: card by 1-based index", () => {
     navigateTo("gateway");
     const card = generateExploit();
     addCardToHand(card);
@@ -154,7 +156,7 @@ describe("xploit", () => {
     assert.equal(evts[0].exploitId, card.id);
   });
 
-  it("dispatches exploit in implicit form: selected node + card by id", () => {
+  it("dispatches exploit on the targeted node: card by id", () => {
     navigateTo("gateway");
     const card = generateExploit();
     addCardToHand(card);
@@ -163,25 +165,85 @@ describe("xploit", () => {
     assert.equal(evts[0].exploitId, card.id);
   });
 
-  it("dispatches exploit in explicit form: node id + card id", () => {
-    const card = generateExploit();
-    addCardToHand(card);
-    const evts = actions(() => getCommand("xploit").execute(["gateway", card.id]));
-    assert.equal(evts.length, 1);
-    assert.equal(evts[0].actionId, "xploit");
-    assert.equal(evts[0].nodeId, "gateway");
-    assert.equal(evts[0].exploitId, card.id);
-  });
-
-  it("logs usage error when single arg given with no node selected", () => {
-    const ls = logs(() => getCommand("xploit").execute(["some-card"]));
-    assert.ok(ls.some((l) => l.type === "error" && l.text.includes("Usage")));
+  it("logs 'No node targeted' error and dispatches nothing when nothing is targeted", () => {
+    let evts;
+    const ls = logs(() => { evts = actions(() => getCommand("xploit").execute(["some-card"])); });
+    assert.ok(ls.some((l) => l.type === "error" && l.text.includes("No node targeted")));
+    assert.equal(evts.length, 0);
   });
 
   it("logs error for an unknown card", () => {
     navigateTo("gateway");
     const ls = logs(() => getCommand("xploit").execute(["no-such-card"]));
     assert.ok(ls.some((l) => l.type === "error"));
+  });
+
+  it("the explicit-node form is gone: 'gateway AuthBrute' is treated as one card token, not node+card", () => {
+    navigateTo("gateway");
+    let evts;
+    const ls = logs(() => {
+      evts = actions(() => getCommand("xploit").execute(["gateway", "AuthBrute"]));
+    });
+    assert.equal(evts.length, 0, "must not dispatch an xploit against the literal 'gateway' node");
+    assert.ok(ls.some((l) => l.type === "error" && l.text.includes("gateway AuthBrute")));
+  });
+});
+
+// ── sniff ─────────────────────────────────────────────────────────────────────
+// corporate-foothold (the default fixture above) authors no flows; corporate-exchange
+// does, so sniff's positive-path tests reset to that network.
+
+describe("sniff", () => {
+  /** Target a node with a visible, sniffable credential flow. */
+  function setup(seed = "sniff-console-1") {
+    initGame(() => buildCorporateExchange(), seed);
+    const cred = getState().flows.find((f) => f.type === "credential");
+    setNodeVisible(cred.from, "accessible");
+    setNodeProbed(cred.from);
+    setNodeVisible(cred.to, "revealed"); // other endpoint must be visible too (fog-of-war)
+    navigateTo(cred.from);
+    return { cred, id: flowId(cred) };
+  }
+
+  it("with no arg, lists the targeted node's flows", () => {
+    const { cred } = setup();
+    const ls = logs(() => getCommand("sniff").execute([]));
+    assert.ok(ls.some((l) => l.text.includes(`flows on ${cred.from}`)));
+  });
+
+  it("dispatches sniff on the targeted node when given a flow ref", () => {
+    const { cred, id } = setup();
+    const evts = actions(() => getCommand("sniff").execute([cred.type]));
+    assert.equal(evts.length, 1);
+    assert.equal(evts[0].actionId, "sniff");
+    assert.equal(evts[0].nodeId, cred.from);
+    assert.equal(evts[0].flowId, id);
+  });
+
+  it("logs 'No node targeted' error and dispatches nothing when nothing is targeted", () => {
+    let evts;
+    const ls = logs(() => { evts = actions(() => getCommand("sniff").execute([])); });
+    assert.ok(ls.some((l) => l.type === "error" && l.text.includes("No node targeted")));
+    assert.equal(evts.length, 0);
+  });
+});
+
+// ── replay ────────────────────────────────────────────────────────────────────
+
+describe("replay", () => {
+  it("dispatches replay on the targeted node", () => {
+    navigateTo("gateway");
+    const evts = actions(() => getCommand("replay").execute([]));
+    assert.equal(evts.length, 1);
+    assert.equal(evts[0].actionId, "replay");
+    assert.equal(evts[0].nodeId, "gateway");
+  });
+
+  it("logs 'No node targeted' error and dispatches nothing when nothing is targeted", () => {
+    let evts;
+    const ls = logs(() => { evts = actions(() => getCommand("replay").execute([])); });
+    assert.ok(ls.some((l) => l.type === "error" && l.text.includes("No node targeted")));
+    assert.equal(evts.length, 0);
   });
 });
 

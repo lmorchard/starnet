@@ -17,7 +17,6 @@ import { getState } from "../state.js";
 import { A } from "../action-ids.js";
 import { on, E, emitEvent } from "../events.js";
 import { registry, registerCommand } from "./registry.js";
-import { completeNodeArg } from "./completions.js";
 import { isScriptAction } from "../actions/scripts.js";
 
 // Action IDs with custom argument handling that stay as static console commands.
@@ -64,7 +63,6 @@ function syncDynamicActions() {
 
     registerCommand({
       verb: actionId,
-      complete: completeNodeArg,
       execute: () => {
         // Read current state at execution time, not registration time —
         // selection may have changed since the command was registered.
