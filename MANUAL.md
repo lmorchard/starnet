@@ -523,7 +523,7 @@ today:
   flow additionally **captures the token** for later use. Quiet — low heat.
 - **REPLAY** — replay a captured credential into a node that trusts it. Louder than SNIFF.
 
-Console: `sniff <node> [flow]` (no flow argument → lists the node's flows, numbered), `replay <node>`.
+Console (act on the targeted node): `sniff [flow]` (no flow argument → lists the targeted node's flows, numbered), `replay`.
 
 ### Finesse access — the nodes you can't smash
 
