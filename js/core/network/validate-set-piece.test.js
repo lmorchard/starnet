@@ -224,6 +224,65 @@ describe("validateSetPiece: reachability (11)", () => {
   });
 });
 
+describe("validateSetPiece: concealed-reachability (12)", () => {
+  it("flags a non-concealed node reachable from inbound only through a concealed hub", () => {
+    // The switch-arrangement deadlock in miniature: two panels connect only to a concealed hub
+    // they are meant to unlock, so the player can never reach them to solve the puzzle.
+    const def = basePiece();
+    def.nodes = [
+      { id: "panel-a", type: "generic", traits: [], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+      { id: "panel-b", type: "generic", traits: [], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+      { id: "hub", type: "generic", traits: [], attributes: { accessLevel: "locked", concealed: true }, operators: [], actions: [] },
+    ];
+    def.internalEdges = [["panel-a", "hub"], ["panel-b", "hub"]];
+    def.externalPorts = ["panel-a", "panel-b", "hub"];
+    def.ports = [
+      { nodeId: "panel-a", direction: "inbound", wantsTags: [], required: true },
+      { nodeId: "panel-b", direction: "lateral", wantsTags: [], required: true },
+      { nodeId: "hub", direction: "outbound", wantsTags: [], required: false },
+    ];
+    const fired = checks(validateSetPiece(def), "concealed-reachability");
+    assert.ok(fired.some((e) => e.nodeId === "panel-b"), "panel-b should be flagged");
+  });
+
+  it("passes when panels reach each other without the concealed hub (the fix)", () => {
+    // Same puzzle, but the panels are chained so each is reachable without traversing the hub.
+    const def = basePiece();
+    def.nodes = [
+      { id: "panel-a", type: "generic", traits: [], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+      { id: "panel-b", type: "generic", traits: [], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+      { id: "hub", type: "generic", traits: [], attributes: { accessLevel: "locked", concealed: true }, operators: [], actions: [] },
+    ];
+    def.internalEdges = [["panel-a", "panel-b"], ["panel-a", "hub"], ["panel-b", "hub"]];
+    def.externalPorts = ["panel-a", "panel-b", "hub"];
+    def.ports = [
+      { nodeId: "panel-a", direction: "inbound", wantsTags: [], required: true },
+      { nodeId: "panel-b", direction: "lateral", wantsTags: [], required: true },
+      { nodeId: "hub", direction: "outbound", wantsTags: [], required: false },
+    ];
+    assert.equal(checks(validateSetPiece(def), "concealed-reachability").length, 0);
+  });
+
+  it("does not flag a concealed reward node reached through a non-concealed hub", () => {
+    // combinationLock shape: switches route through a normal (non-concealed) gate to the vault.
+    const def = basePiece();
+    def.nodes = [
+      { id: "sw-a", type: "generic", traits: [], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+      { id: "sw-b", type: "generic", traits: [], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+      { id: "gate", type: "generic", traits: [], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
+      { id: "vault", type: "generic", traits: [], attributes: { accessLevel: "locked", concealed: true }, operators: [], actions: [] },
+    ];
+    def.internalEdges = [["sw-a", "gate"], ["sw-b", "gate"], ["gate", "vault"]];
+    def.externalPorts = ["sw-a", "sw-b", "gate"];
+    def.ports = [
+      { nodeId: "sw-a", direction: "inbound", wantsTags: [], required: true },
+      { nodeId: "sw-b", direction: "lateral", wantsTags: [], required: true },
+      { nodeId: "gate", direction: "outbound", wantsTags: [], required: false },
+    ];
+    assert.equal(checks(validateSetPiece(def), "concealed-reachability").length, 0);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Catalog sweep — runs over every piece automatically (auto-covers new biomes)
 // ---------------------------------------------------------------------------

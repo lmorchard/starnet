@@ -245,6 +245,13 @@ export const switchArrangement = {
     },
   ],
   internalEdges: [
+    // Panels are chained to each other so all three are reachable WITHOUT traversing the concealed
+    // hub. The generator only wires the inbound port (panel-alpha); panel-beta and panel-gamma
+    // would otherwise sit behind the very node their alignment reveals (an unsolvable deadlock).
+    // Keep this chain — do not revert to a pure star around hidden-subnet. Enforced by the
+    // concealed-reachability check in validate-set-piece.js.
+    ["panel-alpha", "panel-beta"],
+    ["panel-beta", "panel-gamma"],
     ["panel-alpha", "hidden-subnet"],
     ["panel-beta", "hidden-subnet"],
     ["panel-gamma", "hidden-subnet"],
