@@ -1689,8 +1689,33 @@ describe("kick action (renamed from eject)", () => {
 
     const fired = withEvents(E.ICE_EJECTED, () => {
       s.nodeGraph.executeAction("ids-1", "kick");
+      // kick is timed (#187 Phase 2) — dispatch only arms it; tick to completion (duration:5).
+      s.nodeGraph.tick(5);
     });
     assert.ok(fired.length > 0, "kick must fire ICE_EJECTED (internal mechanism unchanged)");
+  });
+});
+
+describe("kick is timed (#187 Phase 2)", () => {
+  it("arms on dispatch, ejects ICE only on completion", () => {
+    clearAll();
+    initGame(() => buildAlertLAN({ ice: { grade: "C", startNode: "ids-1" } }), "itest-kick-timed");
+    const s = getState();
+    s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
+    startIce();
+    firstIce().attentionNodeId = "ids-1";
+
+    const atDispatch = withEvents(E.ICE_EJECTED, () => {
+      s.nodeGraph.executeAction("ids-1", "kick");
+    });
+    assert.equal(atDispatch.length, 0, "kick does NOT eject at dispatch — only arms");
+    assert.equal(s.nodeGraph.getNodeState("ids-1")._ta_active_kick, true, "kick armed");
+
+    const atCompletion = withEvents(E.ICE_EJECTED, () => {
+      s.nodeGraph.tick(5); // duration
+    });
+    assert.equal(atCompletion.length, 1, "ICE ejected exactly once on completion");
+    assert.equal(s.nodeGraph.getNodeState("ids-1")._ta_active_kick, false, "kick no longer active");
   });
 });
 

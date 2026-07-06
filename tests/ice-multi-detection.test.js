@@ -142,6 +142,8 @@ describe("ice multi-instance detection", () => {
       const action = getAvailableActions(node, s).find((a) => a.id === A.KICK);
       assert.ok(action, "KICK should be available on owned gateway with ICE present");
       action.execute(node, s, {}, { nodeId: "gateway" });
+      // kick is timed (#187 Phase 2) — dispatch only arms it; tick to completion (duration:5).
+      tick(5);
     });
 
     // The instance at gateway (ice-2) is the one ejected and moved off gateway.

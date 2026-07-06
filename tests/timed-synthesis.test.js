@@ -103,6 +103,40 @@ describe("timed-action synthesis (#187)", () => {
     assert.equal(timedOps.length, 1, "expected exactly one synthesized operator, not one per construction");
   });
 
+  it("synthesizes a timed-action operator for KICK (core verb with explicit timed block)", () => {
+    const node = {
+      id: "test-node",
+      type: "test",
+      attributes: { label: "test-node", visibility: "accessible" },
+      actions: [
+        {
+          id: A.KICK,
+          label: "KICK",
+          requires: [],
+          effects: [{ effect: "ctx-call", method: "ejectIce", args: ["$nodeId"] }],
+          timed: { duration: 5 },
+        },
+      ],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, mockCtx());
+    const state = /** @type {any} */ (graph)._nodes.get("test-node");
+
+    const activeAttr = timedActiveAttr(A.KICK);
+    const { progressAttr, durationAttr } = getTimedActionAttrNames(A.KICK);
+
+    const op = state.operators.find((/** @type {any} */ o) => o.name === "timed-action" && o.action === A.KICK);
+    assert.ok(op, "kick gets a timed-action operator despite being a core verb — an explicit timed block wins");
+    assert.equal(op.emitStartOnArm, true, "flat duration → emitStartOnArm");
+    assert.deepStrictEqual(op.onComplete, [{ effect: "ctx-call", method: "ejectIce", args: ["$nodeId"] }]);
+
+    const action = state.actions.find((/** @type {any} */ a) => a.id === A.KICK);
+    assert.deepStrictEqual(action.effects, [
+      { effect: "set-attr", attr: activeAttr, value: true },
+      { effect: "set-attr", attr: progressAttr, value: 0 },
+      { effect: "set-attr", attr: durationAttr, value: 5 },
+    ]);
+  });
+
   it("dispatching the action arms it instead of running effects immediately, then completes on tick", () => {
     const ctx = mockCtx();
     /** @type {{type: string, payload: any}[]} */
