@@ -30,9 +30,22 @@ const LANE_GAP = 3;
 const PHASE_STAGGER = 0.4;
 const PHASE_JITTER = 0.12;
 // Extra clearance (glyph-space px, scaled by zoom) between a packet's endpoints and node rims.
-const RIM_PAD = 5;
+// Kept small: the fade (below) makes packets invisible at the endpoints, so they can spawn /
+// despawn right up against the rim without popping — they only read solid once well clear.
+const RIM_PAD = 2;
 // Glyph stroke width in glyph-space (scaled with zoom at draw time).
 const STROKE = 0.7;
+// Fraction of a packet's traversal spent fading in (leaving the source) and fading out
+// (arriving at the destination), so packets don't pop in/out at the t=0↔1 wrap. Feel-tuned.
+const FADE = 0.15;
+
+/**
+ * Opacity ramp for a packet at position `t` (0 = source rim, 1 = destination rim): 0 at both
+ * ends, rising linearly to 1 over the first/last FADE of the traversal. Pure. @param {number} t
+ */
+export function fadeAlpha(t) {
+  return Math.max(0, Math.min(1, Math.min(t, 1 - t) / FADE));
+}
 
 /**
  * Flows whose BOTH endpoints are currently present (revealed) in the graph. Pure.
@@ -249,6 +262,7 @@ export class FlowLayer {
           const x = sx + segX * p.t + offX;
           const y = sy + segY * p.t + offY;
           ctx.save();
+          ctx.globalAlpha = fadeAlpha(p.t); // fade in leaving the source, out arriving
           ctx.translate(x, y);
           ctx.scale(zoom, zoom);
           drawFlowGlyph(ctx, fl.type, { encrypted: fl.encrypted });

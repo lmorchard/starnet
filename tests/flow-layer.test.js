@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { renderableFlows, flowsSignature } from "../js/ui/overlays/flow-layer.js";
+import { renderableFlows, flowsSignature, fadeAlpha } from "../js/ui/overlays/flow-layer.js";
 
 const flows = [
   { from: "a", to: "b", type: "money", rate: 1 },
@@ -49,4 +49,23 @@ test("flowsSignature changes when an encrypted flow is revealed (SNIFF decrypts 
   const enc = flowsSignature([{ from: "x", to: "y", type: "credential", rate: 0.5, encrypted: true }]);
   const revealed = flowsSignature([{ from: "x", to: "y", type: "credential", rate: 0.5, encrypted: true, revealed: true }]);
   assert.notEqual(enc, revealed);
+});
+
+// Packets fade in as they leave the source (t→0) and out as they arrive (t→1) so they don't
+// pop in/out at the t=0↔1 loop wrap.
+test("fadeAlpha is 0 at both endpoints and 1 across the middle", () => {
+  assert.equal(fadeAlpha(0), 0, "invisible at the source rim");
+  assert.equal(fadeAlpha(1), 0, "invisible at the destination rim");
+  assert.equal(fadeAlpha(0.5), 1, "fully opaque mid-traversal");
+});
+
+test("fadeAlpha ramps linearly over the fade zone and clamps to [0,1]", () => {
+  // Rising edge: half-way through the 0.15 fade zone → 0.5.
+  assert.ok(Math.abs(fadeAlpha(0.075) - 0.5) < 1e-9);
+  // Symmetric on the falling edge.
+  assert.ok(Math.abs(fadeAlpha(0.925) - 0.5) < 1e-9);
+  // Never exceeds 1 in the plateau, never below 0 out of range.
+  assert.equal(fadeAlpha(0.3), 1);
+  assert.equal(fadeAlpha(-0.2), 0);
+  assert.equal(fadeAlpha(1.2), 0);
 });
