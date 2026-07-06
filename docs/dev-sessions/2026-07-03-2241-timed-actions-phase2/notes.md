@@ -133,3 +133,31 @@ covering kick + sniff + replay together once Part 3 tuning lands, as Task 1 flag
 flat `DEFAULT_SCRIPT_ACTION_DURATION`/`corrupt` durationTable are all feel-draft placeholders
 awaiting a live in-browser tuning pass with Les — not touched here per the brief's explicit
 "pause and hand off" instruction.
+
+## Part 3: live duration feel-loop (with Les) — COMPLETE
+
+Ran the in-browser tuning pass on a throwaway rig (a `?tune` panel writing runtime
+duration overrides; scaffolding removed after, no residue). Setup affordances used:
+generated `threat=S` network for active ICE (kick), `corporate-exchange` for the
+`switch-2 → fw-1` credential chain (sniff/replay), plus generic "setup SNIFF/REPLAY"
+buttons (the `own` cheats don't set `probed`, which SNIFF requires).
+
+**Outcome — all three Phase-2 verbs confirmed good AT THEIR DRAFT values, no constant
+changes:**
+- `kick` — 5 ticks / 0.5s. Snappy enough for a reflex/panic move, still reads as an action.
+- `SNIFF_DURATION` — 12 ticks / 1.2s. A brief recon read.
+- `REPLAY_DURATION` — 20 ticks / 2.0s. A weightier "cash in the credential" beat.
+
+The Phase-1 carryover knobs (`DEFAULT_SCRIPT_ACTION_DURATION` 20t, `corrupt` durationTable)
+were left as-is by decision — they shipped fine and weren't flagged.
+
+## Wrap-up
+
+- **MANUAL.md updated:** kick / sniff / replay now documented as timed actions (arm → tick →
+  abortable; navigating away cancels). Flow-programs section, kick counter, and the node-actions
+  reference table all reflect the change.
+- **Pre-existing save/load feedback bug filed separately** as **issue #302** (deserialize
+  `onEvent` bridge missing the `action-feedback` branch) — out of Phase-2 scope, per Les.
+- **Final state:** 3 code commits (kick / hasBehavior / sniff+replay) + spec/plan/notes docs.
+  `make check` green (1525/1525). Census provably inert vs base. Tuning scaffolding fully torn
+  down (`grep [PART3-TUNING]` clean).
