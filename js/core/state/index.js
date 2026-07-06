@@ -68,6 +68,31 @@ export function getVersion() {
 
 // ── Initialization ───────────────────────────────────────
 
+/**
+ * Build the graph→game bridge: syncs node attribute changes into `state.nodes`
+ * and forwards graph events onto the game event bus. Shared by `initGame` and
+ * `deserializeState` so the two can't drift — a missing branch here once silently
+ * dropped all timed-action feedback after any save/load round-trip (#302).
+ * @returns {(type: string, payload: any) => void}
+ */
+function buildGraphEventBridge() {
+  return (type, payload) => {
+    if (type === "node-state-changed") {
+      // Sync graph attribute changes to state.nodes (skip if change came from a setter)
+      if (!isSyncingToGraph() && getState()?.nodes?.[payload.nodeId]) {
+        mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
+      }
+      emitEvent(E.NODE_STATE_CHANGED, payload);
+    } else if (type === "message-delivered") {
+      emitEvent(E.MESSAGE_PROPAGATED, payload);
+    } else if (type === "quality-changed") {
+      emitEvent(E.QUALITY_CHANGED, payload);
+    } else if (type === "action-feedback") {
+      emitEvent(E.ACTION_FEEDBACK, payload);
+    }
+  };
+}
+
 // ── NodeGraph-based initialization ────────────────────────
 
 /**
@@ -93,21 +118,7 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
   const gameCtx = buildGameCtx({ openDarknetsStore: opts.openDarknetsStore });
 
   // Build the onEvent bridge: graph → state.nodes sync + game event bus
-  const onEvent = (type, payload) => {
-    if (type === "node-state-changed") {
-      // Sync graph attribute changes to state.nodes (skip if change came from a setter)
-      if (!isSyncingToGraph() && getState()?.nodes?.[payload.nodeId]) {
-        mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
-      }
-      emitEvent(E.NODE_STATE_CHANGED, payload);
-    } else if (type === "message-delivered") {
-      emitEvent(E.MESSAGE_PROPAGATED, payload);
-    } else if (type === "quality-changed") {
-      emitEvent(E.QUALITY_CHANGED, payload);
-    } else if (type === "action-feedback") {
-      emitEvent(E.ACTION_FEEDBACK, payload);
-    }
-  };
+  const onEvent = buildGraphEventBridge();
 
   // Construct the NodeGraph
   const graph = new NodeGraph(graphDef, gameCtx, onEvent);
@@ -418,18 +429,7 @@ export function deserializeState(snapshot, opts = {}) {
   // Restore NodeGraph from snapshot
   if (_nodeGraph) {
     const gameCtx = buildGameCtx(opts);
-    const onEvent = (type, payload) => {
-      if (type === "node-state-changed") {
-        if (!isSyncingToGraph() && getState()?.nodes?.[payload.nodeId]) {
-          mutate(s => { s.nodes[payload.nodeId][payload.attr] = payload.value; });
-        }
-        emitEvent(E.NODE_STATE_CHANGED, payload);
-      } else if (type === "message-delivered") {
-        emitEvent(E.MESSAGE_PROPAGATED, payload);
-      } else if (type === "quality-changed") {
-        emitEvent(E.QUALITY_CHANGED, payload);
-      }
-    };
+    const onEvent = buildGraphEventBridge();
     const graph = NodeGraph.fromSnapshot(_nodeGraph, gameCtx, onEvent);
     gameCtx._graph = graph;
     ctx.state.nodeGraph = graph;
