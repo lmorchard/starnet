@@ -193,7 +193,11 @@ const KICK_ACTION = {
   desc: "Boot ICE attention to a random adjacent node.",
   requires: [
     { type: "node-attr", attr: "accessLevel", eq: "owned" },
+    ...NOT_BUSY,
   ],
+  // Timed (#187 Phase 2): a short beat so a reactive/panic kick still feels immediate but
+  // reads as an action, not a free instant. duration is a feel-draft (~0.5s) — tuned in Part 3.
+  timed: { duration: 5 },
   effects: [
     { effect: "ctx-call", method: "ejectIce", args: ["$nodeId"] },
   ],

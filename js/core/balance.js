@@ -83,6 +83,11 @@ export const HEAT_DISCHARGE_FRAC = 0.5;   // on a trip, heat → threshold * thi
 export const HEAT_DECAY_MS = 1000;        // decay interval (mirrors TRACE_TICK cadence)
 export const LIE_LOW_HEAT_DROP = 6;       // lie-low's accelerated heat shed (Phase 4)
 
+// Feel-draft timed-action durations for the flow programs (#187 Phase 2). Ticks (100ms each).
+// SNIFF is a quick read; REPLAY is a heavier credential injection. Tuned in Part 3.
+export const SNIFF_DURATION = 12;
+export const REPLAY_DURATION = 20;
+
 // ── SWEEP (progressive probe flood-fill; verb variants) ──────────────────────
 // SWEEP starts a REAL timed probe on each frontier node in parallel (grade-scaled probe duration,
 // probe animation, resolveProbe on completion). A wave advances to the next layer only when its

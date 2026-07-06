@@ -29,6 +29,13 @@ const TIMED_ACTIONS = new Set([A.PROBE, A.XPLOIT, A.DUMP, A.FETCH, A.REBOOT, A.M
  */
 const INSTANT_ACTIONS = new Set([
   A.TARGET, A.UNTARGET, A.JACKOUT, A.CANCEL_TRACE,
+  // KICK became a short timed action in #187 Phase 2, but stays instant from the bot's
+  // view: it's only ever dispatched reactively/fire-and-forget (onIceMoved below), never
+  // a scored primary choice, and ejectIce emits ICE_EJECTED (not ACTION_RESOLVED), so
+  // tickUntilResolved could never match it anyway. With NOT_BUSY now gating KICK_ACTION,
+  // a repeat reactive dispatch while a kick is already armed simply isn't offered (the
+  // node is busy) and no-ops — the main loop's ≥1 tick/cycle lets an armed kick complete
+  // in the background, same as the puzzle actions below.
   A.ABORT, A.KICK, A.ACCESS_DARKNET,
   // Set-piece puzzle actions
   "activate", "scan-lock", "scan-vault", "crack-vault",

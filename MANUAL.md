@@ -520,8 +520,12 @@ today:
   you can read its traffic (but just a scan, not the full break-in). Target a probed node, choose
   **SNIFF**, and pick a flow from the list (only flows to nodes you've already revealed appear).
   Sniffing an **encrypted** flow decrypts it (you can now read its type); sniffing a **credential**
-  flow additionally **captures the token** for later use. Quiet — low heat.
-- **REPLAY** — replay a captured credential into a node that trusts it. Louder than SNIFF.
+  flow additionally **captures the token** for later use. Quiet — low heat. Like the other in-world
+  verbs it's a **timed action** — a short read you can `abort`, and navigating away cancels it (you
+  capture nothing, and pay no heat — the heat lands only when the read completes).
+- **REPLAY** — replay a captured credential into a node that trusts it. Louder than SNIFF, and a
+  **timed action** that takes a beat longer to inject (abortable; navigating away cancels, granting
+  no access and costing no heat — the cost lands only on completion).
 
 Console (act on the targeted node): `sniff [flow]` (no flow argument → lists the targeted node's flows, numbered), `replay`.
 
@@ -753,7 +757,9 @@ your node and returns, the dwell timer resets and another detection cycle begins
 **Counters:**
 
 - **Untarget** the node or target a different one — drops back to passive, cancels the dwell timer
-- **Kick** (owned nodes) — boots the ICE present on this node to a random adjacent node: `> kick`
+- **Kick** (owned nodes) — boots the ICE present on this node to a random adjacent node: `> kick`.
+  A short **timed action** (a fraction of a second) — quick enough for a panic move, but abortable
+  and cancelled by navigating away like any other timed verb
 - **Reboot** (owned nodes) — forces ICE back to its resident node and takes your node
   offline briefly: `> reboot`
 
@@ -813,14 +819,14 @@ Actions depend on the selected node's type and access level:
 | `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
 | `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
-| `sniff`        | Probed node with a visible flow touching it    | Opens a flow picker (only flows to already-revealed nodes). Reads a flow (decrypts an encrypted one; captures a credential token from a credential flow). Adds heat. Needs the node probed first — not available on an unprobed node. |
-| `replay`       | Finesse-locked node you hold its trusted credential for | Replays the captured credential → node jumps to owned (reveals what it gated). Adds heat. |
+| `sniff`        | Probed node with a visible flow touching it, not already busy | Opens a flow picker (only flows to already-revealed nodes). Timed read — decrypts an encrypted flow / captures a credential token, but only once it completes; abortable, and navigating away cancels it (captures nothing). Adds heat. Needs the node probed first — not available on an unprobed node. |
+| `replay`       | Finesse-locked node you hold its trusted credential for, not already busy | Timed injection — replays the captured credential; node jumps to owned (revealing what it gated) once it completes. Abortable; navigating away cancels it (no access granted). Adds heat. |
 | `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …). Set-piece/puzzle scripts run as timed actions by default (brief, ~2s, with the generic-process animation) unless they're a UI/exit action like cancel-trace, access-darknet, or disconnect |
 | `corrupt`      | IDS node is open or owned                      | Timed subversion — severs event forwarding to security monitor once complete; grade-scaled duration (run via `exec`) |
 | `scrub-logs`   | Security-monitor, open or owned                | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
 | `lie-low`      | WAN node, uses remaining this run              | Timed wait that sheds **heat** (does not lower the alert ladder); limited per run (run via `exec`) |
 | `spoof`        | Security-monitor node, open or owned           | Recalibrates security monitor (run via `exec`) |
-| `kick`         | Owned node + ICE is present here               | Boots ICE to adjacent node |
+| `kick`         | Owned node + ICE is present here, not already busy | Timed (brief, ~0.5s) — boots ICE to an adjacent node once it completes; abortable |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
 | `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown (run via `exec`) |
 | `disconnect`   | WAN node is targeted                           | Severs the uplink and ends the run (in-fiction jack-out path; run via `exec` or the node inspector) |

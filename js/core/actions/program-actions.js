@@ -12,10 +12,11 @@
 /** @typedef {import('../types.js').GameState} GameState */
 
 import { A } from "../action-ids.js";
-import { visibleIncidentFlows, flowId, sniffFlow, replayCredential } from "../programs.js";
+import { visibleIncidentFlows, flowId } from "../programs.js";
 import { startSweep } from "../sweep.js";
 import { activeProcessOnNode } from "../processes.js";
-import { SWEEP_MAX_DEPTH } from "../balance.js";
+import { SWEEP_MAX_DEPTH, SNIFF_DURATION, REPLAY_DURATION } from "../balance.js";
+import { timedActiveAttr, getTimedActionAttrNames } from "../node-graph/timed-actions.js";
 
 /**
  * Flow choices for the SNIFF picker — plain DATA (core stays UI-free). The picker component
@@ -38,6 +39,39 @@ export function getFlowChoices(node, state) {
 
 export const getFlowEmptyReason = () => "No flows on this node.";
 
+/**
+ * Arm a program action as a timed action by attaching (once) and arming a
+ * `timed-action` operator on the target node. The operator's onComplete calls
+ * `ctx.<resolverMethod>("$nodeId")` when the timer completes — see game-ctx.js.
+ * Per-play parameters go in `extraAttrs` as serializable node attributes, NOT in
+ * onComplete (which must stay static so the operator can be reused across plays).
+ * @param {GameState} state @param {string} nodeId @param {string} actionId
+ * @param {number} duration ticks @param {string} resolverMethod ctx method name
+ * @param {Record<string, any>} [extraAttrs]
+ */
+export function armTimedProgram(state, nodeId, actionId, duration, resolverMethod, extraAttrs = {}) {
+  const graph = state.nodeGraph;
+  if (!graph) return;
+  const activeAttr = timedActiveAttr(actionId);
+  const { progressAttr, durationAttr } = getTimedActionAttrNames(actionId);
+
+  if (!graph.hasBehavior(nodeId, "timed-action", actionId)) {
+    graph.attachBehavior(nodeId, {
+      name: "timed-action",
+      action: actionId,
+      activeAttr,
+      emitStartOnArm: true, // flat duration → operator emits "start" on first tick (overlay mount)
+      onComplete: [{ effect: "ctx-call", method: resolverMethod, args: ["$nodeId"] }],
+      _abortable: true,
+    });
+  }
+
+  for (const [k, v] of Object.entries(extraAttrs)) graph.setNodeAttr(nodeId, k, v);
+  graph.setNodeAttr(nodeId, progressAttr, 0);
+  graph.setNodeAttr(nodeId, durationAttr, duration);
+  graph.setNodeAttr(nodeId, activeAttr, true); // set active LAST — operator sees progress/duration already seeded
+}
+
 /** @type {ActionDef} */
 export const SNIFF_ACTION = {
   id: A.SNIFF,
@@ -45,7 +79,8 @@ export const SNIFF_ACTION = {
   available: () => true,
   desc: () => "Read a data flow on this node; capture a credential if it carries one.",
   followup: { title: (node) => `SNIFF ${node.id}`, choices: getFlowChoices, empty: getFlowEmptyReason },
-  execute: (node, state, _ctx, payload) => sniffFlow(state, node.id, payload?.flowId),
+  execute: (node, state, _ctx, payload) =>
+    armTimedProgram(state, node.id, A.SNIFF, SNIFF_DURATION, "resolveSniff", { _sniff_flow_id: payload?.flowId }),
 };
 
 /** Depth options for the SWEEP picker (plain DATA; rendered as "action" choices). */
@@ -75,7 +110,8 @@ export const REPLAY_ACTION = {
   label: "REPLAY",
   available: () => true,
   desc: () => "Replay a captured credential to gain trusted access.",
-  execute: (node, state, _ctx) => replayCredential(state, node.id),
+  execute: (node, state, _ctx) =>
+    armTimedProgram(state, node.id, A.REPLAY, REPLAY_DURATION, "resolveReplay"),
 };
 
 /**
@@ -91,16 +127,20 @@ export function getProgramActions(node, state) {
   // while a process is already running on this node (one sweep at a time).
   if (!activeProcessOnNode(state, node.id)) out.push(SWEEP_ACTION);
 
+  // SNIFF/REPLAY are now timed actions (#187 Phase 2) — a node already running one (including
+  // an in-flight sniff/replay) can't start another.
+  const busy = state.nodeGraph?.isNodeBusy(node.id);
+
   // SNIFF: requires the node be PROBED — a measure of careful preparation (you scan/fingerprint
   // the node before reading its traffic), but a single recon act, NOT the locked→open→owned
   // XPLOIT climb (that climb is the grind the flow loop exists to avoid). Plus a VISIBLE incident
   // flow to read (fog-of-war: don't offer SNIFF for a flow to an unrevealed node).
-  if (node.probed && visibleIncidentFlows(state, node.id).length > 0) out.push(SNIFF_ACTION);
+  if (node.probed && !busy && visibleIncidentFlows(state, node.id).length > 0) out.push(SNIFF_ACTION);
 
   // REPLAY: a finesse-locked node that trusts a credential the player has captured,
   // not already owned. (Player-held-credential check can't be a node-graph `requires`.)
   const key = node.trustsCredential;
-  if (node.finesseLocked && key && node.accessLevel !== "owned"
+  if (node.finesseLocked && !busy && key && node.accessLevel !== "owned"
       && state.player.capturedCredentials.includes(key)) {
     out.push(REPLAY_ACTION);
   }

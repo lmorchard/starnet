@@ -39,6 +39,7 @@ import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNo
 import { setLastDisturbedNode } from "../state/ice.js";
 import { launchExploit } from "../combat.js";
 import { getTimedActionAttrNames, ABORTABLE_TIMED_ACTIONS, TIMED_ACTIONS } from "./timed-actions.js";
+import { sniffFlow, replayCredential } from "../programs.js";
 
 /** Convenience: `_ta_<action>_progress` for the given timed action. */
 const progressAttr = (action) => getTimedActionAttrNames(action).progressAttr;
@@ -321,6 +322,20 @@ export function buildGameCtx(opts = {}) {
           exhausted,
         },
       });
+    },
+
+    // ── Flow-program resolvers (called by the sniff/replay timed-action operator on completion) ──
+    // The per-play flowId is stashed on the node as `_sniff_flow_id` at arm time (armTimedProgram)
+    // so the operator's onComplete stays static + serializable. Reads it back, then clears it.
+    resolveSniff: (nodeId) => {
+      const s = getState();
+      const flowId = /** @type {any} */ (s.nodes[nodeId])?._sniff_flow_id;
+      if (flowId == null) return;
+      sniffFlow(s, nodeId, flowId);
+      if (ctx._graph) ctx._graph.setNodeAttr(nodeId, "_sniff_flow_id", null);
+    },
+    resolveReplay: (nodeId) => {
+      replayCredential(getState(), nodeId);
     },
 
     resolveReboot: (nodeId) => {

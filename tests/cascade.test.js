@@ -103,6 +103,20 @@ describe("attachBehavior — runtime-equipped behaviors", () => {
     g.sendMessage("origin", { type: "pulse", payload: { ttl: 3, source: "player" } });
     assert.equal(t.hits["a"] ?? 0, 0, "detached → no propagation");
   });
+
+  it("hasBehavior reports operators by name and optional action id", () => {
+    const g = new NodeGraph(
+      { nodes: [{ id: "n", type: "host", attributes: { forwardingEnabled: true }, operators: [] }], edges: [] },
+      undefined,
+      () => {}
+    );
+    g.init();
+    assert.equal(g.hasBehavior("n", "timed-action"), false);
+    g.attachBehavior("n", { name: "timed-action", action: "sniff", activeAttr: "_ta_active_sniff" });
+    assert.equal(g.hasBehavior("n", "timed-action"), true);
+    assert.equal(g.hasBehavior("n", "timed-action", "sniff"), true);
+    assert.equal(g.hasBehavior("n", "timed-action", "replay"), false);
+  });
 });
 
 describe("adversarial parity — hostile downgrade cascade", () => {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
 import { setFlowRevealed, flowId, addHeat } from "../js/core/state/flow.js";
 import { addCapturedCredential } from "../js/core/state/player.js";
-import { HEAT_COST } from "../js/core/balance.js";
+import { HEAT_COST, SNIFF_DURATION, REPLAY_DURATION } from "../js/core/balance.js";
 import { sniffFlow, incidentFlows, replayCredential } from "../js/core/programs.js";
 import { setNodeVisible, setNodeProbed } from "../js/core/state/node.js";
 import { getProgramActions, getFlowChoices } from "../js/core/actions/program-actions.js";
@@ -161,6 +161,9 @@ describe("SNIFF program", () => {
     setNodeVisible(b.cred.to, "revealed");
     initActionDispatcher(buildActionContext());
     emitEvent("starnet:action", { actionId: A.SNIFF, nodeId: b.cred.from, flowId: b.id, fromConsole: true });
+    // SNIFF is timed (#187 Phase 2) — dispatch only arms the operator; tick to completion
+    // before comparing state against the direct (synchronous) sniffFlow call above.
+    getState().nodeGraph.tick(SNIFF_DURATION);
     const viaDispatch = JSON.stringify({ heat: getState().heat, creds: getState().player.capturedCredentials, revealed: getState().flows.find((f) => flowId(f) === b.id).revealed });
 
     assert.equal(viaDispatch, direct, "both channels produce identical state");
@@ -205,6 +208,10 @@ describe("finesse access + REPLAY program", () => {
     const replay = getAvailableActions(getState().nodes["fw-1"], getState()).find((a) => a.id === A.REPLAY);
     assert.ok(replay, "REPLAY available");
     replay.execute(getState().nodes["fw-1"], getState(), buildActionContext(), { nodeId: "fw-1" });
+    assert.notEqual(getState().nodes["fw-1"].accessLevel, "owned", "REPLAY is timed — does not resolve at dispatch");
+
+    // REPLAY is timed (#187 Phase 2) — tick to completion before it grants access.
+    getState().nodeGraph.tick(REPLAY_DURATION);
 
     assert.equal(getState().nodes["fw-1"].accessLevel, "owned", "fw-1 owned via replay");
     assert.equal(getState().heat, heatAfterSniff + HEAT_COST.replay, "replay heat added");

@@ -33,8 +33,11 @@ import { emitEvent, on, off, E } from "../js/core/events.js";
 import { clearAll, tick, scheduleEvent, TIMER } from "../js/core/timers.js";
 import { getAvailableActions } from "../js/core/actions/node-actions.js";
 import { setNodeAccessLevel, serializeState, deserializeState } from "../js/core/state.js";
-import { incrementMineAttempts, setMineExhausted } from "../js/core/state/node.js";
+import { incrementMineAttempts, setMineExhausted, setNodeVisible, setNodeProbed } from "../js/core/state/node.js";
+import { flowId } from "../js/core/state/flow.js";
+import { addCapturedCredential } from "../js/core/state/player.js";
 import { A } from "../js/core/action-ids.js";
+import { SNIFF_DURATION, REPLAY_DURATION } from "../js/core/balance.js";
 import { MINE_TAPOUT } from "../js/core/mining.js";
 import { generateExploit } from "../js/core/exploits.js";
 import { launchExploit } from "../js/core/combat.js";
@@ -1689,8 +1692,157 @@ describe("kick action (renamed from eject)", () => {
 
     const fired = withEvents(E.ICE_EJECTED, () => {
       s.nodeGraph.executeAction("ids-1", "kick");
+      // kick is timed (#187 Phase 2) — dispatch only arms it; tick to completion (duration:5).
+      s.nodeGraph.tick(5);
     });
     assert.ok(fired.length > 0, "kick must fire ICE_EJECTED (internal mechanism unchanged)");
+  });
+});
+
+describe("kick is timed (#187 Phase 2)", () => {
+  it("arms on dispatch, ejects ICE only on completion", () => {
+    clearAll();
+    initGame(() => buildAlertLAN({ ice: { grade: "C", startNode: "ids-1" } }), "itest-kick-timed");
+    const s = getState();
+    s.nodeGraph.setNodeAttr("ids-1", "accessLevel", "owned");
+    startIce();
+    firstIce().attentionNodeId = "ids-1";
+
+    const atDispatch = withEvents(E.ICE_EJECTED, () => {
+      s.nodeGraph.executeAction("ids-1", "kick");
+    });
+    assert.equal(atDispatch.length, 0, "kick does NOT eject at dispatch — only arms");
+    assert.equal(s.nodeGraph.getNodeState("ids-1")._ta_active_kick, true, "kick armed");
+
+    const atCompletion = withEvents(E.ICE_EJECTED, () => {
+      s.nodeGraph.tick(5); // duration
+    });
+    assert.equal(atCompletion.length, 1, "ICE ejected exactly once on completion");
+    assert.equal(s.nodeGraph.getNodeState("ids-1")._ta_active_kick, false, "kick no longer active");
+  });
+});
+
+// ── sniff/replay operator bridge ──────────────────────────────────────────────
+// SNIFF and REPLAY are *program* actions (program-actions.js) — they carry an `execute`
+// callback, not a graph `effects` list, and never pass through node synthesis. Unlike
+// `kick` above (a NodeDef action, dispatched via `graph.executeAction`), the dispatch path
+// here is `getAvailableActions(node, state).find(...).execute(node, state, ctx, payload)` —
+// the same lookup `initActionDispatcher` performs internally, minus the dispatcher's own
+// event-listener registration. Registering `initActionDispatcher` a second time here would
+// double the "starnet:action" listener count for the rest of this file (it's registered
+// exactly once, later, in the "EXEC dispatch echo" `before()` below) and double-execute
+// every action dispatched from that point on — the same trap noted for `kick`.
+//
+// ABORT, by contrast, IS a NodeDef action (present on every "hackable" node via the
+// structural `active-abortable-timed-action` condition), so it's exercised the normal way:
+// `graph.executeAction(nodeId, "abort")`.
+
+describe("sniff/replay are timed (#187 Phase 2)", () => {
+  beforeEach(() => { clearAll(); });
+
+  /**
+   * corporate-exchange's switch-2 -> fw-1 credential flow, with switch-2 probed/accessible
+   * and fw-1's endpoint revealed (fog-of-war: SNIFF's flow picker hides flows to hidden nodes).
+   */
+  function armSniffFixture(seed) {
+    initGame(() => buildCorporateExchange(), seed);
+    const s = getState();
+    const cred = s.flows.find((f) => f.type === "credential");
+    const fid = flowId(cred);
+    setNodeVisible("switch-2", "accessible");
+    setNodeProbed("switch-2");
+    setNodeVisible("fw-1", "revealed");
+    return { s, fid };
+  }
+
+  /** The SNIFF ActionDef + target node, as getAvailableActions would surface them. */
+  function sniffAction(s) {
+    const node = s.nodes["switch-2"];
+    const action = getAvailableActions(node, s).find((a) => a.id === A.SNIFF);
+    assert.ok(action, "SNIFF available");
+    return { node, action };
+  }
+
+  it("sniff arms on dispatch and reveals the flow only on completion", () => {
+    const { s, fid } = armSniffFixture("itest-sniff-timed-1");
+    const { node, action } = sniffAction(s);
+
+    const atDispatch = withEvents(E.FLOW_SNIFFED, () => {
+      action.execute(node, s, {}, { flowId: fid });
+    });
+    assert.equal(atDispatch.length, 0, "sniff does NOT resolve at dispatch — only arms");
+    assert.equal(s.nodeGraph.getNodeState("switch-2")._ta_active_sniff, true, "sniff armed");
+    assert.equal(s.nodeGraph.getNodeState("switch-2")._sniff_flow_id, fid, "flowId stashed as a node attr");
+
+    const atCompletion = withEvents(E.FLOW_SNIFFED, () => {
+      s.nodeGraph.tick(SNIFF_DURATION);
+    });
+    assert.equal(atCompletion.length, 1, "flow sniffed exactly once on completion");
+    assert.equal(s.nodeGraph.getNodeState("switch-2")._ta_active_sniff, false, "sniff no longer active");
+  });
+
+  it("abort mid-sniff reveals nothing", () => {
+    const { s, fid } = armSniffFixture("itest-sniff-timed-2");
+    const { node, action } = sniffAction(s);
+
+    action.execute(node, s, {}, { flowId: fid });
+    s.nodeGraph.tick(3); // partway through SNIFF_DURATION
+
+    const sniffed = withEvents(E.FLOW_SNIFFED, () => {
+      s.nodeGraph.executeAction("switch-2", "abort");
+      s.nodeGraph.tick(SNIFF_DURATION);
+    });
+    assert.equal(sniffed.length, 0, "cancelled sniff never resolves");
+    assert.equal(s.nodeGraph.getNodeState("switch-2")._ta_active_sniff, false, "abort clears the active flag");
+  });
+
+  it("replay arms and grants owned access only on completion", () => {
+    initGame(() => buildCorporateExchange(), "itest-replay-timed-1");
+    const s = getState();
+    setNodeVisible("fw-1", "accessible");
+    addCapturedCredential(s.nodes["fw-1"].trustsCredential);
+
+    const node = s.nodes["fw-1"];
+    const action = getAvailableActions(node, s).find((a) => a.id === A.REPLAY);
+    assert.ok(action, "REPLAY available");
+    action.execute(node, s, {}, {});
+    assert.notEqual(s.nodes["fw-1"].accessLevel, "owned", "replay does not resolve at dispatch");
+
+    s.nodeGraph.tick(REPLAY_DURATION);
+    assert.equal(s.nodes["fw-1"].accessLevel, "owned");
+  });
+
+  it("re-arming sniff reuses the operator (no accumulation)", () => {
+    const { s, fid } = armSniffFixture("itest-sniff-timed-3");
+    const { node, action } = sniffAction(s);
+
+    action.execute(node, s, {}, { flowId: fid });
+    s.nodeGraph.tick(SNIFF_DURATION);
+
+    const second = getAvailableActions(s.nodes["switch-2"], s).find((a) => a.id === A.SNIFF);
+    assert.ok(second, "SNIFF re-offered once the first sniff completes (node idle again)");
+    second.execute(s.nodes["switch-2"], s, {}, { flowId: fid });
+
+    const ops = s.nodeGraph.snapshot().nodes.find((n) => n.id === "switch-2").operators;
+    const count = ops.filter((o) => o.name === "timed-action" && o.action === A.SNIFF).length;
+    assert.equal(count, 1, "operator attached once, reused thereafter");
+  });
+
+  it("a save/load round-trip mid-sniff preserves the armed operator", () => {
+    const { s, fid } = armSniffFixture("itest-sniff-timed-4");
+    const { node, action } = sniffAction(s);
+
+    action.execute(node, s, {}, { flowId: fid });
+    s.nodeGraph.tick(3); // partway
+
+    const snap = JSON.parse(JSON.stringify(serializeState()));
+    deserializeState(snap);
+    const restored = getState();
+
+    const sniffed = withEvents(E.FLOW_SNIFFED, () => {
+      restored.nodeGraph.tick(SNIFF_DURATION); // finish the remaining ticks
+    });
+    assert.equal(sniffed.length, 1, "restored sniff completes and resolves once");
   });
 });
 
