@@ -66,6 +66,25 @@ describe("validateSetPiece: port-target (2)", () => {
   });
 });
 
+describe("validateSetPiece: lateral-port (13)", () => {
+  it("flags a port declaring direction lateral (unwired — see #39)", () => {
+    const def = basePiece();
+    def.nodes.push({ id: "n2", type: "generic", traits: [], attributes: {}, operators: [], actions: [] });
+    def.internalEdges = [["n1", "n2"]];
+    def.ports = [
+      { nodeId: "n1", direction: "inbound", wantsTags: [], required: true },
+      { nodeId: "n2", direction: "lateral", wantsTags: [], required: true },
+    ];
+    const fired = checks(validateSetPiece(def), "lateral-port");
+    assert.ok(fired.some((e) => e.nodeId === "n2"), "n2's lateral port should be flagged");
+  });
+  it("passes when ports are only inbound/outbound", () => {
+    const def = basePiece();
+    def.ports = [{ nodeId: "n1", direction: "inbound", wantsTags: [], required: true }];
+    assert.equal(checks(validateSetPiece(def), "lateral-port").length, 0);
+  });
+});
+
 describe("validateSetPiece: operator-input (3)", () => {
   it("flags an all-of input that is not a declared node", () => {
     const def = basePiece();
