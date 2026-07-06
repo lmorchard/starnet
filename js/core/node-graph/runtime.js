@@ -246,6 +246,23 @@ export class NodeGraph {
   }
 
   /**
+   * Whether a node carries an operator with the given name (and optionally a
+   * specific `action` id). Used to decide attach-vs-reuse for dynamically
+   * attached behaviors (e.g. the sniff/replay timed-action bridge) without the
+   * coarse detach-all-by-name that would sweep away synthesized operators.
+   * @param {string} nodeId
+   * @param {string} operatorName
+   * @param {string} [actionId]
+   * @returns {boolean}
+   */
+  hasBehavior(nodeId, operatorName, actionId = undefined) {
+    const node = this._requireNode(nodeId);
+    return node.operators.some(
+      (op) => op.name === operatorName && (actionId === undefined || op.action === actionId)
+    );
+  }
+
+  /**
    * Dispatch an init message to every node, then evaluate triggers.
    * Call once after construction, before any tick or action.
    */
