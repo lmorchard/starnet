@@ -42,7 +42,8 @@
  * A typed connection point on a set-piece.
  * @typedef {Object} Port
  * @property {string} nodeId              -which internal node is the port
- * @property {"inbound"|"outbound"|"lateral"} direction
+ * @property {"inbound"|"outbound"|"lateral"} direction  -"lateral" is reserved but NOT yet wired
+ *   by the generator (see #39); validateSetPiece rejects lateral ports until it is implemented
  * @property {string[]} wantsTags         -tag preferences for what should attach (empty = anything)
  * @property {boolean} required           -must the generator fill this port?
  */

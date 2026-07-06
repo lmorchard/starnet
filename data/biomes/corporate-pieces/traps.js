@@ -354,10 +354,10 @@ export const cascadeShutdown = {
   tags: ["pressure", "puzzle"],
   cost: "A",
   minDepth: 3,  // keep the timed puzzle off the doorstep; the watchdog now arms on first subvert
+  // relay-b/relay-c are reached internally through `watchdog`; no lateral ports (the generator
+  // does not wire lateral connections — see #39). Player enters via relay-a.
   ports: [
     { nodeId: "relay-a", direction: "inbound", wantsTags: [], required: true },
-    { nodeId: "relay-b", direction: "lateral", wantsTags: [], required: true },
-    { nodeId: "relay-c", direction: "lateral", wantsTags: [], required: true },
   ],
 };
 

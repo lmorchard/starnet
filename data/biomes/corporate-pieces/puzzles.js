@@ -143,10 +143,10 @@ export const combinationLock = {
   externalPorts: ["switch-a", "switch-b", "switch-c", "gate"],
   tags: ["puzzle", "treasure", "gate"],
   cost: "B",
+  // switch-b/switch-c are reached internally through `gate`; no lateral ports (the generator
+  // does not wire lateral connections — see #39). Player enters via switch-a.
   ports: [
     { nodeId: "switch-a", direction: "inbound", wantsTags: [], required: true },
-    { nodeId: "switch-b", direction: "lateral", wantsTags: [], required: true },
-    { nodeId: "switch-c", direction: "lateral", wantsTags: [], required: true },
     { nodeId: "gate", direction: "outbound", wantsTags: ["treasure", "filler"], required: false },
   ],
 };
@@ -270,10 +270,11 @@ export const switchArrangement = {
   externalPorts: ["panel-alpha", "panel-beta", "panel-gamma", "hidden-subnet"],
   tags: ["filler", "puzzle"],
   cost: "D",
+  // panel-beta/panel-gamma are reached internally through the panel chain (see internalEdges);
+  // no lateral ports (the generator does not wire lateral connections — see #39). Player enters
+  // via panel-alpha.
   ports: [
     { nodeId: "panel-alpha", direction: "inbound", wantsTags: [], required: true },
-    { nodeId: "panel-beta", direction: "lateral", wantsTags: [], required: true },
-    { nodeId: "panel-gamma", direction: "lateral", wantsTags: [], required: true },
     { nodeId: "hidden-subnet", direction: "outbound", wantsTags: ["treasure", "filler"], required: false },
   ],
 };
