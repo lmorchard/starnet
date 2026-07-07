@@ -84,19 +84,24 @@ operators, so they live in the same runtime as the existing reactive node behavi
 
 Probing a node tells you *how* to get in, and it's one of two paths per node:
 
-- **Finesse** (the intended *primary* route) — the node trusts something that flows
-  from elsewhere. Capture that (e.g. `SNIFF` a credential two hops upstream) and
-  `SPOOF`/`REPLAY` it in. To own X you first tap Y — the LAN becomes one interlocked
-  puzzle. Quiet. This is the skill route, run with *equipped gear*.
-- **Smash** (the *fallback* — sometimes the sole route) — spray your **disposable
-  exploit hoard** at the node until it cracks, runs out of headroom, or runs dry.
-  Loud, ammo-hungry, and dumb by default — but always available, and the only way in
-  on nodes with no capturable trust path. See **Exploit economy** below.
+Think **two weapons with different profiles — sniper rifle vs. minigun** — not a good
+route and a bad one:
 
-Most nodes offer both; some are finesse-only (`finesseLocked`, already in the code),
-some smash-only. Mixing the two node-to-node is the antidote to "exploit, exploit,
-exploit": every node is a small "which approach?" read. **Failure means *noticed***
-(feeds the trace clock), not "roll again."
+- **Finesse** (the *sniper* — quiet, precise, situational) — the node trusts something
+  that flows from elsewhere. Capture that (e.g. `SNIFF` a credential two hops upstream)
+  and `SPOOF`/`REPLAY` it in. To own X you first tap Y — the LAN becomes one interlocked
+  puzzle. Low heat, but only works where there's a trust path to exploit. The skill
+  route, run with *equipped gear*.
+- **Smash** (the *minigun* — loud, decisive, always loaded) — spray your **disposable
+  exploit hoard** at the node until it cracks, you pull out, or it runs dry. **Not a
+  booby prize:** it's the cathartic, gloriously loud option you reach for *on purpose*
+  — the smash-and-grab playstyle — traded against stealth, and the only way in on nodes
+  with no capturable trust path. See **Exploit economy** below.
+
+Most nodes take either; some are finesse-only (`finesseLocked`, already in the code),
+some smash-only. Choosing your weapon node-to-node is the antidote to "exploit, exploit,
+exploit": every node is a small "which weapon?" read. **Failure means *noticed*** (feeds
+the trace clock), not "roll again."
 
 ---
 
@@ -124,44 +129,123 @@ recon tools.
   programs *plus* **smash-tooling** — recon/analysis and burn-engine gear that runs the
   hoard better. Store-bought, chosen pre-run, does **not** decay. This is the skill you
   bring. *(Future: ICE can corrupt/damage it — see Future hooks.)*
-- **Layer 2 — Exploit hoard (disposable, accumulated).** A large pool (dozens–hundreds)
-  grown by **mining** (existing `MINE`), **buying packs** (store), and **looting**.
-  Ammunition, not treasure — sprayed and spent, not protected.
+- **Layer 2 — Exploit hoard (disposable, accumulated).** **Hundreds of distinct,
+  near-anonymous exploits** — not a curated hand. Grown by **mining**, **research
+  packs**, and **looting** (see *Accumulation*). Ammunition, not treasure: you never
+  fuss over an individual, you reason about the *shape* of the pile.
 
-### What an exploit is (the match model)
+### What an exploit is (simplified record)
 
-Each exploit carries two dimensions:
+An exploit is a **lightweight record** — a rarity, one or more type tags, and a
+"disclosed" (dead) flag. That's it. No per-card decay curve, no persistent instance
+identity to reconcile, none of the current `ExploitCard` ceremony — because it's
+disposable and numerous, **per-exploit handling is deliberately stripped down**
+(migration note below).
 
-- **Rarity** (common / uncommon / rare) — the **hard gate** against a node's grade. A
-  hardened S-grade node yields only to rare exploits; a soft F-grade node falls to
-  almost anything. (Grade → rarity-chance table, à la the sketch's `exploitChances`.)
-- **Type tag(s)** — the **quality signal**. An exploit's type matched against a node's
-  probed/`SNIFF`ed vulnerability profile drives *how likely this specific exploit is
-  the one*. **Rare exploits can carry multiple types**, so rarity buys both high-grade
-  access *and* type-breadth — doubly valuable.
+**Named by terse hex IDs, not flavor** (`a3f19b2c`, à la the sketch) — deliberate:
+a name makes a thing precious, a hex tag makes it *a round of ammunition*. Anonymity
+is a feel lever that keeps the hoard fat and spendable and the table blur-able. The two
+dimensions that matter:
 
-Rarity gates; type steers. Recon (probe/SNIFF/analysis gear) turns "spray blind" into
-"spray the right things first."
+- **Rarity** (common / uncommon / rare) — the primary lever on **how hard each shot
+  bites** a node's coherence vs. its grade (below). (Burn rate, by contrast, is set by
+  the *node's* grade, not the exploit — see *Attrition*. A "rares resist disclosure"
+  knob is a possible future tweak, not the baseline.)
+- **Type tag(s)** — matched against a node's probed/`SNIFF`ed vulnerability profile;
+  a hit **amplifies the bite**. **Rare exploits can carry multiple types**, so rarity
+  buys both raw punch *and* type-breadth — doubly valuable.
+
+### Cracking a node — coherence erosion (not a hit-point roll)
+
+A node isn't cracked by a lucky roll; it's **destabilized**. Each node holds a
+**coherence** reserve — how much sustained fuzzing/fault-injection it can absorb before
+it loses composure and **faults into an exploitable state** (a crash-into-a-debuggable
+window, an exhausted defense, root out of the wreckage). Every smash attempt **chips
+coherence**; the node cracks when it reaches zero.
+
+> `coherence -= chip`,  where  `chip = base(rarity × node-grade) + typeMatchBite`
+
+- **Node coherence** scales with grade (a `balance.js` table): a soft F node has a thin
+  reserve and takes fat chips → cracks in a handful of shots; a hardened S node has a
+  deep reserve and shrugs off common exploits as tiny chips → chews through hundreds
+  unless you bring rares and matched types.
+- **`base(rarity × node-grade)`** — an exploit's raw bite, à la the sketch's
+  `exploitChances` but as *erosion*, not a coin-flip.
+- **`typeMatchBite`** — an exploit whose type(s) hit the node's probed/`SNIFF`ed
+  vulnerability profile lands a **significant-to-crucial** bigger chip. Type doesn't gate
+  eligibility; it's the amplifier. Recon (probe / SNIFF / analysis gear) reveals the
+  profile so the bite can be aimed. (A little per-shot jitter keeps it lively; the point
+  is *accumulation*, so every shot counts toward the break — a crescendo, not a lottery.)
+
+**Fiction:** these aren't strict Von-Neumann machines — they're fuzzier, more analog,
+AI-inflected systems, so they *degrade* under a barrage rather than flip binary up/down.
+"Coherence" is that graceful-degradation margin, not hit points on an OS.
+
+**The two-bars-racing feel:** your **hoard burns down** (attrition, below) while the
+target's **coherence erodes** — the whole moment is *"will my ammo outlast its
+composure?"* When a hardened node finally faults just as your stockpile gutters out,
+that's the payoff.
+
+**Optional — self-stabilize / reboot.** A node you've destabilized but not cracked could
+**recover coherence over time** (tying into the existing reboot mechanic), so you can't
+dribble shots at it — you must *commit to the burst* and crack it before it heals. Great
+pacing tension; noted as optional for E1, not baseline.
+
+### Attrition — probabilistic burn (the difficulty curve *and* the fiction)
+
+Exploits are **reusable until disclosed**, not consumed per shot. Each *attempt* rolls a
+**grade-scaled disclosure chance** (the sketch's `disclosureChance`: ~0 on soft nodes,
+near-certain on hardened ones). On disclosure the exploit is **burned — patched out of
+existence**, gone from your hoard for good (fiction: you used it, it got noticed,
+vendors shipped a fix, it's dead everywhere). So **the pile thins as you lean on it**,
+and *hard targets eat your hoard*; soft ones barely singe it. Attrition — not per-shot
+consumption — is the economy. (Disclosure rolls per attempt regardless of how big a chip
+the shot landed — even the exploit that cracks the node can burn on its way in.)
+
+### The hoard & its UI — blurred, grouped, gear-sharpened
+
+You can't and shouldn't read hundreds of exploits individually. The hoard is presented
+as a **semi-inscrutable table** — **sortable columns, collapsible along rarity and type
+groupings** — that *blurs* by default: you get a fuzzy sense of "lots of common web
+stuff, a couple of rare kernel things," not exact odds. **Better Analysis gear sharpens
+the blur** — de-fogging exact rarities/types/odds and surfacing the best picks — so the
+same gear that drives auto-selection also buys the player *legibility*. Legibility is a
+purchasable capability, not a given.
 
 ### The auto-burn loop
 
-Smashing a node fires exploits at it in sequence until one of:
+Smashing a node fires exploits at it in sequence (order chosen by the gear's selection
+algorithm — best-match-first, or blind/random with no gear), each chipping coherence,
+until one of:
 
-1. **Compromised** — an exploit matches; access rises. Stop.
-2. **Ammo exhausted** — the eligible hoard is spent. Stop (access denied).
-3. **Heat limit reached** — the run's configured heat ceiling is hit. Stop (bail).
+1. **Cracked** — coherence hits zero; the node faults, access rises. Stop.
+2. **Heat limit reached** — the run's configured heat ceiling is hit. Stop (bail — and
+   the coherence you ate may self-stabilize back if the optional reboot rule is on).
+3. **Hoard dry** — no usable exploits remain. Stop (denied).
 
-Each attempt **burns/discloses** the exploit (grade-scaled: tough nodes eat ammo fast,
-soft nodes barely singe it — the sketch's `disclosureChance`), and each *failed* smash
-independently trips the security grid, so a loud burn stacks grid-trips + a heat spike.
-Heat (not attrition alone) is the felt cost, tying straight into the anti-tedium heat
-ratchet below.
+Every attempt adds heat and rolls attrition (above). There's no discrete "miss" to
+punish — the *whole barrage is the noise*: sustained smashing pours heat in, and a hot
+burst trips the security grid via the anti-tedium heat ratchet below. Heat (not attrition
+alone) is the felt, managed cost.
+
+### Accumulation — two channels, distinct flavor
+
+- **`MINE`** (existing action) surfaces exploits **matched to the mined node's own
+  weaknesses** — targeted supply: work a node's flaws, get ammo shaped like them.
+- **Research packs** (darknet store) are **research requests that return blind-box
+  assortments** — a gamble on rarity/type mix, not hand-picked cards. This reframes the
+  store away from selling specific exploits.
+- **Loot** drops top up the pile opportunistically.
+
+Rates/pack-sizes/`MINE` yield are `balance.js` knobs, tuned by feel + census.
 
 ### Gear × hoard synergy (the reason gear matters)
 
 The **selection algorithm** is the gear's job. Baseline (no gear): random spray, blind
 to type, wasteful. Better gear (the *Analyzation* family, in *Netrunner* terms):
 
+- **sharpen the hoard view** — de-blur exact rarities / types / odds that read as fog
+  without gear (see *The hoard & its UI*);
 - fire **best-type-match first**, skipping hopeless-rarity exploits;
 - **reveal** a node's vulnerable set so you can hand-pick;
 - **reduce heat / burn** per attempt (a better burn engine — *Netrunner*'s
@@ -179,9 +263,9 @@ bolt-on:
 1. **Manual** — pick one exploit, one node. Today's `XPLOIT`, preserved as the floor.
 2. **Auto-burn** — the loop above, one node. Gear-driven selection.
 3. **Mass / xploit-sweep** — the auto-burn propagated across a wave, a `processes.js`
-   client (the SWEEP-PROBE seam). Heat scales with breadth; each node resolves
-   independently (partial success), so a wide burn with misses is a loud burst — a true
-   tradeoff vs. paced single-node work where heat decays between actions.
+   client (the SWEEP-PROBE seam). Heat scales with breadth; each node's coherence erodes
+   independently, so a wide barrage is a loud multi-front burst — a true tradeoff vs.
+   paced single-node work where heat decays between actions.
 
 ### Parameterized program runs (shared UX)
 
@@ -192,6 +276,24 @@ This is one shared "configure this run" panel across every progressive process, 
 per-verb afterthought. Thresholds are hidden (heat is *felt*, §2 of the anti-tedium
 arc), so the player-set ceiling is a wager, not a solved optimum. The panel's feel is a
 candidate for the disposable-lab tuning approach.
+
+### Migration & simplification
+
+Exploits going from *few and precious* to *many and disposable* means the current
+per-card machinery should **shrink, not grow**:
+
+- **Drop the per-card decay curve and instance ceremony.** Today an `ExploitCard` carries
+  a use-count / decay state and a hard-won unique `instanceId` (whose non-uniqueness
+  across sessions has been its own recurring bug). Under attrition-by-disclosure an
+  exploit only needs *rarity + type(s) + a dead-flag*; the elaborate identity/decay
+  tracking retires with the hand.
+- **Replace the hand with the hoard.** The current hand-of-cards UI (a few cards, picked
+  individually) becomes the grouped, blurred **hoard table**. Manual single-exploit pick
+  survives only as the "manual" rung of the verb ladder.
+- **Vulnerability tags on nodes** feed the `typeMatchBite` amplifier rather than a
+  card-vs-vuln eligibility check — reconcile with the existing node vuln model in E1.
+- **Old extraction loop stays playable** during the transition (per the pillar's
+  no-half-built-mechanic rule); E1 is where the swap actually lands and gets a census pass.
 
 ---
 
@@ -415,7 +517,7 @@ Each ships and is testable on its own. The old loop keeps working throughout.
 | **2** | **Skim objective + scoring** | one hand-authored financial LAN playable to a payout; `TAP`/`SPLICE`; win/lose/jack-out | Med — first real validation |
 | **3** | **Cyberdeck RAM loadout + store** | pre-run loadout UI, RAM capacity, store reframed around programs | Med |
 | **anti-tedium arc** | **Heat + verb variants + flows-as-scouting** | collapse noise → decaying **heat** feeding the alert **ratchet** (hidden thresholds; alert down only via subversion; lie-low → heat cooling); breadth/speed/stealth verb variants in the loadout; flows-as-scouting. See the section above. | Med–High — reverses "noise only escalates", needs census |
-| **E1** | **Exploit economy — hoard + auto-burn (one node)** | disposable exploit hoard (rarity + type tags, multi-type rares); auto-burn loop with heat-ceiling stop; store sells packs, `MINE` feeds the hoard; today's hand-of-cards UI → hoard + burn. See **Exploit economy** above. *First buildable session of this thread.* | High — reworks core combat + card UI + store; census pass |
+| **E1** | **Exploit economy — hoard + auto-burn (one node)** | disposable hoard of simplified hex-ID exploit records (rarity + type tags, multi-type rares); **coherence-erosion** cracking (chip = rarity×grade base + type bite; node faults at zero coherence); **probabilistic-burn attrition** (disclosure kills exploits, grade-scaled) → two-bars-racing feel; auto-burn loop with heat-ceiling stop; blurred grouped **hoard table** replacing the hand; targeted `MINE` + blind-box research packs. See **Exploit economy** above. *First buildable session; strips the per-card decay/instance ceremony.* | High — reworks core combat + card UI + store; census pass |
 | **E2** | **Smash-tooling gear** | Analysis-family selection/recon/burn-engine gear in the RAM loadout that makes auto-burn smart (best-match-first, reveal, cut heat). Folds into Session 3's loadout/store work. | Med |
 | **E3** | **Mass xploit-sweep** | the auto-burn as a `processes.js` client, propagating like SWEEP; heat-scales-with-breadth. Cheap once E1+E2 land. | Low–Med |
 | later | finesse-access depth (credential rotation/expiry, multi-hop chains), more objectives (repair/dismantle), **ICE corrupts/damages gear** (+ store virus risk), procgen flow puzzles | — | — |
