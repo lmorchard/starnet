@@ -84,15 +84,114 @@ operators, so they live in the same runtime as the existing reactive node behavi
 
 Probing a node tells you *how* to get in, and it's one of two paths per node:
 
-- **Smash** — spend a matching brute technique program. The surviving "exploit card"
-  notion, reframed as a tool rather than a rock-paper-scissors roll. Smash is loud.
-- **Finesse** — the node can't be brute-forced; it only trusts something that flows
+- **Finesse** (the intended *primary* route) — the node trusts something that flows
   from elsewhere. Capture that (e.g. `SNIFF` a credential two hops upstream) and
-  `SPOOF` it in. To own X you first tap Y — the LAN becomes one interlocked puzzle.
+  `SPOOF`/`REPLAY` it in. To own X you first tap Y — the LAN becomes one interlocked
+  puzzle. Quiet. This is the skill route, run with *equipped gear*.
+- **Smash** (the *fallback* — sometimes the sole route) — spray your **disposable
+  exploit hoard** at the node until it cracks, runs out of headroom, or runs dry.
+  Loud, ammo-hungry, and dumb by default — but always available, and the only way in
+  on nodes with no capturable trust path. See **Exploit economy** below.
 
-Mixing smash/finesse node-to-node is the antidote to "exploit, exploit, exploit":
-every node is a small "which approach?" read. **Failure means *noticed*** (feeds the
-trace clock), not "roll again."
+Most nodes offer both; some are finesse-only (`finesseLocked`, already in the code),
+some smash-only. Mixing the two node-to-node is the antidote to "exploit, exploit,
+exploit": every node is a small "which approach?" read. **Failure means *noticed***
+(feeds the trace clock), not "roll again."
+
+---
+
+## Exploit economy: gear vs. ammo
+
+**Status:** designed, not built (brainstorm with Les, 2026-07-06). This reworks the
+current small precious hand-of-cards + per-card decay into **two distinct economies**.
+It supersedes the "Smash as a loadout program family" row and the "Decay narrows to
+smash only" note below — smash *leaves* the precious loadout and becomes disposable
+ammunition; the loadout keeps only the *gear that operates that ammunition well*.
+
+**Why:** the current model treats exploits as scarce, precious, hand-managed cards.
+Mass-applying a precious hand across a subnet is incoherent — you'd blow your whole
+hand. Auto-matching and mass application only make sense on top of *abundant,
+disposable ammo*. Splitting the two also sharpens the smash-vs-finesse duality instead
+of muddying it (see **Access** above). Lineage: the `hackcombat` sketch
+(lmorchard/sketches-v01) — a pool of ~100 disposable exploits burned through against a
+node until it cracked — and the 1990s BBS *Netrunner* (`docs/netrunner.md`): a
+RAM-limited cyberdeck of purchased programs, ICEbreaker power-tiers, and Analyzation
+recon tools.
+
+### Two layers
+
+- **Layer 1 — Gear (precious, equipped).** The cyberdeck-RAM loadout (below): finesse
+  programs *plus* **smash-tooling** — recon/analysis and burn-engine gear that runs the
+  hoard better. Store-bought, chosen pre-run, does **not** decay. This is the skill you
+  bring. *(Future: ICE can corrupt/damage it — see Future hooks.)*
+- **Layer 2 — Exploit hoard (disposable, accumulated).** A large pool (dozens–hundreds)
+  grown by **mining** (existing `MINE`), **buying packs** (store), and **looting**.
+  Ammunition, not treasure — sprayed and spent, not protected.
+
+### What an exploit is (the match model)
+
+Each exploit carries two dimensions:
+
+- **Rarity** (common / uncommon / rare) — the **hard gate** against a node's grade. A
+  hardened S-grade node yields only to rare exploits; a soft F-grade node falls to
+  almost anything. (Grade → rarity-chance table, à la the sketch's `exploitChances`.)
+- **Type tag(s)** — the **quality signal**. An exploit's type matched against a node's
+  probed/`SNIFF`ed vulnerability profile drives *how likely this specific exploit is
+  the one*. **Rare exploits can carry multiple types**, so rarity buys both high-grade
+  access *and* type-breadth — doubly valuable.
+
+Rarity gates; type steers. Recon (probe/SNIFF/analysis gear) turns "spray blind" into
+"spray the right things first."
+
+### The auto-burn loop
+
+Smashing a node fires exploits at it in sequence until one of:
+
+1. **Compromised** — an exploit matches; access rises. Stop.
+2. **Ammo exhausted** — the eligible hoard is spent. Stop (access denied).
+3. **Heat limit reached** — the run's configured heat ceiling is hit. Stop (bail).
+
+Each attempt **burns/discloses** the exploit (grade-scaled: tough nodes eat ammo fast,
+soft nodes barely singe it — the sketch's `disclosureChance`), and each *failed* smash
+independently trips the security grid, so a loud burn stacks grid-trips + a heat spike.
+Heat (not attrition alone) is the felt cost, tying straight into the anti-tedium heat
+ratchet below.
+
+### Gear × hoard synergy (the reason gear matters)
+
+The **selection algorithm** is the gear's job. Baseline (no gear): random spray, blind
+to type, wasteful. Better gear (the *Analyzation* family, in *Netrunner* terms):
+
+- fire **best-type-match first**, skipping hopeless-rarity exploits;
+- **reveal** a node's vulnerable set so you can hand-pick;
+- **reduce heat / burn** per attempt (a better burn engine — *Netrunner*'s
+  Icepick→Torch→Flamethrower tiering);
+- widen the burn to a **sweep** (the mass rung below).
+
+So recon *feeds* the smasher: probing and SNIFF aren't just for finesse — they make
+your dumb fallback smart.
+
+### The verb ladder (where "parallel XPLOIT" lands)
+
+The originally-queued parallel-XPLOIT feature is the **top rung** of one ladder, not a
+bolt-on:
+
+1. **Manual** — pick one exploit, one node. Today's `XPLOIT`, preserved as the floor.
+2. **Auto-burn** — the loop above, one node. Gear-driven selection.
+3. **Mass / xploit-sweep** — the auto-burn propagated across a wave, a `processes.js`
+   client (the SWEEP-PROBE seam). Heat scales with breadth; each node resolves
+   independently (partial success), so a wide burn with misses is a loud burst — a true
+   tradeoff vs. paced single-node work where heat decays between actions.
+
+### Parameterized program runs (shared UX)
+
+Auto-burn, SWEEP, and mass-xploit all take **run parameters** the player sets before
+launch — **heat ceiling** (how hard to lean on the door: meticulous ↔ smash-and-grab),
+**depth / recursion limit** (SWEEP already has this), and later **aggression** knobs.
+This is one shared "configure this run" panel across every progressive process, not a
+per-verb afterthought. Thresholds are hidden (heat is *felt*, §2 of the anti-tedium
+arc), so the player-set ceiling is a wager, not a solved optimum. The panel's feel is a
+candidate for the disposable-lab tuning approach.
 
 ---
 
@@ -112,7 +211,12 @@ Programs are **active tools** that act on the flow board and chain into combos:
 | **Break flow** | `CUT`, `JAM`, `CORRUPT` | edges / nodes |
 | **Fake flow** | `SPOOF`/`REPLAY`, `INJECT` | edges |
 | **Impose condition** | `BLIND`, `FREEZE`, `DECOY`, `OVERCLOCK` | nodes / global |
-| **Smash** | brute techniques (crack a node of class/grade) | nodes |
+| **Analysis / smash-tooling** | recon + burn-engine gear that operates the exploit hoard (select, reveal, cut heat, sweep) | the exploit hoard |
+
+The **Analysis / smash-tooling** family is the Layer-1 gear from **Exploit economy**
+above — it doesn't crack nodes itself; it makes the disposable hoard's auto-burn smart.
+Brute-forcing is no longer a precious *program* you equip; it's the ammunition you
+hoard, and the gear is what aims it.
 
 **The combo is the gameplay** (zero rock-paper-scissors):
 
@@ -127,10 +231,13 @@ stealth budget; finding the quietest solution *is* the puzzle. Loud programs (`C
 smash) cost a lot of heat; quiet ones (`SNIFF`, `THROTTLE`) cost little. This unifies
 the card economy with the alert system instead of adding a parallel resource.
 
-### Decay narrows to smash only
+### Decay lives on the ammo, not the gear
 
-Card decay survives as flavor but applies **only to smash exploits** — disclosed by
-chance on use. Read/flow/condition programs don't wear out.
+Decay/disclosure is now the **exploit hoard's burn mechanic** (see **Exploit economy**):
+disposable exploits are disclosed by chance on use, grade-scaled. Equipped gear
+(finesse programs *and* smash-tooling) does **not** wear out from use — its only threat
+is ICE corruption (Future hooks). This replaces the old "cards decay in your hand"
+model wholesale.
 
 ---
 
@@ -154,7 +261,15 @@ lock" doesn't.
 
 ## Future hooks (out of scope for the first sessions)
 
-- **ICE damages loadout programs** as an attack — a new threat axis beyond detection.
+- **ICE corrupts / damages Layer-1 gear** — a threat axis beyond detection, and the
+  stakes that make the precious layer *precious* (lose gear mid-run → fall back to
+  spraying the raw hoard). *Netrunner* (`docs/netrunner.md`) has a ready-made model:
+  **Corruption** ICE leaves a program working but *crashing intermittently*
+  (probabilistic degradation); **Wraith/Vampire** drain a program's strength until it's
+  deleted; a **Diagnostics** program reveals which gear got hit. Deferred to its own
+  session (see the exploit-economy decomposition).
+- **Store virus risk** — bought warez carry a small chance of a rogue/corrupted payload
+  (*Netrunner*'s brokers), a spice for the darknet store once gear-corruption exists.
 - **Procedural flow puzzles** — generate objectives by placing flows + goals + a
   threat circuit, the long-term payoff of the substrate.
 - **Finesse-access depth** — credential rotation/expiry, multi-hop key chains.
@@ -241,18 +356,22 @@ Each core verb becomes a *family* of loadout-selectable variants along a small t
   progressive-process seam** (`js/core/processes.js`: `state.processes` + a type registry + one
   `stepProcesses()` hook in the central tick + uniform busy/abort) — so it needed *no* bespoke timer
   or abort special-case, and the remaining variants plug into the same registry.
-- **Parallel XPLOIT sweep** vs **node-at-a-time XPLOIT**, trading heat/risk for reach — *pending*,
-  and now cheap: it's another `registerProcess` client on the seam above.
+- **Parallel XPLOIT sweep** vs **node-at-a-time XPLOIT** — *pending*, and now folded into the
+  **Exploit economy** rework (above): it's the **top rung of the auto-burn ladder**, an xploit-sweep
+  that rides the SWEEP-PROBE `processes.js` seam. Because it's an *xploit-sweep* (propagates like
+  SWEEP, no manual multi-select), it sidesteps the multi-node-targeting UI that used to be the
+  hard part.
 
 The RAM loadout decision becomes *"what's my playstyle for this network — meticulous ghost, or
 smash-and-grab?"* — a strong pre-run layer that feeds the Session 3 store/RAM economy. Heat is the
 shared cost model that makes the tradeoffs bite (breadth = heat spikes, viable only where the
 threshold absorbs them or after cooling).
 
-**Cautions:** (a) variants must be **true tradeoffs, not upgrades** — a parallel XPLOIT sweep needs
-real shared risk (e.g. one failure trips the whole target set), or it's just "buy it once, always
-better." (b) **Multi-node targeting is new UI plumbing** — Sessions 0/1 deliberately avoided
-multi-select; a target-set selection model is the non-trivial part.
+**Design decisions (2026-07-06):** (a) the parallel XPLOIT tradeoff is **heat-scales-with-breadth**,
+not all-or-nothing — each node resolves independently, but a wide burn charges heat per node *and*
+each failed node trips the grid, so bursting is a loud spike vs. paced single-node work where heat
+decays between actions. (b) Target selection is the **xploit-sweep** (propagating) model, so the
+multi-select UI Sessions 0/1 avoided is not needed.
 
 **Honest scope note:** verb-variants are a *palliative* for the current extraction loop (fewer
 keystrokes, more choice) — they don't change what *winning* is. The flow-**reconfiguration** loop
@@ -296,7 +415,10 @@ Each ships and is testable on its own. The old loop keeps working throughout.
 | **2** | **Skim objective + scoring** | one hand-authored financial LAN playable to a payout; `TAP`/`SPLICE`; win/lose/jack-out | Med — first real validation |
 | **3** | **Cyberdeck RAM loadout + store** | pre-run loadout UI, RAM capacity, store reframed around programs | Med |
 | **anti-tedium arc** | **Heat + verb variants + flows-as-scouting** | collapse noise → decaying **heat** feeding the alert **ratchet** (hidden thresholds; alert down only via subversion; lie-low → heat cooling); breadth/speed/stealth verb variants in the loadout; flows-as-scouting. See the section above. | Med–High — reverses "noise only escalates", needs census |
-| later | finesse-access depth (credential rotation/expiry, multi-hop chains), more objectives (repair/dismantle), ICE-damages-programs, procgen flow puzzles | — | — |
+| **E1** | **Exploit economy — hoard + auto-burn (one node)** | disposable exploit hoard (rarity + type tags, multi-type rares); auto-burn loop with heat-ceiling stop; store sells packs, `MINE` feeds the hoard; today's hand-of-cards UI → hoard + burn. See **Exploit economy** above. *First buildable session of this thread.* | High — reworks core combat + card UI + store; census pass |
+| **E2** | **Smash-tooling gear** | Analysis-family selection/recon/burn-engine gear in the RAM loadout that makes auto-burn smart (best-match-first, reveal, cut heat). Folds into Session 3's loadout/store work. | Med |
+| **E3** | **Mass xploit-sweep** | the auto-burn as a `processes.js` client, propagating like SWEEP; heat-scales-with-breadth. Cheap once E1+E2 land. | Low–Med |
+| later | finesse-access depth (credential rotation/expiry, multi-hop chains), more objectives (repair/dismantle), **ICE corrupts/damages gear** (+ store virus risk), procgen flow puzzles | — | — |
 
 This is **feel-driven** in its visual layer (particle look, density, cadence): build
 substrate logic test-first, but tune the *rendering* in a disposable harness with Les
