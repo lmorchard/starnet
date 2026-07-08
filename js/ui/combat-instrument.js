@@ -174,24 +174,6 @@ export function bumpShake(fx, amount) {
 
 // ── internal draw helpers ──────────────────────────────────────────────────
 
-/**
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} cx
- * @param {number} cy
- * @param {number} r
- * @param {number} n - sides
- */
-function polygon(ctx, cx, cy, r, n) {
-  ctx.beginPath();
-  for (let i = 0; i < n; i++) {
-    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
-    const x = cx + r * Math.cos(a);
-    const y = cy + r * Math.sin(a);
-    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-  }
-  ctx.closePath();
-}
-
 // Points string parser: "x1,y1 x2,y2 ..." → [{x,y}]
 function _parsePoints(pts) {
   return pts.trim().split(/\s+|,/).reduce((acc, v, i, a) => {
@@ -296,13 +278,10 @@ function rarityColor(rarity) {
  * @property {number} ringCount - RING_COUNT[grade]
  * @property {number} hoardFrac - usable/total rounds (0..1)
  * @property {number} heat01 - heat / heatCeiling (0..1)
- * @property {string} gradeLabel - "C" etc. (core label)
- * @property {boolean} cracked - true → core cyan bloom
  * @property {InstrumentFx} fx
  * @property {number} [scale] - overall draw scale (default 1)
  * @property {number} [opacity] - overall opacity (default 1)
  * @property {number} [ringSpeed] - rotation speed multiplier (default 1)
- * @property {boolean} [coreLabel] - draw grade letter in core (default true)
  * @property {ShieldRingDrawState[]} shieldRings - per-ring mutable rotation state
  * @property {{ r: number, rot: number, dir: number, speed: number, slots: StagingSlot[] }} stagingRing - mutable staging ring state
  */
@@ -321,12 +300,10 @@ export function drawInstrument(ctx, state) {
   const {
     cx, cy,
     coherence01, ringCount, hoardFrac, heat01,
-    gradeLabel, cracked,
     fx,
     scale = 1,
     opacity = 1,
     ringSpeed = 1.0,
-    coreLabel = true,
     shieldRings,
     stagingRing,
   } = state;
