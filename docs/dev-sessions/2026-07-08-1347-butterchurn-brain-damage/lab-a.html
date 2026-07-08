@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lab A — butterchurn brain-damage (standalone)</title>
+<style>
+  html, body { margin: 0; background: #0a0a0f; color: #7CFC7C;
+    font-family: ui-monospace, Menlo, monospace; }
+  #stage { position: relative; width: 100vw; height: 72vh; overflow: hidden;
+    background: #0a0a0f; }
+  /* contain (not cover) so the whole vector UI stays visible under the composite */
+  #backdrop { position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; }
+  /* butterchurn canvas: composited over the vector graph. Blend mode + opacity
+     are the two knobs that decide whether the clash reads as "meat bleeding through". */
+  #bc { position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; mix-blend-mode: screen; opacity: 0; }
+  #controls { padding: 12px 16px; display: grid; gap: 10px;
+    grid-template-columns: repeat(2, minmax(300px, 1fr)); align-items: center; }
+  label { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+  label > span.name { color: #7CFC7C; min-width: 6.5em; }
+  input[type=range] { flex: 1; accent-color: #ff00aa; }
+  button { background: #12121a; color: #ff00aa; border: 1px solid #ff00aa;
+    padding: 6px 14px; cursor: pointer; font-family: inherit; letter-spacing: 0.08em; }
+  button:hover { background: #1c1230; }
+  select { background: #12121a; color: #7CFC7C; border: 1px solid #7CFC7C;
+    padding: 4px; font-family: inherit; max-width: 22em; }
+  output { color: #ff00aa; min-width: 3.5em; text-align: right; }
+  #status { grid-column: 1 / -1; color: #888; font-size: 0.85em; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <img id="backdrop" src="./graph-shot.png" alt="vector graph backdrop" />
+    <canvas id="bc"></canvas>
+  </div>
+  <div id="controls">
+    <label><span class="name">preset</span> <select id="preset"></select></label>
+    <label><span class="name">blend</span>
+      <select id="blend">
+        <option value="screen" selected>screen</option>
+        <option value="lighten">lighten</option>
+        <option value="overlay">overlay</option>
+        <option value="color-dodge">color-dodge</option>
+        <option value="normal">normal</option>
+      </select>
+    </label>
+    <label><span class="name">base opacity</span>
+      <input id="opacity" type="range" min="0" max="1" step="0.01" value="0"/>
+      <output id="opacityVal">0.00</output></label>
+    <label><span class="name">severity</span>
+      <input id="severity" type="range" min="0" max="1" step="0.01" value="0"/>
+      <output id="severityVal">0.00</output></label>
+    <label><button id="shock">⚡ SHOCK</button> <span>transient wetware flare</span></label>
+    <label><button id="audio">▶ start audio</button> <span>(needs a click to begin)</span></label>
+    <div id="status">idle — click ▶ start audio, then raise opacity</div>
+  </div>
+  <audio id="track" src="./lab-audio.mp3" loop></audio>
+  <script type="module" src="./lab-a-boot.js"></script>
+</body>
+</html>
