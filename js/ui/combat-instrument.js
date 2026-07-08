@@ -438,21 +438,10 @@ export function drawInstrument(ctx, state) {
   ctx.shadowBlur = 0;
 
   // ── core ──────────────────────────────────────────────────────────────────
-  const isCracked = cracked || aliveCount <= 0;
-  ctx.strokeStyle = isCracked ? "#21e6ff" : "#ff5a5a";
-  ctx.shadowColor = ctx.strokeStyle;
-  ctx.shadowBlur = fx.flash > 0 ? 30 : 10;
-  ctx.lineWidth = 1.5;
-  polygon(ctx, cx, cy, CORE_R, 6);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  if (coreLabel) {
-    ctx.fillStyle = isCracked ? "#7fefff" : "#ff8a8a";
-    ctx.textAlign = "center";
-    ctx.font = "13px monospace";
-    ctx.fillText(gradeLabel, cx, cy + 5);
-  }
+  // No drawn core: the real graph node sits under the instrument center and shows
+  // the grade + shape already — a hexagon + grade letter here just doubled it.
+  // (CORE_R still bounds where projectiles land once all shields fall; the crack
+  // payoff is the cyan flash overlay + shards below, not a core bloom.)
 
   // ── projectiles ───────────────────────────────────────────────────────────
   for (const s of fx.shots) {
