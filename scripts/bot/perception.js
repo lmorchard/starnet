@@ -60,7 +60,7 @@ export function perceive(state, context = {}) {
 
       // Minable: owned nodes whose mine action is still available (requires gate
       // hides it once the node taps out, so this self-bounds against exhaustion).
-      // vulnTypes mirrors generateMinedCard's filter (non-patched, non-hidden) so the
+      // vulnTypes mirrors generateMinedRound's filter (non-patched, non-hidden) so the
       // mineStrategy vuln-overlap preference reflects what mining can actually yield.
       if (actions.some(a => a.id === A.MINE)) {
         const vulnTypes = new Set(

@@ -16,7 +16,7 @@
 import { A } from "../action-ids.js";
 import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert, scrubLogs, lieLow, recordHeat } from "../alert.js";
 import { HEAT_COST } from "../balance.js";
-import { addCash, setMissionComplete, addCardToHand, addRoundToHoard } from "../state/player.js";
+import { addCash, setMissionComplete, addRoundToHoard } from "../state/player.js";
 import { mineYieldChance, isMineExhausted, generateMinedRound } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
 import { activeIceInstances } from "../state/ice.js";

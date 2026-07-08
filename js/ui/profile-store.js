@@ -55,10 +55,8 @@ export function loadProfile() {
 function normalizeProfile(p) {
   if (typeof p.bank !== "number") p.bank = 0;
   if (!Array.isArray(p.hoard)) p.hoard = [];
-  if (!Array.isArray(p.inventory)) p.inventory = []; // vestigial; kept until Phase 9
   if (typeof p._hubVisits !== "number") p._hubVisits = 0;
   if (typeof p.version !== "number") p.version = PROFILE_VERSION;
-  if (typeof p._instanceSeq !== "number") p._instanceSeq = 0;
   return p;
 }
 

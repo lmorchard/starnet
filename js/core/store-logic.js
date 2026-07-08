@@ -4,13 +4,10 @@
 // delegate to this module. No DOM dependencies.
 //
 // Phase 6 (E1): store now sells research packs → hoard rounds.
-// buyExploit, generateExploitForVuln, addCardToInventory are kept vestigial (Phase 9 sweep).
 
 import { getState } from "./state.js";
 import { addCash, addRoundToHoard } from "./state/player.js";
-import { buyExploit } from "./state.js";  // vestigial — Phase 9
-import { generateExploitForVuln } from "./exploits.js"; // vestigial — Phase 9
-import { withdraw, addCardToInventory, addRoundToHoard as profileAddRound } from "./profile/index.js";
+import { withdraw, addRoundToHoard as profileAddRound } from "./profile/index.js";
 import { getPackCatalog, openPack } from "./packs.js";
 
 /**

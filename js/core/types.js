@@ -9,7 +9,6 @@
 /** @typedef {"locked"|"owned"} AccessLevel */
 /** @typedef {"green"|"yellow"|"red"} NodeAlertLevel */
 /** @typedef {"green"|"yellow"|"red"|"trace"} GlobalAlertLevel */
-/** @typedef {"fresh"|"worn"|"disclosed"} DecayState */
 /** @typedef {"playing"|"ended"} GamePhase */
 /** @typedef {"success"|"caught"|"burned"|"bricked"} RunOutcome */
 /** @typedef {"S"|"A"|"B"|"C"|"D"|"F"} Grade */
@@ -46,28 +45,9 @@
  */
 
 /**
- * An exploit card in the player's hand.
- * `instanceId` is a profile-scoped unique id, assigned when the card enters the
- * persistent inventory (js/core/profile). It is distinct from `id` (a per-run,
- * vuln-type+counter display id) and is what lets a specific card be written back
- * or burned across runs. Absent on freshly-generated, not-yet-banked cards.
- * @typedef {{
- *   id: string,
- *   name: string,
- *   rarity: Rarity,
- *   quality: number,
- *   targetVulnTypes: string[],
- *   decayState: DecayState,
- *   usesRemaining: number,
- *   instanceId?: string,
- * }} ExploitCard
- */
-
-/**
  * A disposable exploit round in the player's hoard (E1 exploit economy).
- * Unlike ExploitCards (named gear with uses and quality), rounds are anonymous
- * ammunition identified by a terse hex tag. Rare rounds carry multiple exploit
- * types; uncommon carry 2; common carry 1.
+ * Rounds are anonymous ammunition identified by a terse hex tag. Rare rounds
+ * carry multiple exploit types; uncommon carry 2; common carry 1.
  * @typedef {{
  *   id: string,
  *   rarity: Rarity,
@@ -138,7 +118,6 @@
 /**
  * @typedef {{
  *   cash: number,
- *   hand: ExploitCard[],
  *   hoard: ExploitRound[],
  *   health: { current: number, max: number },
  *   deckIntegrity: { current: number, max: number },
@@ -150,15 +129,13 @@
  * Persistent cross-run player profile. Lives OUTSIDE GameState (in localStorage
  * via js/ui/profile-store.js), so it survives resetGame between runs. Model and
  * mutations are in js/core/profile.
- * `hoard` is the persistent carry-all ammunition (E1 hoard cutover); `inventory`
- * (+ `_instanceSeq`) is the legacy card store, kept vestigial until the Phase 9
- * sweep removes it once every consumer is repointed.
+ * `hoard` is the persistent carry-all ammunition (E1 hoard cutover). The legacy
+ * card `inventory` was removed in the Phase 9 sweep once every consumer was
+ * repointed to the hoard.
  * @typedef {{
  *   version: number,
  *   bank: number,
  *   hoard: ExploitRound[],
- *   inventory: ExploitCard[],
- *   _instanceSeq: number,
  *   _hubVisits: number,
  * }} StarnetProfile
  */

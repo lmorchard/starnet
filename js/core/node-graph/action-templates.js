@@ -15,9 +15,9 @@
 /** @typedef {import('./types.js').OperatorConfig} OperatorConfig */
 
 import { A } from "../action-ids.js";
-// getExploitChoices / getExploitEmptyReason removed: XPLOIT followup (card picker)
-// was removed in Phase 3 (E1). Those functions remain in exploits.js for use by
-// profile/hub/store code (Phase 5 cleanup will sweep them).
+// No exploit-card picker followup: the XPLOIT followup (card picker) was removed
+// in Phase 3 (E1) — auto-burn draws from the hoard directly. The card-choice
+// helpers it used were deleted in the Phase 9 sweep.
 import { ABORTABLE_FLAGS, getTimedActionAttrNames } from "./timed-actions.js";
 
 // ── Shared action templates ──────────────────────────────────

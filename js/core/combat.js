@@ -1,9 +1,9 @@
 // @ts-check
 // Combat-balance constant re-export shim.
 //
-// The card-combat path (launchExploit / resolveExploit / resolveCombat /
-// applyCombatResult / applyCardDecay / skipToOwnedChance) was retired in the E1
-// exploit-hoard rework: XPLOIT now launches the coherence auto-burn process
+// The old card-combat path (exploit resolution, per-card decay, skip-to-owned)
+// was retired in the E1 exploit-hoard rework: XPLOIT now launches the coherence
+// auto-burn process
 // (js/core/autoburn.js), and access collapsed to two tiers (locked → owned), so
 // the three-tier ladder and the `"open"` intermediate those functions wrote no
 // longer exist.

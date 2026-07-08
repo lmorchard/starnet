@@ -3,15 +3,14 @@
 
 import { getState } from "../state.js";
 import { addLogEntry, getRecentLog } from "../log.js";
-import { getStoreCatalog } from "../exploits.js"; // vestigial — Phase 9
 import { getPackCatalog } from "../packs.js";
 import { getAvailableActions, getScriptActions } from "../actions/node-actions.js";
 import { buyFromStore } from "../store-logic.js";
 import {
-  fromList, fromNodes, fromCards, fromVulnIds, completeNodeArg, getObscuredAliases,
+  fromList, fromNodes, completeNodeArg, getObscuredAliases,
 } from "./completions.js";
 import {
-  resolveNode, resolveImplicitNode, resolveCard, dispatch, resolveWanAccess,
+  resolveNode, resolveImplicitNode, dispatch, resolveWanAccess,
 } from "./resolvers.js";
 import { isObscured } from "../state/node.js";
 import { visibleIncidentFlows, flowId } from "../programs.js";
@@ -242,7 +241,7 @@ export const COMMANDS = [
         }
 
         if (sel.probed) {
-          lines.push(`  cheat give matching      — add matching exploits [balance rescue — sets cheat flag]`);
+          lines.push(`  cheat give matching      — add matching rounds to hoard [balance rescue — sets cheat flag]`);
         }
       }
 
@@ -359,8 +358,8 @@ export const COMMANDS = [
         "  log [n]                   Replay last n log entries (default: 20).",
         "  help                      Show this listing.",
         "  // CHEAT — playtesting only. Cheaters never win.",
-        "  cheat give matching [node]  Add exploits matching node's vulns (balance rescue).",
-        "  cheat give card [rarity]    Add random exploit card.",
+        "  cheat give matching [node]  Add rounds matching node's vulns to the hoard (balance rescue).",
+        "  cheat give card [rarity]    Add a round to the hoard.",
         "  cheat give cash <amount>    Add credits to wallet.",
         "  cheat alert set <level>     Force alert level: green yellow red trace",
         "  cheat alert raise|lower     Step the global alert up/down one level",

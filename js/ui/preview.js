@@ -15,7 +15,7 @@ import {
 } from "./graph.js";
 import { initializeGraphOverlays } from "./overlays/index.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
-import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
+import { mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { FLOW_TYPES } from "./flow-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
@@ -390,10 +390,6 @@ $("btn-reset-all").addEventListener("click", () => {
     $("btn-reticle-toggle").classList.remove("active");
   }
 });
-
-// ── Card gallery ─────────────────────────────────────────────
-
-mountCardGallery($("card-gallery"));
 
 // ── Vuln glyph swatches ──────────────────────────────────────
 

@@ -43,13 +43,6 @@ describe("initGame — hoard seeding at run-start", () => {
     const hoard = getState().player.hoard;
     assert.deepEqual(hoard.map((r) => r.id), ["h1", "h2", "h3"], "hand-off carries the whole hoard");
   });
-
-  it("seeds player.hand empty (no loadout at run-start; the field stays for vestigial consumers)", () => {
-    initGame(() => buildCorporateFoothold(), "hoard-seed-2");
-    const s = getState();
-    assert.ok(Array.isArray(s.player.hand), "hand field still present");
-    assert.equal(s.player.hand.length, 0, "hand starts empty — there is no loadout now");
-  });
 });
 
 describe("run lifecycle — profile ↔ run hoard", () => {

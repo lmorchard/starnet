@@ -19,13 +19,12 @@
 /** @typedef {import('../types.js').GameState} GameState */
 /** @typedef {import('../types.js').NodeState} NodeState */
 /** @typedef {import('../types.js').IceState} IceState */
-/** @typedef {import('../types.js').ExploitCard} ExploitCard */
 /** @typedef {import('../types.js').NodeAlertLevel} NodeAlertLevel */
 /** @typedef {import('../types.js').GlobalAlertLevel} GlobalAlertLevel */
 
 import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt, random } from "../rng.js";
 import { pickIceTypeId, getType } from "../ice/index.js";
-import { generateVulnerabilities, _exploitIdCounter, setExploitIdCounter, reconcileHandIds } from "../exploits.js";
+import { generateVulnerabilities } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { generateHoard, DEFAULT_START_HOARD } from "../hoard.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
@@ -35,7 +34,7 @@ import { createRunContext, getActiveRun, setActiveRun, requireActiveRun } from "
 import { setNodeVisible, setNodeSigAlias, setNodeGraph, isSyncingToGraph } from "./node.js";
 import { setIceActive } from "./ice.js";
 import { setPhase, setRunOutcome } from "./game.js";
-import { setCash, addCash, addCardToHand } from "./player.js";
+import { setCash, addCash } from "./player.js";
 
 import { NodeGraph } from "../node-graph/runtime.js";
 import { buildGameCtx } from "../node-graph/game-ctx.js";
@@ -196,12 +195,6 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     nodeGraph: graph,
     player: {
       cash: meta.startCash ?? 1000,
-      // Hand starts EMPTY: the E1 hoard cutover retired the loadout, and the
-      // carry-all hoard (below) is what the player brings into a run. The `hand`
-      // field is kept (seeded []) because MINE, the in-run darknet store, and the
-      // card readers still push/read it until Phases 6–8 repoint them; the Phase 9
-      // sweep removes the field entirely.
-      hand: [],
       // Exploit-round hoard: disposable ammo for the auto-burn loop (E1).
       // meta.startHoard is a pre-built round ARRAY when the hub/fast-start threads
       // the profile's carried hoard (the common case) — used as-is. A network MAY
@@ -228,10 +221,6 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     ui: { menuOpen: false, handCollapsed: false },
   };
   const state = ctx.state;   // local alias so the rest of initGame reads unchanged
-
-  // (No reconcileHandIds at run-start: the hand seeds empty now — the carry-all
-  // hoard replaced the loadout. deserializeState still reconciles a loaded hand,
-  // which may hold cards MINEd/bought in an in-progress saved run.)
 
   // Register graph sync on the node setter module
   setNodeGraph(graph);
@@ -383,21 +372,6 @@ export function isIceVisible(ice, nodes, selectedNodeId = null) {
   return atAccess === "owned";
 }
 
-// ── Store / card acquisition ──────────────────────────────
-
-/**
- * @param {ExploitCard} card
- * @param {number} price
- * @returns {boolean}
- */
-export function buyExploit(card, price) {
-  const state = getState();
-  if (state.player.cash < price) return false;
-  addCash(-price);
-  addCardToHand(card);
-  return true;
-}
-
 // ── Serialization ─────────────────────────────────────────
 
 export function serializeState() {
@@ -407,13 +381,12 @@ export function serializeState() {
     ...rest,
     _timers: serializeTimers(),       // active context's timer set
     _rng: serializeRng(),             // shared service (overworld + run)
-    _exploitIdCounter,                // shared service (overworld + run)
     _nodeGraph: nodeGraph ? nodeGraph.snapshot() : null,
   };
 }
 
 export function deserializeState(snapshot, opts = {}) {
-  const { _timers, _rng, _exploitIdCounter: exploitId, _nodeGraph, ...gameState } = snapshot;
+  const { _timers, _rng, _nodeGraph, ...gameState } = snapshot;
 
   // A restored run is also a fresh context swapped in — same as initGame.
   const ctx = createRunContext();
@@ -433,11 +406,6 @@ export function deserializeState(snapshot, opts = {}) {
   deserializeTimers(_timers);   // writes into ctx.timers
   if (_rng) deserializeRng(_rng);
   else initRng(gameState.seed ?? undefined);
-  if (exploitId != null) setExploitIdCounter(exploitId);
-
-  // Heal saves whose hand carries colliding card ids (see initGame). Runs after
-  // the counter is restored so re-mints continue above the snapshot's id space.
-  if (ctx.state?.player?.hand) reconcileHandIds(ctx.state.player.hand);
 
   // Restore NodeGraph from snapshot
   if (_nodeGraph) {

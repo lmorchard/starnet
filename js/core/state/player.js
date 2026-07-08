@@ -17,13 +17,6 @@ export function setCash(amount) {
   });
 }
 
-/** Pushes a card to state.player.hand. */
-export function addCardToHand(card) {
-  mutate((s) => {
-    s.player.hand.push(card);
-  });
-}
-
 /** Captures a credential token (from a SNIFFed flow). De-dupes; ignores empty. */
 export function addCapturedCredential(key) {
   mutate((s) => {
@@ -35,22 +28,6 @@ export function addCapturedCredential(key) {
 export function setMissionComplete() {
   mutate((s) => {
     if (s.mission) s.mission.complete = true;
-  });
-}
-
-/**
- * Apply card decay — updates usesRemaining and decayState on a card in hand.
- * @param {string} cardId
- * @param {number} usesRemaining
- * @param {import('../types.js').DecayState} decayState
- */
-export function applyCardDecay(cardId, usesRemaining, decayState) {
-  mutate((s) => {
-    const card = s.player.hand.find((c) => c.id === cardId);
-    if (card) {
-      card.usesRemaining = usesRemaining;
-      card.decayState = decayState;
-    }
   });
 }
 

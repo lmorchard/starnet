@@ -2,11 +2,9 @@
 // Completion providers and the tabComplete() entry point.
 
 /** @typedef {import('../types.js').GameState} GameState */
-/** @typedef {import('../types.js').ExploitCard} ExploitCard */
 /** @typedef {import('../types.js').NodeState} NodeState */
 
 import { registry } from "./registry.js";
-import { VULNERABILITY_TYPES } from "../exploits.js";
 import { isObscured } from "../state/node.js";
 
 // ── Completion infrastructure ─────────────────────────────────────────────────
@@ -98,40 +96,6 @@ export function fromNodes(nodes, partial, { includeAll = false } = {}) {
     }
   }
   return { insertTexts, displayTexts };
-}
-
-/**
- * Card completion: matches by id prefix or name prefix; inserts id when matched
- * by id, name when matched by name.  Disclosed cards are excluded.
- * Suggestions show "id  name" for readability.
- * @param {ExploitCard[]} hand
- * @param {string} partial
- * @returns {{ insertTexts: string[], displayTexts: string[] }}
- */
-export function fromCards(hand, partial) {
-  const lc = partial.toLowerCase();
-  const matches = hand.filter(c =>
-    c.decayState !== "disclosed" &&
-    (c.id.toLowerCase().startsWith(lc) || c.name.toLowerCase().startsWith(lc))
-  );
-  const insertTexts = matches.map(c =>
-    c.id.toLowerCase().startsWith(lc) ? c.id : c.name
-  );
-  return { insertTexts, displayTexts: matches.map(c => `${c.id}  ${c.name}`) };
-}
-
-/**
- * Vuln-id completion: inserts id, shows "id  name" in suggestions.
- * @param {string} partial
- * @returns {{ insertTexts: string[], displayTexts: string[] }}
- */
-export function fromVulnIds(partial) {
-  const lc = partial.toLowerCase();
-  const matches = VULNERABILITY_TYPES.filter(v => v.id.toLowerCase().startsWith(lc));
-  return {
-    insertTexts: matches.map(v => v.id),
-    displayTexts: matches.map(v => `${v.id}  ${v.name}`),
-  };
 }
 
 /** Complete a single optional node argument.  Used by several commands. */

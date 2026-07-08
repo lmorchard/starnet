@@ -7,7 +7,7 @@ import { buildNetwork as buildCorporateExchange } from "../../../data/networks/c
 import { initGame, getState, getVersion } from "./index.js";
 import { clearAll } from "../timers.js";
 import {
-  addCash, setCash, addCardToHand, setMissionComplete, applyCardDecay,
+  addCash, setCash, setMissionComplete,
   damagePlayerHealth, damagePlayerDeck, setPlayerHealth, setPlayerDeckIntegrity,
 } from "./player.js";
 
@@ -30,13 +30,6 @@ describe("state/player — player mutations", () => {
     assert.equal(getState().player.cash, 0);
   });
 
-  it("addCardToHand pushes card to hand", () => {
-    const before = getState().player.hand.length;
-    addCardToHand({ id: "test-card", name: "Test", quality: 0.5 });
-    assert.equal(getState().player.hand.length, before + 1);
-    assert.equal(getState().player.hand[before].id, "test-card");
-  });
-
   it("setMissionComplete marks mission as complete", () => {
     // Mission may or may not exist depending on network seed
     const s = getState();
@@ -44,18 +37,6 @@ describe("state/player — player mutations", () => {
 
     setMissionComplete();
     assert.equal(getState().mission.complete, true);
-  });
-
-  it("applyCardDecay updates card in hand", () => {
-    // The hand seeds empty after the E1 hoard cutover; push a card so the
-    // (vestigial) card-decay setter has something to act on.
-    addCardToHand({ id: "decay-card", name: "Test", quality: 0.5, usesRemaining: 3, decayState: "fresh" });
-    const card = getState().player.hand.find((c) => c.id === "decay-card");
-    const origUses = card.usesRemaining;
-    applyCardDecay(card.id, origUses - 1, "worn");
-    const after = getState().player.hand.find((c) => c.id === "decay-card");
-    assert.equal(after.usesRemaining, origUses - 1);
-    assert.equal(after.decayState, "worn");
   });
 });
 

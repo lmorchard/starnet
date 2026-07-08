@@ -26,7 +26,7 @@ import {
   createFileserver, createFirewall, createWAN,
 } from "../js/core/node-graph/node-factories.js";
 import { buildSetPieceMiniNetwork } from "../js/core/node-graph/mini-network.js";
-import { initGame, getState, isIceVisible, buyExploit, addHeat } from "../js/core/state.js";
+import { initGame, getState, isIceVisible, addHeat } from "../js/core/state.js";
 import { navigateTo, navigateAway } from "../js/core/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/core/ice.js";
 import { emitEvent, on, off, E } from "../js/core/events.js";
@@ -39,7 +39,6 @@ import { addCapturedCredential } from "../js/core/state/player.js";
 import { A } from "../js/core/action-ids.js";
 import { SNIFF_DURATION, REPLAY_DURATION } from "../js/core/balance.js";
 import { MINE_TAPOUT } from "../js/core/mining.js";
-import { generateExploit } from "../js/core/exploits.js";
 import { startAutoBurn, initAutoBurn } from "../js/core/autoburn.js";
 import { setHoard } from "../js/core/state/player.js";
 import { startTraceCountdown, recordIceDetection } from "../js/core/alert.js";
@@ -729,34 +728,6 @@ describe("WAN node", () => {
   });
 });
 
-describe("buyExploit", () => {
-  beforeEach(() => {
-    clearAll();
-    initGame(() => buildBasicLAN({ startCash: 1000 }), "itest-19");
-  });
-
-  it("adds card to hand and deducts cash", () => {
-    const s = getState();
-    const before = s.player.cash;
-    const card = generateExploit("common");
-    const result = buyExploit(card, 100);
-    assert.equal(result, true);
-    assert.equal(s.player.cash, before - 100);
-    assert.ok(s.player.hand.some((c) => c.id === card.id), "card should be in hand");
-  });
-
-  it("returns false and leaves state unchanged when cash < price", () => {
-    const s = getState();
-    s.player.cash = 50;
-    const handBefore = s.player.hand.length;
-    const card = generateExploit("common");
-    const result = buyExploit(card, 100);
-    assert.equal(result, false);
-    assert.equal(s.player.cash, 50);
-    assert.equal(s.player.hand.length, handBefore);
-  });
-});
-
 // ── Exploit success: revealed state ───────────────────────────────────────────
 
 /**
@@ -1047,10 +1018,10 @@ describe("mine action", () => {
       "MINE action must not be available once the vein is tapped out");
   });
 
-  it("a MISS emits ACTION_RESOLVED with detail.outcome 'miss' and adds no card", () => {
+  it("a MISS emits ACTION_RESOLVED with detail.outcome 'miss' and adds no round", () => {
     const s = getState();
     const duration = ownGateway();
-    const handBefore = s.player.hand.length;
+    const hoardBefore = s.player.hoard.length;
 
     _forceNext(RNG.MINE, 0.999); // yield roll → miss
 
@@ -1061,7 +1032,7 @@ describe("mine action", () => {
 
     assert.equal(resolved.length, 1, "exactly one mine ACTION_RESOLVED should fire");
     assert.equal(resolved[0].detail.outcome, "miss", "outcome should be 'miss'");
-    assert.equal(s.player.hand.length, handBefore, "a miss must not add a card");
+    assert.equal(s.player.hoard.length, hoardBefore, "a miss must not add a round");
   });
 
   it("ABORT cancels an in-progress mine", () => {
@@ -1103,18 +1074,18 @@ describe("honey-pot trap: MINE springs the counter-trace", () => {
     clearAll();
   });
 
-  it("mining a trap node poisons it, starts the trace, and grants no card", () => {
+  it("mining a trap node poisons it, starts the trace, and grants no round", () => {
     initGame(() => buildCorporateExchange(), "honeypot-mine-seed");
     const s = getState();
     const graph = s.nodeGraph;
-    const handBefore = s.player.hand.length;
+    const hoardBefore = s.player.hoard.length;
 
     graph.executeAction("pot/honey-pot", "mine");
     graph.tick(60);
 
     assert.equal(graph.getNodeState("pot/honey-pot").poisoned, true, "mine must poison the node");
     assert.notEqual(getState().traceSecondsRemaining, null, "mine must start the trace");
-    assert.equal(getState().player.hand.length, handBefore, "mine must grant no card on a trap node");
+    assert.equal(getState().player.hoard.length, hoardBefore, "mine must grant no round on a trap node");
   });
 });
 
@@ -1838,62 +1809,6 @@ describe("EXEC dispatch echo", () => {
     // (grade C: 15 ticks + 1 to resolve duration from the table).
     s.nodeGraph.tick(16);
     assert.equal(getState().nodes["ids-1"].forwardingEnabled, false, "script ran");
-  });
-});
-
-// ── Exploit card id uniqueness ────────────────────────────────────────────────
-// Regression: card ids are minted `${vuln}-${counter}`, but the counter resets per
-// session while profile cards persist across sessions — so a carried card and a
-// freshly-minted one can share an id. The exploit pipeline keys off `id` and takes
-// the first match, so the second card silently no-ops (the reported "SnmpWalker X
-// does nothing" bug — first match was a disclosed/0-uses card).
-
-describe("Exploit cards: duplicate id reconciliation", () => {
-  const DUP_ID = "stale-firmware-1";
-  const makeDupHand = () => ([
-    // Mirrors the reported save: same id, first is dead, second is the one the
-    // player tries to play.
-    { id: DUP_ID, name: "AuthBrute Prime", rarity: "common", quality: 0.22, targetVulnTypes: ["stale-firmware"], decayState: "disclosed", usesRemaining: 0, instanceId: "inv-0" },
-    { id: DUP_ID, name: "SnmpWalker X",    rarity: "common", quality: 0.47, targetVulnTypes: ["stale-firmware"], decayState: "fresh",     usesRemaining: 3, instanceId: "inv-6" },
-  ]);
-
-  function buildDupHandLAN() {
-    return {
-      graphDef: {
-        nodes: [
-          createGateway("gateway", { attributes: { visibility: "accessible" } }),
-          createRouter("router-a"),
-        ],
-        edges: [["gateway", "router-a"]],
-        triggers: [],
-      },
-      meta: { startNode: "gateway", startCash: 0, moneyCost: "C", ice: null, startHandCards: makeDupHand() },
-    };
-  }
-
-  beforeEach(() => {
-    clearAll();
-    initGame(buildDupHandLAN, "itest-dupid");
-  });
-
-  it("gives each hand card a unique id at game init", () => {
-    const ids = getState().player.hand.map((c) => c.id);
-    assert.equal(new Set(ids).size, ids.length, `hand ids must be unique, got: ${ids.join(", ")}`);
-  });
-
-  // NOTE: the former "lets the live duplicate-id card execute" test was removed with
-  // the card-combat path (E1). XPLOIT no longer dispatches a specific hand card via
-  // ctx.startExploit — it launches the hoard-driven auto-burn, which never consults
-  // player.hand by card id, so per-card collision resolution at dispatch is moot.
-  // Card-id uniqueness/reconciliation is still covered by the sibling tests above
-  // and below (init + serialized-load), which exercise reconcileHandIds directly.
-
-  it("reconciles duplicate ids when loading a serialized save", () => {
-    const snap = serializeState();
-    snap.player.hand = makeDupHand(); // simulate a corrupt save like the reported one
-    deserializeState(snap);
-    const ids = getState().player.hand.map((c) => c.id);
-    assert.equal(new Set(ids).size, ids.length, `loaded hand ids must be unique, got: ${ids.join(", ")}`);
   });
 });
 

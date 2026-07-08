@@ -9,13 +9,10 @@
 //
 // E1 hoard cutover (Phase 5): the persistent store is now `hoard: ExploitRound[]`
 // (the ENTIRE hoard is carried into every run — no loadout, no equip). The older
-// card `inventory` + its helpers (addCardToInventory/findCard/removeCardsByInstanceId/
-// removeDisclosedCards/buildRunHand) are kept DEFINED-BUT-UNUSED as vestigial code:
-// the in-run darknet store, MINE, and various card readers still reference them
-// until Phases 6–8 repoint every consumer. The Phase 9 sweep deletes them.
+// card `inventory` + its helpers were removed in the Phase 9 sweep once every
+// consumer had been repointed to the hoard.
 
 /** @typedef {import('../types.js').StarnetProfile} StarnetProfile */
-/** @typedef {import('../types.js').ExploitCard} ExploitCard */
 /** @typedef {import('../types.js').ExploitRound} ExploitRound */
 
 export const PROFILE_VERSION = 2;
@@ -23,17 +20,14 @@ export const PROFILE_VERSION = 2;
 export { generateTargets } from "./targets.js";
 
 /**
- * Create a fresh profile with a persistent carry-all `hoard`. Any seed `inventory`
- * cards are still added via addCardToInventory (vestigial) so they receive stable
- * instanceIds; the hoard is copied in as-is (rounds carry their own hex ids).
- * @param {{ bank?: number, hoard?: ExploitRound[], inventory?: ExploitCard[] }} [opts]
+ * Create a fresh profile with a persistent carry-all `hoard`. The hoard is copied
+ * in as-is (rounds carry their own unique hex ids).
+ * @param {{ bank?: number, hoard?: ExploitRound[] }} [opts]
  * @returns {StarnetProfile}
  */
-export function createProfile({ bank = 0, hoard = [], inventory = [] } = {}) {
+export function createProfile({ bank = 0, hoard = [] } = {}) {
   /** @type {StarnetProfile} */
-  const p = { version: PROFILE_VERSION, bank, hoard: [...hoard], inventory: [], _instanceSeq: 0, _hubVisits: 0 };
-  inventory.forEach((c) => addCardToInventory(p, c));
-  return p;
+  return { version: PROFILE_VERSION, bank, hoard: [...hoard], _hubVisits: 0 };
 }
 
 // ── Hoard (carry-all persistent ammunition) ──────────────────────────────────
@@ -72,63 +66,6 @@ export function buildRunHoard(rounds) {
 }
 
 /**
- * VESTIGIAL (Phase 9 sweep removes this). Push a card into inventory, assigning a
- * profile-unique instanceId if it lacks one. Still referenced by the in-run darknet
- * store (store-logic.js) until Phase 6 repoints it.
- * @param {StarnetProfile} profile
- * @param {ExploitCard} card
- * @returns {ExploitCard}
- */
-export function addCardToInventory(profile, card) {
-  if (!card.instanceId) {
-    card.instanceId = `inv-${profile._instanceSeq++}`;
-  } else {
-    // Preserve an explicit id, but keep _instanceSeq above any inv-N so a future
-    // auto-assigned id can't collide with it.
-    const m = /^inv-(\d+)$/.exec(card.instanceId);
-    if (m) profile._instanceSeq = Math.max(profile._instanceSeq, Number(m[1]) + 1);
-  }
-  profile.inventory.push(card);
-  return card;
-}
-
-/**
- * VESTIGIAL (Phase 9 sweep removes this).
- * @param {StarnetProfile} profile
- * @param {string} instanceId
- * @returns {ExploitCard|undefined}
- */
-export function findCard(profile, instanceId) {
-  return profile.inventory.find((c) => c.instanceId === instanceId);
-}
-
-/**
- * VESTIGIAL (Phase 9 sweep removes this). Remove inventory cards whose instanceId
- * is in the given list.
- * @param {StarnetProfile} profile
- * @param {string[]} instanceIds
- * @returns {ExploitCard[]} the removed cards
- */
-export function removeCardsByInstanceId(profile, instanceIds) {
-  const set = new Set(instanceIds);
-  const removed = profile.inventory.filter((c) => set.has(c.instanceId));
-  profile.inventory = profile.inventory.filter((c) => !set.has(c.instanceId));
-  return removed;
-}
-
-/**
- * VESTIGIAL (Phase 9 sweep removes this). Discard all disclosed (burned-out,
- * unplayable) exploits from inventory. Superseded by removeDisclosedRounds.
- * @param {StarnetProfile} profile
- * @returns {ExploitCard[]} the removed cards
- */
-export function removeDisclosedCards(profile) {
-  const removed = profile.inventory.filter((c) => c.decayState === "disclosed");
-  profile.inventory = profile.inventory.filter((c) => c.decayState !== "disclosed");
-  return removed;
-}
-
-/**
  * Credit the bank.
  * @param {StarnetProfile} profile
  * @param {number} amount
@@ -149,16 +86,6 @@ export function withdraw(profile, amount) {
   if (amount < 0 || profile.bank < amount) return false;
   profile.bank -= amount;
   return true;
-}
-
-/**
- * VESTIGIAL (Phase 9 sweep removes this). Clone loadout cards for use as a run hand.
- * Superseded by buildRunHoard; kept until the fast-start/card path is repointed.
- * @param {ExploitCard[]} loadoutCards
- * @returns {ExploitCard[]}
- */
-export function buildRunHand(loadoutCards) {
-  return loadoutCards.map((c) => ({ ...c, targetVulnTypes: [...c.targetVulnTypes] }));
 }
 
 /**

@@ -17,7 +17,6 @@ import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelect
 import { initializeGraphOverlays } from "./overlays/index.js";
 import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
-import { exploitSortKey } from "../core/exploits.js";
 import { HEAT_GAUGE_MAX } from "./indicator-glyphs.js";
 import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation/index.js";
 import { computeInspectorPosition } from "./inspector-position.js";
@@ -483,13 +482,13 @@ function syncMissionPane(state) {
 
 
 // ── Hoard pane (Phase 7b) ─────────────────────────────────
-// Phase 7b: sync the hoard strip from state.player.hoard.
-// The old card-era hand strip and exec-progress callback are vestigial
-// (auto-burn is a process; no per-card ACTION_FEEDBACK progress); removed
-// in Phase 9 sweep alongside player.hand / starnet-hand.js.
+// Sync the hoard strip from state.player.hoard. Auto-burn is a process (its
+// progress rides the generic process overlay), so there's no per-card progress
+// callback — the onXploitProgress hook below is a no-op kept for the
+// dispatchActionFeedback contract.
 
 function updateExploitProgress(_progress = null) {
-  // Dead: auto-burn uses process ticks, not per-card progress. No-op.
+  // No-op: auto-burn uses process ticks, not per-card progress.
 }
 
 function syncHoardPane(state) {
