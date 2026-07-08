@@ -103,6 +103,33 @@ some smash-only. Choosing your weapon node-to-node is the antidote to "exploit, 
 exploit": every node is a small "which weapon?" read. **Failure means *noticed*** (feeds
 the trace clock), not "roll again."
 
+### Access collapses to `locked → owned` (drop the interstitial `open`)
+
+**Decision (2026-07-07).** The old three-step climb — `xploit` to *open*, `xploit` again
+to *owned* — existed only because a single exploit was a tiny dice-roll that needed
+repeating to represent "working your way in." Both new routes replace that step *with a
+single meaningful act*: the **smash coherence-minigame IS the whole break-in** (erode →
+fault → owned), and **finesse is one decisive spoof → owned**. So the `open` tier is a
+grind step the redesign already absorbed — cut it.
+
+- New access model: **hidden → accessible → probed (recon) → owned.** `probed` stays as
+  the recon flag (reveals vulns / flows); *owning* a node (by smash **or** finesse)
+  unlocks its elevated-privilege actions.
+- Finesse is the alternate road to *owned*: exploit a soft node, `SNIFF`/capture its auth,
+  `SPOOF` a hard node's access — never brute-forcing the hard node directly.
+- **Migration ripples (E1):** today `open` gates **dump** (loot reveal) and `owned` gates
+  **fetch/mine** — re-map (dump → `probed`, fetch/mine → `owned`); touches the bot,
+  set-pieces, and `MANUAL.md` (consult before changing).
+
+### Prototyped & validated (feel-labs, 2026-07-07)
+
+Both roads were prototyped in disposable feel-labs (session
+`docs/dev-sessions/2026-07-06-2219-exploit-combat-labs/`; see its `notes.md`): a smash
+"autopwn instrument" and a finesse "flow-heist." They confirmed the feel of both weapons
+and surfaced the reconciliation-detection, credentials-as-authorization, exfil-must-route-
+home, flows-transit-infrastructure (foothold = MITM vantage), and node-capability-tier
+findings recorded there — design gold for the finesse/reconfiguration build.
+
 ---
 
 ## Exploit economy: gear vs. ammo
