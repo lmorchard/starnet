@@ -32,6 +32,24 @@ Les's words: "surprisingly great as a first stab." The clash lands as the fictio
   the hybrid drive's "preset selection" surface from a severity tier to a damage-*type* selector.
   A production/port concern, but a promising one — record for the port session.
 
+## Lab B — discovery (grounded from code)
+
+- **Ambient-bed source:** `degradationParams(getState())` (`js/ui/graph-degradation/params.js`)
+  returns `{ health: { severity, overlayOpacity, ... }, deck: { severity } }`, reading
+  `state.player.health {current,max}` and `state.player.deckIntegrity {current,max}`. This is
+  the same source the existing plasma uses. Bed drives off `max(health.severity, deck.severity)`
+  so either kind of impairment thickens it.
+- **Shock trigger:** there is **no discrete damage event.** `damagePlayerHealth` /
+  `damagePlayerDeck` (`js/core/player-orchestration.js`) just mutate state (and may end the run) —
+  no `E.PLAYER_DAMAGED` emit. So Lab B **watches `player.health.current` and
+  `deckIntegrity.current` frame-to-frame and fires a shock on a drop**, scaled to the drop size.
+  This is ground-truth "wetware took damage" and — bonus — knows *which pool* dropped, feeding
+  the preset-categorization-by-damage-type direction directly.
+- **Audio tap:** confirmed no shared master node (sources connect straight to `ctx.destination`),
+  so Lab B uses the non-invasive `AudioNode.prototype.connect` shim to fan a tap to an analyser.
+  Production would instead add a single master `GainNode` (one-line game-source change, out of
+  scope for the lab).
+
 ### Env note
 
 - butterchurn requires **WebGL2** (the game's health-plasma is WebGL1). Confirmed working in
