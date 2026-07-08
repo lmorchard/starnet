@@ -1,124 +1,129 @@
-import { describe, it, afterEach } from "node:test";
+// Run-lifecycle integration for the persistent carry-all hoard (E1 Phase 5).
+// startRun/initGame touch DOM/Cytoscape but every graph fn guards on a null `cy`,
+// so with a document stub it runs in node. profile-store reaches localStorage, so
+// we stub that too (in-memory).
+
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { initGame, getState } from "../js/core/state.js";
-import { clearHandlers } from "../js/core/events.js";
-import { buildNetwork as buildCorporateFoothold } from "../data/networks/corporate-foothold.js";
-import {
-  createProfile,
-  buildRunHand,
-  commitRun,
-  findCard,
-} from "../js/core/profile/index.js";
 
-afterEach(() => clearHandlers());
+globalThis.document = globalThis.document ?? { getElementById: () => null };
+const _store = new Map();
+globalThis.localStorage = globalThis.localStorage ?? {
+  getItem: (k) => (_store.has(k) ? _store.get(k) : null),
+  setItem: (k, v) => _store.set(k, String(v)),
+  removeItem: (k) => _store.delete(k),
+};
 
-/** Minimal ExploitCard-shaped object (seed-independent). */
-function card(id, over = {}) {
-  return {
-    id,
-    name: `card-${id}`,
-    rarity: "common",
-    quality: 1,
-    targetVulnTypes: ["card"],
-    decayState: "fresh",
-    usesRemaining: 3,
-    ...over,
-  };
+const { initGame, getState } = await import("../js/core/state.js");
+const { clearHandlers, emitEvent, E } = await import("../js/core/events.js");
+const { clearAll } = await import("../js/core/timers.js");
+const { initRng } = await import("../js/core/rng.js");
+const { buildNetwork: buildCorporateFoothold } = await import("../data/networks/corporate-foothold.js");
+const {
+  loadProfile, saveProfile, prepareLaunch, initProfileRunCommit,
+} = await import("../js/ui/profile-store.js");
+
+const PROFILE_KEY = "starnet:profile"; // mirror profile-store.js
+
+/** Minimal ExploitRound-shaped object (seed-independent). */
+function round(id, over = {}) {
+  return { id, rarity: "common", types: ["card"], disclosed: false, ...over };
 }
 
-describe("buildRunHand", () => {
-  it("clones loadout cards (new objects) while preserving instanceId", () => {
-    const p = createProfile({ inventory: [card("a")] });
-    const [src] = p.inventory;
-    const [clone] = buildRunHand([src]);
-    assert.notEqual(clone, src, "is a distinct object");
-    assert.equal(clone.instanceId, src.instanceId, "keeps instanceId for write-back");
-    assert.notEqual(clone.targetVulnTypes, src.targetVulnTypes, "deep-copies the vuln array");
-    clone.usesRemaining = 0;
-    assert.equal(src.usesRemaining, 3, "mutating the clone does not touch the inventory card");
-  });
-});
+afterEach(() => { clearHandlers(); clearAll(); });
 
-describe("commitRun — success", () => {
-  it("deposits run cash to the bank", () => {
-    const p = createProfile({ bank: 100, inventory: [card("a")] });
-    commitRun(p, { outcome: "success", finalCash: 500, finalHand: [], carriedInstanceIds: [] });
-    assert.equal(p.bank, 600);
-  });
-
-  it("writes a carried card's decay back to the same inventory instance", () => {
-    const p = createProfile({ bank: 0, inventory: [card("a")] });
-    const src = p.inventory[0];
-    const [run] = buildRunHand([src]);
-    run.usesRemaining = 1;
-    run.decayState = "worn";
-    commitRun(p, {
-      outcome: "success",
-      finalCash: 0,
-      finalHand: [run],
-      carriedInstanceIds: [src.instanceId],
-    });
-    const updated = findCard(p, src.instanceId);
-    assert.equal(updated.usesRemaining, 1);
-    assert.equal(updated.decayState, "worn");
-    assert.equal(p.inventory.length, 1, "no duplicate added");
-  });
-
-  it("adds a mid-run-acquired card (no instanceId) to inventory", () => {
-    const p = createProfile({ bank: 0, inventory: [card("a")] });
-    const carried = buildRunHand(p.inventory);
-    const bought = card("bought"); // no instanceId — simulates store/mine acquisition
-    commitRun(p, {
-      outcome: "success",
-      finalCash: 0,
-      finalHand: [...carried, bought],
-      carriedInstanceIds: p.inventory.map((c) => c.instanceId),
-    });
-    assert.equal(p.inventory.length, 2);
-    const added = p.inventory.find((c) => c.id === "bought");
-    assert.ok(added && added.instanceId, "new card got an instanceId");
-  });
-});
-
-describe("commitRun — caught (Medium stakes)", () => {
-  it("burns the carried loadout, deposits nothing, leaves un-carried inventory and bank intact", () => {
-    const p = createProfile({ bank: 250, inventory: [card("a"), card("b")] });
-    const carriedId = p.inventory[0].instanceId;
-    commitRun(p, {
-      outcome: "caught",
-      finalCash: 0,
-      finalHand: [],
-      carriedInstanceIds: [carriedId],
-    });
-    assert.equal(p.bank, 250, "bank unchanged on capture");
-    assert.equal(p.inventory.length, 1, "carried card burned");
-    assert.equal(p.inventory[0].id, "b", "un-carried card survives");
-  });
-});
-
-describe("initGame loadout path", () => {
-  it("uses meta.startHandCards (as fresh clones) when present", () => {
-    const loadout = [card("x", { instanceId: "inv-x" }), card("y", { instanceId: "inv-y" })];
+describe("initGame — hoard seeding at run-start", () => {
+  it("seeds player.hoard from meta.startHoard (carrying the whole profile hoard in)", () => {
+    const startHoard = [round("h1"), round("h2"), round("h3")];
     initGame(() => {
       const r = buildCorporateFoothold();
-      return { graphDef: r.graphDef, meta: { ...r.meta, startHandCards: loadout } };
-    }, "loadout-seed-1");
-    const hand = getState().player.hand;
-    assert.deepEqual(
-      hand.map((c) => c.instanceId),
-      ["inv-x", "inv-y"],
-      "hand carries the provided loadout (by instanceId)",
-    );
-    // Clones, not aliases: mutating the run hand must not touch the caller's cards.
-    assert.notEqual(hand[0], loadout[0], "hand card is a distinct object");
-    hand[0].usesRemaining = 0;
-    assert.notEqual(loadout[0].usesRemaining, 0, "loadout source is untouched by in-run mutation");
+      return { graphDef: r.graphDef, meta: { ...r.meta, startHoard } };
+    }, "hoard-seed-1");
+    const hoard = getState().player.hoard;
+    assert.deepEqual(hoard.map((r) => r.id), ["h1", "h2", "h3"], "hand-off carries the whole hoard");
   });
 
-  it("falls back to generating a hand when startHandCards is absent", () => {
-    initGame(() => buildCorporateFoothold(), "loadout-seed-2");
-    const hand = getState().player.hand;
-    assert.ok(hand.length > 0);
-    assert.ok(hand.every((c) => c.instanceId === undefined), "generated cards have no instanceId");
+  it("seeds player.hand empty (no loadout at run-start; the field stays for vestigial consumers)", () => {
+    initGame(() => buildCorporateFoothold(), "hoard-seed-2");
+    const s = getState();
+    assert.ok(Array.isArray(s.player.hand), "hand field still present");
+    assert.equal(s.player.hand.length, 0, "hand starts empty — there is no loadout now");
+  });
+});
+
+describe("run lifecycle — profile ↔ run hoard", () => {
+  beforeEach(() => { localStorage.removeItem(PROFILE_KEY); initRng("lifecycle-test"); });
+
+  it("launch seeds player.hoard from the profile; a clean jack-out persists the (thinned) hoard", () => {
+    initProfileRunCommit();
+    // A v2 profile with a known 3-round hoard.
+    const profile = { version: 2, bank: 1000, hoard: [round("a"), round("b"), round("c")], inventory: [], _instanceSeq: 0, _hubVisits: 0 };
+    saveProfile(profile);
+
+    const { startHoard, startCash } = prepareLaunch({ withdrawAmount: 0 });
+    assert.equal(startHoard.length, 3, "launch carries the entire hoard");
+
+    initGame(() => {
+      const r = buildCorporateFoothold();
+      return { graphDef: r.graphDef, meta: { ...r.meta, startHoard, startCash } };
+    }, "lifecycle-run-1");
+
+    // Simulate spending a round in-run: drop one from the run hoard.
+    getState().player.hoard.pop();
+    emitEvent(E.RUN_ENDED, { outcome: "success" });
+
+    const after = loadProfile();
+    assert.equal(after.hoard.length, 2, "the thinned run hoard is persisted back to the profile");
+  });
+
+  it("a caught run leaves the profile hoard intact (E1: no loss)", () => {
+    initProfileRunCommit();
+    const profile = { version: 2, bank: 500, hoard: [round("a"), round("b"), round("c")], inventory: [], _instanceSeq: 0, _hubVisits: 0 };
+    saveProfile(profile);
+
+    const { startHoard, startCash } = prepareLaunch({ withdrawAmount: 0 });
+    initGame(() => {
+      const r = buildCorporateFoothold();
+      return { graphDef: r.graphDef, meta: { ...r.meta, startHoard, startCash } };
+    }, "lifecycle-run-2");
+
+    // Even if the run burned rounds, being caught keeps the stored hoard whole.
+    getState().player.hoard.pop();
+    getState().player.hoard.pop();
+    emitEvent(E.RUN_ENDED, { outcome: "caught" });
+
+    const after = loadProfile();
+    assert.equal(after.hoard.length, 3, "caught keeps the full hoard");
+    assert.deepEqual(after.hoard.map((r) => r.id).sort(), ["a", "b", "c"]);
+  });
+});
+
+describe("loadProfile — v1 reset (no migration)", () => {
+  beforeEach(() => { localStorage.removeItem(PROFILE_KEY); initRng("v1-reset-test"); });
+
+  it("discards a stored v1 (inventory-based) profile and bootstraps a fresh v2 with a generated hoard", () => {
+    const v1 = {
+      version: 1,
+      bank: 4242,
+      _instanceSeq: 3,
+      inventory: [{ instanceId: "inv-0", name: "Solo Relic", rarity: "common", targetVulnTypes: [] }],
+    };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(v1));
+
+    const p = loadProfile();
+    assert.equal(p.version, 2, "loaded profile is a fresh v2");
+    assert.ok(Array.isArray(p.hoard) && p.hoard.length > 0, "fresh profile has a generated hoard");
+    assert.notEqual(p.bank, 4242, "the v1 bank is discarded (fresh bootstrap), not migrated");
+    // The v1 profile is not crashed on — it is simply replaced.
+    assert.doesNotThrow(() => loadProfile());
+  });
+
+  it("normalizes a v2 profile without discarding (ensures a hoard array)", () => {
+    const v2 = { version: 2, bank: 10, _hubVisits: 0, inventory: [] }; // missing hoard
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(v2));
+    const p = loadProfile();
+    assert.equal(p.version, 2);
+    assert.equal(p.bank, 10, "a valid v2 profile is kept, not reset");
+    assert.ok(Array.isArray(p.hoard), "a missing hoard is healed to an array");
   });
 });

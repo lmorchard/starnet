@@ -47,11 +47,15 @@ describe("state/player — player mutations", () => {
   });
 
   it("applyCardDecay updates card in hand", () => {
-    const card = getState().player.hand[0];
+    // The hand seeds empty after the E1 hoard cutover; push a card so the
+    // (vestigial) card-decay setter has something to act on.
+    addCardToHand({ id: "decay-card", name: "Test", quality: 0.5, usesRemaining: 3, decayState: "fresh" });
+    const card = getState().player.hand.find((c) => c.id === "decay-card");
     const origUses = card.usesRemaining;
     applyCardDecay(card.id, origUses - 1, "worn");
-    assert.equal(getState().player.hand[0].usesRemaining, origUses - 1);
-    assert.equal(getState().player.hand[0].decayState, "worn");
+    const after = getState().player.hand.find((c) => c.id === "decay-card");
+    assert.equal(after.usesRemaining, origUses - 1);
+    assert.equal(after.decayState, "worn");
   });
 });
 

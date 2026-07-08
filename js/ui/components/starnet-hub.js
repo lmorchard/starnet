@@ -1,6 +1,8 @@
-// <starnet-hub> — Overworld hub overlay: manage the persistent bank + exploit
-// inventory, pick a loadout and how much cash to carry, and launch a target.
-// Pure view: it renders props set by hub.js and dispatches intent events back.
+// <starnet-hub> — Overworld hub overlay: manage the persistent bank + carry-all
+// exploit-round hoard, pick how much cash to carry, and launch a target. The ENTIRE
+// hoard is carried into every run (no loadout/equip after the E1 hoard cutover), so
+// this view shows a minimal hoard summary (total + per-rarity). The rich grouped
+// hoard view is Phase 7. Pure view: renders props set by hub.js, dispatches intents.
 
 import { html, nothing } from "lit";
 import { repeat } from "lit/directives/repeat.js";
@@ -10,8 +12,7 @@ class StarnetHub extends StarnetElement {
   static properties = {
     open: { type: Boolean },
     bank: { type: Number },
-    inventory: { type: Array },
-    loadout: { type: Array },          // selected instanceIds
+    hoard: { type: Array },
     withdrawAmount: { type: Number },
     targets: { type: Array },
   };
@@ -20,8 +21,7 @@ class StarnetHub extends StarnetElement {
     super();
     this.open = false;
     this.bank = 0;
-    this.inventory = [];
-    this.loadout = [];
+    this.hoard = [];
     this.withdrawAmount = 0;
     this.targets = [];
   }
@@ -33,10 +33,6 @@ class StarnetHub extends StarnetElement {
   connectedCallback() {
     super.connectedCallback();
     this.style.display = this.open ? "" : "none";
-  }
-
-  _toggle(instanceId) {
-    this.dispatchEvent(new CustomEvent("loadout-toggle", { bubbles: true, detail: { instanceId } }));
   }
 
   _withdraw(e) {
@@ -57,8 +53,14 @@ class StarnetHub extends StarnetElement {
 
   render() {
     if (!this.open) return nothing;
-    const loadout = this.loadout ?? [];
-    const disclosed = (this.inventory ?? []).filter((c) => c.decayState === "disclosed").length;
+    const hoard = this.hoard ?? [];
+    let common = 0, uncommon = 0, rare = 0, disclosed = 0;
+    for (const r of hoard) {
+      if (r.rarity === "common") common++;
+      else if (r.rarity === "uncommon") uncommon++;
+      else if (r.rarity === "rare") rare++;
+      if (r.disclosed) disclosed++;
+    }
     return html`
       <div class="hub-box">
         <div class="hub-title">▶ OVERWORLD HUB ◀</div>
@@ -68,16 +70,10 @@ class StarnetHub extends StarnetElement {
           <button class="hub-btn" @click=${this._visitDarknet}>[ VISIT DARKNET ]</button>
         </div>
 
-        <div class="hub-section">EXPLOIT INVENTORY — loadout ${loadout.length}/5</div>
-        <div class="hub-list">
-          ${this.inventory.length === 0
-            ? html`<div class="hub-empty">(inventory empty — mine or buy exploits)</div>`
-            : repeat(this.inventory, (c) => c.instanceId, (c) => html`
-                <div class="hub-card ${loadout.includes(c.instanceId) ? "equipped" : ""} ${c.decayState === "disclosed" ? "burned" : ""}"
-                     @click=${() => this._toggle(c.instanceId)}>
-                  <span class="hub-card-name">${loadout.includes(c.instanceId) ? "▣" : "▢"} ${c.name}</span>
-                  <span class="hub-card-meta">[${c.rarity}] ${c.decayState} ×${c.usesRemaining}</span>
-                </div>`)}
+        <div class="hub-section">EXPLOIT HOARD</div>
+        <div class="hub-hoard-summary">
+          HOARD — ${hoard.length} round${hoard.length === 1 ? "" : "s"} ·
+          ${common} common · ${uncommon} uncommon · ${rare} rare
         </div>
 
         <div class="hub-actions">

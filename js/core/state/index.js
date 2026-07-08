@@ -25,7 +25,7 @@
 
 import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, randomInt, random } from "../rng.js";
 import { pickIceTypeId, getType } from "../ice/index.js";
-import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter, reconcileHandIds } from "../exploits.js";
+import { generateVulnerabilities, _exploitIdCounter, setExploitIdCounter, reconcileHandIds } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
 import { generateHoard, DEFAULT_START_HOARD } from "../hoard.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
@@ -196,16 +196,20 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     nodeGraph: graph,
     player: {
       cash: meta.startCash ?? 1000,
-      // Clone startHandCards so in-run decay never mutates the caller's objects
-      // (e.g. profile inventory) — matches generateStartingHand's fresh-objects
-      // contract. instanceId is preserved for commit write-back.
-      hand: meta.startHandCards
-        ? meta.startHandCards.map((c) => ({ ...c, targetVulnTypes: [...c.targetVulnTypes] }))
-        : generateStartingHand(meta.startHand),
+      // Hand starts EMPTY: the E1 hoard cutover retired the loadout, and the
+      // carry-all hoard (below) is what the player brings into a run. The `hand`
+      // field is kept (seeded []) because MINE, the in-run darknet store, and the
+      // card readers still push/read it until Phases 6–8 repoint them; the Phase 9
+      // sweep removes the field entirely.
+      hand: [],
       // Exploit-round hoard: disposable ammo for the auto-burn loop (E1).
-      // Seeded from meta.startHoard (network override) or DEFAULT_START_HOARD.
-      // Mirrors meta.startHand / meta.startHandCards pattern.
-      hoard: generateHoard(meta.startHoard ?? DEFAULT_START_HOARD),
+      // meta.startHoard is a pre-built round ARRAY when the hub/fast-start threads
+      // the profile's carried hoard (the common case) — used as-is. A network MAY
+      // instead supply a per-rarity SPEC object ({common,uncommon,rare}); generate
+      // from it. Absent → DEFAULT_START_HOARD.
+      hoard: Array.isArray(meta.startHoard)
+        ? meta.startHoard
+        : generateHoard(meta.startHoard ?? DEFAULT_START_HOARD),
       health:        { current: meta.startHealth        ?? 100, max: meta.startHealth        ?? 100 },
       deckIntegrity: { current: meta.startDeckIntegrity ?? 100, max: meta.startDeckIntegrity ?? 100 },
       // Credential tokens captured off flows via SNIFF; consumed by REPLAY. Serializable.
@@ -225,10 +229,9 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
   };
   const state = ctx.state;   // local alias so the rest of initGame reads unchanged
 
-  // Guarantee per-card-unique ids: carried profile cards may bring ids that
-  // collide with freshly-generated ones (the counter resets per session). The
-  // exploit pipeline keys off `id`, so duplicates make cards un-selectable.
-  reconcileHandIds(state.player.hand);
+  // (No reconcileHandIds at run-start: the hand seeds empty now — the carry-all
+  // hoard replaced the loadout. deserializeState still reconciles a loaded hand,
+  // which may hold cards MINEd/bought in an in-progress saved run.)
 
   // Register graph sync on the node setter module
   setNodeGraph(graph);

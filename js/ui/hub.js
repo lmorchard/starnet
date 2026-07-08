@@ -1,12 +1,17 @@
 // @ts-nocheck — DOM wiring.
-// Overworld hub controller. Holds the in-progress launch selection (loadout +
-// carried cash) in module scope so BOTH input channels — the <starnet-hub> GUI
-// component and the console hub commands — drive the same state and produce the
-// same log output (the GUI/console symmetry principle). The pure profile model is
-// in js/core/profile; the run-start path is run-control.js.
+// Overworld hub controller. Holds the in-progress launch selection (carried cash)
+// in module scope so BOTH input channels — the <starnet-hub> GUI component and the
+// console hub commands — drive the same state and produce the same log output (the
+// GUI/console symmetry principle). The pure profile model is in js/core/profile;
+// the run-start path is run-control.js.
+//
+// E1 hoard cutover (Phase 5): no loadout/equip — the ENTIRE persistent hoard is
+// carried into every run. The hub shows a minimal hoard summary (the rich grouped
+// view is Phase 7). The hub darknet-store buy path still delivers CARDS into the
+// vestigial inventory (Phase 6 repoints it to round packs).
 
 import { loadProfile, saveProfile, prepareLaunch, prepareFastStartLaunch } from "./profile-store.js";
-import { generateTargets, removeDisclosedCards } from "../core/profile/index.js";
+import { generateTargets, removeDisclosedRounds } from "../core/profile/index.js";
 import { buyFromStoreToProfile } from "../core/store-logic.js";
 import { getStoreCatalog } from "../core/exploits.js";
 import { startRun } from "./run-control.js";
@@ -14,10 +19,8 @@ import { buildNetwork as buildGenerated } from "../../data/networks/generated.js
 import { NAMED_NETWORKS } from "../../data/networks/index.js";
 import { emitEvent, E } from "../core/events.js";
 
-const MAX_LOADOUT = 5;
-
-/** @type {{ loadoutIds: string[], withdrawAmount: number }} */
-let selection = { loadoutIds: [], withdrawAmount: 0 };
+/** @type {{ withdrawAmount: number }} */
+let selection = { withdrawAmount: 0 };
 /** @type {import('../core/profile/targets.js').HubTarget[]} */
 let targets = [];
 /** True while the darknet store modal is open from the hub (for console context). */
@@ -31,14 +34,27 @@ function log(text, type = "meta") {
   emitEvent(E.LOG_ENTRY, { text, type });
 }
 
+/**
+ * Summarize a hoard: total count + per-rarity counts.
+ * @param {import('../core/types.js').ExploitRound[]} hoard
+ * @returns {{ total: number, common: number, uncommon: number, rare: number, disclosed: number }}
+ */
+export function summarizeHoard(hoard = []) {
+  const s = { total: hoard.length, common: 0, uncommon: 0, rare: 0, disclosed: 0 };
+  for (const r of hoard) {
+    if (r.rarity === "common" || r.rarity === "uncommon" || r.rarity === "rare") s[r.rarity]++;
+    if (r.disclosed) s.disclosed++;
+  }
+  return s;
+}
+
 /** Push current profile + selection into the component for rendering. */
 function refresh() {
   const el = hubEl();
   if (!el) return;
   const p = loadProfile();
   el.bank = p.bank;
-  el.inventory = p.inventory;
-  el.loadout = [...selection.loadoutIds];
+  el.hoard = p.hoard;
   el.withdrawAmount = selection.withdrawAmount;
   el.targets = targets;
 }
@@ -47,7 +63,6 @@ function refresh() {
 export function initHub() {
   const el = hubEl();
   if (!el) return;
-  el.addEventListener("loadout-toggle", (e) => toggleCard(e.detail.instanceId));
   el.addEventListener("withdraw-change", (e) => setWithdraw(e.detail.amount));
   el.addEventListener("launch", (e) => launchTarget(e.detail.targetId));
   el.addEventListener("discard-disclosed", () => discardDisclosed());
@@ -64,17 +79,17 @@ function showHub() {
 }
 
 /**
- * Canned "hub start" for fast-start scenarios (e.g. a `?network=` deep-link): deal a fresh
- * generated starter hand and launch directly into the given prebuilt network, skipping the
- * overworld hub entirely. Fast-start is a throwaway test session — the hand is ephemeral
- * (not drawn from the profile) and the run does NOT commit back (no cash, no kept/burned
- * cards), so it always lands in a playable LAN regardless of profile state.
+ * Canned "hub start" for fast-start scenarios (e.g. a `?network=` deep-link): seed a fresh
+ * generated hoard and launch directly into the given prebuilt network, skipping the
+ * overworld hub entirely. Fast-start is a throwaway test session — the hoard is ephemeral
+ * (not drawn from the profile) and the run does NOT commit back (no cash, no hoard change),
+ * so it always lands in a playable LAN regardless of profile state.
  * @param {{ graphDef: any, meta: any }} networkResult
  * @returns {boolean} always true (a run is always launched); the boolean preserves the
  *   caller's `quickStartRun(...) || openHub()` contract.
  */
 export function quickStartRun(networkResult) {
-  const launchMeta = prepareFastStartLaunch(MAX_LOADOUT);
+  const launchMeta = prepareFastStartLaunch();
   log(`[HUB] Fast-start (overworld hub skipped) — ${networkResult.meta?.name ?? "network"}.`, "success");
   startRun({ graphDef: networkResult.graphDef, meta: { ...networkResult.meta, ...launchMeta } });
   return true;
@@ -86,40 +101,12 @@ export function openHub() {
   p._hubVisits = (p._hubVisits ?? 0) + 1;
   saveProfile(p);
   targets = generateTargets(p);
-  selection = { loadoutIds: [], withdrawAmount: 0 };
+  selection = { withdrawAmount: 0 };
   showHub();
-  log(`[HUB] Overworld hub — bank ¥${p.bank.toLocaleString()}, ${p.inventory.length} exploits in inventory.`);
+  log(`[HUB] Overworld hub — bank ¥${p.bank.toLocaleString()}, ${p.hoard.length} rounds in the hoard.`);
 }
 
 // ── Operations (shared by GUI events and console commands) ───────────────────
-
-export function equipCard(instanceId) {
-  const p = loadProfile();
-  const card = p.inventory.find((c) => c.instanceId === instanceId);
-  if (!card) { log(`[HUB] No such exploit: ${instanceId}`, "error"); return; }
-  if (selection.loadoutIds.includes(instanceId)) return;
-  if (selection.loadoutIds.length >= MAX_LOADOUT) {
-    log(`[HUB] Loadout full (${MAX_LOADOUT}). Unequip something first.`, "error");
-    return;
-  }
-  selection.loadoutIds.push(instanceId);
-  log(`[HUB] Equipped ${card.name} (${selection.loadoutIds.length}/${MAX_LOADOUT}).`);
-  refresh();
-}
-
-export function unequipCard(instanceId) {
-  const before = selection.loadoutIds.length;
-  selection.loadoutIds = selection.loadoutIds.filter((id) => id !== instanceId);
-  if (selection.loadoutIds.length !== before) {
-    log(`[HUB] Unequipped (${selection.loadoutIds.length}/${MAX_LOADOUT}).`);
-    refresh();
-  }
-}
-
-export function toggleCard(instanceId) {
-  if (selection.loadoutIds.includes(instanceId)) unequipCard(instanceId);
-  else equipCard(instanceId);
-}
 
 export function setWithdraw(amount) {
   const p = loadProfile();
@@ -129,14 +116,11 @@ export function setWithdraw(amount) {
   refresh();
 }
 
-/** Start a run against the given target with the current loadout + carried cash. */
+/** Start a run against the given target carrying the whole hoard + carried cash. */
 export function launchTarget(targetId) {
   const target = targets.find((t) => t.id === targetId);
   if (!target) { log(`[HUB] No such target: ${targetId}`, "error"); return; }
-  const launchMeta = prepareLaunch({
-    loadoutInstanceIds: selection.loadoutIds,
-    withdrawAmount: selection.withdrawAmount,
-  });
+  const launchMeta = prepareLaunch({ withdrawAmount: selection.withdrawAmount });
   if (!launchMeta) { log("[HUB] Insufficient bank for that carry amount.", "error"); return; }
   // Authored jobs build a hand-crafted named network; procedural targets build from seed + spec (#261).
   let result;
@@ -156,19 +140,17 @@ export function launchTarget(targetId) {
 /** Read-only snapshot for console listing. */
 export function getHub() {
   const p = loadProfile();
-  return { bank: p.bank, inventory: p.inventory, targets, selection };
+  return { bank: p.bank, hoard: p.hoard, targets, selection };
 }
 
-/** Discard all disclosed (burned, unplayable) exploits from inventory. */
+/** Discard all disclosed (spent) rounds from the hoard. */
 export function discardDisclosed() {
   const profile = loadProfile();
-  const removed = removeDisclosedCards(profile);
-  if (!removed.length) { log("[HUB] No disclosed exploits to discard."); return; }
-  const removedIds = new Set(removed.map((c) => c.instanceId));
-  selection.loadoutIds = selection.loadoutIds.filter((id) => !removedIds.has(id));
+  const removed = removeDisclosedRounds(profile);
+  if (!removed.length) { log("[HUB] No disclosed rounds to discard."); return; }
   saveProfile(profile);
   refresh();
-  log(`[HUB] Discarded ${removed.length} disclosed exploit${removed.length === 1 ? "" : "s"}.`);
+  log(`[HUB] Discarded ${removed.length} disclosed round${removed.length === 1 ? "" : "s"}.`);
 }
 
 /** True when the player is at the hub (or its darknet store) rather than in a run. */

@@ -35,33 +35,33 @@ describe("quickStartRun — canned hub start (fast-start / deep-link)", () => {
     assert.ok(Object.keys(getState().nodes).length > 0, "the run's network should be loaded");
   });
 
-  test("always deals a fresh, playable starter hand (no profile needed)", () => {
+  test("always seeds a fresh, playable hoard (no profile needed)", () => {
     quickStartRun(buildNetwork({ seed: "qs-2" }));
-    assert.ok(getState().player.hand.length > 0,
-      "fast-start must always deal a fresh starter hand, never launch empty-handed");
+    assert.ok(getState().player.hoard.length > 0,
+      "fast-start must always seed a fresh hoard, never launch empty-handed");
   });
 
-  test("ignores the profile inventory and does not mutate it", () => {
-    // Give the profile a single distinctive card. Fast-start should deal a FRESH full
-    // starter hand (not the 1-card inventory) and must not draw from or write to the
-    // profile — the inventory is unchanged afterward.
-    const oneCard = { version: 1, bank: 1000, _instanceSeq: 1,
-      inventory: [{ instanceId: "inv-0", name: "Solo Relic", rarity: "common", targetVulnTypes: [] }] };
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(oneCard));
+  test("ignores the stored profile and does not commit back to it", () => {
+    // Give the profile a distinctive v2 hoard. Fast-start should seed a FRESH generated
+    // hoard (not the profile's) and must not draw from or write to the profile — the
+    // stored hoard is unchanged afterward.
+    const stored = { version: 2, bank: 1000, _hubVisits: 0, inventory: [],
+      hoard: [{ id: "solo-relic", rarity: "common", types: [], disclosed: false }] };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(stored));
     quickStartRun(buildNetwork({ seed: "qs-3" }));
-    assert.ok(getState().player.hand.length > 1,
-      "the dealt hand must be a fresh starter set, not the single inventory card");
+    assert.ok(getState().player.hoard.length > 1,
+      "the seeded hoard is a fresh generated set, not the single stored round");
     const after = JSON.parse(localStorage.getItem(PROFILE_KEY));
-    assert.equal(after.inventory.length, 1, "fast-start must not mutate the profile inventory");
-    assert.equal(after.inventory[0].instanceId, "inv-0");
+    assert.equal(after.hoard.length, 1, "fast-start must not mutate the profile hoard");
+    assert.equal(after.hoard[0].id, "solo-relic");
   });
 
   test("a fast-start run does not commit back to the profile on RUN_ENDED", () => {
-    // Throwaway test session: ending a fast-start run must not deposit cash or keep/burn
-    // cards. prepareFastStartLaunch clears activeRun, so the commit subscriber no-ops.
+    // Throwaway test session: ending a fast-start run must not deposit cash or alter the
+    // hoard. prepareFastStartLaunch clears activeRun, so the commit subscriber no-ops.
     initProfileRunCommit();
-    const before = { version: 1, bank: 1000, _instanceSeq: 1,
-      inventory: [{ instanceId: "inv-0", name: "Solo Relic", rarity: "common", targetVulnTypes: [] }] };
+    const before = { version: 2, bank: 1000, _hubVisits: 0, inventory: [],
+      hoard: [{ id: "solo-relic", rarity: "common", types: [], disclosed: false }] };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(before));
     quickStartRun(buildNetwork({ seed: "qs-4" }));
     emitEvent(E.RUN_ENDED, { outcome: "success" });

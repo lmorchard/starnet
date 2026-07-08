@@ -150,9 +150,13 @@
  * Persistent cross-run player profile. Lives OUTSIDE GameState (in localStorage
  * via js/ui/profile-store.js), so it survives resetGame between runs. Model and
  * mutations are in js/core/profile.
+ * `hoard` is the persistent carry-all ammunition (E1 hoard cutover); `inventory`
+ * (+ `_instanceSeq`) is the legacy card store, kept vestigial until the Phase 9
+ * sweep removes it once every consumer is repointed.
  * @typedef {{
  *   version: number,
  *   bank: number,
+ *   hoard: ExploitRound[],
  *   inventory: ExploitCard[],
  *   _instanceSeq: number,
  *   _hubVisits: number,

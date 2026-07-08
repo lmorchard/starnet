@@ -7,7 +7,7 @@
 import { registerCommand, getCommand } from "../core/console-commands/index.js";
 import { emitEvent, E } from "../core/events.js";
 import {
-  openHub, equipCard, unequipCard, setWithdraw, launchTarget, getHub,
+  openHub, setWithdraw, launchTarget, getHub,
   discardDisclosed, isHubContext, hubBuy, listHubCatalog,
 } from "./hub.js";
 
@@ -15,41 +15,27 @@ function log(text, type = "meta") {
   emitEvent(E.LOG_ENTRY, { text, type });
 }
 
-/**
- * Resolve an inventory reference (1-based index from `inventory` listing, or a
- * literal instanceId) to an instanceId. Logs and returns null if unresolved.
- */
-function resolveInstanceId(arg) {
-  if (!arg) { log("Usage: equip <#|instanceId>", "error"); return null; }
-  const { inventory } = getHub();
-  const n = parseInt(arg, 10);
-  if (!isNaN(n) && String(n) === arg) {
-    const card = inventory[n - 1];
-    if (!card) { log(`No inventory card #${arg}.`, "error"); return null; }
-    return card.instanceId;
-  }
-  const match = inventory.find((c) => c.instanceId === arg);
-  if (!match) { log(`No exploit with id ${arg}.`, "error"); return null; }
-  return match.instanceId;
-}
-
 registerCommand({ verb: "hub", execute() { openHub(); } });
 
+// `inventory` now summarizes the carry-all hoard (the whole hoard is carried into
+// every run — there is no loadout to equip). The rich grouped listing is Phase 7.
 registerCommand({
   verb: "inventory",
   execute() {
-    const { bank, inventory, selection } = getHub();
-    log(`BANK: ¥${bank.toLocaleString()}  (loadout ${selection.loadoutIds.length}/5)`);
-    if (!inventory.length) { log("Inventory empty — mine or buy exploits."); return; }
-    inventory.forEach((c, i) => {
-      const eq = selection.loadoutIds.includes(c.instanceId) ? "  [EQUIPPED]" : "";
-      log(`  [${i + 1}] ${c.instanceId}  ${c.name} [${c.rarity}] ${c.decayState} ×${c.usesRemaining}${eq}`);
-    });
+    const { bank, hoard } = getHub();
+    let common = 0, uncommon = 0, rare = 0, disclosed = 0;
+    for (const r of hoard) {
+      if (r.rarity === "common") common++;
+      else if (r.rarity === "uncommon") uncommon++;
+      else if (r.rarity === "rare") rare++;
+      if (r.disclosed) disclosed++;
+    }
+    log(`BANK: ¥${bank.toLocaleString()}`);
+    log(`HOARD — ${hoard.length} round${hoard.length === 1 ? "" : "s"} · ${common} common · ${uncommon} uncommon · ${rare} rare`);
+    if (disclosed) log(`  (${disclosed} disclosed — use discard-disclosed to clear)`);
   },
 });
 
-registerCommand({ verb: "equip", execute(args) { const id = resolveInstanceId(args[0]); if (id) equipCard(id); } });
-registerCommand({ verb: "unequip", execute(args) { const id = resolveInstanceId(args[0]); if (id) unequipCard(id); } });
 registerCommand({ verb: "carry", execute(args) { setWithdraw(parseInt(args[0], 10) || 0); } });
 
 registerCommand({

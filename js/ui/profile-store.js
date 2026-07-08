@@ -2,18 +2,19 @@
 // Browser binding for the persistent player profile: localStorage load/save and
 // new-profile bootstrap. The pure model lives in js/core/profile.
 //
-// (Phase 2 adds launchRun + the RUN_ENDED commit subscriber to this module.)
+// E1 hoard cutover (Phase 5): the profile carries a persistent `hoard` of exploit
+// rounds. Launch clones the WHOLE hoard into the run (no loadout); run-end commits
+// the final hoard back (clean) or leaves it intact (caught). v1 (card-inventory)
+// profiles are discarded and re-bootstrapped — no migration.
 
 import {
   createProfile,
-  addCardToInventory,
-  buildRunHand,
+  buildRunHoard,
   commitRun,
   withdraw,
-  findCard,
   PROFILE_VERSION,
 } from "../core/profile/index.js";
-import { generateStartingHand } from "../core/exploits.js";
+import { generateHoard, DEFAULT_START_HOARD } from "../core/hoard.js";
 import { on, E } from "../core/events.js";
 import { getState } from "../core/state.js";
 
@@ -24,6 +25,8 @@ const DEFAULT_BANK = 1000; // matches initGame's startCash fallback
 
 /**
  * Load the profile from localStorage, or bootstrap a new one if absent/corrupt.
+ * A stored profile from before the hoard cutover (version !== 2) is discarded and
+ * re-bootstrapped fresh — there is no card→round migration (E1 v1 reset).
  * @returns {StarnetProfile}
  */
 export function loadProfile() {
@@ -31,7 +34,10 @@ export function loadProfile() {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return normalizeProfile(parsed);
+      // Only version-2 profiles survive; anything older/missing is reset.
+      if (parsed && typeof parsed === "object" && parsed.version === PROFILE_VERSION) {
+        return normalizeProfile(parsed);
+      }
     } catch {
       // unparseable payload — fall through and re-bootstrap
     }
@@ -40,24 +46,19 @@ export function loadProfile() {
 }
 
 /**
- * Repair a parsed profile to the current shape, filling missing/invalid fields so
- * an older or partially-written payload can't crash the hub downstream. Mutates
- * and returns the object.
+ * Repair a parsed v2 profile to the current shape, filling missing/invalid fields so
+ * a partially-written payload can't crash the hub downstream. Mutates and returns
+ * the object. (Pre-v2 payloads never reach here — loadProfile resets them.)
  * @param {any} p
  * @returns {StarnetProfile}
  */
 function normalizeProfile(p) {
   if (typeof p.bank !== "number") p.bank = 0;
-  if (!Array.isArray(p.inventory)) p.inventory = [];
+  if (!Array.isArray(p.hoard)) p.hoard = [];
+  if (!Array.isArray(p.inventory)) p.inventory = []; // vestigial; kept until Phase 9
   if (typeof p._hubVisits !== "number") p._hubVisits = 0;
   if (typeof p.version !== "number") p.version = PROFILE_VERSION;
-  // Derive _instanceSeq above any existing inv-N id so future auto-ids don't collide.
-  let seq = typeof p._instanceSeq === "number" ? p._instanceSeq : 0;
-  for (const c of p.inventory) {
-    const m = c && typeof c.instanceId === "string" ? /^inv-(\d+)$/.exec(c.instanceId) : null;
-    if (m) seq = Math.max(seq, Number(m[1]) + 1);
-  }
-  p._instanceSeq = seq;
+  if (typeof p._instanceSeq !== "number") p._instanceSeq = 0;
   return p;
 }
 
@@ -71,62 +72,58 @@ export function saveProfile(profile) {
 
 /**
  * Create and persist a starter profile: a default bank plus a generated starter
- * inventory (each card banked so it gets an instanceId).
+ * hoard. (The vestigial card inventory starts empty.)
  * @returns {StarnetProfile}
  */
 function bootstrapProfile() {
-  const p = createProfile({ bank: DEFAULT_BANK });
-  generateStartingHand().forEach((c) => addCardToInventory(p, c));
+  const p = createProfile({ bank: DEFAULT_BANK, hoard: generateHoard(DEFAULT_START_HOARD) });
   saveProfile(p);
   return p;
 }
 
 // ── Run launch + commit ──────────────────────────────────────────────────────
 
-/** @type {{ carriedInstanceIds: string[] } | null} Carried set for the in-flight run. */
+/** @type {{ active: true } | null} Marks whether the in-flight run commits back. */
 let activeRun = null;
 
 /**
- * Prepare an ephemeral fast-start launch: a freshly generated starter hand that is
- * neither drawn from nor committed back to the profile. Clears any active run so the
- * RUN_ENDED commit subscriber no-ops — fast-start sessions are throwaway tests and must
- * not deposit cash, keep cards, or burn a loadout. Always succeeds (no bank/inventory
+ * Prepare an ephemeral fast-start launch: a freshly generated hoard that is neither
+ * drawn from nor committed back to the profile. Clears any active run so the
+ * RUN_ENDED commit subscriber no-ops — fast-start sessions are throwaway tests and
+ * must not deposit cash or alter the hoard. Always succeeds (no bank/profile
  * dependency), so the player lands in a playable LAN regardless of profile state.
- * @param {number} maxCards - cap the dealt hand to the normal loadout size
- * @returns {{ startHandCards: import('../core/types.js').ExploitCard[], startCash: number }}
+ * @param {number} [_maxCards] - unused; retained for the quickStartRun call signature
+ * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number }}
  */
-export function prepareFastStartLaunch(maxCards) {
+export function prepareFastStartLaunch(_maxCards) {
   activeRun = null; // a fast-start run does not commit back to the profile
-  const hand = generateStartingHand().slice(0, maxCards);
-  return { startHandCards: buildRunHand(hand), startCash: 0 };
+  return { startHoard: generateHoard(DEFAULT_START_HOARD), startCash: 0 };
 }
 
 /**
- * Prepare a run launch from the profile: withdraw the carried cash, clone the
- * chosen loadout, and record the carried set so the run can be committed when it
- * ends. Returns the meta additions (startHandCards + startCash) for the caller to
- * merge into the network meta and start via startRun(); returns null if the bank
- * can't cover the carried cash. The DOM/graph side stays in the UI layer (hub.js).
- * @param {{ loadoutInstanceIds: string[], withdrawAmount: number }} args
- * @returns {{ startHandCards: import('../core/types.js').ExploitCard[], startCash: number } | null}
+ * Prepare a run launch from the profile: withdraw the carried cash and clone the
+ * ENTIRE hoard into the run (no loadout — the whole hoard is carried). Records the
+ * active run so it can be committed when it ends. Returns the meta additions
+ * (startHoard + startCash) for the caller to merge into the network meta and start
+ * via startRun(); returns null if the bank can't cover the carried cash.
+ * @param {{ withdrawAmount: number }} args
+ * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number } | null}
  */
-export function prepareLaunch({ loadoutInstanceIds, withdrawAmount }) {
+export function prepareLaunch({ withdrawAmount }) {
   const profile = loadProfile();
   if (!withdraw(profile, withdrawAmount)) return null;
-  const loadout = loadoutInstanceIds
-    .map((id) => findCard(profile, id))
-    .filter(/** @returns {c is import('../core/types.js').ExploitCard} */ (c) => Boolean(c));
   saveProfile(profile); // bank debited at launch
-  activeRun = { carriedInstanceIds: loadout.map((c) => /** @type {string} */ (c.instanceId)) };
-  return { startHandCards: buildRunHand(loadout), startCash: withdrawAmount };
+  activeRun = { active: true };
+  return { startHoard: buildRunHoard(profile.hoard), startCash: withdrawAmount };
 }
 
 let _commitWired = false;
 
 /**
  * Wire the run-end → profile commit (call once at app init). On RUN_ENDED:
- * success deposits run cash and writes card decay back; capture burns the carried
- * loadout. Reads the final cash/hand from live game state.
+ * clean deposits run cash and persists the final carried hoard; caught keeps the
+ * hoard unchanged (E1: no loss) and deposits nothing (run cash already forfeit).
+ * Reads the final cash/hoard from live game state.
  */
 export function initProfileRunCommit() {
   if (_commitWired) return;
@@ -138,8 +135,7 @@ export function initProfileRunCommit() {
     commitRun(profile, {
       outcome,
       finalCash: s.player.cash, // already 0 on "caught" — endRun zeroes it
-      finalHand: s.player.hand,
-      carriedInstanceIds: activeRun.carriedInstanceIds,
+      finalHoard: s.player.hoard,
     });
     saveProfile(profile);
     activeRun = null;
