@@ -85,7 +85,12 @@ export function synthesizeTimedActions(node) {
       timedSpec = { duration: DEFAULT_SCRIPT_ACTION_DURATION };
     }
 
-    const activeAttr = timedActiveAttr(action.id);
+    // Registry-listed actions (probe/dump/fetch/mine/lie-low/reboot) carry an
+    // irregular activeAttr (`probing`, `reading`, …) that is read widely across the
+    // codebase; honor it so a migrated core verb keeps its load-bearing flag name.
+    // Everything else (corrupt/kick/sniff/replay/set-piece scripts) mints
+    // `_ta_active_<id>` as before — fully backward-compatible (#288 A0).
+    const activeAttr = getTimedActionAttrNames(action.id).activeAttr ?? timedActiveAttr(action.id);
     const { progressAttr, durationAttr } = getTimedActionAttrNames(action.id);
 
     operators = [

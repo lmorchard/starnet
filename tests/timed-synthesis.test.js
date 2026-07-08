@@ -393,3 +393,59 @@ describe("timed-by-default synthesis for script actions (#187 default-flip)", ()
     assert.deepStrictEqual(action.effects, [{ effect: "set-attr", attr: "lyingLow", value: true }], "action effects left as-is when an operator already handles it");
   });
 });
+
+// #288 Task A0: synthesis must honor the TIMED_ACTIONS registry's irregular activeAttr
+// (e.g. "probing" for probe) when one exists, rather than always minting the generic
+// `_ta_active_<id>` name. This is the enabler for later tasks that migrate core verbs
+// (probe/dump/fetch/mine) onto this declarative `timed:` path while keeping the
+// load-bearing attribute names those verbs already read/write elsewhere in the codebase.
+describe("synthesis activeAttr resolution (#288 A0)", () => {
+  it("uses the registry activeAttr for a registered action id", () => {
+    const node = {
+      id: "n1",
+      type: "test",
+      attributes: {},
+      operators: [],
+      actions: [
+        {
+          id: "probe", // in TIMED_ACTIONS → activeAttr "probing"
+          label: "PROBE",
+          requires: [],
+          timed: { durationTable: { S: 50, A: 40, B: 30, C: 20, D: 20, F: 10 } },
+          effects: [{ effect: "set-attr", attr: "done", value: true }],
+        },
+      ],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, mockCtx());
+    const state = /** @type {any} */ (graph)._nodes.get("n1");
+
+    const op = state.operators.find((/** @type {any} */ o) => o.name === "timed-action" && o.action === "probe");
+    assert.ok(op, "expected a synthesized timed-action operator for probe");
+    assert.equal(op.activeAttr, "probing", "registry activeAttr wins for probe");
+  });
+
+  it("falls back to _ta_active_<id> for an unregistered action id", () => {
+    const node = {
+      id: "n2",
+      type: "test",
+      attributes: {},
+      operators: [],
+      actions: [
+        {
+          id: "my-script-thing", // NOT in TIMED_ACTIONS
+          label: "X",
+          requires: [],
+          timed: { duration: 5 },
+          effects: [{ effect: "set-attr", attr: "done", value: true }],
+        },
+      ],
+    };
+    const graph = new NodeGraph({ nodes: [node], edges: [] }, mockCtx());
+    const state = /** @type {any} */ (graph)._nodes.get("n2");
+
+    const op = state.operators.find((/** @type {any} */ o) => o.name === "timed-action" && o.action === "my-script-thing");
+    assert.ok(op, "expected a synthesized timed-action operator for my-script-thing");
+    assert.equal(op.activeAttr, timedActiveAttr("my-script-thing"));
+    assert.equal(op.activeAttr, "_ta_active_my-script-thing");
+  });
+});
