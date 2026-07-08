@@ -38,7 +38,7 @@ And when they find you, the clock starts.
 ├──────────────────────────────────────────────────────────────┤
 │  STATUS: LINK · ALERT · WALLET · MISSION              [ ☰ ]  │
 ├────────────────────────────────────┬─────────────────────────┤
-│  LOG                               │  EXPLOIT HAND  [ ▾ ]   │
+│  LOG                               │  EXPLOIT HOARD [ ▾ ]   │
 │  > CONSOLE INPUT                   │                         │
 └────────────────────────────────────┴─────────────────────────┘
 ```
@@ -54,18 +54,15 @@ inspector has three regions: a header (type, GRADE · ACCESS · alert lamp, then
 label), action buttons in the middle, and a footer showing ICE/action timers, CONTENTS,
 and VULNERABILITIES. While a timed action runs on the node, the action buttons are
 replaced by a busy indicator (e.g. `▶ EXECUTING`) with a progress tick-ladder; the
-inspector stays visible. Submenu pickers (XPLOIT cards, EXEC scripts) cascade off the
-inspector. Unidentified nodes show the same header with `[???]` / the `sig-N` alias in
-place of the real type and label.
+inspector stays visible. Submenu pickers (EXEC scripts) cascade off the inspector.
+Unidentified nodes show the same header with `[???]` / the `sig-N` alias in place of
+the real type and label.
 
-**Exploit Hand** — Your five exploit cards, in a strip along the bottom of the screen
-beside the terminal. When a node is targeted, matching cards highlight in cyan. There are
-two ways to play one: choose **XPLOIT** from the node inspector to open a card picker
-anchored on the node (the guided path — see the *Exploit* step in *The Core Loop* below),
-or click a card directly in the hand strip (the override path — plays any usable card,
-even a long shot). Both do the same thing; the hand is also your at-a-glance inventory.
-The hand has a collapse toggle (`[ ▾ HAND ]`); use the `hand` console command to toggle
-it from the keyboard.
+**Exploit Hoard** — A summary of your ammo pile along the bottom of the screen beside the
+terminal. It shows how many rounds you have left by rarity tier. When you fire **XPLOIT**
+on a node, the auto-burn loop draws from this pile until the node is cracked, the heat
+ceiling is hit, or the hoard runs dry. The hoard has a collapse toggle (`[ ▾ HOARD ]`);
+use the `hand` console command to toggle it from the keyboard.
 
 **Log** — The full event record of your run. Every system event, every exploit roll,
 every ICE movement that crosses into your territory appears here.
@@ -97,13 +94,13 @@ counting down, a pulsing `[ JACK OUT ]` for instant disconnect is stacked beneat
 `[ VISIT WAN ]` stays available so you can still hop to the WAN to lie low under pressure.
 
 **Resizing the layout** — Two borders are drag-resizable: the border above the log/console
-(graph vs. log height) and the border between the log and the exploit hand (log vs. hand
-width). Grab a border and drag; **double-click a border to reset that split** to its
+(graph vs. log height) and the border between the log and the exploit hoard strip (log vs.
+hoard width). Grab a border and drag; **double-click a border to reset that split** to its
 default. Your chosen sizes persist across reloads. The status bar is fixed.
 
 **Seed** — Each run is generated from a seed string, shown in the status display.
 Sharing a seed lets someone else play the same network layout, vulnerabilities,
-and exploit hand. Use `status summary` to see your current seed.
+and starting hoard. Use `status summary` to see your current seed.
 
 ---
 
@@ -115,7 +112,7 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 |-------------------|-------------------|--------------|---------------------------------------------------|
 | **WAN**           | Globe             | Probe        | The network boundary — your tether to the outside. Access the darknet broker here. |
 | **Gateway**       | Portal arch       | Probe        | Entry point. Your foothold into the LAN.          |
-| **Router**        | Four-way arrows   | Open         | Routes traffic. Bridges to deeper nodes. Must open it to see connections. |
+| **Router**        | Four-way arrows   | Probe        | Routes traffic. Bridges to deeper nodes. Probing reveals what's connected. |
 | **Firewall**      | Brick wall        | Owned        | High-security chokepoint. Must fully own to reveal what's beyond. |
 | **Workstation**   | Monitor           | Probe        | User machines. Often soft targets with loose data.|
 | **File Server**   | Rack stack        | Probe        | Where documents live. Usually where your mission target is. |
@@ -126,18 +123,18 @@ Each node in the LAN has a **type** that determines what it does and why you wan
 Every node is drawn as a 12-sided container holding a small glyph of the device
 it represents, rendered as a glowing vector outline. The glyph (and its color)
 tells you *what kind* of node it is; the container's border plus a fence-hatch
-pattern inside it tell you its *state* — the hatching gets denser as a node goes
-from locked to open to owned, and the border color/pulse shows alert.
+pattern inside it tell you its *state* — the hatching changes as a node goes from
+locked to owned, and the border color/pulse shows alert.
 
 The **Gate** column shows when a node reveals its connections to neighboring nodes.
-"Probe" means probing the node is enough to see what's connected. "Open" or
-"Owned" means you must reach that access level before the node reveals what's beyond it.
-Security infrastructure and chokepoints gate their connections — you can't just scan
-them to map the network.
+"Probe" means probing the node is enough to see what's connected. "Owned" means you
+must crack it before the node reveals what's beyond it. Security infrastructure
+(firewalls, IDS, monitors) gates their connections — you can't just scan them to
+map the network.
 
 Nodes also have a **grade** (F through S) that affects how hard they are to exploit.
 Lower grade = softer target = better odds. The gateway is usually grade D or F.
-The cryptovault is grade S — bring your best cards.
+The cryptovault is grade S — a high coherence reserve; bring your rare rounds.
 
 ### Honey-Pots
 
@@ -159,22 +156,22 @@ specific macguffin, it won't be sitting in a trap node.
 
 ## ACCESS LEVELS
 
-Every node starts **locked**. To use a node you must work through its access levels:
+Every node starts **locked**. Cracking it takes it straight to fully owned:
 
 ```
-LOCKED  →  OPEN  →  OWNED
+LOCKED  →  OWNED
 ```
 
-**Locked** — No access. You can probe it to reveal vulnerabilities.
+**Locked** — No access. You can probe it to reveal vulnerabilities, and
+dump its contents once probed. To use it fully you must crack it.
 
-**Open** — Partial access. You can read contents and attempt to escalate.
-An IDS at this level can be corrupted to stop forwarding alerts.
+**Owned** — Full control. You can fetch macguffins, mine for rounds,
+reboot the node, or kick ICE. Owning a node also reveals its connections
+to neighboring nodes (for gates that require ownership — firewalls, IDS,
+security monitors).
 
-**Owned** — Full control. You can fetch macguffins, reboot the node, or kick ICE.
-
-A clean exploit on a **locked** node usually lands you at *open*, but a
-high-quality card can punch straight through to **owned** in a single shot,
-skipping the middle step. The better the card, the more often this happens.
+**XPLOIT** launches the coherence auto-burn on a locked node and takes it
+straight to owned when coherence bottoms out — there is no intermediate step.
 
 ---
 
@@ -187,40 +184,38 @@ The hub holds your **persistent state**. A single run is self-contained, but two
 things carry across runs:
 
 - **Bank** — your cash. Loot you extract is deposited here when you jack out clean.
-- **Exploit inventory** — the exploit cards you own. The darknet broker and mining
-  add to it, and it persists between runs.
+- **Exploit hoard** — your ammo pile of exploit rounds. The darknet broker, mining,
+  and loot drops add to it, and the whole thing persists between runs.
 
 ### Outfitting a run
 
 From the hub you:
 
-1. **Equip a loadout** — choose up to **5 exploits** from your inventory to take
-   into the run; these become your hand. (Click a card, or `equip <#>`.)
-2. **Carry cash** — decide how much of your bank to bring along, e.g. to shop the
-   darknet broker mid-run. (`carry <amount>`.)
+1. **Carry your hoard** — your entire persistent hoard travels with you into every
+   run. There is no equip step and no loadout limit; you bring everything you own.
+2. **Carry cash** — decide how much of your bank to bring along, e.g. to buy
+   research packs from the darknet broker mid-run. (`carry <amount>`.)
 3. **Pick a target** — the hub offers a short list of **procedurally-generated
    jobs** at varying difficulty (soft / standard / hard), plus a set of
    **authored networks** (hand-crafted set-piece LANs). Selecting one launches the
    run. (`targets` lists them, `launch <id>`.)
 
-From the hub you can also **discard disclosed exploits** (burned-out cards
-cluttering your inventory) and **visit the darknet broker** — opened from the
-hub, the broker spends your **bank** and delivers purchases straight to your
-**inventory** (rather than in-run cash and your hand).
+From the hub you can also **discard disclosed rounds** (burned-out ammo cluttering
+your hoard) and **visit the darknet broker** — opened from the hub, the broker
+spends your **bank** and delivers research packs straight to your **hoard**
+(rather than in-run cash).
 
 ### Stakes
 
 What you bring is what you risk:
 
-- **Clean jack-out** — your carried cash plus any loot is banked, and your loadout
-  returns to inventory (worn by use, but yours). Cards you bought or mined mid-run
-  are added to your inventory too.
-- **Traced (caught)** — you lose the run's cash **and your carried loadout is
-  burned** — those exploits are seized, gone from your inventory. Your bank and the
-  exploits you *didn't* bring are safe.
+- **Clean jack-out** — your carried cash plus any loot is banked. Rounds burned
+  (disclosed) during the run are gone; the rest of your hoard returns intact.
+  Research packs bought or rounds mined mid-run are added to your hoard too.
+- **Traced (caught)** — you lose the run's cash and loot. Your **hoard is safe** —
+  it is not seized. (The ante mechanic is deferred to a later version.)
 
-A loadout is an ante: bring your best cards against a hard target and a trace costs
-you dearly; bring cheap cards and you risk less but crack less.
+Your bank and your hoard survive a trace. What you lose is the run's earnings.
 
 ---
 
@@ -251,9 +246,10 @@ and vulnerabilities the same way.)
 
 For most node types, probing also reveals **neighboring connections** — you'll see new
 `???` nodes appear on the graph. However, security infrastructure (firewalls, IDS,
-security monitors) and routers gate their connections. You must reach a higher access
-level before those nodes reveal what's beyond them. Check the node types table for
-each type's gate level.
+security monitors) gate their connections behind ownership. You must crack them before
+those nodes reveal what's beyond them. Routers do reveal their neighbors on probe —
+scanning a router shows the topology beyond it without needing to own it first. Check
+the node types table for each type's gate level.
 
 Probing raises the node's local alert from green to yellow. If this node is watched by
 an IDS, that alert will propagate.
@@ -270,41 +266,41 @@ can trip the alarm mid-ripple. Watch the heat gauge and abort before it's too ho
 
 ### 3. Exploit
 
-Choose **XPLOIT** from the node's action menu, click a card in the hand strip, or type:
+Choose **XPLOIT** from the node's action menu, or type:
 
 ```
-> xploit <card-number>
+> xploit
 ```
 
-**XPLOIT is a node action like PROBE or DUMP.** Choosing it opens a card picker anchored
-on the node:
+**XPLOIT is a node action like PROBE or DUMP.** It is arg-less — no card picker,
+no selection. Firing it launches a **coherence auto-burn**: the system pulls rounds from
+your hoard one by one, each chipping away at the node's **coherence reserve**, until
+the node **faults and goes owned** at zero coherence, until the burst **heat ceiling**
+is reached, or until your **hoard runs dry**.
 
-- **Before you probe**, you're attacking blind — the picker offers *every usable card*.
-- **After you probe**, the picker engages a match filter — it offers *only cards that
-  target the node's revealed vulnerabilities*. Probing is what earns you this clarity.
-- If a probed node has **no matching card** (or your whole hand is burned out), XPLOIT is
-  shown disabled in the menu with a short reason ("No matching exploit available." / "No
-  exploits available."). When that happens, play a long shot from the hand or shop the
-  darknet broker.
-- On an **already-owned node**, XPLOIT isn't offered at all — there's no further access to
-  gain. You can still play a card from the hand to re-exploit it if you really want.
+**How auto-burn works:**
 
-The picker is the *guided* path. The **hand strip** and the `xploit <n>` console command
-are *full-agency* channels: they can play any usable card against the selected node,
-including a deliberate off-target long shot or a blind attempt on an unprobed node. Each
-card targets one or more vulnerability types; a card matching a known vulnerability
-improves your odds significantly.
+- Every node has a **coherence reserve** that scales with grade. Hardened
+  nodes (grade A/S) absorb far more punishment than soft ones (grade F).
+- Each round fired chips coherence by:
+  `base(grade × rarity) × (1 + type-match bonus) × jitter`.
+  **Rarity** is the main damage driver — rare rounds bite hard. If a round's
+  **type tags** match the node's probed vulnerabilities, it bites roughly twice
+  as hard. Type amplifies the hit; it does not gate which rounds you can fire.
+- After each shot, the node rolls a **grade-scaled disclosure chance**: if it
+  fires, that round's pattern is exposed and the round is **burned** — gone from
+  your hoard permanently. Higher-grade nodes are better at fingering your techniques.
+- The barrage **stops** on any of three conditions:
+  1. **Cracked** — coherence hits zero; the node faults → owned.
+  2. **Heat ceiling** — burst heat (accumulated per shot) reaches the ceiling;
+     XPLOIT pauses with coherence eroded but not yet zero. Try again later, or
+     let the network cool first.
+  3. **Hoard dry** — you have no undisclosed rounds left; XPLOIT fails.
 
-**Exploit resolution:**
+Probe the node first. A matched run (type tags hitting revealed vulns) burns through
+coherence far faster than a blind one, and costs fewer rounds.
 
-- Base success chance scales with **card quality** (the tick-meter) vs **node grade**
-- A **matching vulnerability** boosts your odds considerably
-- Success: node access level rises (locked → open, open → owned).
-  A high-quality card can skip the middle step, jumping a locked node straight to
-  owned — more likely the better the card's quality meter
-- Success also **counts as a probe** — the node's vulnerabilities are revealed, so a
-  blind gamble that lands shows you what you're working with (no need to probe after)
-- Failure: local alert rises; IDS nodes forward the alert event upstream
+On an **already-owned node**, XPLOIT is not available — there is nothing left to crack.
 
 ### 4. Dump
 
@@ -312,7 +308,7 @@ improves your odds significantly.
 > dump
 ```
 
-On an open or owned node, `dump` extracts data from the node's filesystem —
+On any **probed** node, `dump` extracts data from the node's filesystem —
 data packages, files, anything of value. This takes time, scaled by node grade.
 The node's 12 facets light up in random order as data is extracted. You can cancel
 with `abort`, and navigating away cancels automatically.
@@ -353,72 +349,60 @@ Three paths to the same outcome:
 
 ---
 
-## EXPLOIT CARDS
+## EXPLOIT HOARD
 
-Your hand contains five exploit cards, randomly generated at the start of each run.
+Your **hoard** is a large pile of disposable exploit rounds — your ammunition for
+cracking nodes. You carry the entire hoard into every run. Each round has a terse
+hex id (e.g. `a3f19b2c`), a **rarity**, and one or more **type tags**.
 
-**Rarity** determines card power:
+**Rarity** drives how hard each round bites a node's coherence:
 
-| Rarity    | Targets      | Starting Uses | Quality Range |
-|-----------|--------------|---------------|---------------|
-| Common    | 1 vuln type  | 3             | Low–Medium    |
-| Uncommon  | 2 vuln types | 5             | Medium–High   |
-| Rare      | 3 vuln types | 8             | High–Very High|
+| Rarity    | Type tags  | Coherence bite  |
+|-----------|------------|-----------------|
+| Common    | 1          | Baseline         |
+| Uncommon  | 2          | ~2× baseline     |
+| Rare      | 3          | ~5× baseline     |
 
-**Quality** is shown as a stroked tick-meter (a vertical tick ladder). Higher quality
-means better base success chances, especially on unprobed or high-grade nodes. The
-meter is also **color-coded** along a ramp — red (low) → amber → green (high) — so a
-card's strength reads at a glance. The tick count carries the same information without
-relying on color.
+Rare rounds carry more type tags and hit harder — both because the rarity multiplier
+is larger and because with three tags they're more likely to match a node's
+vulnerabilities (which doubles the bite again).
 
-**Vulnerability glyphs** — Each vulnerability type has its own **glyph**, shown on
-both the exploit card (next to each vuln it targets) and on the node panel (next to
-each revealed vulnerability). Color groups the glyphs by rarity tier: teal (common),
-amber (uncommon), magenta (rare). In the **hand** and node panel the textual vuln id
-sits beside the glyph; the in-graph **XPLOIT picker** is a denser "express" view that
-shows glyphs only (no labels). `status` output is unchanged.
+**Type tags** — Each round targets one or more vulnerability classes. If any of a
+round's tags matches a **probed** node's revealed vulnerabilities, the round hits
+harder. Type does not gate eligibility — any round can be fired at any node;
+type just amplifies the damage on a match.
 
-**Decay** — Cards wear out, and *look* worn as they do:
+**Disclosed (burned)** — A round that has been pattern-matched by the blue team is
+**disclosed**: its signature is blown and it is gone from your hoard permanently.
+Every shot rolls a grade-scaled chance that the node fingers the round's type
+signature — harder nodes disclose your techniques more reliably. Disclosed rounds
+do not return between runs; they are simply absent from your pile.
 
-- Each use costs one **use** from the remaining count; the card progressively
-  **desaturates** as its uses deplete
-- When uses drop low and the card takes a failure hit, it becomes **worn** — still
-  usable, but desaturated and showing hairline cracks
-- A failed exploit can also **disclose** a card — the exploit signature leaks to the
-  blue team, rendering the card useless for further escalation attempts. Disclosed
-  cards stay in your hand (rendered greyed-out, struck-through, and visibly burnt)
-  but cannot be played.
-
-When a node is targeted, your hand re-sorts: matching cards first, then usable cards,
-then worn, then disclosed. Cards that match the selected node's known vulnerabilities
-**glow green and lift**, and the specific shared **vuln glyph lights up** on the card —
-a visual lock-and-key against the node's revealed vulnerabilities. Non-matching cards
-recede (dimmed and desaturated).
-
-The numbers shown next to cards in `status hand` are the numbers to use with
-`xploit <n>` — the sort order changes with your selection, so always check
-`status hand` to confirm which card is at which position.
+Your hoard persists between runs. Rounds burned during a run are gone; the rest
+carry forward. The broker, mining, and loot add to it over time.
 
 ---
 
-## GETTING MORE EXPLOIT CARDS
+## GROWING YOUR HOARD
 
-Two channels replenish your hand mid-run. They trade off different resources:
+Three channels add rounds to your hoard. They trade off different resources:
 
 | Channel | Cost | Speed | Risk |
 |---------|------|-------|------|
-| **Darknet broker** (WAN node) | Cash | Instant (LAN pauses) | None while shopping |
+| **Research packs** (darknet broker, WAN node) | Cash | Instant (LAN pauses) | None while shopping |
 | **Mine** (owned node) | Time + ICE exposure | Grade-scaled delay | Trace clock keeps running |
+| **Loot drops** | Already in-run | On fetch | Trace clock keeps running |
 
-Use the broker when you have cash and want certainty. Mine when you're broke but own
-a node whose vulnerability profile matches what you need.
+Use the broker when you have cash and want to bulk up fast. Mine when you're low
+and own a node whose vulnerability profile overlaps your target — you'll get a
+round that matches the node's own weaknesses. Loot is a bonus, not a plan.
 
 ---
 
 ## THE DARKNET BROKER
 
 The **WAN node** — the boundary between your tether and the LAN — is more than an exit
-point. A darknet broker operates through it, selling exploit cards mid-run.
+point. A darknet broker operates through it, selling **research packs** mid-run.
 
 ### Accessing the Store
 
@@ -428,23 +412,31 @@ You can browse without the clock running.
 
 ```
 > target wan
-> darknet         # list available cards and prices
-> buy <index>     # purchase the card at that position
+> darknet         # list available research packs and prices
+> buy <index>     # purchase the pack at that position
 > untarget        # or target another node to resume
 ```
 
 ### When to Use It
 
-- Your hand doesn't match the node vulnerabilities you're facing — check the catalog
-  for a better-targeted card
-- Key cards are worn or disclosed mid-run — replenish before tackling hard nodes
-- You've looted enough cash to afford an upgrade and a tough node lies ahead
+- Your hoard is running thin — buy a pack to restock before a tough node
+- You're sitting on looted cash with hard nodes ahead
+- You want a specific rarity mix — packs show their contents before you buy
 
 ### What's Available
 
-The broker stocks a rotating catalog of exploit cards at varying prices. Cards cost
-more the higher their rarity and quality. Rare cards with broad vulnerability coverage
-are expensive but powerful against the hardest nodes.
+The broker sells **research packs**: blind-box assortments of exploit rounds at fixed
+prices. Each pack listing shows the **rarity mix** (how many common, uncommon, and rare
+rounds it contains) and the **price**. You see what rarity spread you're buying; the
+specific rounds are revealed when the pack opens and deposits into your hoard.
+
+Example packs:
+
+| Pack                   | Contents                          | Price |
+|------------------------|-----------------------------------|-------|
+| Common Cache           | 12 common rounds                  | ¢120  |
+| Mixed Signal Dump      | 6 common + 3 uncommon             | ¢300  |
+| Rare Requisition       | 2 common + 2 uncommon + 1 rare    | ¢650  |
 
 You'll need cash to buy. Loot macguffins first, then shop.
 
@@ -466,10 +458,11 @@ keeps running and ICE keeps moving — there is no pause.
 
 When mining completes, the system rolls a yield chance:
 
-- **Hit** — you receive one exploit card. Its target vulnerability class is drawn
-  from the *mined node's own vulnerabilities* (so mining a node with AuthBrute
-  exposure tends to produce AuthBrute-type cards). Rarity is rolled by the node's
-  grade: higher-grade nodes produce better cards more often.
+- **Hit** — you receive one **exploit round**, added directly to your hoard.
+  Its type tags are drawn from the *mined node's own vulnerabilities* (so mining
+  a node with AuthBrute exposure tends to produce AuthBrute-typed rounds — purpose-built
+  for nodes like it). Rarity is rolled by the node's grade: higher-grade nodes produce
+  better rounds more often.
 - **Miss** — nothing. The log reports "vein running thin."
 
 ### Diminishing Returns
@@ -490,13 +483,13 @@ mine: attempts:N  exhausted:false  next-yield:42%
 
 ### Strategy
 
-Mining is generic card supply, not a guaranteed answer. To crack a node showing
+Mining is targeted hoard supply, not a guaranteed answer. To crack a node showing
 vulnerability class X, find an already-owned node that also exhibits X — mine it
-for a matching exploit. But the clock is running, so weigh the time cost against
-buying from the broker.
+for a matching round. But the clock is running, so weigh the time cost against
+buying a pack from the broker.
 
 The spatial insight: **you're farming the network's own vulnerabilities back against
-itself.** A node you've already owned is a potential exploit factory for the nodes
+itself.** A node you've already owned is a potential ammo factory for the nodes
 around it.
 
 ---
@@ -652,7 +645,7 @@ which stays perfectly legible.
 
 ### Subverting the IDS
 
-If you can open and then **corrupt** an IDS node:
+If you can **own** an IDS node and then **corrupt** it:
 
 ```
 > exec corrupt
@@ -674,7 +667,7 @@ worth the detour, especially on an ICE-less LAN where the grid is your only cloc
   completes, and your heat drops. It's **limited to a couple of uses per run** (keep lying low and a
   human admin eventually clocks your tether). Lie-low is heat relief — it does **not** lower the
   alert ladder.
-- **Scrub logs** (`exec scrub-logs`) — on an **open** security-monitor. Wipes that monitor's
+- **Scrub logs** (`exec scrub-logs`) — on an **owned** security-monitor. Wipes that monitor's
   accumulated grid alerts and eases the global **alert** one level. Cheap and repeatable.
 
 So the alert **ratchet** only comes down by subverting the watchers: **corrupt the IDS** (stop new
@@ -712,8 +705,8 @@ your exploit resolves, it will start routing. Cancelling mid-run leaves that sig
 ### ICE Movement
 
 ICE moves every few seconds, traversing the network graph. You can only see ICE when it
-enters a node you **control** (open or owned) — it's invisible in the dark territory
-of unowned nodes. When it moves onto a node you control, a red diamond appears on the graph
+enters a node you **own** — it's invisible in the dark territory of nodes you haven't
+cracked. When it moves onto a node you control, a red diamond appears on the graph
 and the log reports its arrival. When a LAN has multiple ICE, each moves on its own
 cadence (set by its grade) and a node you control can be visited by more than one at a time.
 
@@ -815,17 +808,17 @@ Actions depend on the selected node's type and access level:
 | `probe`           | Node is locked and unprobed                   | Timed scan — reveals vulnerabilities, raises local alert |
 | `sweep` (menu) / `sweep <depth|max>` (console) | Targeted accessible node, no sweep already running | Broadcast probe — ripples outward (each branch advances as its own probes complete) up to the chosen depth, probing + fully revealing each reached node, flowing through probe-gate nodes and stopping at gate-controllers. Adds heat per node (a fast spike). Abortable mid-ripple. |
 | `abort`           | Timed action **or a sweep** in progress on targeted node | Aborts the current timed action (any abortable verb — reboot is involuntary) or a running sweep on the targeted node |
-| `xploit` (menu) / `xploit <n>` (console) | Node is accessible and not currently exploiting | Opens a node-anchored card picker. Unprobed → all usable cards (blind); probed → only cards matching revealed vulns; disabled with a reason when no card applies. Not offered at all on an already-owned node. The hand strip and `xploit <n>` console command stay full-agency (play any usable card). Raises access level on success. |
-| `dump`         | Node is open or owned, unread                  | Timed scan — reveals macguffins |
+| `xploit` (menu) / `xploit` (console) | Node is accessible, not owned, not finesse-locked, not already burning | Launches coherence auto-burn from your hoard — fires rounds in sequence, each chipping the node's coherence, until it cracks (→ owned), the heat ceiling is hit, or the hoard runs dry. Arg-less — no card selection. Not offered on an already-owned node. |
+| `dump`         | Node is probed, unread                         | Timed scan — reveals macguffins (available as soon as the node is probed; does not require owning it) |
 | `fetch`        | Node is owned + has uncollected macguffins     | Timed extraction — collects macguffins for cash |
-| `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit card targeting the node's own vuln classes; yield decays per attempt; disappears when the node is exhausted |
+| `mine`         | Node is owned and not exhausted                | Timed data-mining — rolls a yield chance for one exploit round typed from the node's own vuln classes; deposits into your hoard; yield decays per attempt; disappears when the node is exhausted |
 | `sniff`        | Probed node with a visible flow touching it, not already busy | Opens a flow picker (only flows to already-revealed nodes). Timed read — decrypts an encrypted flow / captures a credential token, but only once it completes; abortable, and navigating away cancels it (captures nothing). Adds heat. Needs the node probed first — not available on an unprobed node. |
 | `replay`       | Finesse-locked node you hold its trusted credential for, not already busy | Timed injection — replays the captured credential; node jumps to owned (revealing what it gated) once it completes. Abortable; navigating away cancels it (no access granted). Adds heat. |
-| `exec <script>` | An open/owned node exposes node scripts       | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …). Set-piece/puzzle scripts run as timed actions by default (brief, ~2s, with the generic-process animation) unless they're a UI/exit action like cancel-trace, access-darknet, or disconnect |
-| `corrupt`      | IDS node is open or owned                      | Timed subversion — severs event forwarding to security monitor once complete; grade-scaled duration (run via `exec`) |
-| `scrub-logs`   | Security-monitor, open or owned                | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
+| `exec <script>` | An owned node exposes node scripts            | Lists/runs the node's scripts (corrupt, spoof, unlock-vault, cancel-trace, access-darknet, …). Set-piece/puzzle scripts run as timed actions by default (brief, ~2s, with the generic-process animation) unless they're a UI/exit action like cancel-trace, access-darknet, or disconnect |
+| `corrupt`      | IDS node is owned                              | Timed subversion — severs event forwarding to security monitor once complete; grade-scaled duration (run via `exec`) |
+| `scrub-logs`   | Security-monitor is owned                      | Wipes that monitor's accumulated alerts, eases the global alert one level (below trace; run via `exec`) |
 | `lie-low`      | WAN node, uses remaining this run              | Timed wait that sheds **heat** (does not lower the alert ladder); limited per run (run via `exec`) |
-| `spoof`        | Security-monitor node, open or owned           | Recalibrates security monitor (run via `exec`) |
+| `spoof`        | Security-monitor node is owned                 | Recalibrates security monitor (run via `exec`) |
 | `kick`         | Owned node + ICE is present here, not already busy | Timed (brief, ~0.5s) — boots ICE to an adjacent node once it completes; abortable |
 | `reboot`       | Owned node, not currently rebooting            | Forces ICE home, node offline briefly |
 | `cancel-trace` | Owned security-monitor + trace active          | Cancels the trace countdown (run via `exec`) |
@@ -848,10 +841,10 @@ untarget               Untarget current node.
 probe                  Probe the targeted node.
 sweep <depth|max>       Broadcast probe from the targeted node, rippling to depth (or "max"); abort to stop.
 abort                  Abort any in-progress timed action on targeted node.
-xploit <#|name>        Use exploit card by number or name on targeted node.
-dump                   Dump contents of the targeted node.
+xploit                 Launch coherence auto-burn on targeted node (arg-less; draws from your hoard).
+dump                   Dump contents of the targeted probed node.
 fetch                  Extract macguffins from the targeted owned node.
-mine                   Data-mine the targeted owned node for an exploit card (timed; diminishing returns).
+mine                   Data-mine the targeted owned node for an exploit round (timed; diminishing returns).
 sniff [flow]           Read a flow on the targeted node (decrypt / capture credential). No flow arg lists the node's flows.
 replay                 Replay a captured credential into the targeted finesse node that trusts it.
 exec [<script>]        Run a node script (corrupt, spoof, unlock-vault, disconnect, …). No arg lists scripts.
@@ -860,26 +853,24 @@ reboot                 Force ICE home; node goes briefly offline.
 jackout                End run.
 
 menu                   Toggle the status-bar controls panel (NEW RUN / PAUSE / SAVE / LOAD).
-hand                   Toggle collapse of the exploit hand strip.
+hand                   Toggle collapse of the exploit hoard strip.
 
-darknet                List darknet broker catalog (requires WAN targeted).
-buy <index>            Purchase exploit card from broker (requires WAN targeted).
+darknet                List darknet broker research pack catalog (requires WAN targeted).
+buy <index>            Purchase a research pack from the broker (requires WAN targeted); rounds deposit to your hoard.
 
 hub                    Open the overworld hub (between runs).
-inventory              List your bank balance and persistent exploit inventory.
-equip <#|id>           Add an inventory exploit to your loadout (max 5).
-unequip <#|id>         Remove an exploit from your loadout.
+inventory              List your bank balance and persistent exploit hoard.
 carry <amount>         Set how much cash to carry into the next run.
-discard-disclosed      Discard all disclosed (burned) exploits from inventory.
+discard-disclosed      Discard all disclosed (burned) rounds from your hoard.
 targets                List available targets to launch.
-launch <targetId>      Start a run against a target with your loadout + carried cash.
+launch <targetId>      Start a run against a target with your full hoard + carried cash.
                        (At the hub, `darknet` lists the broker catalog and `buy <index>`
-                        purchases into your inventory, spending bank.)
+                        purchases a pack into your hoard, spending bank.)
 
-status                 Summary status — alert, wallet, HEALTH, DECK INTEGRITY, ICE, hand (alias: status summary)
+status                 Summary status — alert, wallet, HEALTH, DECK INTEGRITY, ICE, hoard (alias: status summary)
 status full            Complete state dump — includes HEALTH and DECK INTEGRITY
 status ice             ICE grade, position (if visible), detection timer
-status hand            Exploit hand with match indicators
+status hand            Exploit hoard summary with round counts by rarity
 status alert           Global alert, trace countdown, security node states
 status mission         Mission target and collection status
 status node <id>       Detail on a specific node
@@ -923,14 +914,14 @@ short cyberpunk-terminal cues organized into families you can read by ear:
 
 - **info** — soft blips for probing, navigating, and revealing nodes.
 - **success** — bright rising tones when an exploit lands or a node opens up.
-- **reward** — chimes and quick arpeggios for fetching loot, mining a card, and completing a run.
+- **reward** — chimes and quick arpeggios for fetching loot, mining a round, and completing a run.
 - **failure** — dark buzzes and thuds for failed exploits, traps, and damage taken.
 - **danger** — harsh rising alarms as the alert climbs, ICE locks on, or a trace begins.
 - **relief** — settled descending tones when the alert cools or a trace is cancelled.
 
 Many cues are **state-reflective** — they encode what happened, not just that something did:
-gaining access plays a rising 2-hit chord for **open** and a fuller 3-hit for **owned**; mined
-cards escalate by rarity (common → uncommon → rare); a big-value loot haul gets a richer cue than
+gaining access (cracking a node to **owned**) plays a fuller 3-hit chord; mined
+rounds escalate by rarity (common → uncommon → rare); a big-value loot haul gets a richer cue than
 a small one; and **revealing nodes is a "discovery rush"** — a single reveal is a bright blip, but
 unlocking a cluster of neighbors cascades into a quick rising run.
 
@@ -954,36 +945,37 @@ remembered between sessions.
 
 ## TIPS
 
-**Probe before you exploit.** Without probing, you're attacking blind. A matched
-vulnerability can mean the difference between a 30% and a 65% success chance.
+**Probe before you exploit.** Without probing, your rounds fire without the type-match
+bonus. Probing first can more than double the coherence bite on a matched hit — the
+same hoard goes twice as far.
 
 **Firewalls hide what's behind them.** You won't see any connections beyond a
-firewall, IDS, or security monitor until you own it. Routers require at least
-open access. Plan your route — sometimes the soft path through a workstation
-reveals more of the network than hammering on a hardened chokepoint.
+firewall, IDS, or security monitor until you own it. Routers reveal their neighbors
+on probe. Plan your route — sometimes the soft path through a workstation reveals
+more of the network than hammering on a hardened chokepoint.
 
-**Watch the IDS chain.** Before you start hammering on nodes deep in the network,
+**Watch the IDS chain.** Before you start burning rounds on nodes deep in the network,
 find the IDS nodes and figure out which security monitor they feed. If you can
-open and corrupt the IDS first, you can work quietly behind it.
+own and corrupt the IDS first, you can work quietly behind it.
 
 **ICE is predictable once you understand its grade.** A grade-C ICE is drawn to
 disturbances — it will come to where the action is. If you're making noise in one
 part of the network, expect it to show up. Plan an escape route or have a kick
 ready.
 
-**Decay is real.** Don't burn your best card on a soft target. Save rare cards for
-the high-grade nodes. A disclosed card is deadweight.
+**Save rare rounds for hard targets.** Rare rounds hit five times as hard as common —
+don't burn them on soft nodes. A disclosed round is gone forever.
 
 **The security monitor is the kill switch.** If you can own the security monitor,
 you can run `cancel-trace` to abort the countdown and work at your own pace (owning
 alone doesn't stop it — you have to issue the command). It's usually the hardest node
 on the board — but worth it if you're going for a deep run.
 
-**If your hand doesn't match, resupply.** Two options: detour to the WAN node and
-check the darknet catalog (the LAN freezes while you browse, costs cash), or mine
-an owned node whose vulnerabilities overlap your target (costs time and ICE exposure,
-no cash). Mining is the broke decker's fallback — and a reason to own nodes
-strategically, not just opportunistically.
+**If your hoard is running thin, resupply.** Two options: detour to the WAN node and
+buy a research pack from the darknet broker (the LAN freezes while you browse, costs
+cash), or mine an owned node whose vulnerabilities overlap your target (costs time and
+ICE exposure, no cash). Mining is the broke decker's fallback — and a reason to own
+nodes strategically, not just opportunistically.
 
 **Not every owned node is yours.** Some networks deploy honey-pots: loot nodes that
 appear already-owned and ready to harvest. DUMP is safe — it just shows what's inside.
