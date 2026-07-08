@@ -11,7 +11,7 @@ import { initGame, getState } from "../js/core/state.js";
 import { startAutoBurn, initAutoBurn } from "../js/core/autoburn.js";
 import { activeProcessOnNode } from "../js/core/processes.js";
 import { addRoundToHoard, markRoundDisclosed, removeDisclosedRounds, setHoard } from "../js/core/state/player.js";
-import { setNodeCoherence } from "../js/core/state/node.js";
+import { setNodeCoherence, setNodeAlertState } from "../js/core/state/node.js";
 import { clearHandlers, on, E } from "../js/core/events.js";
 import { clearAll, tick } from "../js/core/timers.js";
 import { _forceNext, RNG, initRng } from "../js/core/rng.js";
@@ -61,6 +61,7 @@ describe("autoburn — crack a soft node", () => {
     const node = s().nodes[nodeId];
     // Set a very low coherence — single rare shot at grade F should crack it
     setNodeCoherence(nodeId, 1); // nearly dead
+    setNodeAlertState(nodeId, "yellow"); // local alarm raised (e.g. from probing) before the crack
 
     const resolvedEvents = [];
     const accessedEvents = [];
@@ -72,6 +73,9 @@ describe("autoburn — crack a soft node", () => {
 
     // Node should be owned
     assert.equal(s().nodes[nodeId].accessLevel, "owned", "node cracked to owned");
+
+    // Owning clears the node's local alarm glow (was yellow from probing)
+    assert.equal(s().nodes[nodeId].alertState, "green", "crack clears the node's local alert glow");
 
     // NODE_ACCESSED fired
     assert.ok(accessedEvents.length > 0, "NODE_ACCESSED fired");
