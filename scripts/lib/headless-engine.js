@@ -18,6 +18,7 @@ import { startIce, handleIceTick, handleIceDetect, initIceHandlers } from "../..
 import { handleTraceTick, handleHeatDecay } from "../../js/core/alert.js";
 import { initNavigationCancelHandler } from "../../js/core/node-graph/game-ctx.js";
 import { initSweepForwarding } from "../../js/core/sweep.js";
+import { initAutoBurn } from "../../js/core/autoburn.js";
 import { initGraphBridge } from "../../js/core/graph-bridge.js";
 import { initDynamicActions } from "../../js/core/console-commands/dynamic-actions.js";
 import { initLog } from "../../js/core/log.js";
@@ -67,6 +68,7 @@ export function wireRunHandlers() {
   initIceHandlers();
   initNavigationCancelHandler();
   initSweepForwarding();
+  initAutoBurn();
   initGraphBridge();
   initDynamicActions();
 }

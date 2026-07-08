@@ -15,7 +15,7 @@ import {
 } from "./graph.js";
 import { initializeGraphOverlays } from "./overlays/index.js";
 import { OVERLAY_DESCRIPTORS } from "./overlays/registry.js";
-import { mountCardGallery, mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
+import { mountVulnSwatches, mountIndicatorSwatches } from "./preview-cards.js";
 import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { FLOW_TYPES } from "./flow-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
@@ -78,7 +78,6 @@ const ALERT_NODES = [
 // so the vector-CRT fence treatment can be tuned in isolation.
 const ACCESS_NODES = [
   { id: "acc-locked",      label: "LOCKED",      type: "fileserver", grade: "C", x: 150, y: 850 },
-  { id: "acc-open", label: "OPEN", type: "fileserver", grade: "C", x: 380, y: 850 },
   { id: "acc-owned",       label: "OWNED",       type: "fileserver", grade: "C", x: 610, y: 850 },
 ];
 
@@ -150,7 +149,6 @@ updateNodeStyle("alert-reboot", { visibility: "accessible", accessLevel: "owned"
 
 // Access-state demo overrides (the generic loop above set every node to "owned")
 updateNodeStyle("acc-locked",      { visibility: "accessible", accessLevel: "locked",      alertState: "green", rebooting: false });
-updateNodeStyle("acc-open", { visibility: "accessible", accessLevel: "open", alertState: "green", rebooting: false });
 updateNodeStyle("acc-owned",       { visibility: "accessible", accessLevel: "owned",       alertState: "green", rebooting: false });
 
 // Fit the view to show all nodes
@@ -392,10 +390,6 @@ $("btn-reset-all").addEventListener("click", () => {
     $("btn-reticle-toggle").classList.remove("active");
   }
 });
-
-// ── Card gallery ─────────────────────────────────────────────
-
-mountCardGallery($("card-gallery"));
 
 // ── Vuln glyph swatches ──────────────────────────────────────
 

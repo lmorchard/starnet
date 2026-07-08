@@ -16,22 +16,24 @@ import { buildNetwork as buildCorporateExchange } from "../data/networks/corpora
 afterEach(() => { clearHandlers(); clearAll(); });
 
 describe("SWEEP — gate-bounded progressive flood-fill", () => {
-  it("probes outward from the origin, bringing reached sig nodes fully online, then stops at a router", () => {
+  it("probes outward from the origin, flows through routers, then stops at an owned-gate (firewall)", () => {
     initGame(() => buildCorporateExchange(), "sweep-1");
-    // gateway (probe-gate) → switch-1 (router, open-gate) + wan. Sweep should probe gateway, switch-1,
-    // wan, then STOP at switch-1 (a router reveals no neighbors until opened) — switch-2 stays hidden.
+    // gateway (probe-gate) → switch-1 → switch-2 (both routers, probe-gate: reveal on recon) →
+    // fw-1 (firewall, owned-gate: reveal only on crack). Sweep probes through the routers and
+    // STOPS at fw-1 — the firewall's neighbor (vault-1) stays hidden because a probe can't see
+    // past an owned-gate.
     let maxHeat = 0;
     on(E.HEAT_CHANGED, ({ total }) => { maxHeat = Math.max(maxHeat, total); });
-    startSweep("gateway", 3);
+    startSweep("gateway", 4);
     tick(400); // parallel probes run over real (grade-scaled) probe-time — tick well past completion
 
     const n = (id) => getState().nodes[id];
-    // Observable: sweep propagated from origin all the way to switch-1 (two probe hops), AND
-    // the router gate stopped it there — switch-2 was never revealed.
+    // Observable: sweep propagated from origin THROUGH the routers (probe-gates reveal on recon),
+    // AND the firewall (owned-gate) stopped it — vault-1 behind fw-1 was never revealed.
     assert.equal(n("gateway").probed, true, "origin probed");
     assert.equal(n("switch-1").probed, true, "wave propagated at least one hop past origin");
-    assert.equal(n("switch-1").visibility, "accessible", "reached sig node comes fully online (connected)");
-    assert.equal(n("switch-2").visibility, "hidden", "router stops the flood — switch-2 stays hidden");
+    assert.equal(n("switch-2").visibility, "accessible", "router flows through — switch-2 comes online");
+    assert.equal(n("vault-1").visibility, "hidden", "firewall (owned-gate) stops the flood — vault-1 stays hidden");
     assert.ok(maxHeat >= 3, "each node hit raised cumulative heat (sweep is loud)");
     assert.equal(getState().processes.length, 0, "sweep process ended");
   });

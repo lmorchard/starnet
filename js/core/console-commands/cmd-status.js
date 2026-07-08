@@ -7,10 +7,10 @@ import { getState, isIceVisible } from "../state.js";
 import { activeIceInstances } from "../state/ice.js";
 import { addLogEntry } from "../log.js";
 import { getVisibleTimers } from "../timers.js";
-import { exploitSortKey } from "../exploits.js";
 import { resolveNode, resolveImplicitNode } from "./resolvers.js";
 import { isObscured } from "../state/node.js";
 import { mineYieldChance } from "../mining.js";
+import { activeProcessOnNode } from "../processes.js";
 
 /**
  * Renders per-instance ICE status lines for both cmdStatusFull and cmdStatusIce.
@@ -69,29 +69,25 @@ export function cmdStatusSummary() {
     lines.push(`  Selected: none`);
   }
 
-  // Show active timed actions from graph node attributes
+  // Show active timed actions (graph node attrs) and process-framework operations
   if (s.nodeGraph) {
     for (const nodeId of s.nodeGraph.getNodeIds()) {
       const attrs = s.nodeGraph.getNodeState(nodeId);
       const label = attrs.label ?? nodeId;
       if (attrs.probing) lines.push(`  Scanning: ${label}`);
-      if (attrs.exploiting) {
-        const card = s.player.hand.find((c) => c.id === attrs.activeExploitId);
-        lines.push(`  Executing: ${card?.name ?? attrs.activeExploitId} @ ${label}`);
-      }
       if (attrs.reading) lines.push(`  Reading: ${label}`);
       if (attrs.looting) lines.push(`  Extracting: ${label}`);
+      // Auto-burn is a process, not a node attr — detect via the process framework.
+      if (activeProcessOnNode(s, nodeId)) {
+        const proc = s.processes.find((p) => p.nodeId === nodeId && p.type === "autoburn");
+        if (proc) lines.push(`  Auto-burn in progress: ${label}`);
+      }
     }
   }
 
-  const sel = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
-  const matchCount = sel
-    ? s.player.hand.filter((c) => exploitSortKey(c, sel) === 0).length
-    : 0;
-  const handStr = sel
-    ? `${s.player.hand.length} cards  (${matchCount} match selected node)`
-    : `${s.player.hand.length} cards`;
-  lines.push(`  Hand: ${handStr}`);
+  const hoard = s.player.hoard ?? [];
+  const hoardStr = hoard.length === 1 ? "1 round" : `${hoard.length} rounds`;
+  lines.push(`  Hoard: ${hoardStr}`);
 
   const nodes = Object.values(s.nodes);
   const accessibleCount = nodes.filter((n) => n.visibility === "accessible").length;
@@ -116,18 +112,25 @@ export function cmdStatusFull() {
   const timers = getVisibleTimers();
   const lines = [];
 
-  const worn = s.player.hand.filter((c) => c.decayState === "worn").length;
-  const disclosed = s.player.hand.filter((c) => c.decayState === "disclosed").length;
-  const handDesc = `hand: ${s.player.hand.length} exploits`
-    + (worn      ? `, ${worn} worn`      : "")
-    + (disclosed ? `, ${disclosed} disclosed` : "");
+  const hoard = s.player.hoard ?? [];
+  const hoardCommon   = hoard.filter((r) => r.rarity === "common").length;
+  const hoardUncommon = hoard.filter((r) => r.rarity === "uncommon").length;
+  const hoardRare     = hoard.filter((r) => r.rarity === "rare").length;
+  const hoardDisclosed = hoard.filter((r) => r.disclosed).length;
+  const hoardDesc = `hoard: ${hoard.length} rounds`
+    + (hoardCommon   ? ` (${hoardCommon} common` : " (")
+    + (hoardUncommon ? ` · ${hoardUncommon} uncommon` : "")
+    + (hoardRare     ? ` · ${hoardRare} rare` : "")
+    + ")"
+    + (hoardDisclosed ? `  disclosed: ${hoardDisclosed}` : "");
+
   lines.push(`## STATUS`);
   lines.push(`### PLAYER`);
   lines.push(`- seed: "${s.seed}"`);
   lines.push(`- cash: ¥${s.player.cash.toLocaleString()}`);
   lines.push(`- health: ${s.player.health.current}/${s.player.health.max}`);
   lines.push(`- deck integrity: ${s.player.deckIntegrity.current}/${s.player.deckIntegrity.max}`);
-  lines.push(`- ${handDesc}`);
+  lines.push(`- ${hoardDesc}`);
 
   lines.push(`### ALERT`);
   const traceStr = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";
@@ -180,15 +183,18 @@ export function cmdStatusFull() {
     lines.push(`- ${node.sigAlias}  [???]  ${node.visibility}${selected}`);
   });
 
-  lines.push(`### HAND`);
-  if (s.player.hand.length === 0) {
+  lines.push(`### HOARD`);
+  const hoardFull = s.player.hoard ?? [];
+  if (hoardFull.length === 0) {
     lines.push(`- (empty)`);
   } else {
-    s.player.hand.forEach((card, i) => {
-      const decay   = card.decayState !== "fresh" ? `  [${card.decayState.toUpperCase()}]` : "";
-      const targets = card.targetVulnTypes.join(", ");
-      lines.push(`- [${i + 1}] ${card.name}  ${card.rarity}  uses:${card.usesRemaining}  targets:${targets}${decay}`);
-    });
+    const byRarity = { common: 0, uncommon: 0, rare: 0 };
+    for (const r of hoardFull) { byRarity[r.rarity] = (byRarity[r.rarity] ?? 0) + 1; }
+    const disclosedFull = hoardFull.filter((r) => r.disclosed).length;
+    if (byRarity.common)   lines.push(`- common:   ${byRarity.common} rounds`);
+    if (byRarity.uncommon) lines.push(`- uncommon: ${byRarity.uncommon} rounds`);
+    if (byRarity.rare)     lines.push(`- rare:     ${byRarity.rare} rounds`);
+    if (disclosedFull > 0) lines.push(`- disclosed: ${disclosedFull}`);
   }
 
   lines.forEach((line) => addLogEntry(line, "meta"));
@@ -209,19 +215,19 @@ export function cmdStatusIce() {
 
 export function cmdStatusHand() {
   const s = getState();
-  const selectedNode = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
-  const hand = selectedNode
-    ? [...s.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
-    : s.player.hand;
-  const lines = ["## STATUS: HAND"];
-  if (hand.length === 0) {
-    lines.push("- (empty)");
+  const hoard = s.player.hoard ?? [];
+  const lines = ["## STATUS: HOARD"];
+  if (hoard.length === 0) {
+    lines.push("- (empty — 0 rounds)");
   } else {
-    hand.forEach((card, i) => {
-      const decay   = card.decayState !== "fresh" ? `  [${card.decayState.toUpperCase()}]` : "";
-      const targets = card.targetVulnTypes.join(", ");
-      lines.push(`- [${i + 1}] ${card.name}  ${card.rarity}  uses:${card.usesRemaining}  targets:${targets}${decay}`);
-    });
+    const byRarity = { common: 0, uncommon: 0, rare: 0 };
+    for (const r of hoard) { byRarity[r.rarity] = (byRarity[r.rarity] ?? 0) + 1; }
+    const disclosed = hoard.filter((r) => r.disclosed).length;
+    lines.push(`- total: ${hoard.length} rounds`);
+    if (byRarity.common)   lines.push(`  common:   ${byRarity.common}`);
+    if (byRarity.uncommon) lines.push(`  uncommon: ${byRarity.uncommon}`);
+    if (byRarity.rare)     lines.push(`  rare:     ${byRarity.rare}`);
+    if (disclosed > 0) lines.push(`  disclosed: ${disclosed} (unusable; discard at the hub)`);
   }
   lines.forEach((l) => addLogEntry(l, "meta"));
 }
@@ -248,6 +254,10 @@ export function cmdStatusNode(args) {
   lines.push(`- label: ${node.label}  type: ${node.type}  grade: ${node.grade ?? "N/A"}`);
   lines.push(`- access: ${node.accessLevel}  alert: ${node.alertState}`);
   lines.push(`- visibility: ${node.visibility}  probed: ${node.probed}  read: ${node.read}  looted: ${node.looted}`);
+  if (node.coherence != null) {
+    const maxStr = node.coherenceMax != null ? `/${node.coherenceMax}` : "";
+    lines.push(`- coherence: ${node.coherence}${maxStr}`);
+  }
   if (node.accessLevel === "owned") {
     const grade = node.grade ?? "D";
     const attempts = node.mineAttempts ?? 0;

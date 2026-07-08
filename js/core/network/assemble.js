@@ -71,16 +71,11 @@ export function assembleNetwork(pieces, crossEdges, spec, biome, seed) {
     }
   }
 
-  // 4. Recommended starting hand — collect vuln types from shallow nodes.
-  // Since vulns aren't assigned yet (initGame does that), recommend common
-  // vuln types that are likely to appear at the network's grade level.
-  const recommendedHand = computeRecommendedHand(spec);
-
-  // 5. Derive moneyCost for backward compat (avg of threat + complexity)
+  // 4. Derive moneyCost for backward compat (avg of threat + complexity)
   const moneyCostNum = Math.round((gradeToNumber(spec.threat) + gradeToNumber(spec.complexity)) / 2);
   const moneyCost = ["F", "D", "C", "B", "A", "S"][Math.max(0, Math.min(5, moneyCostNum - 1))];
 
-  // 6. Mission target — if spec requested one, find the matching node
+  // 5. Mission target — if spec requested one, find the matching node
   let missionTarget = null;
   if (spec.missionTarget) {
     // Find a piece matching the requested tags at the right depth
@@ -111,40 +106,9 @@ export function assembleNetwork(pieces, crossEdges, spec, biome, seed) {
       spec,
       startNode: "entry/gateway",
       startCash: startCash(spec.wealth),
-      startHand: recommendedHand,
       moneyCost,
       ice: iceConfig,
       missionTarget,
     },
   };
-}
-
-// ---------------------------------------------------------------------------
-// Recommended hand
-// ---------------------------------------------------------------------------
-
-/** Common vulnerability types that appear at each grade tier. */
-const COMMON_VULNS_BY_GRADE = {
-  F: ["weak-auth", "snmp-public", "open-telnet", "buffer-overflow"],
-  D: ["weak-auth", "snmp-public", "open-telnet", "buffer-overflow", "unpatched-ssh"],
-  C: ["unpatched-ssh", "buffer-overflow", "race-condition", "deserialization"],
-  B: ["race-condition", "deserialization", "side-channel", "kernel-exploit"],
-  A: ["side-channel", "kernel-exploit", "path-traversal", "stale-firmware"],
-  S: ["kernel-exploit", "path-traversal", "side-channel"],
-};
-
-/**
- * Compute a recommended starting hand based on expected vulnerability types
- * for the network's grade range.
- * @param {NetworkSpec} spec
- * @returns {string[]} - rarity spec for generateStartingHand()
- */
-function computeRecommendedHand(spec) {
-  // Use the same rarity-based hand spec that hand-crafted networks use.
-  // Higher budget = better starting cards.
-  const grade = gradeToNumber(spec.wealth);
-  if (grade >= 5) return ["uncommon", "uncommon", "uncommon", "rare", "rare"];
-  if (grade >= 4) return ["common", "uncommon", "uncommon", "uncommon", "rare"];
-  if (grade >= 3) return ["common", "common", "uncommon", "uncommon"];
-  return ["common", "common", "common", "uncommon"];
 }

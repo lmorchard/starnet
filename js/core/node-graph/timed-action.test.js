@@ -112,7 +112,7 @@ describe("timed-action operator", () => {
         action: "xploit",
         activeAttr: "active",
         // No durationTable — duration pre-set via attribute
-        onComplete: [{ effect: "ctx-call", method: "resolveExploit", args: ["$nodeId"] }],
+        onComplete: [{ effect: "ctx-call", method: "resolveMine", args: ["$nodeId"] }],
       }],
       actions: [],
     };
@@ -123,7 +123,7 @@ describe("timed-action operator", () => {
     graph.setNodeAttr("n1", "active", true);
     // No durationTable and duration already set — should start ticking immediately
     graph.tick(5);
-    assert.equal(ctx.calls.resolveExploit?.length, 1);
+    assert.equal(ctx.calls.resolveMine?.length, 1);
   });
 
   it("grade table uses correct grade", () => {

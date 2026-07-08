@@ -44,7 +44,6 @@ export function buildMiniNetwork(graphDef, opts = {}) {
       startNode: "gateway",
       startCash: opts.startCash ?? 500,
       moneyCost: "F",
-      startHand: ["common", "common", "uncommon", "uncommon"],
       ice: null,
     },
   };
@@ -90,7 +89,6 @@ export function buildSetPieceMiniNetwork(pieceName) {
       startNode: "gateway",
       startCash: 500,
       moneyCost: "F",
-      startHand: ["common", "common", "uncommon", "uncommon", "rare"],
       ice: null,
     },
   };

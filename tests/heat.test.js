@@ -4,7 +4,9 @@ import { initGame, getState, serializeState, deserializeState } from "../js/core
 import { addHeat, decayHeat } from "../js/core/state/flow.js";
 import { recordHeat, startHeatDecay, handleHeatDecay } from "../js/core/alert.js";
 import { HEAT_ALARM_THRESHOLD, HEAT_DISCHARGE_FRAC, HEAT_COST } from "../js/core/balance.js";
-import { applyCombatResult } from "../js/core/combat.js";
+import { startAutoBurn, initAutoBurn } from "../js/core/autoburn.js";
+import { setHoard } from "../js/core/state/player.js";
+import { setNodeCoherence } from "../js/core/state/node.js";
 import { heatGaugeSvg } from "../js/ui/indicator-glyphs.js";
 import { on, clearHandlers, E } from "../js/core/events.js";
 import { clearAll, tick, TIMER } from "../js/core/timers.js";
@@ -105,16 +107,52 @@ describe("heat — fed by core activity", () => {
     assert.equal(getState().heat, before + HEAT_COST.probe, "probe adds heat");
   });
 
-  it("an xploit attempt adds heat on both success and failure", () => {
-    initGame(() => buildCorporateExchange(), "heat-xploit-fail");
-    applyCombatResult("gateway", { name: "T" },
-      { success: false, nextAlert: "yellow", prevAlert: "green", flavor: "", roll: 1, successChance: 50, matchingVulns: [] });
-    assert.equal(getState().heat, HEAT_COST.xploit, "failed xploit adds heat");
+  it("an auto-burn shot adds heat (exploit activity is heat activity)", () => {
+    // Post-E1: XPLOIT launches the coherence auto-burn process; each round fired
+    // records HEAT_COST.xploit. Drive a single shot that does NOT crack the node
+    // and assert exactly one shot's worth of heat landed.
+    initGame(() => buildCorporateExchange(), "heat-xploit-burn");
+    initAutoBurn();
 
-    initGame(() => buildCorporateExchange(), "heat-xploit-win");
-    applyCombatResult("gateway", { name: "T" },
-      { success: true, prevAccess: "locked", nextAccess: "open", levelChanged: true, revealNeighbors: false, flavor: "", roll: 1, successChance: 90, matchingVulns: [], vulnsToSurface: [] });
-    assert.equal(getState().heat, HEAT_COST.xploit, "successful xploit adds heat too");
+    const nodeId = "gateway";
+    // Exactly one round; high coherence so the node won't crack in one shot.
+    setHoard([{ id: "heat0001", rarity: "common", types: ["unpatched-ssh"], disclosed: false }]);
+    setNodeCoherence(nodeId, 9999);
+
+    const before = getState().heat;
+    startAutoBurn(nodeId);
+    tick(1); // fire exactly one round (1 tick = 1 process step)
+
+    assert.notEqual(getState().nodes[nodeId].accessLevel, "owned", "precondition: not cracked in one shot");
+    assert.equal(getState().heat, before + HEAT_COST.xploit, "one auto-burn shot adds one shot's heat");
+  });
+
+  it("a sustained auto-burn barrage escalates the alert via heat (integration: barrage is the noise)", () => {
+    // Confirms: enough shots crossing the HEAT_ALARM_THRESHOLD ratchet steps the alert up.
+    // No new wiring — this exercises the shipped recordHeat path.
+    // HEAT_COST.xploit is calibrated low (per-shot) so a single crack doesn't chain-trace;
+    // this test simulates a prolonged multi-crack session: enough shots to exceed the threshold.
+    // shots_needed = ceil((HEAT_ALARM_THRESHOLD.C + 1) / HEAT_COST.xploit)
+    initGame(() => buildCorporateExchange(), "heat-barrage-escalation");
+    initAutoBurn();
+    getState().spec = { ...(getState().spec ?? {}), threat: "C" };
+
+    const nodeId = "gateway";
+    assert.equal(getState().globalAlert, "green", "precondition: alert starts green");
+
+    // Generous hoard, very high coherence so it won't crack
+    const shotsNeeded = Math.ceil((HEAT_ALARM_THRESHOLD.C + 1) / HEAT_COST.xploit);
+    for (let i = 0; i < shotsNeeded + 10; i++) {
+      setHoard([...getState().player.hoard, { id: `bar${i}`, rarity: "common", types: ["unpatched-ssh"], disclosed: false }]);
+    }
+    setNodeCoherence(nodeId, 99999);
+
+    startAutoBurn(nodeId);
+    tick(shotsNeeded + 5); // enough shots to cross threshold; one shot per tick
+
+    assert.notEqual(getState().globalAlert, "green",
+      `sustained barrage (${shotsNeeded + 5} shots) must escalate alert above green via heat ratchet`
+    );
   });
 });
 

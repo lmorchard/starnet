@@ -105,7 +105,7 @@ initIceHandlers();
 
 
 function isPlayerVisible(nodeState) {
-  return nodeState?.accessLevel === "open" || nodeState?.accessLevel === "owned";
+  return nodeState?.accessLevel === "owned";
 }
 
 // BFS: returns the first hop on the shortest path from src toward dst.

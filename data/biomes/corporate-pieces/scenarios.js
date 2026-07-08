@@ -28,7 +28,7 @@ export const workstationArray = {
       id: "hub",
       type: "router",
       traits: ["graded", "hackable", "rebootable", "gate"],
-      attributes: { accessLevel: "locked", gateAccess: "open" },
+      attributes: { accessLevel: "locked", gateAccess: "probed" },
       operators: [{ name: "relay" }],
       actions: [],
     },

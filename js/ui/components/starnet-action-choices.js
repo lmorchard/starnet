@@ -6,8 +6,6 @@
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
-import { exploitCardBody } from "./exploit-card-view.js";
-import { wearFraction } from "../../core/exploits.js";
 import { flowGlyphDataUri } from "../flow-glyphs.js";
 
 class StarnetActionChoices extends StarnetElement {
@@ -64,19 +62,6 @@ class StarnetActionChoices extends StarnetElement {
   }
 
   _renderChoice(choice) {
-    if (choice.render === "exploit-card") {
-      // Mirror the hand: light the shared glyph(s) + apply the match glow when the
-      // node reveals a target. Pre-probe (blind play) matchedVulnIds is empty, so
-      // candidates render neutral rather than falsely highlighted.
-      const matched = choice.matchedVulnIds || [];
-      const worn = choice.data.decayState === "worn";
-      return html`
-        <div class="exploit-card rarity-${choice.data.rarity} selectable-card ${matched.length ? "match" : ""} ${worn ? "worn" : ""}"
-             style=${`--wear:${wearFraction(choice.data)}`}
-             @click=${() => this._pick(choice)}>
-          ${exploitCardBody(choice.data, undefined, matched, true)}
-        </div>`;
-    }
     if (choice.render === "action") {
       return html`
         <button class="ctx-item" @click=${() => this._pick(choice)}>

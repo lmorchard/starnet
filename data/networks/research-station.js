@@ -91,7 +91,6 @@ export function buildNetwork() {
       startNode: "gateway",
       startCash: 0,
       moneyCost: "B",
-      startHand: ["common", "common", "uncommon", "uncommon", "rare"],
       ice: null,
     },
   };

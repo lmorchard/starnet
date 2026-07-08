@@ -16,8 +16,8 @@
 import { A } from "../action-ids.js";
 import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert, scrubLogs, lieLow, recordHeat } from "../alert.js";
 import { HEAT_COST } from "../balance.js";
-import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
-import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
+import { addCash, setMissionComplete, addRoundToHoard } from "../state/player.js";
+import { mineYieldChance, isMineExhausted, generateMinedRound } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
 import { activeIceInstances } from "../state/ice.js";
 import { on } from "../events.js";
@@ -26,18 +26,12 @@ import { setNodeRebooting } from "../state/node.js";
 import { RNG, random } from "../rng.js";
 import { setGlobalAlert } from "../state/alert.js";
 import { emitEvent, E } from "../events.js";
-// Exploit duration formula: higher quality = longer execution (more complex payload).
-// Range: 2s (quality=0) to 7s (quality=1).
-function exploitDuration(quality) {
-  return Math.round((2 + quality * 5) * 1000); // ms
-}
 import { endRun, nextAlertLevel, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
 import { abortNodeProcesses } from "../processes.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
-import { launchExploit } from "../combat.js";
 import { getTimedActionAttrNames, ABORTABLE_TIMED_ACTIONS, TIMED_ACTIONS } from "./timed-actions.js";
 import { sniffFlow, replayCredential } from "../programs.js";
 
@@ -93,27 +87,6 @@ export function buildGameCtx(opts = {}) {
     // in the trait-based action system. These stubs remain for backward compat.
     startProbe: (_nodeId) => { /* now handled by timed-action operator */ },
     cancelProbe: () => { /* now handled by abort action */ },
-    startExploit: (nodeId, exploitId) => {
-      // Exploit is special: needs exploitId from event payload to compute duration.
-      // Set node attributes so the timed-action operator drives the lifecycle.
-      const s = getState();
-      const node = s.nodes[nodeId];
-      const exploit = s.player.hand.find((c) => c.id === exploitId);
-      if (!node || !exploit || exploit.decayState === "disclosed" || exploit.usesRemaining === 0) return;
-
-      const durationMs = exploitDuration(exploit.quality);
-      const durationTicks = Math.round(durationMs / 100); // 100ms per tick
-      if (ctx._graph) {
-        ctx._graph.setNodeAttr(nodeId, "exploiting", true);
-        ctx._graph.setNodeAttr(nodeId, "activeExploitId", exploitId);
-        ctx._graph.setNodeAttr(nodeId, progressAttr("xploit"), 0);
-        ctx._graph.setNodeAttr(nodeId, durationAttr("xploit"), durationTicks);
-      }
-      // Emit start feedback immediately (operator skips start for pre-set durations)
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.XPLOIT, phase: "start", progress: 0, durationTicks });
-      // Alert ICE immediately
-      setLastDisturbedNode(nodeId);
-    },
     cancelExploit: () => {
       // Find the node that's exploiting and reset it
       const s = getState();
@@ -235,14 +208,6 @@ export function buildGameCtx(opts = {}) {
       }
     },
 
-    resolveExploit: (nodeId) => {
-      const s = getState();
-      const node = s.nodes[nodeId];
-      const exploitId = /** @type {any} */ (node)?.activeExploitId;
-      if (!exploitId) return;
-      launchExploit(nodeId, exploitId);
-    },
-
     resolveRead: (nodeId) => {
       const s = getState();
       const node = s.nodes[nodeId];
@@ -303,8 +268,8 @@ export function buildGameCtx(opts = {}) {
       const chance = mineYieldChance(grade, attempts);
       const hit = random(RNG.MINE) < chance;
 
-      let card = null;
-      if (hit) { card = generateMinedCard(node); if (card) addCardToHand(card); }
+      let round = null;
+      if (hit) { round = generateMinedRound(node); addRoundToHoard(round); }
 
       incrementMineAttempts(nodeId);                  // attempts → attempts+1
       const exhausted = isMineExhausted(grade, attempts + 1);
@@ -314,10 +279,9 @@ export function buildGameCtx(opts = {}) {
       emitEvent(E.ACTION_RESOLVED, {
         action: A.MINE, nodeId, label: node.label,
         detail: {
-          outcome: hit ? "card" : "miss",
-          rarity: card?.rarity ?? null,
-          cardName: card?.name ?? null,
-          quality: card?.quality ?? null,
+          outcome: hit ? "round" : "miss",
+          rarity: round?.rarity ?? null,
+          types: round?.types ?? null,
           attempts: attempts + 1,
           exhausted,
         },

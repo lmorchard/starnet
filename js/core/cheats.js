@@ -10,7 +10,7 @@
 import { getState, revealNeighbors, accessNeighbors } from "./state.js";
 import { emitEvent, E } from "./events.js";
 import { setNodeAccessLevel, setNodeAlertState, setNodeVisible } from "./state/node.js";
-import { addCash, addCardToHand, applyCardDecay } from "./state/player.js";
+import { addCash, addRoundToHoard } from "./state/player.js";
 import {
   damagePlayerHealth, damagePlayerDeck,
   setPlayerHealth, setPlayerDeckIntegrity,
@@ -21,7 +21,7 @@ import { decayHeat } from "./state/flow.js";
 import { teleportIce } from "./ice.js";
 import { activeIceInstances, hasActiveIce } from "./state/ice.js";
 import { addLogEntry } from "./log.js";
-import { generateExploit, generateExploitForVuln } from "./exploits.js";
+import { generateRound } from "./hoard.js";
 
 const VALID_RARITIES = ["common", "uncommon", "rare"];
 const VALID_ALERTS   = ["green", "yellow", "red", "trace"];
@@ -67,7 +67,7 @@ export function handleCheatCommand(args, { saveGame = null } = {}) {
   }
 }
 
-// CHEAT: give card [rarity] | give cash <amount>
+// CHEAT: give card [rarity] | give matching [node] | give cash <amount>
 function cheatGive(args) {
   const what = args[0]?.toLowerCase();
 
@@ -94,18 +94,11 @@ function cheatGive(args) {
       addLogEntry(`[CHEAT] ${node.label}: no unpatched vulnerabilities to match.`, "error");
       return false;
     }
+    // Grant one round per revealed vuln, each typed to that vuln so it matches on burn.
     targets.forEach((v) => {
-      const spent = s.player.hand.find(
-        (c) => c.targetVulnTypes.includes(v.id) && (c.usesRemaining <= 0 || c.decayState === "disclosed")
-      );
-      if (spent) {
-        restoreCard(spent);
-        addLogEntry(`[CHEAT] Restored "${spent.name}" (${v.id}) — uses reset.`, "success");
-      } else {
-        const card = generateExploitForVuln(v.id);
-        addCardToHand(card);
-        addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" targeting ${v.id}.`, "success");
-      }
+      const round = generateRound(null, [v.id]);
+      addRoundToHoard(round);
+      addLogEntry(`[CHEAT] Added ${round.rarity} round [${round.id}] targeting ${v.id} to hoard.`, "success");
     });
     activateCheat();
     return true;
@@ -113,10 +106,10 @@ function cheatGive(args) {
 
   if (what === "card") {
     const rarity = VALID_RARITIES.includes(args[1]) ? args[1] : null;
-    const card = generateExploit(rarity);
-    addCardToHand(card);
+    const round = generateRound(rarity);
+    addRoundToHoard(round);
     activateCheat();
-    addLogEntry(`[CHEAT] Added ${card.rarity} exploit "${card.name}" to hand.`, "success");
+    addLogEntry(`[CHEAT] Added ${round.rarity} round [${round.id}] to hoard.`, "success");
     return true;
   }
 
@@ -400,8 +393,8 @@ function cheatIceState() {
 function cheatHelp() {
   const lines = [
     "[CHEAT] Playtesting only. Cheaters never win.",
-    "  cheat give matching [node]  Add exploits matching node's vulns (balance rescue).",
-    "  cheat give card [rarity]    Add random exploit card. Rarities: common uncommon rare",
+    "  cheat give matching [node]  Add rounds matching node's vulns to the hoard (balance rescue).",
+    "  cheat give card [rarity]    Add a round to the hoard. Rarities: common uncommon rare",
     "  cheat give cash <amount>    Add credits to wallet.",
     "  cheat alert set <level>     Force alert level: green yellow red trace",
     "  cheat alert raise|lower     Step the global alert up/down one level",
@@ -423,12 +416,6 @@ function cheatHelp() {
 }
 
 // ── Internal ──────────────────────────────────────────────
-
-const USES_BY_RARITY = { common: 3, uncommon: 5, rare: 8 };
-
-function restoreCard(card) {
-  applyCardDecay(card.id, USES_BY_RARITY[card.rarity] ?? 3, "fresh");
-}
 
 function activateCheat() {
   setCheating();

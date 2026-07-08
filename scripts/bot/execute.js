@@ -72,11 +72,12 @@ export function execute(choice, world, opts = {}) {
     emitEvent("starnet:action", { actionId: A.TARGET, nodeId: choice.nodeId });
   }
 
-  // Bot-only action: buy a card directly from the store (headless)
-  if (choice.action === "buy-card") {
-    const vulnId = choice.payload?.vulnId;
-    if (vulnId) {
-      const result = buyFromStore(vulnId);
+  // Bot-only action: buy a research pack directly from the broker (headless).
+  // buyFromStore now spends in-run cash and deposits the pack's rounds into the hoard.
+  if (choice.action === "buy-pack") {
+    const packId = choice.payload?.packId;
+    if (packId) {
+      const result = buyFromStore(packId);
       if (result) {
         emitEvent(E.STATE_CHANGED, getState());
       }

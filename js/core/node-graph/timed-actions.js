@@ -24,7 +24,8 @@
 /** @type {TimedActionDef[]} */
 export const TIMED_ACTIONS = [
   { action: "probe",   activeAttr: "probing",    abortable: true },
-  { action: "xploit",  activeAttr: "exploiting", abortable: true, clearOnCancel: ["activeExploitId"] },
+  // xploit removed (Phase 3 E1): XPLOIT is now a progressive process (autoburn),
+  // not a timed action. busy-state comes from activeProcessOnNode, not this table.
   { action: "dump",    activeAttr: "reading",    abortable: true },
   { action: "fetch",   activeAttr: "looting",    abortable: true },
   { action: "mine",    activeAttr: "mining",     abortable: true },

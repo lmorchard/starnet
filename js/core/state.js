@@ -13,8 +13,6 @@ export {
   endRun,
   // Visibility
   isIceVisible,
-  // Store
-  buyExploit,
   // Serialization
   serializeState, deserializeState,
 } from "./state/index.js";
@@ -35,7 +33,7 @@ export {
 } from "./state/alert.js";
 
 export {
-  addCash, setCash, addCardToHand, setMissionComplete, applyCardDecay,
+  addCash, setCash, setMissionComplete,
   addCapturedCredential,
 } from "./state/player.js";
 

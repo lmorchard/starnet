@@ -28,8 +28,10 @@ describe("state/index — core infrastructure", () => {
     const s = getState();
     assert.ok(s.player);
     assert.equal(typeof s.player.cash, "number");
-    assert.ok(Array.isArray(s.player.hand));
-    assert.ok(s.player.hand.length > 0);
+    // No loadout after the hoard cutover; the carry-all hoard is what the player
+    // brings into a run.
+    assert.ok(Array.isArray(s.player.hoard));
+    assert.ok(s.player.hoard.length > 0);
   });
 
   it("getState returns the initialized state", () => {

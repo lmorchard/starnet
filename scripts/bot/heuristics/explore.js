@@ -56,60 +56,29 @@ export function exploreStrategy(world) {
     });
   }
 
-  // Propose exploiting probed, unowned nodes (penalize ICE-cooled nodes)
+  // Propose exploiting probed, unowned nodes via auto-burn (no card payload).
+  // Only worth launching when the hoard has usable ammo; otherwise supply/mine
+  // handle replenishment. Skip nodes that already stalled (heat-ceiling/dry).
   for (const nodeId of world.needsExploit) {
-    const card = pickBestCard(world, nodeId);
-    if (!card) continue;
+    if (world.hoardUsable <= 0) continue;
+    if (world.failedNodes.has(nodeId)) continue;
 
     const distance = pathDistance(world, nodeId);
     const missionBonus = isMissionRelevant(world, nodeId) ? MISSION_BONUS : 0;
     const selectedBonus = (nodeId === world.player.selectedNodeId) ? SELECTED_BONUS : 0;
     const cooldownPenalty = world.iceCooldown.has(nodeId) ? ICE_COOLDOWN_PENALTY : 0;
 
-    // Slight penalty for hail-mary (non-matching) exploits — prefer matches
-    // but still willing to try non-matching cards over just exploring
-    const matchingIds = world.cardMatchesByNode.get(nodeId) ?? [];
-    const matchPenalty = matchingIds.includes(card.id) ? 0 : 5;
-
     proposals.push({
       action: A.XPLOIT,
       nodeId,
-      score: BASE_EXPLOIT + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - matchPenalty - cooldownPenalty,
-      reason: `exploit with ${card.name}${missionBonus ? " (mission path)" : ""}${matchPenalty ? " (hail-mary)" : ""}`,
+      score: BASE_EXPLOIT + missionBonus + selectedBonus - (distance * DISTANCE_PENALTY) - cooldownPenalty,
+      reason: `auto-burn hoard${missionBonus ? " (mission path)" : ""}`,
       strategy: STRATEGY,
-      payload: { exploitId: card.id },
+      payload: {},
     });
   }
 
   return proposals;
-}
-
-/**
- * Pick the best card for a node: prefer vuln match, skip failed combos.
- * @param {WorldModel} world
- * @param {string} nodeId
- * @returns {import('../types.js').WorldCard|null}
- */
-function pickBestCard(world, nodeId) {
-  // Filter out cards that already failed on this node
-  const available = world.hand.filter(c =>
-    !world.failedExploits.has(`${nodeId}:${c.id}`)
-  );
-  if (available.length === 0) return null;
-
-  const matchingIds = world.cardMatchesByNode.get(nodeId);
-  const matching = matchingIds
-    ? available.filter(c => matchingIds.includes(c.id))
-    : [];
-
-  if (matching.length > 0) {
-    matching.sort((a, b) => b.quality - a.quality || b.usesLeft - a.usesLeft);
-    return matching[0];
-  }
-
-  // No vuln match — pick highest quality card as a hail mary
-  const sorted = [...available].sort((a, b) => b.quality - a.quality || b.usesLeft - a.usesLeft);
-  return sorted[0];
 }
 
 /**

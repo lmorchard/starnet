@@ -1,9 +1,18 @@
 // <starnet-store> — Darknet broker store modal.
-// Shows exploit catalog with buy buttons. Controlled by store.js bridge.
+// Shows research pack catalog with buy buttons. Controlled by store.js bridge.
 // The element itself acts as the backdrop overlay (styled via #darknet-store in CSS).
 
 import { html, nothing } from "lit";
 import { StarnetElement } from "./starnet-element.js";
+
+/** Format a pack mix object as a short summary string, e.g. "6× common · 3× uncommon" */
+function mixSummary(mix) {
+  if (!mix) return "";
+  return Object.entries(mix)
+    .filter(([, count]) => count > 0)
+    .map(([rarity, count]) => `${count}× ${rarity}`)
+    .join(" · ");
+}
 
 class StarnetStore extends StarnetElement {
   static properties = {
@@ -36,7 +45,7 @@ class StarnetStore extends StarnetElement {
   _onBuy(item, index) {
     this.dispatchEvent(new CustomEvent("buy", {
       bubbles: true,
-      detail: { vulnId: item.vulnId, index },
+      detail: { packId: item.id, index },
     }));
   }
 
@@ -61,11 +70,12 @@ class StarnetStore extends StarnetElement {
         <div class="store-card-list">
           ${(this.catalog || []).map((item, i) => {
             const canAfford = this.cash >= item.price;
+            const mix = mixSummary(item.mix);
             return html`
               <div class="store-card-row">
                 <span class="store-item-name">${item.name}
-                  <span class="store-item-rarity rarity-${item.rarity}">[${item.rarity}]</span>
-                  <span class="store-item-vuln">${item.vulnId}</span>
+                  <span class="store-item-mix">${mix}</span>
+                  <span class="store-item-size">[${item.size} rounds]</span>
                 </span>
                 <span class="store-item-price">¥${item.price}</span>
                 <button class="store-buy-btn" ?disabled=${!canAfford}

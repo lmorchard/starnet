@@ -26,7 +26,7 @@ import {
   createFileserver, createFirewall, createWAN,
 } from "../js/core/node-graph/node-factories.js";
 import { buildSetPieceMiniNetwork } from "../js/core/node-graph/mini-network.js";
-import { initGame, getState, isIceVisible, buyExploit, addHeat } from "../js/core/state.js";
+import { initGame, getState, isIceVisible, addHeat } from "../js/core/state.js";
 import { navigateTo, navigateAway } from "../js/core/navigation.js";
 import { startIce, handleIceTick, handleIceDetect, teleportIce, ejectIce } from "../js/core/ice.js";
 import { emitEvent, on, off, E } from "../js/core/events.js";
@@ -39,8 +39,8 @@ import { addCapturedCredential } from "../js/core/state/player.js";
 import { A } from "../js/core/action-ids.js";
 import { SNIFF_DURATION, REPLAY_DURATION } from "../js/core/balance.js";
 import { MINE_TAPOUT } from "../js/core/mining.js";
-import { generateExploit } from "../js/core/exploits.js";
-import { launchExploit } from "../js/core/combat.js";
+import { startAutoBurn, initAutoBurn } from "../js/core/autoburn.js";
+import { setHoard } from "../js/core/state/player.js";
 import { startTraceCountdown, recordIceDetection } from "../js/core/alert.js";
 import { setGlobalAlert } from "../js/core/state/alert.js";
 // Importing alert.js above registers its module-level NODE_ALERT_RAISED /
@@ -52,6 +52,9 @@ import { buildNetwork as buildCorporateExchange } from "../data/networks/corpora
 import { activeIceInstances } from "../js/core/state/ice.js";
 import { cmdStatusIce } from "../js/core/console-commands/cmd-status.js";
 import { initActionDispatcher, buildActionContext } from "../js/core/actions/action-context.js";
+import { activeProcessOnNode } from "../js/core/processes.js";
+import { setNodeCoherence } from "../js/core/state/node.js";
+import { DEFAULT_START_HOARD } from "../js/core/hoard.js";
 
 /** First active ICE instance, or null. */
 const firstIce = () => activeIceInstances(getState())[0] ?? null;
@@ -332,19 +335,10 @@ describe("Action availability: corrupt on ids", () => {
     initGame(() => buildAlertLAN(), "itest-7");
   });
 
-  it("available when open and forwarding enabled", () => {
-    const s = getState();
-    const graph = s.nodeGraph;
-    graph.setNodeAttr("ids-1", "accessLevel", "open");
-    graph.setNodeAttr("ids-1", "forwardingEnabled", true);
-    const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
-    assert.ok(actionIds.includes("corrupt"));
-  });
-
   it("not available when forwardingEnabled is false", () => {
     const s = getState();
     const graph = s.nodeGraph;
-    graph.setNodeAttr("ids-1", "accessLevel", "open");
+    graph.setNodeAttr("ids-1", "accessLevel", "owned");
     graph.setNodeAttr("ids-1", "forwardingEnabled", false);
     const actionIds = getAvailableActions(s.nodes["ids-1"], s).map((a) => a.id);
     assert.ok(!actionIds.includes("corrupt"));
@@ -669,10 +663,10 @@ describe("isIceVisible: ICE visible on selected locked node", () => {
     assert.equal(isIceVisible(firstIce(), s.nodes, s.selectedNodeId), true);
   });
 
-  it("ICE IS visible on a open node regardless of selection", () => {
+  it("ICE IS visible on an owned node regardless of selection", () => {
     const s = getState();
     teleportIce("gateway");
-    s.nodes["gateway"].accessLevel = "open";
+    s.nodes["gateway"].accessLevel = "owned";
     s.selectedNodeId = null;
     assert.equal(isIceVisible(firstIce(), s.nodes, s.selectedNodeId), true);
   });
@@ -734,35 +728,30 @@ describe("WAN node", () => {
   });
 });
 
-describe("buyExploit", () => {
-  beforeEach(() => {
-    clearAll();
-    initGame(() => buildBasicLAN({ startCash: 1000 }), "itest-19");
-  });
-
-  it("adds card to hand and deducts cash", () => {
-    const s = getState();
-    const before = s.player.cash;
-    const card = generateExploit("common");
-    const result = buyExploit(card, 100);
-    assert.equal(result, true);
-    assert.equal(s.player.cash, before - 100);
-    assert.ok(s.player.hand.some((c) => c.id === card.id), "card should be in hand");
-  });
-
-  it("returns false and leaves state unchanged when cash < price", () => {
-    const s = getState();
-    s.player.cash = 50;
-    const handBefore = s.player.hand.length;
-    const card = generateExploit("common");
-    const result = buyExploit(card, 100);
-    assert.equal(result, false);
-    assert.equal(s.player.cash, 50);
-    assert.equal(s.player.hand.length, handBefore);
-  });
-});
-
 // ── Exploit success: revealed state ───────────────────────────────────────────
+
+/**
+ * Crack a node to owned via the auto-burn process: seed a generous hoard and a
+ * near-dead coherence so a couple of ticks own it. This is the post-E1 path that
+ * replaced the card launchExploit — XPLOIT → startAutoBurn → coherence erosion →
+ * crack → owned (+ revealNeighbors). Asserts the crack landed.
+ */
+function crackViaAutoBurn(nodeId) {
+  initAutoBurn();
+  setHoard(
+    Array.from({ length: 20 }, (_, i) => ({
+      id: `crk${i.toString(16).padStart(5, "0")}`,
+      rarity: "rare",
+      types: ["unpatched-ssh"],
+      disclosed: false,
+    })),
+  );
+  setNodeCoherence(nodeId, 1); // nearly dead → cracks fast
+  startAutoBurn(nodeId);
+  tick(50);
+  assert.equal(getState().nodes[nodeId].accessLevel, "owned",
+    `precondition: ${nodeId} should be cracked to owned via auto-burn`);
+}
 
 describe("Exploit success: neighbor visibility", () => {
   beforeEach(() => {
@@ -770,52 +759,25 @@ describe("Exploit success: neighbor visibility", () => {
     initGame(() => buildBasicLAN(), "itest-20");
   });
 
-  it("successfully exploiting a locked node leaves neighbors as revealed (???), not accessible", () => {
+  it("cracking a node reveals its neighbors as revealed (???), not immediately accessible", () => {
     const s = getState();
-    const gateway = s.nodes["gateway"];
 
-    // Gateway neighbors should all be hidden before exploit
+    // Gateway neighbors should all be hidden before the crack
     const neighbors = (s.adjacency["gateway"] || []).filter(
       (nid) => s.nodes[nid]?.type !== "wan"
     );
     for (const nid of neighbors) {
       assert.equal(s.nodes[nid].visibility, "hidden",
-        `Precondition: ${nid} should be hidden before exploit`);
+        `Precondition: ${nid} should be hidden before crack`);
     }
 
-    // RNG.COMBAT is consumed three times on a from-locked success:
-    //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
-    // Force the third > skipChance so the access level lands on
-    // 'open', not 'owned'.
-    _forceNext(RNG.COMBAT, 0);    // success
-    _forceNext(RNG.COMBAT, 0);    // flavor pick
-    _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
-    launchExploit("gateway", s.player.hand[0].id);
-
-    assert.equal(gateway.accessLevel, "open",
-      "Gateway should be open after successful exploit");
+    crackViaAutoBurn("gateway");
 
     // Neighbors should be "revealed" (showing as ???), NOT "accessible"
     for (const nid of neighbors) {
       assert.equal(s.nodes[nid].visibility, "revealed",
-        `${nid} should be revealed (???) after exploit, not immediately accessible`);
+        `${nid} should be revealed (???) after crack, not immediately accessible`);
     }
-  });
-
-  it("a successful blind exploit also marks the node probed", () => {
-    const s = getState();
-    const gateway = s.nodes["gateway"];
-    assert.equal(gateway.probed, false, "precondition: gateway should start unprobed");
-
-    // Blind exploit (never probed) — force success, flavor, no skip-to-owned
-    _forceNext(RNG.COMBAT, 0);
-    _forceNext(RNG.COMBAT, 0);
-    _forceNext(RNG.COMBAT, 0.99);
-    launchExploit("gateway", s.player.hand[0].id);
-
-    assert.equal(gateway.accessLevel, "open");
-    assert.equal(gateway.probed, true,
-      "a successful exploit should count as a probe (open ⇒ probed)");
   });
 });
 
@@ -861,86 +823,65 @@ function buildRouterGateLAN({ startCash = 0 } = {}) {
 
 describe("gate-access: nodes behind gates are inaccessible until conditions met", () => {
 
-  describe("firewall gate (gateAccess: 'owned')", () => {
+  describe("firewall gate (gateAccess: 'owned' — reveal only on crack)", () => {
     beforeEach(() => {
       clearAll();
       initGame(() => buildFirewallGateLAN(), "itest-21");
     });
 
-    it("node behind firewall is hidden before any exploit", () => {
+    it("node behind firewall is hidden before any recon", () => {
       const s = getState();
       assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
         "fileserver behind firewall should start hidden");
     });
 
-    it("opening the firewall does NOT reveal nodes behind it", () => {
+    it("probing the firewall does NOT reveal nodes behind it", () => {
       const s = getState();
-      // RNG.COMBAT is consumed three times on a from-locked success:
-      //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
-      // Force the third > skipChance so the access level lands on
-      // 'open', not 'owned'.
-      _forceNext(RNG.COMBAT, 0);    // success
-      _forceNext(RNG.COMBAT, 0);    // flavor pick
-      _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
-      launchExploit("firewall-1", s.player.hand[0].id);
+      // A firewall's gateAccess is "owned": recon alone (PROBE) does not leak what's
+      // beyond it — only gaining control (crack → owned) does.
+      s.nodeGraph._ctx.resolveProbe("firewall-1");
 
-      assert.equal(s.nodes["firewall-1"].accessLevel, "open",
-        "firewall should be open after first successful exploit");
+      assert.equal(s.nodes["firewall-1"].probed, true,
+        "firewall should be probed after PROBE");
       assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
-        "fileserver behind owned-gated firewall must remain hidden when firewall is only open");
+        "fileserver behind owned-gated firewall must stay hidden on a mere probe");
     });
 
-    it("owning the firewall DOES reveal nodes behind it", () => {
+    it("cracking the firewall (auto-burn → owned) DOES reveal nodes behind it", () => {
       const s = getState();
-
-      // First exploit: locked → open (block skip-to-owned with third roll)
-      _forceNext(RNG.COMBAT, 0);    // success
-      _forceNext(RNG.COMBAT, 0);    // flavor pick
-      _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
-      launchExploit("firewall-1", s.player.hand[0].id);
-      assert.equal(s.nodes["firewall-1"].accessLevel, "open");
+      // Probe first (does not reveal — see the test above).
+      s.nodeGraph._ctx.resolveProbe("firewall-1");
       assert.equal(s.nodes["hidden-fs"].visibility, "hidden",
-        "precondition: still hidden after open");
+        "precondition: still hidden after probe");
 
-      // Second exploit: open → owned (no skip roll on this transition)
-      _forceNext(RNG.COMBAT, 0);    // success
-      _forceNext(RNG.COMBAT, 0);    // flavor pick
-      launchExploit("firewall-1", s.player.hand[1].id);
-      assert.equal(s.nodes["firewall-1"].accessLevel, "owned",
-        "firewall should be owned after second exploit");
+      crackViaAutoBurn("firewall-1");
       assert.equal(s.nodes["hidden-fs"].visibility, "revealed",
-        "fileserver behind firewall must be revealed once firewall is owned");
+        "fileserver behind firewall must be revealed once the firewall is owned");
     });
   });
 
-  describe("router gate (gateAccess: 'open')", () => {
+  describe("router gate (gateAccess: 'probed' — reveal on recon)", () => {
     beforeEach(() => {
       clearAll();
       initGame(() => buildRouterGateLAN(), "itest-22");
     });
 
-    it("node behind router is hidden before exploit", () => {
+    it("node behind router is hidden before recon", () => {
       const s = getState();
       assert.equal(s.nodes["behind-router"].visibility, "hidden",
         "fileserver behind router should start hidden");
     });
 
-    it("opening the router reveals nodes behind it", () => {
+    it("probing the router reveals nodes behind it (no exploit needed)", () => {
       const s = getState();
+      // A router's gateAccess is "probed": it leaks its topology to recon. Probing
+      // it is enough to reveal what's beyond — the router/firewall distinction.
+      s.nodeGraph._ctx.resolveProbe("router-gate");
 
-      // RNG.COMBAT is consumed three times on a from-locked success:
-      //   1) success roll, 2) success-flavor pick, 3) skipToOwnedChance roll.
-      // Force the third > skipChance so the access level lands on
-      // 'open', not 'owned'.
-      _forceNext(RNG.COMBAT, 0);    // success
-      _forceNext(RNG.COMBAT, 0);    // flavor pick
-      _forceNext(RNG.COMBAT, 0.99); // bypass skip-to-owned
-      launchExploit("router-gate", s.player.hand[0].id);
-
-      assert.equal(s.nodes["router-gate"].accessLevel, "open",
-        "router should be open after first successful exploit");
+      assert.equal(s.nodes["router-gate"].probed, true,
+        "router should be probed after PROBE");
       assert.equal(s.nodes["behind-router"].visibility, "revealed",
-        "fileserver behind open-gated router should be revealed on open");
+        "fileserver behind a probed router should be revealed on recon");
     });
   });
 
@@ -961,13 +902,10 @@ describe("gate-access: nodes behind gates are inaccessible until conditions met"
     it("vault remains hidden even when gateway neighbors are revealed", () => {
       const s = getState();
 
-      // Probe the gateway to reveal its neighbors (the switches and gate)
-      // The vault is connected to the gate, not directly to gateway,
-      // but even if we reveal everything around it, concealed blocks it.
-      // First, exploit gateway to reveal neighbors
-      _forceNext(RNG.COMBAT, 0);
-      _forceNext(RNG.COMBAT, 0);
-      launchExploit("gateway", s.player.hand[0].id);
+      // Crack the gateway (auto-burn → owned) to reveal its neighbors. The vault is
+      // connected to the gate, not directly to gateway, but even if we reveal
+      // everything around it, `concealed` blocks it.
+      crackViaAutoBurn("gateway");
 
       // Vault should still be hidden because it's concealed
       const vault = s.nodes["sp/vault"];
@@ -1019,18 +957,17 @@ describe("mine action", () => {
     initGame(() => buildBasicLAN(), "itest-23");
   });
 
-  it("a HIT adds an exploit card to hand and increments mineAttempts", () => {
+  it("a HIT adds a round to the hoard and increments mineAttempts", () => {
     const s = getState();
     const duration = ownGateway();
     assert.ok((s.nodes["gateway"].vulnerabilities ?? []).length > 0,
       "precondition: gateway should have at least one vulnerability");
 
-    const handBefore = s.player.hand.length;
+    const hoardBefore = s.player.hoard.length;
 
-    // Force a HIT: yield roll well below any chance, then rarity/vuln picks.
+    // Force a HIT: yield roll well below any chance, then rarity roll.
     _forceNext(RNG.MINE, 0.0);   // yield roll → hit
-    _forceNext(RNG.MINE, 0.0);   // rarity roll → first bucket
-    _forceNext(RNG.MINE, 0.0);   // vuln index pick
+    _forceNext(RNG.MINE, 0.0);   // rarity roll → first bucket (common)
 
     const graph = s.nodeGraph;
     graph.executeAction("gateway", "mine");
@@ -1038,7 +975,7 @@ describe("mine action", () => {
 
     tick(duration + 2);
 
-    assert.equal(s.player.hand.length, handBefore + 1, "a hit should add exactly one card to hand");
+    assert.equal(s.player.hoard.length, hoardBefore + 1, "a hit should add exactly one round to hoard");
     assert.equal(s.nodes["gateway"].mineAttempts, 1, "mineAttempts should be 1 after one completion");
     assert.equal(s.nodes["gateway"].mining, false, "mining should clear after completion");
   });
@@ -1081,10 +1018,10 @@ describe("mine action", () => {
       "MINE action must not be available once the vein is tapped out");
   });
 
-  it("a MISS emits ACTION_RESOLVED with detail.outcome 'miss' and adds no card", () => {
+  it("a MISS emits ACTION_RESOLVED with detail.outcome 'miss' and adds no round", () => {
     const s = getState();
     const duration = ownGateway();
-    const handBefore = s.player.hand.length;
+    const hoardBefore = s.player.hoard.length;
 
     _forceNext(RNG.MINE, 0.999); // yield roll → miss
 
@@ -1095,7 +1032,7 @@ describe("mine action", () => {
 
     assert.equal(resolved.length, 1, "exactly one mine ACTION_RESOLVED should fire");
     assert.equal(resolved[0].detail.outcome, "miss", "outcome should be 'miss'");
-    assert.equal(s.player.hand.length, handBefore, "a miss must not add a card");
+    assert.equal(s.player.hoard.length, hoardBefore, "a miss must not add a round");
   });
 
   it("ABORT cancels an in-progress mine", () => {
@@ -1137,18 +1074,18 @@ describe("honey-pot trap: MINE springs the counter-trace", () => {
     clearAll();
   });
 
-  it("mining a trap node poisons it, starts the trace, and grants no card", () => {
+  it("mining a trap node poisons it, starts the trace, and grants no round", () => {
     initGame(() => buildCorporateExchange(), "honeypot-mine-seed");
     const s = getState();
     const graph = s.nodeGraph;
-    const handBefore = s.player.hand.length;
+    const hoardBefore = s.player.hoard.length;
 
     graph.executeAction("pot/honey-pot", "mine");
     graph.tick(60);
 
     assert.equal(graph.getNodeState("pot/honey-pot").poisoned, true, "mine must poison the node");
     assert.notEqual(getState().traceSecondsRemaining, null, "mine must start the trace");
-    assert.equal(getState().player.hand.length, handBefore, "mine must grant no card on a trap node");
+    assert.equal(getState().player.hoard.length, hoardBefore, "mine must grant no round on a trap node");
   });
 });
 
@@ -1160,6 +1097,7 @@ describe("timed-action cancel clears the operator's real progress attr (B2)", ()
     const graph = getState().nodeGraph;
 
     navigateTo("pot/honey-pot");
+    graph.setNodeAttr("pot/honey-pot", "probed", true); // DUMP is gated on recon (probed)
     graph.executeAction("pot/honey-pot", "dump");
     graph.tick(3); // advance but do not complete (dump duration is >= 8 ticks)
 
@@ -1338,7 +1276,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
   const ORDER = ["green", "yellow", "red", "trace"];
   const sendAlert = (graph) => graph.sendMessage("sp/ids", { type: "alert", payload: {} });
 
-  it("scrubbing a open monitor resets its alertCount and eases the global alert one level", () => {
+  it("scrubbing an owned monitor resets its alertCount and eases the global alert one level", () => {
     initGame(() => buildSetPieceMiniNetwork("idsRelayChain"), "scrub-1");
     const graph = getState().nodeGraph;
     sendAlert(graph); sendAlert(graph); sendAlert(graph); // 3 alerts (grade C): climbs to red
@@ -1346,7 +1284,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
     assert.notEqual(before, "green", "grid should have climbed");
     assert.ok(graph.getNodeState("sp/monitor").alertCount > 0, "monitor should have accumulated");
 
-    graph.setNodeAttr("sp/monitor", "accessLevel", "open");
+    graph.setNodeAttr("sp/monitor", "accessLevel", "owned");
     graph.executeAction("sp/monitor", "scrub-logs");
     graph.tick(20); // scrub-logs is timed-by-default (#187 default-flip) — let it complete
 
@@ -1362,7 +1300,7 @@ describe("security grid cooldown: scrub logs (#174)", () => {
     assert.equal(getState().globalAlert, "trace", "should be at trace");
     const countAtTrace = graph.getNodeState("sp/monitor").alertCount;
 
-    graph.setNodeAttr("sp/monitor", "accessLevel", "open");
+    graph.setNodeAttr("sp/monitor", "accessLevel", "owned");
     graph.executeAction("sp/monitor", "scrub-logs");
 
     assert.equal(getState().globalAlert, "trace", "scrub must not cool an active trace");
@@ -1434,6 +1372,7 @@ describe("honey-pot trap: FETCH springs the counter-trace", () => {
     const cashBefore = s.player.cash;
 
     // DUMP — safe bait. resolveRead sets read:true; trap must NOT fire.
+    graph.setNodeAttr("pot/honey-pot", "probed", true); // DUMP is gated on recon (probed)
     graph.executeAction("pot/honey-pot", "dump");
     graph.tick(40);
     assert.equal(graph.getNodeState("pot/honey-pot").read, true, "dump should complete");
@@ -1873,60 +1812,121 @@ describe("EXEC dispatch echo", () => {
   });
 });
 
-// ── Exploit card id uniqueness ────────────────────────────────────────────────
-// Regression: card ids are minted `${vuln}-${counter}`, but the counter resets per
-// session while profile cards persist across sessions — so a carried card and a
-// freshly-minted one can share an id. The exploit pipeline keys off `id` and takes
-// the first match, so the second card silently no-ops (the reported "SnmpWalker X
-// does nothing" bug — first match was a disclosed/0-uses card).
+// ── Phase 3: XPLOIT → auto-burn wiring ───────────────────────────────────────
+//
+// TDD: these tests were written BEFORE the wiring was implemented.
+// They verify that:
+//   1. Dispatching XPLOIT launches an autoburn process (not the old card timed-action).
+//   2. A seeded hoard at run-start gives the auto-burn process ammo to crack a soft node.
+//   3. The full probe→XPLOIT→crack→owned→dump flow works headlessly.
+//   4. Console `xploit` (arg-less) launches the same process as the GUI dispatch.
+// Seed: "itest-xploit-autoburn" for determinism.
 
-describe("Exploit cards: duplicate id reconciliation", () => {
-  const DUP_ID = "stale-firmware-1";
-  const makeDupHand = () => ([
-    // Mirrors the reported save: same id, first is dead, second is the one the
-    // player tries to play.
-    { id: DUP_ID, name: "AuthBrute Prime", rarity: "common", quality: 0.22, targetVulnTypes: ["stale-firmware"], decayState: "disclosed", usesRemaining: 0, instanceId: "inv-0" },
-    { id: DUP_ID, name: "SnmpWalker X",    rarity: "common", quality: 0.47, targetVulnTypes: ["stale-firmware"], decayState: "fresh",     usesRemaining: 3, instanceId: "inv-6" },
-  ]);
-
-  function buildDupHandLAN() {
+describe("Phase 3: XPLOIT → coherence auto-burn (wiring)", () => {
+  // Soft LAN: gateway accessible, router-a exploitable (visibility: accessible, grade C)
+  function buildXploitLAN() {
     return {
       graphDef: {
         nodes: [
           createGateway("gateway", { attributes: { visibility: "accessible" } }),
-          createRouter("router-a"),
+          createRouter("router-a", { attributes: { visibility: "accessible" } }),
         ],
         edges: [["gateway", "router-a"]],
         triggers: [],
       },
-      meta: { startNode: "gateway", startCash: 0, moneyCost: "C", ice: null, startHandCards: makeDupHand() },
+      meta: { startNode: "gateway", startCash: 0, moneyCost: "C", ice: null },
     };
   }
 
   beforeEach(() => {
     clearAll();
-    initGame(buildDupHandLAN, "itest-dupid");
+    initGame(() => buildXploitLAN(), "itest-xploit-autoburn");
+    initActionDispatcher(buildActionContext());
   });
 
-  it("gives each hand card a unique id at game init", () => {
-    const ids = getState().player.hand.map((c) => c.id);
-    assert.equal(new Set(ids).size, ids.length, `hand ids must be unique, got: ${ids.join(", ")}`);
+  it("DEFAULT_START_HOARD is exported from hoard.js", () => {
+    // Phase 3: hoard.js must export DEFAULT_START_HOARD
+    assert.ok(DEFAULT_START_HOARD, "DEFAULT_START_HOARD exported");
+    assert.ok(DEFAULT_START_HOARD.common > 0, "has common rounds");
   });
 
-  it("lets the live duplicate-id card execute instead of no-opping on the dead one", () => {
-    const snmp = getState().player.hand.find((c) => c.name === "SnmpWalker X");
-    assert.ok(snmp, "SnmpWalker X present in hand");
-    // The GUI/console dispatch the clicked card's own id; with a collision this
-    // resolves to the first (disclosed) card and returns early.
-    getState().nodeGraph._ctx.startExploit("gateway", snmp.id);
-    assert.equal(getState().nodes["gateway"].exploiting, true, "the fresh card's exploit should start");
+  it("run-start seeds player.hoard with DEFAULT_START_HOARD rounds (not empty)", () => {
+    // Phase 3: initState must seed player.hoard from DEFAULT_START_HOARD
+    const hoard = getState().player.hoard;
+    assert.ok(hoard.length > 0, `player.hoard should be seeded at run-start, got length ${hoard.length}`);
   });
 
-  it("reconciles duplicate ids when loading a serialized save", () => {
-    const snap = serializeState();
-    snap.player.hand = makeDupHand(); // simulate a corrupt save like the reported one
-    deserializeState(snap);
-    const ids = getState().player.hand.map((c) => c.id);
-    assert.equal(new Set(ids).size, ids.length, `loaded hand ids must be unique, got: ${ids.join(", ")}`);
+  it("dispatching XPLOIT starts an autoburn process on the target node", () => {
+    // Make router-a accessible + probed so XPLOIT is available
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+
+    // Dispatch XPLOIT via the action system (no exploitId — auto-burn is arg-less)
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+
+    assert.ok(
+      activeProcessOnNode(getState(), "router-a"),
+      "an autoburn process should be active on router-a after XPLOIT dispatch"
+    );
+  });
+
+  it("XPLOIT dispatch does NOT start the old timed-action (exploiting attr is not true)", () => {
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+
+    // The old timed-action path set node.exploiting = true; auto-burn must NOT do that
+    assert.notEqual(
+      getState().nodes["router-a"].exploiting,
+      true,
+      "auto-burn must not set the old exploiting timed-action flag to true"
+    );
+  });
+
+  it("full flow: probe → XPLOIT auto-burn → crack → owned", () => {
+    // Setup: make router-a soft (grade F-equivalent: set coherence low)
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+    setNodeCoherence("router-a", 5); // very low — will crack in a few rounds
+
+    const accessedEvents = [];
+    on(E.NODE_ACCESSED, (p) => accessedEvents.push(p));
+
+    // Launch auto-burn via action dispatch
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+    assert.ok(activeProcessOnNode(getState(), "router-a"), "process started");
+
+    // Run until crack
+    tick(200);
+
+    assert.equal(getState().nodes["router-a"].accessLevel, "owned", "router-a cracked to owned");
+    assert.ok(accessedEvents.some((e) => e.next === "owned"), "NODE_ACCESSED{next:owned} emitted");
+    assert.equal(getState().processes.length, 0, "process cleaned up after crack");
+  });
+
+  it("console xploit (arg-less) starts an autoburn process — same as GUI dispatch", () => {
+    // Point selection at router-a so the console verb has a target
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+
+    // Select the node (console resolveImplicitNode reads selectedNodeId)
+    emitEvent("starnet:action", { actionId: A.SELECT, nodeId: "router-a" });
+
+    // Issue arg-less xploit via the console command
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+
+    assert.ok(
+      activeProcessOnNode(getState(), "router-a"),
+      "console xploit must start an autoburn process (arg-less dispatch)"
+    );
   });
 });

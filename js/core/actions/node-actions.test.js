@@ -33,8 +33,8 @@ describe("getAvailableActions — one timed action at a time per node", () => {
   });
 });
 
-describe("getAvailableActions — XPLOIT followup passthrough", () => {
-  test("XPLOIT on an accessible node carries a followup with working choices", () => {
+describe("getAvailableActions — XPLOIT is arg-less (Phase 3 E1)", () => {
+  test("XPLOIT on an accessible node is available and has NO followup (auto-burn, no card picker)", () => {
     initGame(() => buildCorporateFoothold());
     const state = getState();
     const gw = Object.values(state.nodes).find((n) => n.visibility === "accessible");
@@ -42,10 +42,7 @@ describe("getAvailableActions — XPLOIT followup passthrough", () => {
     const actions = getAvailableActions(gw, state);
     const xploit = actions.find((a) => a.id === A.XPLOIT);
     assert.ok(xploit, "XPLOIT should be available on an accessible node");
-    assert.ok(xploit.followup, "XPLOIT should carry a followup step");
-    assert.equal(typeof xploit.followup.choices, "function");
-    assert.equal(typeof xploit.followup.empty, "function");
-    assert.equal(typeof xploit.followup.title, "function");
-    assert.ok(Array.isArray(xploit.followup.choices(gw, state)));
+    // Phase 3: no card picker — XPLOIT is a single-dispatch that launches autoburn.
+    assert.ok(!xploit.followup, "XPLOIT must have no followup (card picker removed)");
   });
 });

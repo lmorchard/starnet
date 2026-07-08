@@ -83,8 +83,7 @@ const summary = {
   avgNodesTotal: avg(runs, "nodesTotal"),
   avgCash: avg(runs, "cashRemaining"),
   avgCashSpent: avg(runs, "cashSpent"),
-  avgCardsUsed: avg(runs, "cardsUsed"),
-  avgCardsBurned: avg(runs, "cardsBurned"),
+  avgAutoBurns: avg(runs, "autoBurns"),
   avgStoreVisits: avg(runs, "storeVisits"),
   peakAlertDistribution: countBy(runs, "peakAlert"),
   traceFiredRate: Math.round((traceCount / runs.length) * 1000) / 1000,
@@ -95,11 +94,11 @@ const summary = {
   runsUsingMine: runs.filter(r => (r.mineAttempts ?? 0) > 0).length,
   avgMineAttempts: avg(runs, "mineAttempts"),
   avgMineResolved: avg(runs, "mineResolved"),
-  avgMineCards: avg(runs, "mineCards"),
+  avgMineRounds: avg(runs, "mineRounds"),
   mineHitRate: (() => {
     const resolved = runs.reduce((a, r) => a + (r.mineResolved ?? 0), 0);
-    const cards = runs.reduce((a, r) => a + (r.mineCards ?? 0), 0);
-    return resolved > 0 ? Math.round((cards / resolved) * 1000) / 1000 : 0;
+    const rounds = runs.reduce((a, r) => a + (r.mineRounds ?? 0), 0);
+    return resolved > 0 ? Math.round((rounds / resolved) * 1000) / 1000 : 0;
   })(),
 };
 

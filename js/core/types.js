@@ -6,10 +6,9 @@
 // ── String union types ────────────────────────────────────
 
 /** @typedef {"hidden"|"revealed"|"accessible"} Visibility */
-/** @typedef {"locked"|"open"|"owned"} AccessLevel */
+/** @typedef {"locked"|"owned"} AccessLevel */
 /** @typedef {"green"|"yellow"|"red"} NodeAlertLevel */
 /** @typedef {"green"|"yellow"|"red"|"trace"} GlobalAlertLevel */
-/** @typedef {"fresh"|"worn"|"disclosed"} DecayState */
 /** @typedef {"playing"|"ended"} GamePhase */
 /** @typedef {"success"|"caught"|"burned"|"bricked"} RunOutcome */
 /** @typedef {"S"|"A"|"B"|"C"|"D"|"F"} Grade */
@@ -46,45 +45,15 @@
  */
 
 /**
- * An exploit card in the player's hand.
- * `instanceId` is a profile-scoped unique id, assigned when the card enters the
- * persistent inventory (js/core/profile). It is distinct from `id` (a per-run,
- * vuln-type+counter display id) and is what lets a specific card be written back
- * or burned across runs. Absent on freshly-generated, not-yet-banked cards.
+ * A disposable exploit round in the player's hoard (E1 exploit economy).
+ * Rounds are anonymous ammunition identified by a terse hex tag. Rare rounds
+ * carry multiple exploit types; uncommon carry 2; common carry 1.
  * @typedef {{
  *   id: string,
- *   name: string,
  *   rarity: Rarity,
- *   quality: number,
- *   targetVulnTypes: string[],
- *   decayState: DecayState,
- *   usesRemaining: number,
- *   instanceId?: string,
- * }} ExploitCard
- */
-
-/**
- * Result of resolveExploit() / resolveCombat(). The first six fields are the pure
- * combat outcome; the rest form the side-effect-free PLAN that resolveCombat decides
- * and applyCombatResult executes (access transition, alert raise, staged-vuln
- * surfacing). partialBurn is set later by applyCardDecay.
- * @typedef {{
- *   success: boolean,
+ *   types: string[],
  *   disclosed: boolean,
- *   successChance: number,
- *   roll: number,
- *   matchingVulns: Vulnerability[],
- *   flavor: string,
- *   levelChanged?: boolean,
- *   partialBurn?: boolean,
- *   skippedToOwned?: boolean,
- *   prevAccess?: AccessLevel,
- *   nextAccess?: AccessLevel,
- *   revealNeighbors?: boolean,
- *   vulnsToSurface?: number[],
- *   prevAlert?: NodeAlertLevel,
- *   nextAlert?: NodeAlertLevel,
- * }} ExploitResult
+ * }} ExploitRound
  */
 
 // ── Composite shapes ──────────────────────────────────────
@@ -93,11 +62,15 @@
  * Per-node game state. Core fields are listed here; trait-provided attributes
  * (probing, exploiting, reading, looting, activeExploitId, mining, mineAttempts,
  * mineExhausted, etc.) are dynamic and accessed via index signature.
+ * `coherence` and `coherenceMax` are optional fields added by the E1 exploit-hoard
+ * combat rework — wired in a later phase; absent on nodes not yet participating.
  * @typedef {{
  *   id: string,
  *   type: string,
  *   label: string,
  *   visibility: string,
+ *   coherence?: number,
+ *   coherenceMax?: number,
  *   [key: string]: any,
  * }} NodeState
  */
@@ -145,7 +118,7 @@
 /**
  * @typedef {{
  *   cash: number,
- *   hand: ExploitCard[],
+ *   hoard: ExploitRound[],
  *   health: { current: number, max: number },
  *   deckIntegrity: { current: number, max: number },
  *   capturedCredentials: string[],
@@ -156,11 +129,13 @@
  * Persistent cross-run player profile. Lives OUTSIDE GameState (in localStorage
  * via js/ui/profile-store.js), so it survives resetGame between runs. Model and
  * mutations are in js/core/profile.
+ * `hoard` is the persistent carry-all ammunition (E1 hoard cutover). The legacy
+ * card `inventory` was removed in the Phase 9 sweep once every consumer was
+ * repointed to the hoard.
  * @typedef {{
  *   version: number,
  *   bank: number,
- *   inventory: ExploitCard[],
- *   _instanceSeq: number,
+ *   hoard: ExploitRound[],
  *   _hubVisits: number,
  * }} StarnetProfile
  */
@@ -299,7 +274,7 @@
  *   lootConfig?:    { count: number[] },
  *   combatConfig?:  CombatConfig,
  *   vulnConfig?:    VulnConfig,
- *   gateAccess?:    "probed"|"open"|"owned",
+ *   gateAccess?:    "probed"|"owned",
  *   gradeOverrides?: Partial<Record<Grade, GradeOverride>>,
  * }} NodeTypeDef
  */

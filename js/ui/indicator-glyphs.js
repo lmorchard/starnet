@@ -280,12 +280,11 @@ export function missionMarkDataUri(state) {
 /** Bright header hues, by access level. @type {Record<string, string>} */
 const ACCESS = {
   locked: "#45c4c4", // bright teal
-  open:   "#36a6e0", // bright azure
   owned:  "#2ad17a", // bright green-teal (kept teal-ward to stay clear of alert green)
 };
 
-/** Lit-chevron count, by access level. @type {Record<string, number>} */
-const ACCESS_LIT = { locked: 1, open: 2, owned: 3 };
+/** Lit-chevron count, by access level (two-tier: locked → owned). @type {Record<string, number>} */
+const ACCESS_LIT = { locked: 1, owned: 3 };
 
 /** Chevron polylines (viewBox 0 0 16 18), ordered bottom → top. */
 const CHEVRONS = [
@@ -296,7 +295,7 @@ const CHEVRONS = [
 
 /**
  * Access-level indicator: 3 stacked chevrons, lit from the bottom up by tier.
- *   locked → 1 lit · open → 2 lit · owned → 3 lit · anything else → 0 lit.
+ *   locked → 1 lit · owned → 3 lit · anything else → 0 lit.
  * Lit chevrons use the level hue (stroke 1.8 + glow); unreached use DIM (stroke 1.4).
  *
  * @param {string} accessLevel

@@ -7,12 +7,12 @@ import { A } from "../js/core/action-ids.js";
 function world(over = {}) {
   return {
     needsExploit: ["target"], minable: [{ nodeId: "owned-1", vulnTypes: new Set(["weak-auth"]) }],
-    cardMatchesByNode: new Map(), failedExploits: new Set(),
+    hoardUsable: 0, failedNodes: new Set(),
     nodes: new Map([["target", { vulnerabilities: [{ id: "weak-auth" }] }]]),
     ...over,
   };
 }
-test("proposes mine when blocked and a minable node exists", () => {
+test("proposes mine when hoard is low and a minable node exists", () => {
   const p = mineStrategy(world());
   assert.equal(p.length, 1); assert.equal(p[0].action, A.MINE); assert.equal(p[0].nodeId, "owned-1");
 });
@@ -23,8 +23,8 @@ test("prefers a minable node whose vulns overlap a blocked vuln", () => {
   ]});
   assert.equal(mineStrategy(w)[0].nodeId, "match");
 });
-test("no proposal when a usable matching card already exists", () => {
-  const w = world({ cardMatchesByNode: new Map([["target", ["card-1"]]]) });
+test("no proposal when the hoard already has plenty of usable rounds", () => {
+  const w = world({ hoardUsable: 12 });
   assert.equal(mineStrategy(w).length, 0);
 });
 test("no proposal when nothing is minable (all exhausted)", () => {

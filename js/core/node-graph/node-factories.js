@@ -58,7 +58,10 @@ export function createRouter(id, config = {}) {
     attributes: {
       label: config.label || id,
       grade: config.grade || "D",
-      gateAccess: "open",
+      // Routers reveal what's beyond them on recon (PROBE) — the router/firewall
+      // distinction: a router leaks its topology to a probe; a firewall (gateAccess
+      // "owned") only reveals once cracked.
+      gateAccess: "probed",
       ...config.attributes,
     },
   };

@@ -4,7 +4,6 @@
 import { getState } from "../state.js";
 import { addLogEntry } from "../log.js";
 import { emitEvent } from "../events.js";
-import { exploitSortKey } from "../exploits.js";
 import { getObscuredAliases } from "./completions.js";
 import { isObscured } from "../state/node.js";
 
@@ -51,41 +50,6 @@ export function resolveImplicitNode() {
     return null;
   }
   return s.nodes[nodeId];
-}
-
-/**
- * Resolve a card token (1-based index, id, or name prefix) to an ExploitCard.
- * Mirrors the sort order used by the hand pane when a node is selected.
- */
-export function resolveCard(token) {
-  const s = getState();
-  if (!token) return null;
-  const lower = token.toLowerCase();
-
-  const num = parseInt(token, 10);
-  if (!isNaN(num) && num >= 1 && num <= s.player.hand.length) {
-    const selectedNode = s.selectedNodeId ? s.nodes[s.selectedNodeId] : null;
-    const hand = selectedNode
-      ? [...s.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
-      : s.player.hand;
-    return hand[num - 1] || null;
-  }
-
-  const byId = s.player.hand.find((c) => c.id === token);
-  if (byId) return byId;
-
-  const matches = s.player.hand.filter(
-    (c) => c.decayState !== "disclosed" &&
-      (c.name.toLowerCase().startsWith(lower) || c.id.toLowerCase().startsWith(lower))
-  );
-  if (matches.length === 1) return matches[0];
-  if (matches.length > 1) {
-    addLogEntry(`Ambiguous card: ${matches.map((c) => c.id).join(", ")}`, "error");
-    return null;
-  }
-
-  addLogEntry(`Unknown card: ${token}`, "error");
-  return null;
 }
 
 /** Emit a starnet:action event. */

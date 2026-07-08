@@ -18,6 +18,7 @@ import { A } from "../action-ids.js";
 import { activeIceInstances } from "../state/ice.js";
 import { isScriptAction } from "./scripts.js";
 import { activeProcessOnNode, abortNodeProcesses } from "../processes.js";
+import { startAutoBurn } from "../autoburn.js";
 
 /**
  * Returns all available actions for the given node and game state.
@@ -119,14 +120,10 @@ function wrapGraphAction(ga) {
     noSidebar: ga.noSidebar,
     followup: ga.followup,
     execute: (node, state, ctx, payload) => {
-      // Exploit special case: needs exploitId from payload to compute duration.
-      // Call the game-ctx's startExploit directly (sets graph attributes for the
-      // timed-action operator to pick up).
+      // Exploit special case: launch the coherence auto-burn process.
+      // No card selection needed — auto-burn reads from player.hoard directly.
       if (ga.id === A.XPLOIT) {
-        const exploitId = payload?.exploitId;
-        if (exploitId && state.nodeGraph?._ctx?.startExploit) {
-          state.nodeGraph._ctx.startExploit(node.id, exploitId);
-        }
+        startAutoBurn(node.id);
         return;
       }
       // All other actions: execute via the graph (effects include set-attr)

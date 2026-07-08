@@ -88,17 +88,29 @@ export function initLogRenderer() {
   });
 
   // ── Action resolution log entries (via ACTION_RESOLVED) ──
-  on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
+  on(E.ACTION_RESOLVED, ({ action, nodeId, label, success, detail }) => {
     if (action === A.PROBE) {
       add(`[NODE] ${label}: vulnerabilities scanned.`, "info");
     } else if (action === A.XPLOIT) {
       const d = detail ?? {};
-      if (success) {
-        add(`[EXPLOIT] ${label} — ${d.flavor}`, "success");
-        add(`[EXPLOIT] Roll: ${d.roll} vs ${d.successChance}%${d.matchingVulns?.length > 0 ? " (vuln match)" : ""}`, "meta");
+      // Auto-burn outcomes use detail.outcome; card-era used detail.flavor/roll/successChance.
+      if (d.outcome === "cracked") {
+        const s = _getState();
+        const nodeName = label ?? s?.nodes[nodeId]?.label ?? nodeId;
+        add(`[XPLOIT] CRACKED — ${nodeName} owned`, "success");
+      } else if (d.outcome === "hoard-dry") {
+        add(`[XPLOIT] barrage stopped — hoard dry`, "error");
+      } else if (d.outcome === "heat-ceiling") {
+        add(`[XPLOIT] barrage stopped — heat ceiling`, "error");
       } else {
-        add(`[EXPLOIT] ${label} — ${d.flavor}`, "error");
-        add(`[EXPLOIT] Roll: ${d.roll} vs ${d.successChance}%${d.matchingVulns?.length > 0 ? " (vuln match)" : ""}`, "meta");
+        // Legacy card-era path (kept for continuity until Phase 9)
+        if (success) {
+          add(`[EXPLOIT] ${label} — ${d.flavor}`, "success");
+          add(`[EXPLOIT] Roll: ${d.roll} vs ${d.successChance}%${d.matchingVulns?.length > 0 ? " (vuln match)" : ""}`, "meta");
+        } else {
+          add(`[EXPLOIT] ${label} — ${d.flavor}`, "error");
+          add(`[EXPLOIT] Roll: ${d.roll} vs ${d.successChance}%${d.matchingVulns?.length > 0 ? " (vuln match)" : ""}`, "meta");
+        }
       }
     } else if (action === A.DUMP) {
       const mc = detail?.macguffinCount ?? 0;
@@ -109,10 +121,11 @@ export function initLogRenderer() {
       add(`[NODE] ${label}: event forwarding disabled.`, "success");
     } else if (action === A.MINE) {
       const d = detail ?? {};
-      if (d.outcome === "card") {
-        add(`[MINE] ${label}: extracted ${d.rarity} exploit "${d.cardName}" (q${d.quality}). attempt ${d.attempts}.`, "success");
+      if (d.outcome === "round") {
+        const typeStr = d.types?.length ? d.types.join(", ") : "generic";
+        add(`[MINE] ${label}: extracted ${d.rarity} round targeting [${typeStr}]. attempt ${d.attempts}.`, "success");
       } else {
-        add(`[MINE] ${label}: vein running thin — no exploit recovered. attempt ${d.attempts}.`, "info");
+        add(`[MINE] ${label}: vein running thin — no round recovered. attempt ${d.attempts}.`, "info");
       }
       if (d.exhausted) add(`[MINE] ${label}: tapped out — no further yield.`, "meta");
     } else if (action === "reboot-start") {
@@ -153,13 +166,25 @@ export function initLogRenderer() {
     add(`[HEAT] Activity noticed — alert rising to ${String(level).toUpperCase()}.`, "error"));
 
   // ── SWEEP (progressive process) ──────────────────────────
-  on(E.PROCESS_STARTED, ({ type, nodeId, depthCap }) => {
-    if (type === "sweep") add(`[SWEEP] ${nodeId}: broadcast probe — depth ${depthCap}.`, "info");
+  on(E.PROCESS_STARTED, ({ type, nodeId, depthCap, ceiling }) => {
+    if (type === "sweep") {
+      add(`[SWEEP] ${nodeId}: broadcast probe — depth ${depthCap}.`, "info");
+    } else if (type === "autoburn") {
+      const s = _getState();
+      const coh = s?.nodes[nodeId]?.coherenceMax ?? s?.nodes[nodeId]?.coherence ?? "?";
+      add(`[XPLOIT] Auto-burn on ${nodeId} — coherence ${coh}. Ceiling ${ceiling}.`, "info");
+    }
   });
-  on(E.PROCESS_STEP, ({ type, count }) => {
-    if (type === "sweep") add(`[SWEEP] probed ${count} node${count !== 1 ? "s" : ""}.`, "info");
+  on(E.PROCESS_STEP, ({ type, count, chip, coherence, disclosed }) => {
+    if (type === "sweep") {
+      add(`[SWEEP] probed ${count} node${count !== 1 ? "s" : ""}.`, "info");
+    } else if (type === "autoburn") {
+      const discNote = disclosed ? " · round burned" : "";
+      add(`[XPLOIT] chip ${Math.round(chip)} → coherence ${Math.round(coherence)}${discNote}`, "meta");
+    }
   });
   on(E.PROCESS_ENDED, ({ type, reason }) => {
+    // autoburn outcome is owned by ACTION_RESOLVED — no redundant log here.
     if (type === "sweep") add(`[SWEEP] ${reason === "aborted" ? "aborted." : "complete."}`, "meta");
   });
 

@@ -3,14 +3,14 @@
 
 import { getState } from "../state.js";
 import { addLogEntry, getRecentLog } from "../log.js";
-import { exploitSortKey, getStoreCatalog } from "../exploits.js";
+import { getPackCatalog } from "../packs.js";
 import { getAvailableActions, getScriptActions } from "../actions/node-actions.js";
 import { buyFromStore } from "../store-logic.js";
 import {
-  fromList, fromNodes, fromCards, fromVulnIds, completeNodeArg, getObscuredAliases,
+  fromList, fromNodes, completeNodeArg, getObscuredAliases,
 } from "./completions.js";
 import {
-  resolveNode, resolveImplicitNode, resolveCard, dispatch, resolveWanAccess,
+  resolveNode, resolveImplicitNode, dispatch, resolveWanAccess,
 } from "./resolvers.js";
 import { isObscured } from "../state/node.js";
 import { visibleIncidentFlows, flowId } from "../programs.js";
@@ -22,7 +22,7 @@ import {
 
 // ── Shared constants for completion ──────────────────────────────────────────
 
-const STATUS_NOUNS     = ["summary", "ice", "hand", "node", "alert", "mission"];
+const STATUS_NOUNS     = ["summary", "ice", "hoard", "hand", "node", "alert", "mission"];
 const SWEEP_DEPTHS     = ["1", "2", "3", "max"];
 const CHEAT_SUBS       = ["give", "alert", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "fps", "help"];
 const CHEAT_GIVE_SUBS  = ["matching", "card", "cash"];
@@ -78,20 +78,16 @@ export const COMMANDS = [
   // static `exec` command, not registered as top-level verbs. See dynamic-actions.js.
 
   // ── exploit ────────────────────────────────────────────────────────────────
+  // Phase 3 (E1 combat rework): xploit is now arg-less — launches auto-burn
+  // from player.hoard. No card selection needed.
 
   { verb: "xploit",
-    complete(args, partial, state) {
-      // Only cards (from the targeted node's hand ordering). Never node candidates.
-      if (args.length === 0 && state.selectedNodeId) return fromCards(state.player.hand, partial);
-      return null;
-    },
+    complete() { return null; },
     execute(args) {
-      const node = resolveImplicitNode();                 // targeted node or logs the error
+      if (args.length > 0) { addLogEntry("xploit takes no arguments — it acts on the targeted node.", "error"); return; }
+      const node = resolveImplicitNode();
       if (!node) return;
-      if (args.length < 1) { addLogEntry("Usage: xploit <card>  (target a node first)", "error"); return; }
-      const card = resolveCard(args.join(" "));
-      if (!card) return;
-      dispatch(A.XPLOIT, { nodeId: node.id, exploitId: card.id });
+      dispatch(A.XPLOIT, { nodeId: node.id });
     },
   },
 
@@ -215,22 +211,9 @@ export const COMMANDS = [
         }
 
         if (has.has(A.XPLOIT)) {
-          const sorted = [...s.player.hand].sort(
-            (a, b) => exploitSortKey(a, sel) - exploitSortKey(b, sel)
-          );
-          if (sorted.length > 0) {
-            lines.push(`  xploit <n>               — attack ${sel.id} (${sel.accessLevel}):`);
-            sorted.forEach((card, i) => {
-              const knownVulnIds = sel.probed
-                ? sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id)
-                : [];
-              const matches = card.targetVulnTypes.some((t) => knownVulnIds.includes(t));
-              const worn = card.usesRemaining <= 0 ? "  [WORN]" : "";
-              const disclosed = card.decayState === "disclosed" ? "  [DISCLOSED]" : "";
-              const matchStr = sel.probed ? (matches ? "  ✓ match" : "  no match") : "";
-              lines.push(`    ${i + 1}. ${card.name} [${card.rarity}]  targets: ${card.targetVulnTypes.join(", ")}${matchStr}${worn}${disclosed}`);
-            });
-          }
+          // Phase 3 (E1): xploit is now arg-less — auto-burn draws from hoard.
+          const hoardCount = s.player.hoard?.length ?? 0;
+          lines.push(`  xploit                   — burn coherence on ${sel.id} (${sel.accessLevel}) [${hoardCount} rounds in hoard]`);
         }
 
         if (has.has(A.DUMP)) {
@@ -253,12 +236,12 @@ export const COMMANDS = [
         }
 
         if (sel.type === "wan") {
-          lines.push(`  darknet                  — list darknet broker catalog`);
-          lines.push(`  buy <index>              — purchase exploit card from broker`);
+          lines.push(`  darknet                  — list darknet broker pack catalog`);
+          lines.push(`  buy <index>              — purchase research pack from broker`);
         }
 
         if (sel.probed) {
-          lines.push(`  cheat give matching      — add matching exploits [balance rescue — sets cheat flag]`);
+          lines.push(`  cheat give matching      — add matching rounds to hoard [balance rescue — sets cheat flag]`);
         }
       }
 
@@ -287,12 +270,13 @@ export const COMMANDS = [
         case "full":    return cmdStatusFull();
         case "summary": return cmdStatusSummary();
         case "ice":     return cmdStatusIce();
-        case "hand":    return cmdStatusHand();
+        case "hoard":   return cmdStatusHand();  // primary noun for the new mechanic
+        case "hand":    return cmdStatusHand();  // alias — old muscle memory
         case "node":    return cmdStatusNode(args.slice(1));
         case "alert":   return cmdStatusAlert();
         case "mission": return cmdStatusMission();
         default:
-          addLogEntry(`Unknown status noun: ${noun}. Try: full summary ice hand node alert mission`, "error");
+          addLogEntry(`Unknown status noun: ${noun}. Try: full summary ice hoard hand node alert mission`, "error");
       }
     },
   },
@@ -303,20 +287,20 @@ export const COMMANDS = [
     execute() {
       if (!resolveWanAccess()) return;
       const s = getState();
-      const catalog = getStoreCatalog();
+      const catalog = getPackCatalog();
       const lines = ["DARKNET BROKER", "──────────────────────────────────────────", `Wallet: ¥${s.player.cash.toLocaleString()}`];
       catalog.forEach((item, i) => {
         const canAfford = s.player.cash >= item.price ? "" : "  [INSUFFICIENT FUNDS]";
-        lines.push(`  [${i + 1}] ${item.name}  [${item.rarity}]  ${item.vulnId}  ¥${item.price}${canAfford}`);
+        lines.push(`  [${i + 1}] ${item.name}  [${item.size} rounds]  ¥${item.price}${canAfford}`);
       });
-      lines.push("Use: buy <index>  to purchase");
+      lines.push("Use: buy <index>  to purchase a pack");
       lines.forEach((l) => addLogEntry(l, "meta"));
     },
   },
 
   { verb: "buy",
     complete(args, partial) {
-      return args.length === 0 ? fromVulnIds(partial) : null;
+      return args.length === 0 ? fromList(getPackCatalog().map((p) => p.id), partial) : null;
     },
     execute(args) {
       if (!resolveWanAccess()) return;
@@ -326,18 +310,18 @@ export const COMMANDS = [
       const result = buyFromStore(key);
       if (!result) {
         const s = getState();
-        const catalog = getStoreCatalog();
+        const catalog = getPackCatalog();
         const item = !isNaN(num)
           ? catalog[num - 1]
-          : catalog.find((c) => c.vulnId.toLowerCase().startsWith(args[0].toLowerCase()));
+          : catalog.find((c) => c.id.toLowerCase().startsWith(args[0].toLowerCase()));
         if (item && s.player.cash < item.price) {
           addLogEntry(`Insufficient funds. Need ¥${item.price}, have ¥${s.player.cash.toLocaleString()}.`, "error");
         } else {
-          addLogEntry(`Unknown item: ${args[0]}`, "error");
+          addLogEntry(`Unknown pack: ${args[0]}`, "error");
         }
         return;
       }
-      addLogEntry(`Purchased: ${result.card.name}  [${result.card.rarity}]  targets:${result.vulnId}  cost:¥${result.price}`, "success");
+      addLogEntry(`Purchased: ${result.pack.name}  [${result.rounds.length} rounds]  cost:¥${result.price}`, "success");
     },
   },
 
@@ -359,7 +343,7 @@ export const COMMANDS = [
         "  target <node>             Set active node (by id or label prefix)",
         "  untarget                  Clear node selection",
         "  probe                     Reveal vulnerabilities. Raises local alert.",
-        "  xploit <card>             Launch exploit. Card by index, id, or name prefix.",
+        "  xploit                    Launch coherence burn on targeted node (auto-burn from hoard).",
         "  dump                      Scan node contents.",
         "  fetch                     Collect macguffins from owned node.",
         "  exec [<script>]           Run a node script (corrupt, cancel-trace, unlock-vault, …). No arg lists scripts.",
@@ -368,14 +352,14 @@ export const COMMANDS = [
         "  reboot                    Send ICE home. Node offline briefly.",
         "  jackout                   Disconnect and end run.",
         "  actions                   List all currently valid actions with context.",
-        "  status [noun]             Game state. Nouns: summary ice hand node alert mission",
-        "  darknet                   List darknet broker catalog (requires WAN selected).",
-        "  buy <index>               Purchase exploit card from broker (requires WAN selected).",
+        "  status [noun]             Game state. Nouns: summary ice hoard hand node alert mission",
+        "  darknet                   List darknet broker pack catalog (requires WAN selected).",
+        "  buy <index>               Purchase research pack from broker (requires WAN selected).",
         "  log [n]                   Replay last n log entries (default: 20).",
         "  help                      Show this listing.",
         "  // CHEAT — playtesting only. Cheaters never win.",
-        "  cheat give matching [node]  Add exploits matching node's vulns (balance rescue).",
-        "  cheat give card [rarity]    Add random exploit card.",
+        "  cheat give matching [node]  Add rounds matching node's vulns to the hoard (balance rescue).",
+        "  cheat give card [rarity]    Add a round to the hoard.",
         "  cheat give cash <amount>    Add credits to wallet.",
         "  cheat alert set <level>     Force alert level: green yellow red trace",
         "  cheat alert raise|lower     Step the global alert up/down one level",

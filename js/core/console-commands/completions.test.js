@@ -3,7 +3,7 @@
 //
 // State is constructed as minimal plain objects — no game engine init required.
 // This validates that tabComplete is truly headless and dependency-free (aside
-// from the VULNERABILITY_TYPES list it imports for buy completion).
+// from the pack catalog it imports for buy completion).
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -94,7 +94,7 @@ describe("tabComplete: status noun completion", () => {
 
   it("empty partial after status shows all nouns", () => {
     const r = tabComplete("status ", state);
-    assert.ok(r.suggestions.length === 6); // summary ice hand node alert mission
+    assert.ok(r.suggestions.length === 7); // summary ice hoard hand node alert mission
   });
 });
 
@@ -153,81 +153,33 @@ describe("tabComplete: node completion", () => {
 });
 
 // ── Card completion ───────────────────────────────────────
+// Phase 3 (E1): xploit is now arg-less — no card picker, so it has no completions.
 
-describe("tabComplete: card completion (exploit, implicit form)", () => {
+describe("tabComplete: xploit has no argument completions (Phase 3 E1)", () => {
   const hand = [
     makeCard("weak-auth-1", "AuthBrute Prime"),
     makeCard("stale-firmware-2", "SnmpWalker Zero"),
     makeCard("kernel-exploit-3", "RingZero X"),
   ];
-  const state = makeState({
-    selectedNodeId: "gateway",
-    nodes: { gateway: makeNode("gateway", "Gateway") },
-    hand,
-  });
 
-  it("completes card by name prefix", () => {
-    const r = tabComplete("xploit Auth", state);
-    assert.equal(r.completed, "xploit AuthBrute Prime ");
-    assert.deepEqual(r.suggestions, []);
-  });
-
-  it("completes card by id prefix (new behavior)", () => {
-    const r = tabComplete("xploit weak", state);
-    assert.equal(r.completed, "xploit weak-auth-1 ");
-    assert.deepEqual(r.suggestions, []);
-  });
-
-  it("id prefix completion takes priority over name match", () => {
-    // "stale" matches the id "stale-firmware-2", not any name
-    const r = tabComplete("xploit stale", state);
-    assert.equal(r.completed, "xploit stale-firmware-2 ");
-  });
-
-  it("multiple id matches show id LCP and suggestions", () => {
-    const hand2 = [
-      makeCard("weak-auth-1", "AuthBrute Prime"),
-      makeCard("weak-auth-5", "DefCred μ"),
-    ];
-    const state2 = makeState({ selectedNodeId: "gateway", nodes: {}, hand: hand2 });
-    const r = tabComplete("xploit weak-auth-", state2);
-    // LCP of ["weak-auth-1", "weak-auth-5"] = "weak-auth-"
-    // partial = "weak-auth-", lcp = "weak-auth-" → same length → no improvement
-    assert.equal(r.completed, null);
-    assert.ok(r.suggestions.some(s => s.includes("weak-auth-1")));
-    assert.ok(r.suggestions.some(s => s.includes("weak-auth-5")));
-  });
-
-  it("suggestions show id  name format", () => {
-    const hand2 = [
-      makeCard("weak-auth-1", "AuthBrute Prime"),
-      makeCard("stale-firmware-2", "SnmpWalker Zero"),
-    ];
-    const state2 = makeState({ selectedNodeId: "gateway", nodes: {}, hand: hand2 });
-    const r = tabComplete("xploit ", state2);
-    // empty partial → all cards match; display shows "id  name"
-    assert.ok(r.suggestions.some(s => s.includes("weak-auth-1") && s.includes("AuthBrute Prime")));
-    assert.ok(r.suggestions.some(s => s.includes("stale-firmware-2") && s.includes("SnmpWalker Zero")));
-  });
-
-  it("disclosed cards are excluded from completion", () => {
-    const hand2 = [
-      makeCard("weak-auth-1", "AuthBrute Prime", "disclosed"),
-      makeCard("stale-firmware-2", "SnmpWalker Zero"),
-    ];
-    const state2 = makeState({ selectedNodeId: "gateway", nodes: {}, hand: hand2 });
-    const r = tabComplete("xploit weak", state2);
+  it("xploit with a targeted node returns null (arg-less, no card to complete)", () => {
+    const state = makeState({
+      selectedNodeId: "gateway",
+      nodes: { gateway: makeNode("gateway", "Gateway") },
+      hand,
+    });
+    const r = tabComplete("xploit ", state);
     assert.equal(r.completed, null);
     assert.deepEqual(r.suggestions, []);
   });
 
-  it("without a selected node, xploit offers no completions (node arg is gone)", () => {
-    const state2 = makeState({
+  it("xploit with no targeted node also returns null", () => {
+    const state = makeState({
       selectedNodeId: null,
       nodes: { gateway: makeNode("gateway", "Gateway") },
       hand,
     });
-    const r = tabComplete("xploit ga", state2);
+    const r = tabComplete("xploit ga", state);
     assert.equal(r.completed, null);
     assert.deepEqual(r.suggestions, []);
   });
@@ -237,6 +189,7 @@ describe("tabComplete: card completion (exploit, implicit form)", () => {
 //
 // xploit/sniff/replay act on the targeted node — they must never offer node
 // candidates for completion, whether or not a node is selected.
+// Phase 3 (E1): xploit is arg-less and returns null for all completions.
 
 describe("tabComplete: targeted-node commands never complete node ids", () => {
   const hand = [
@@ -245,20 +198,15 @@ describe("tabComplete: targeted-node commands never complete node ids", () => {
   ];
   const nodes = { gateway: makeNode("gateway", "Gateway"), "ids-1": makeNode("ids-1", "IDS Primary") };
 
-  it("xploit with a targeted node returns only card candidates", () => {
-    const state = makeState({ selectedNodeId: "gateway", nodes, hand });
-    const r = tabComplete("xploit ", state);
-    assert.ok(r.suggestions.length > 0);
-    for (const id of Object.keys(nodes)) {
-      assert.ok(!r.suggestions.some((s) => s.includes(id)), `suggestion leaked node id ${id}`);
+  it("xploit returns null for all completions (arg-less — no card or node candidates)", () => {
+    // Phase 3 (E1): xploit is arg-less; complete() always returns null.
+    const targeted = makeState({ selectedNodeId: "gateway", nodes, hand });
+    const untargeted = makeState({ selectedNodeId: null, nodes, hand });
+    for (const state of [targeted, untargeted]) {
+      const r = tabComplete("xploit ", state);
+      assert.equal(r.completed, null);
+      assert.deepEqual(r.suggestions, []);
     }
-  });
-
-  it("xploit with no targeted node returns null (no cards, no nodes)", () => {
-    const state = makeState({ selectedNodeId: null, nodes, hand });
-    const r = tabComplete("xploit ", state);
-    assert.equal(r.completed, null);
-    assert.deepEqual(r.suggestions, []);
   });
 
   it("sniff never offers node candidates, targeted or not", () => {
@@ -372,27 +320,27 @@ describe("tabComplete: navigated-but-unprobed node stays obscured", () => {
   });
 });
 
-// ── buy vuln-id completion ────────────────────────────────
+// ── buy pack-id completion (Phase 6: store now sells research packs) ──────────
 
-describe("tabComplete: buy vuln-id completion", () => {
+describe("tabComplete: buy pack-id completion", () => {
   const state = makeState();
 
-  it("completes a unique vuln-id prefix", () => {
-    const r = tabComplete("buy kernel", state);
-    assert.equal(r.completed, "buy kernel-exploit ");
+  it("completes a unique pack-id prefix", () => {
+    // "cache" uniquely matches "cache-common"
+    const r = tabComplete("buy cache", state);
+    assert.equal(r.completed, "buy cache-common ");
   });
 
-  it("ambiguous prefix shows suggestions with vuln names", () => {
-    // "un" matches "unpatched-ssh"
-    const r = tabComplete("buy un", state);
-    assert.equal(r.completed, "buy unpatched-ssh ");
+  it("completes a unique pack-id prefix (dump-mixed)", () => {
+    // "dump" uniquely matches "dump-mixed"
+    const r = tabComplete("buy dump", state);
+    assert.equal(r.completed, "buy dump-mixed ");
   });
 
-  it("empty partial shows all vuln ids", () => {
+  it("empty partial shows all pack ids", () => {
     const r = tabComplete("buy ", state);
     assert.ok(r.suggestions.length > 0);
-    // suggestions include "id  Name" format
-    assert.ok(r.suggestions.some(s => s.includes("unpatched-ssh")));
+    assert.ok(r.suggestions.some(s => s.includes("cache-common")));
   });
 
   it("no match returns null", () => {

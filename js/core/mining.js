@@ -1,8 +1,9 @@
 // @ts-check
 import { RNG, random } from "./rng.js";
-import { generateExploit, generateExploitForVuln } from "./exploits.js";
+import { generateRound } from "./hoard.js";
 
 /** @typedef {import('./types.js').Grade} Grade */
+/** @typedef {import('./types.js').ExploitRound} ExploitRound */
 
 export const MINE_TAPOUT = 0.05;            // yield chance below this → vein tapped out
 export const MINE_BASE  = { S: 0.95, A: 0.90, B: 0.85, C: 0.80, D: 0.70, F: 0.60 };
@@ -38,17 +39,16 @@ export function rollMineRarity(grade) {
 }
 
 /**
- * Generate a card from a node's own vulnerabilities (node-intrinsic), with rarity
- * rolled by node grade. Falls back to a fully random (grade-rarity) card if the node
- * has no usable vulns.
+ * Generate a node-shaped ExploitRound from a node's own vulnerabilities, with
+ * rarity rolled by node grade. Falls back to a fully random (grade-rarity) round
+ * if the node has no usable (non-patched, non-hidden) vulns.
  * @param {import('./types.js').NodeState} node
- * @returns {import('./types.js').ExploitCard}
+ * @returns {ExploitRound}
  */
-export function generateMinedCard(node) {
+export function generateMinedRound(node) {
   const grade = node.grade ?? "D";
   const rarity = rollMineRarity(grade);
   const vulns = (node.vulnerabilities ?? []).filter((v) => !v.patched && !v.hidden);
-  if (vulns.length === 0) return generateExploit(rarity);
-  const idx = Math.floor(random(RNG.MINE) * vulns.length);
-  return generateExploitForVuln(vulns[idx].id, rarity);
+  const types = vulns.length ? vulns.map((v) => v.id) : null;
+  return generateRound(rarity, types);
 }
