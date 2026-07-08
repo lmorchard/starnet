@@ -137,5 +137,5 @@ export const BURN_CEILING_DEFAULT = 40;
 // settles + the instrument arms (no "camera moving while rounds fly" jumble), then
 // fires one round every BURN_CADENCE_TICKS ticks (a visible beat, not a 10/sec blur).
 // Tune in the feel pass: lower = faster/tenser, higher = slower/more readable.
-export const BURN_ARM_TICKS = 5;      // ~500ms wind-up (focus animate is ~350ms)
+export const BURN_ARM_TICKS = 8;      // ~800ms wind-up (camera focus ~350ms settles, instrument arms, then fire)
 export const BURN_CADENCE_TICKS = 3;  // ~300ms between rounds
