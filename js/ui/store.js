@@ -6,8 +6,9 @@
 
 import { emitEvent, E } from "../core/events.js";
 import { resumeTimers } from "../core/timers.js";
-import { getStoreCatalog } from "../core/exploits.js";
+import { getPackCatalog } from "../core/packs.js";
 import { buyFromStore } from "../core/store-logic.js";
+import { getState } from "../core/state.js";
 
 /**
  * Open the darknet broker store modal. Pauses timers while open.
@@ -18,10 +19,10 @@ export function openDarknetsStore(state) {
   const storeEl = /** @type {any} */ (document.getElementById("darknet-store"));
   if (!storeEl || storeEl.open) return; // already open
 
-  emitEvent(E.LOG_ENTRY, { text: "[DARKNET] Connected to broker. Commands: store — list catalog | buy <n> — purchase", type: "meta" });
+  emitEvent(E.LOG_ENTRY, { text: "[DARKNET] Connected to broker. Commands: darknet — list catalog | buy <n> — purchase pack", type: "meta" });
 
   let currentCash = state.player.cash;
-  storeEl.catalog = getStoreCatalog();
+  storeEl.catalog = getPackCatalog();
   storeEl.cash = currentCash;
   storeEl.open = true;
 
@@ -39,10 +40,10 @@ export function openDarknetsStore(state) {
     emitEvent(E.COMMAND_ISSUED, { cmd: `buy ${index}` });
     const result = buyFromStore(index);
     if (result) {
-      emitEvent(E.LOG_ENTRY, { text: `Purchased: ${result.card.name}  [${result.card.rarity}]  targets:${result.vulnId}  cost:¥${result.price}`, type: "success" });
+      emitEvent(E.LOG_ENTRY, { text: `Purchased: ${result.pack.name}  ${result.rounds.length} round(s)  cost:¥${result.price}`, type: "success" });
       currentCash -= result.price;
       storeEl.cash = currentCash;
-      storeEl.catalog = getStoreCatalog();
+      storeEl.catalog = getPackCatalog();
     }
   }
 

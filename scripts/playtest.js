@@ -198,6 +198,16 @@ if (jsonMode) {
     else if (action === A.DUMP) out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
     else if (action === A.FETCH) out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
     else if (action === A.CORRUPT) out(`[NODE] ${label}: event forwarding disabled.`);
+    else if (action === A.MINE) {
+      const d = detail ?? {};
+      if (d.outcome === "round") {
+        const typeStr = d.types?.length ? d.types.join(", ") : "generic";
+        out(`[MINE] ${label}: extracted ${d.rarity} round [${typeStr}]. attempt ${d.attempts}.`);
+      } else {
+        out(`[MINE] ${label}: vein thin — no round. attempt ${d.attempts}.`);
+      }
+      if (d.exhausted) out(`[MINE] ${label}: tapped out.`);
+    }
     else if (action === "reboot-start") out(`[NODE] ${label}: rebooting.`);
     else if (action === "reboot-complete") out(`[NODE] ${label}: online.`);
   });

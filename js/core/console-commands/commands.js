@@ -3,7 +3,8 @@
 
 import { getState } from "../state.js";
 import { addLogEntry, getRecentLog } from "../log.js";
-import { getStoreCatalog } from "../exploits.js";
+import { getStoreCatalog } from "../exploits.js"; // vestigial — Phase 9
+import { getPackCatalog } from "../packs.js";
 import { getAvailableActions, getScriptActions } from "../actions/node-actions.js";
 import { buyFromStore } from "../store-logic.js";
 import {
@@ -236,8 +237,8 @@ export const COMMANDS = [
         }
 
         if (sel.type === "wan") {
-          lines.push(`  darknet                  — list darknet broker catalog`);
-          lines.push(`  buy <index>              — purchase exploit card from broker`);
+          lines.push(`  darknet                  — list darknet broker pack catalog`);
+          lines.push(`  buy <index>              — purchase research pack from broker`);
         }
 
         if (sel.probed) {
@@ -286,20 +287,20 @@ export const COMMANDS = [
     execute() {
       if (!resolveWanAccess()) return;
       const s = getState();
-      const catalog = getStoreCatalog();
+      const catalog = getPackCatalog();
       const lines = ["DARKNET BROKER", "──────────────────────────────────────────", `Wallet: ¥${s.player.cash.toLocaleString()}`];
       catalog.forEach((item, i) => {
         const canAfford = s.player.cash >= item.price ? "" : "  [INSUFFICIENT FUNDS]";
-        lines.push(`  [${i + 1}] ${item.name}  [${item.rarity}]  ${item.vulnId}  ¥${item.price}${canAfford}`);
+        lines.push(`  [${i + 1}] ${item.name}  [${item.size} rounds]  ¥${item.price}${canAfford}`);
       });
-      lines.push("Use: buy <index>  to purchase");
+      lines.push("Use: buy <index>  to purchase a pack");
       lines.forEach((l) => addLogEntry(l, "meta"));
     },
   },
 
   { verb: "buy",
     complete(args, partial) {
-      return args.length === 0 ? fromVulnIds(partial) : null;
+      return args.length === 0 ? fromList(getPackCatalog().map((p) => p.id), partial) : null;
     },
     execute(args) {
       if (!resolveWanAccess()) return;
@@ -309,18 +310,18 @@ export const COMMANDS = [
       const result = buyFromStore(key);
       if (!result) {
         const s = getState();
-        const catalog = getStoreCatalog();
+        const catalog = getPackCatalog();
         const item = !isNaN(num)
           ? catalog[num - 1]
-          : catalog.find((c) => c.vulnId.toLowerCase().startsWith(args[0].toLowerCase()));
+          : catalog.find((c) => c.id.toLowerCase().startsWith(args[0].toLowerCase()));
         if (item && s.player.cash < item.price) {
           addLogEntry(`Insufficient funds. Need ¥${item.price}, have ¥${s.player.cash.toLocaleString()}.`, "error");
         } else {
-          addLogEntry(`Unknown item: ${args[0]}`, "error");
+          addLogEntry(`Unknown pack: ${args[0]}`, "error");
         }
         return;
       }
-      addLogEntry(`Purchased: ${result.card.name}  [${result.card.rarity}]  targets:${result.vulnId}  cost:¥${result.price}`, "success");
+      addLogEntry(`Purchased: ${result.pack.name}  [${result.rounds.length} rounds]  cost:¥${result.price}`, "success");
     },
   },
 
@@ -352,8 +353,8 @@ export const COMMANDS = [
         "  jackout                   Disconnect and end run.",
         "  actions                   List all currently valid actions with context.",
         "  status [noun]             Game state. Nouns: summary ice hand node alert mission",
-        "  darknet                   List darknet broker catalog (requires WAN selected).",
-        "  buy <index>               Purchase exploit card from broker (requires WAN selected).",
+        "  darknet                   List darknet broker pack catalog (requires WAN selected).",
+        "  buy <index>               Purchase research pack from broker (requires WAN selected).",
         "  log [n]                   Replay last n log entries (default: 20).",
         "  help                      Show this listing.",
         "  // CHEAT — playtesting only. Cheaters never win.",

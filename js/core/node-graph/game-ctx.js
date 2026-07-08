@@ -16,8 +16,8 @@
 import { A } from "../action-ids.js";
 import { startTraceCountdown, cancelTraceCountdown, recordMonitorAlert, scrubLogs, lieLow, recordHeat } from "../alert.js";
 import { HEAT_COST } from "../balance.js";
-import { addCash, setMissionComplete, addCardToHand } from "../state/player.js";
-import { mineYieldChance, isMineExhausted, generateMinedCard } from "../mining.js";
+import { addCash, setMissionComplete, addCardToHand, addRoundToHoard } from "../state/player.js";
+import { mineYieldChance, isMineExhausted, generateMinedRound } from "../mining.js";
 import { startIce, ejectIce, rebootIce, stopIce, disableIce } from "../ice.js";
 import { activeIceInstances } from "../state/ice.js";
 import { on } from "../events.js";
@@ -268,8 +268,8 @@ export function buildGameCtx(opts = {}) {
       const chance = mineYieldChance(grade, attempts);
       const hit = random(RNG.MINE) < chance;
 
-      let card = null;
-      if (hit) { card = generateMinedCard(node); if (card) addCardToHand(card); }
+      let round = null;
+      if (hit) { round = generateMinedRound(node); addRoundToHoard(round); }
 
       incrementMineAttempts(nodeId);                  // attempts → attempts+1
       const exhausted = isMineExhausted(grade, attempts + 1);
@@ -279,10 +279,9 @@ export function buildGameCtx(opts = {}) {
       emitEvent(E.ACTION_RESOLVED, {
         action: A.MINE, nodeId, label: node.label,
         detail: {
-          outcome: hit ? "card" : "miss",
-          rarity: card?.rarity ?? null,
-          cardName: card?.name ?? null,
-          quality: card?.quality ?? null,
+          outcome: hit ? "round" : "miss",
+          rarity: round?.rarity ?? null,
+          types: round?.types ?? null,
           attempts: attempts + 1,
           exhausted,
         },

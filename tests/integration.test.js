@@ -986,18 +986,17 @@ describe("mine action", () => {
     initGame(() => buildBasicLAN(), "itest-23");
   });
 
-  it("a HIT adds an exploit card to hand and increments mineAttempts", () => {
+  it("a HIT adds a round to the hoard and increments mineAttempts", () => {
     const s = getState();
     const duration = ownGateway();
     assert.ok((s.nodes["gateway"].vulnerabilities ?? []).length > 0,
       "precondition: gateway should have at least one vulnerability");
 
-    const handBefore = s.player.hand.length;
+    const hoardBefore = s.player.hoard.length;
 
-    // Force a HIT: yield roll well below any chance, then rarity/vuln picks.
+    // Force a HIT: yield roll well below any chance, then rarity roll.
     _forceNext(RNG.MINE, 0.0);   // yield roll → hit
-    _forceNext(RNG.MINE, 0.0);   // rarity roll → first bucket
-    _forceNext(RNG.MINE, 0.0);   // vuln index pick
+    _forceNext(RNG.MINE, 0.0);   // rarity roll → first bucket (common)
 
     const graph = s.nodeGraph;
     graph.executeAction("gateway", "mine");
@@ -1005,7 +1004,7 @@ describe("mine action", () => {
 
     tick(duration + 2);
 
-    assert.equal(s.player.hand.length, handBefore + 1, "a hit should add exactly one card to hand");
+    assert.equal(s.player.hoard.length, hoardBefore + 1, "a hit should add exactly one round to hoard");
     assert.equal(s.nodes["gateway"].mineAttempts, 1, "mineAttempts should be 1 after one completion");
     assert.equal(s.nodes["gateway"].mining, false, "mining should clear after completion");
   });

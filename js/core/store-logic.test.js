@@ -1,8 +1,11 @@
 // @ts-check
+// Tests for store-logic.js — Phase 6 rewrite: store now sells research packs → hoard rounds.
+// Old vuln-card tests removed; see tests/store-logic.test.js for the canonical new suite.
+
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { buyFromStore, buyFromStoreToProfile } from "./store-logic.js";
-import { getStoreCatalog } from "./exploits.js";
+import { getPackCatalog, PACKS } from "./packs.js";
 import { initGame, getState } from "./state.js";
 import { initRng } from "./rng.js";
 import { createProfile } from "./profile/index.js";
@@ -22,30 +25,29 @@ function buildStoreLAN() {
   };
 }
 
-describe("buyFromStore", () => {
+describe("buyFromStore (in-run, pack-based)", () => {
   beforeEach(() => {
+    initRng("store-logic-core-test");
     initGame(() => buildStoreLAN());
   });
 
-  it("buys by catalog index (1-based)", () => {
-    const catalog = getStoreCatalog();
-    const before = getState().player.cash;
+  it("buys by catalog index (1-based) and grows player.hoard", () => {
+    const catalog = getPackCatalog();
+    const before = getState().player.hoard.length;
+    const cashBefore = getState().player.cash;
     const result = buyFromStore(1);
     assert.ok(result, "expected successful purchase");
-    assert.equal(result.vulnId, catalog[0].vulnId);
+    assert.equal(result.pack.id, catalog[0].id);
     assert.equal(result.price, catalog[0].price);
-    assert.equal(getState().player.cash, before - result.price);
-    // Card should be in hand
-    const hand = getState().player.hand;
-    assert.ok(hand.some((c) => c.id === result.card.id));
+    assert.equal(getState().player.cash, cashBefore - result.price);
+    assert.equal(getState().player.hoard.length, before + catalog[0].size);
   });
 
-  it("buys by vuln ID string", () => {
-    const catalog = getStoreCatalog();
-    const vulnId = catalog[0].vulnId;
-    const result = buyFromStore(vulnId);
+  it("buys by pack ID string", () => {
+    const pack = PACKS[0];
+    const result = buyFromStore(pack.id);
     assert.ok(result, "expected successful purchase");
-    assert.equal(result.vulnId, vulnId);
+    assert.equal(result.pack.id, pack.id);
   });
 
   it("returns null for invalid index", () => {
@@ -53,50 +55,42 @@ describe("buyFromStore", () => {
     assert.equal(buyFromStore(0), null);
   });
 
-  it("returns null for unknown vuln ID", () => {
-    assert.equal(buyFromStore("nonexistent-vuln"), null);
+  it("returns null for unknown pack ID", () => {
+    assert.equal(buyFromStore("nonexistent-pack"), null);
   });
 
   it("returns null when player can't afford", () => {
-    // Drain cash
     const s = getState();
-    const catalog = getStoreCatalog();
-    // Buy until broke
-    while (s.player.cash >= catalog[0].price) {
-      const r = buyFromStore(1);
-      if (!r) break;
-    }
-    // Now should fail
+    s.player.cash = 0;
     const result = buyFromStore(1);
     assert.equal(result, null);
   });
 });
 
-describe("buyFromStoreToProfile (hub darknet)", () => {
+describe("buyFromStoreToProfile (hub darknet, pack-based)", () => {
   beforeEach(() => initRng("store-logic-profile-test"));
 
-  it("spends bank and adds the card to inventory", () => {
-    const p = createProfile({ bank: 1000 });
-    const price = getStoreCatalog()[0].price;
+  it("spends bank and adds rounds to profile hoard", () => {
+    const catalog = getPackCatalog();
+    const p = createProfile({ bank: 99999 });
+    const before = p.hoard.length;
     const result = buyFromStoreToProfile(p, 1);
     assert.ok(result, "expected successful purchase");
-    assert.equal(result.price, price);
-    assert.equal(p.bank, 1000 - price);
-    assert.equal(p.inventory.length, 1);
-    assert.ok(p.inventory[0].instanceId, "purchased card gets an instanceId");
-    assert.equal(p.inventory[0].id, result.card.id);
+    assert.equal(result.price, catalog[0].price);
+    assert.equal(p.bank, 99999 - catalog[0].price);
+    assert.equal(p.hoard.length, before + catalog[0].size);
   });
 
-  it("refuses when the bank can't cover the price (no debit, no card)", () => {
+  it("refuses when the bank can't cover the price (no debit, no rounds)", () => {
     const p = createProfile({ bank: 0 });
     assert.equal(buyFromStoreToProfile(p, 1), null);
     assert.equal(p.bank, 0);
-    assert.equal(p.inventory.length, 0);
+    assert.equal(p.hoard.length, 0);
   });
 
   it("returns null for an out-of-range index", () => {
-    const p = createProfile({ bank: 1000 });
+    const p = createProfile({ bank: 99999 });
     assert.equal(buyFromStoreToProfile(p, 999), null);
-    assert.equal(p.bank, 1000);
+    assert.equal(p.bank, 99999);
   });
 });

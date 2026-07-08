@@ -3,7 +3,7 @@
 //
 // State is constructed as minimal plain objects — no game engine init required.
 // This validates that tabComplete is truly headless and dependency-free (aside
-// from the VULNERABILITY_TYPES list it imports for buy completion).
+// from the pack catalog it imports for buy completion).
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -320,27 +320,27 @@ describe("tabComplete: navigated-but-unprobed node stays obscured", () => {
   });
 });
 
-// ── buy vuln-id completion ────────────────────────────────
+// ── buy pack-id completion (Phase 6: store now sells research packs) ──────────
 
-describe("tabComplete: buy vuln-id completion", () => {
+describe("tabComplete: buy pack-id completion", () => {
   const state = makeState();
 
-  it("completes a unique vuln-id prefix", () => {
-    const r = tabComplete("buy kernel", state);
-    assert.equal(r.completed, "buy kernel-exploit ");
+  it("completes a unique pack-id prefix", () => {
+    // "cache" uniquely matches "cache-common"
+    const r = tabComplete("buy cache", state);
+    assert.equal(r.completed, "buy cache-common ");
   });
 
-  it("ambiguous prefix shows suggestions with vuln names", () => {
-    // "un" matches "unpatched-ssh"
-    const r = tabComplete("buy un", state);
-    assert.equal(r.completed, "buy unpatched-ssh ");
+  it("completes a unique pack-id prefix (dump-mixed)", () => {
+    // "dump" uniquely matches "dump-mixed"
+    const r = tabComplete("buy dump", state);
+    assert.equal(r.completed, "buy dump-mixed ");
   });
 
-  it("empty partial shows all vuln ids", () => {
+  it("empty partial shows all pack ids", () => {
     const r = tabComplete("buy ", state);
     assert.ok(r.suggestions.length > 0);
-    // suggestions include "id  Name" format
-    assert.ok(r.suggestions.some(s => s.includes("unpatched-ssh")));
+    assert.ok(r.suggestions.some(s => s.includes("cache-common")));
   });
 
   it("no match returns null", () => {

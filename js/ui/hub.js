@@ -13,7 +13,7 @@
 import { loadProfile, saveProfile, prepareLaunch, prepareFastStartLaunch } from "./profile-store.js";
 import { generateTargets, removeDisclosedRounds } from "../core/profile/index.js";
 import { buyFromStoreToProfile } from "../core/store-logic.js";
-import { getStoreCatalog } from "../core/exploits.js";
+import { getPackCatalog } from "../core/packs.js";
 import { startRun } from "./run-control.js";
 import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
 import { NAMED_NETWORKS } from "../../data/networks/index.js";
@@ -171,17 +171,17 @@ export function openHubDarknet() {
   // it reads distinctly from an in-run LAN session — see #darknet-store.from-hub.
   const profile = loadProfile();
   storeEl.classList.add("from-hub");
-  storeEl.subtitle = "OVERWORLD — spending bank, delivering to inventory";
-  storeEl.catalog = getStoreCatalog();
+  storeEl.subtitle = "OVERWORLD — spending bank, delivering to hoard";
+  storeEl.catalog = getPackCatalog();
   storeEl.cash = profile.bank;
   storeEl.open = true;
-  log("[DARKNET] Broker online — spending bank, delivering to inventory.");
+  log("[DARKNET] Broker online — spending bank, delivering to hoard.");
 
   const onBuy = (evt) => {
     if (hubBuy(evt.detail.index)) {
       const p = loadProfile();
       storeEl.cash = p.bank;
-      storeEl.catalog = getStoreCatalog();
+      storeEl.catalog = getPackCatalog();
     }
   };
   const onClose = () => {
@@ -197,13 +197,13 @@ export function openHubDarknet() {
   storeEl.addEventListener("close", onClose);
 }
 
-/** Buy an exploit from the broker into the persistent inventory (spends bank). */
-export function hubBuy(indexOrVulnId) {
+/** Buy a research pack from the broker into the persistent hoard (spends bank). */
+export function hubBuy(indexOrPackId) {
   const profile = loadProfile();
-  const result = buyFromStoreToProfile(profile, indexOrVulnId);
-  if (!result) { log("[DARKNET] Purchase failed — insufficient bank or unknown item.", "error"); return null; }
+  const result = buyFromStoreToProfile(profile, indexOrPackId);
+  if (!result) { log("[DARKNET] Purchase failed — insufficient bank or unknown pack.", "error"); return null; }
   saveProfile(profile);
-  log(`[DARKNET] Bought ${result.card.name} for ¥${result.price.toLocaleString()} → inventory.`, "success");
+  log(`[DARKNET] Bought ${result.pack.name} for ¥${result.price.toLocaleString()} → ${result.rounds.length} round(s) added to hoard.`, "success");
   refresh();
   return result;
 }
@@ -211,11 +211,11 @@ export function hubBuy(indexOrVulnId) {
 /** Console: list the broker catalog and bank balance (hub context). */
 export function listHubCatalog() {
   const p = loadProfile();
-  log("DARKNET BROKER (hub) — spending bank, buying to inventory");
+  log("DARKNET BROKER (hub) — spending bank, buying to hoard");
   log(`Bank: ¥${p.bank.toLocaleString()}`);
-  getStoreCatalog().forEach((item, i) => {
+  getPackCatalog().forEach((item, i) => {
     const afford = p.bank >= item.price ? "" : "  [INSUFFICIENT BANK]";
-    log(`  [${i + 1}] ${item.name}  [${item.rarity}]  ${item.vulnId}  ¥${item.price}${afford}`);
+    log(`  [${i + 1}] ${item.name}  [${item.size} rounds]  ¥${item.price}${afford}`);
   });
   log("Use: buy <index>");
 }

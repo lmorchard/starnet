@@ -109,10 +109,11 @@ export function initLogRenderer() {
       add(`[NODE] ${label}: event forwarding disabled.`, "success");
     } else if (action === A.MINE) {
       const d = detail ?? {};
-      if (d.outcome === "card") {
-        add(`[MINE] ${label}: extracted ${d.rarity} exploit "${d.cardName}" (q${d.quality}). attempt ${d.attempts}.`, "success");
+      if (d.outcome === "round") {
+        const typeStr = d.types?.length ? d.types.join(", ") : "generic";
+        add(`[MINE] ${label}: extracted ${d.rarity} round targeting [${typeStr}]. attempt ${d.attempts}.`, "success");
       } else {
-        add(`[MINE] ${label}: vein running thin — no exploit recovered. attempt ${d.attempts}.`, "info");
+        add(`[MINE] ${label}: vein running thin — no round recovered. attempt ${d.attempts}.`, "info");
       }
       if (d.exhausted) add(`[MINE] ${label}: tapped out — no further yield.`, "meta");
     } else if (action === "reboot-start") {

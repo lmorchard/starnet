@@ -2,56 +2,64 @@
 // Headless darknet broker buy logic.
 // Both the DOM store modal (store.js) and the console buy command (console.js)
 // delegate to this module. No DOM dependencies.
+//
+// Phase 6 (E1): store now sells research packs → hoard rounds.
+// buyExploit, generateExploitForVuln, addCardToInventory are kept vestigial (Phase 9 sweep).
 
-import { buyExploit } from "./state.js";
-import { generateExploitForVuln, getStoreCatalog } from "./exploits.js";
-import { withdraw, addCardToInventory } from "./profile/index.js";
+import { getState } from "./state.js";
+import { addCash, addRoundToHoard } from "./state/player.js";
+import { buyExploit } from "./state.js";  // vestigial — Phase 9
+import { generateExploitForVuln } from "./exploits.js"; // vestigial — Phase 9
+import { withdraw, addCardToInventory, addRoundToHoard as profileAddRound } from "./profile/index.js";
+import { getPackCatalog, openPack } from "./packs.js";
 
 /**
- * Resolve a catalog item from a 1-based index or a vuln ID string (exact match,
+ * Resolve a catalog pack from a 1-based index or a pack id string (exact match,
  * then unique prefix). Returns null if unresolved/ambiguous.
- * @param {number | string} indexOrVulnId
- * @returns {{ vulnId: string, name: string, rarity: string, price: number } | null}
+ * @param {number | string} indexOrPackId
+ * @returns {{ id: string, name: string, mix: Record<string, number>, price: number, size: number } | null}
  */
-function findCatalogItem(indexOrVulnId) {
-  const catalog = getStoreCatalog();
-  if (typeof indexOrVulnId === "number") {
-    return indexOrVulnId >= 1 && indexOrVulnId <= catalog.length ? catalog[indexOrVulnId - 1] : null;
+function findPackItem(indexOrPackId) {
+  const catalog = getPackCatalog();
+  if (typeof indexOrPackId === "number") {
+    return indexOrPackId >= 1 && indexOrPackId <= catalog.length ? catalog[indexOrPackId - 1] : null;
   }
-  const lower = String(indexOrVulnId).toLowerCase();
-  const exact = catalog.filter((c) => c.vulnId.toLowerCase() === lower);
+  const lower = String(indexOrPackId).toLowerCase();
+  const exact = catalog.filter((c) => c.id.toLowerCase() === lower);
   if (exact.length === 1) return exact[0];
-  const prefix = catalog.filter((c) => c.vulnId.toLowerCase().startsWith(lower));
+  const prefix = catalog.filter((c) => c.id.toLowerCase().startsWith(lower));
   return prefix.length === 1 ? prefix[0] : null;
 }
 
 /**
- * Buy an exploit from the broker into the in-run hand (spends in-run cash).
- * @param {number | string} indexOrVulnId — 1-based catalog index or vuln ID string
- * @returns {{ card: import('./types.js').ExploitCard, price: number, vulnId: string } | null}
+ * Buy a research pack from the broker into the in-run hoard (spends in-run cash).
+ * @param {number | string} indexOrPackId — 1-based catalog index or pack id string
+ * @returns {{ pack: { id: string, name: string, size: number }, price: number, rounds: import('./types.js').ExploitRound[] } | null}
  */
-export function buyFromStore(indexOrVulnId) {
-  const item = findCatalogItem(indexOrVulnId);
+export function buyFromStore(indexOrPackId) {
+  const item = findPackItem(indexOrPackId);
   if (!item) return null;
-  const card = generateExploitForVuln(item.vulnId);
-  const success = buyExploit(card, item.price);
-  if (!success) return null;
-  return { card, price: item.price, vulnId: item.vulnId };
+  const state = getState();
+  if (state.player.cash < item.price) return null;
+  addCash(-item.price);
+  const rounds = openPack(item.id);
+  for (const round of rounds) addRoundToHoard(round);
+  return { pack: { id: item.id, name: item.name, size: item.size }, price: item.price, rounds };
 }
 
 /**
- * Buy an exploit from the broker into a persistent profile (spends bank cash,
- * adds to the inventory). Used by the overworld hub's darknet store.
+ * Buy a research pack from the broker into a persistent profile (spends bank cash,
+ * adds rounds to the profile hoard). Used by the overworld hub's darknet store.
  * @param {import('./types.js').StarnetProfile} profile
- * @param {number | string} indexOrVulnId
- * @returns {{ card: import('./types.js').ExploitCard, price: number, vulnId: string } | null}
+ * @param {number | string} indexOrPackId
+ * @returns {{ pack: { id: string, name: string, size: number }, price: number, rounds: import('./types.js').ExploitRound[] } | null}
  */
-export function buyFromStoreToProfile(profile, indexOrVulnId) {
-  const item = findCatalogItem(indexOrVulnId);
+export function buyFromStoreToProfile(profile, indexOrPackId) {
+  const item = findPackItem(indexOrPackId);
   if (!item) return null;
   if (profile.bank < item.price) return null;
-  const card = generateExploitForVuln(item.vulnId);
   withdraw(profile, item.price);
-  addCardToInventory(profile, card);
-  return { card, price: item.price, vulnId: item.vulnId };
+  const rounds = openPack(item.id);
+  for (const round of rounds) profileAddRound(profile, round);
+  return { pack: { id: item.id, name: item.name, size: item.size }, price: item.price, rounds };
 }
