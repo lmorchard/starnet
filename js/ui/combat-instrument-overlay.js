@@ -20,7 +20,7 @@
  * DOM/cy-guarded throughout so headless tests (no document, no cy) are no-ops.
  */
 
-import { getCy, onViewport } from "./graph.js";
+import { getCy, onViewport, setViewportLock } from "./graph.js";
 import {
   drawInstrument,
   createShieldRings,
@@ -285,6 +285,9 @@ function _focusOn(nodeId) {
   const node = cy.getElementById(nodeId);
   if (!node || node.length === 0) return;
   _savedViewport = { zoom: cy.zoom(), pan: { ...cy.pan() } };
+  // Lock auto viewport for the whole focus (through restore) so a reveal/selection
+  // re-fit can't yank the camera off the burning node mid-barrage.
+  setViewportLock(true);
   // Zoom so the target renders around FOCUS_TARGET_PX; clamp to a sane ceiling
   // and the graph's own min/max so we never fight the fit floor.
   const modelW = node.width() || 40;
@@ -297,9 +300,12 @@ function _focusOn(nodeId) {
 
 function _restoreViewport() {
   const cy = getCy();
-  if (!cy || !_savedViewport) return;
+  if (!cy || !_savedViewport) { setViewportLock(false); _savedViewport = null; return; }
   cy.stop();
-  cy.animate({ zoom: _savedViewport.zoom, pan: _savedViewport.pan }, { duration: FOCUS_DURATION, easing: "ease-in-out-cubic" });
+  cy.animate(
+    { zoom: _savedViewport.zoom, pan: _savedViewport.pan },
+    { duration: FOCUS_DURATION, easing: "ease-in-out-cubic", complete: () => setViewportLock(false) },
+  );
   _savedViewport = null;
 }
 

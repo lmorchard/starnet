@@ -720,6 +720,13 @@ export function getCy() {
 /** Debounce timer for select-and-fit. */
 let _selectFitTimer = null;
 
+/** When true, auto viewport (select/reveal re-fit) is suppressed — the combat
+ *  instrument's focus owns the camera during a burn. Set via setViewportLock(). */
+let _viewportLocked = false;
+/** @param {boolean} v */
+export function setViewportLock(v) { _viewportLocked = !!v; }
+export function isViewportLocked() { return _viewportLocked; }
+
 /** Timestamp of last user-initiated pan/zoom (mouse drag, scroll wheel, pinch). */
 let _lastUserViewportInteraction = 0;
 const USER_VIEWPORT_COOLDOWN_MS = 1000;
@@ -771,6 +778,9 @@ export function syncSelection(nodeId, forceRefit = false) {
     _selectFitTimer = setTimeout(() => {
       _selectFitTimer = null;
       if (!cy || currentSelectedNodeId !== nodeId) return;
+      // Combat focus owns the camera during a burn — don't let a reveal/selection
+      // re-fit yank the view off the focused node mid-barrage.
+      if (_viewportLocked) return;
       // Respect manual viewport control
       if (Date.now() - _lastUserViewportInteraction < USER_VIEWPORT_COOLDOWN_MS) return;
       const node = cy.getElementById(nodeId);
