@@ -9,6 +9,8 @@
  *   heat bezel → staging ring (hoard) → shield rings (coherence) → core
  */
 
+import { vulnGlyphFor } from "./vuln-glyphs.js";
+
 // ── constants ──────────────────────────────────────────────────────────────
 
 /** Segments per shield ring. 12-sided faceted segments. */
@@ -84,7 +86,7 @@ export function outerIntactRadius(aliveCount, ringCount, coreR = CORE_R) {
  * @property {number} tx - target x
  * @property {number} ty - target y
  * @property {string} id - round identifier (for hex label)
- * @property {number} type - glyph type 0..4
+ * @property {string} type - vuln-id string (e.g. "unpatched-ssh")
  * @property {string} rarity - "common"|"uncommon"|"rare"
  * @property {boolean} disclosed - disclosed/burned round (red tint)
  * @property {number} t - progress 0..1+
@@ -121,7 +123,7 @@ export function createInstrumentFx() {
 /**
  * Spawn an in-flight projectile (a round fired from a staging slot inward).
  * @param {InstrumentFx} fx
- * @param {{ fromX: number, fromY: number, toX: number, toY: number, id: string, type: number, rarity: string, disclosed: boolean }} params
+ * @param {{ fromX: number, fromY: number, toX: number, toY: number, id: string, type: string, rarity: string, disclosed: boolean }} params
  */
 export function spawnShot(fx, { fromX, fromY, toX, toY, id, type, rarity, disclosed }) {
   fx.shots.push({
@@ -190,39 +192,73 @@ function polygon(ctx, cx, cy, r, n) {
   ctx.closePath();
 }
 
+// Points string parser: "x1,y1 x2,y2 ..." → [{x,y}]
+function _parsePoints(pts) {
+  return pts.trim().split(/\s+|,/).reduce((acc, v, i, a) => {
+    if (i % 2 === 0) acc.push({ x: +v, y: +a[i + 1] });
+    return acc;
+  }, []);
+}
+
 /**
- * Draw one of the 5 abstract stroked glyph shapes (types 0..4).
+ * Draw the game's per-vuln weakness-type glyph on canvas.
+ * Renders the stroke-only SVG primitives from vuln-glyphs.js scaled from the
+ * 64×64 viewBox to `size` px, centered at (cx, cy).
+ * Uses the CURRENT ctx.strokeStyle — caller sets rarity color before calling.
  * @param {CanvasRenderingContext2D} ctx
- * @param {number} type
- * @param {number} x
- * @param {number} y
- * @param {number} s - size hint
+ * @param {string} id - vuln type id (e.g. "unpatched-ssh")
+ * @param {number} cx - center x
+ * @param {number} cy - center y
+ * @param {number} size - rendered size in canvas px
  */
-function drawGlyph(ctx, type, x, y, s) {
-  const h = s * 0.42;
-  ctx.beginPath();
-  if (type === 0) {
-    for (let i = -1; i <= 1; i++) {
-      ctx.moveTo(x - h, y + i * h * 0.8);
-      ctx.lineTo(x + h, y + i * h * 0.8);
-    }
-  } else if (type === 1) {
-    ctx.moveTo(x - h * 0.2, y - h); ctx.lineTo(x - h, y); ctx.lineTo(x - h * 0.2, y + h);
-    ctx.moveTo(x + h * 0.2, y - h); ctx.lineTo(x + h, y); ctx.lineTo(x + h * 0.2, y + h);
-  } else if (type === 2) {
-    ctx.moveTo(x - h, y - h); ctx.lineTo(x, y); ctx.lineTo(x - h, y + h);
-    ctx.moveTo(x + h * 0.1, y + h); ctx.lineTo(x + h, y + h);
-  } else if (type === 3) {
-    ctx.rect(x - h, y - h * 0.8, h * 2, h * 1.4);
-    ctx.moveTo(x - h * 0.4, y + h * 0.95); ctx.lineTo(x + h * 0.4, y + h * 0.95);
-  } else {
-    for (let i = 0; i < 3; i++) {
-      const a = i * Math.PI / 3;
-      ctx.moveTo(x - h * Math.cos(a), y - h * Math.sin(a));
-      ctx.lineTo(x + h * Math.cos(a), y + h * Math.sin(a));
+export function drawVulnGlyph(ctx, id, cx, cy, size) {
+  const { body } = vulnGlyphFor(id);
+  const scale = size / 64;
+  // sx/sy: map viewBox coord (vx,vy) → canvas coord centered at (cx,cy)
+  const sx = (vx) => cx + (vx - 32) * scale;
+  const sy = (vy) => cy + (vy - 32) * scale;
+
+  // Parse each primitive with small regexes.
+  const primitives = body.match(/<[^>]+>/g) || [];
+  for (const prim of primitives) {
+    if (prim.startsWith("<polygon")) {
+      const m = prim.match(/points="([^"]*)"/);
+      if (!m) continue;
+      const pts = _parsePoints(m[1]);
+      if (!pts.length) continue;
+      ctx.beginPath();
+      ctx.moveTo(sx(pts[0].x), sy(pts[0].y));
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(sx(pts[i].x), sy(pts[i].y));
+      ctx.closePath();
+      ctx.stroke();
+    } else if (prim.startsWith("<polyline")) {
+      const m = prim.match(/points="([^"]*)"/);
+      if (!m) continue;
+      const pts = _parsePoints(m[1]);
+      if (!pts.length) continue;
+      ctx.beginPath();
+      ctx.moveTo(sx(pts[0].x), sy(pts[0].y));
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(sx(pts[i].x), sy(pts[i].y));
+      ctx.stroke();
+    } else if (prim.startsWith("<line")) {
+      const x1m = prim.match(/x1="([^"]*)"/);
+      const y1m = prim.match(/y1="([^"]*)"/);
+      const x2m = prim.match(/x2="([^"]*)"/);
+      const y2m = prim.match(/y2="([^"]*)"/);
+      if (!x1m || !y1m || !x2m || !y2m) continue;
+      ctx.beginPath();
+      ctx.moveTo(sx(+x1m[1]), sy(+y1m[1]));
+      ctx.lineTo(sx(+x2m[1]), sy(+y2m[1]));
+      ctx.stroke();
+    } else if (prim.startsWith("<rect")) {
+      const xm = prim.match(/ x="([^"]*)"/);
+      const ym = prim.match(/ y="([^"]*)"/);
+      const wm = prim.match(/width="([^"]*)"/);
+      const hm = prim.match(/height="([^"]*)"/);
+      if (!xm || !ym || !wm || !hm) continue;
+      ctx.strokeRect(sx(+xm[1]), sy(+ym[1]), +wm[1] * scale, +hm[1] * scale);
     }
   }
-  ctx.stroke();
 }
 
 /** @param {string} rarity */
@@ -246,7 +282,7 @@ function rarityColor(rarity) {
 /**
  * @typedef {Object} StagingSlot
  * @property {string} c - color
- * @property {number} type - glyph type 0..4
+ * @property {string} type - vuln-id string (e.g. "unpatched-ssh")
  * @property {boolean} dark - dimmed (no round in slot)
  * @property {number} g - green flash counter (frames)
  * @property {number} r - red flash counter (frames)
@@ -356,7 +392,7 @@ export function drawInstrument(ctx, state) {
     ctx.shadowColor = color;
     ctx.shadowBlur = glow;
     ctx.lineWidth = lw;
-    drawGlyph(ctx, cell.type, x, y, 10);
+    drawVulnGlyph(ctx, cell.type, x, y, 22);
   }
   ctx.shadowBlur = 0;
 
@@ -433,7 +469,7 @@ export function drawInstrument(ctx, state) {
     ctx.shadowColor = col;
     ctx.shadowBlur = 8;
     ctx.lineWidth = 1.5;
-    drawGlyph(ctx, s.type, -9, 0, 10);
+    drawVulnGlyph(ctx, s.type, -9, 0, 22);
     ctx.font = "9px monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
@@ -479,15 +515,15 @@ export function drawInstrument(ctx, state) {
 
 /**
  * Build the initial staging ring state from a hoard snapshot.
- * @param {{ rarity: string, types: number[] }[]} hoard - array of round objects
+ * @param {{ rarity: string, types: string[] }[]} hoard - array of round objects
  * @returns {{ r: number, rot: number, dir: number, speed: number, slots: StagingSlot[] }}
  */
 export function createStagingRing(hoard) {
   const r = STAGING_R;
   const n = Math.max(12, Math.floor(2 * Math.PI * r / STAGING_SPACING));
   const slots = Array.from({ length: n }, () => {
-    const e = hoard[Math.floor(Math.random() * hoard.length)] || { rarity: "common", types: [0] };
-    return { c: rarityColor(e.rarity), type: e.types[0], dark: false, g: 0, r: 0 };
+    const e = hoard[Math.floor(Math.random() * hoard.length)] || { rarity: "common", types: ["unpatched-ssh"] };
+    return { c: rarityColor(e.rarity), type: e.types?.[0] ?? "unpatched-ssh", dark: false, g: 0, r: 0 };
   });
   return { r, rot: Math.random() * Math.PI * 2, dir: 1, speed: 0.0032, slots };
 }

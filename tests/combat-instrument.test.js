@@ -17,6 +17,7 @@ import {
   spawnCrackShards,
   bumpShake,
   drawInstrument,
+  drawVulnGlyph,
   createStagingRing,
   createShieldRings,
 } from "../js/ui/combat-instrument.js";
@@ -142,7 +143,7 @@ test("createInstrumentFx returns empty fx state", () => {
 test("spawnShot appends a shot to fx.shots", () => {
   const fx = createInstrumentFx();
   assert.equal(fx.shots.length, 0);
-  spawnShot(fx, { fromX: 100, fromY: 200, toX: 50, toY: 150, id: "deadbeef", type: 2, rarity: "uncommon", disclosed: false });
+  spawnShot(fx, { fromX: 100, fromY: 200, toX: 50, toY: 150, id: "deadbeef", type: "deserialization", rarity: "uncommon", disclosed: false });
   assert.equal(fx.shots.length, 1);
   const s = fx.shots[0];
   assert.equal(s.x, 100);
@@ -150,7 +151,7 @@ test("spawnShot appends a shot to fx.shots", () => {
   assert.equal(s.tx, 50);
   assert.equal(s.ty, 150);
   assert.equal(s.id, "deadbeef");
-  assert.equal(s.type, 2);
+  assert.equal(s.type, "deserialization");
   assert.equal(s.rarity, "uncommon");
   assert.equal(s.disclosed, false);
   assert.equal(s.t, 0);
@@ -159,14 +160,14 @@ test("spawnShot appends a shot to fx.shots", () => {
 
 test("spawnShot sets ang = atan2(dy, dx)", () => {
   const fx = createInstrumentFx();
-  spawnShot(fx, { fromX: 0, fromY: 0, toX: 10, toY: 0, id: "x", type: 0, rarity: "common", disclosed: false });
+  spawnShot(fx, { fromX: 0, fromY: 0, toX: 10, toY: 0, id: "x", type: "unpatched-ssh", rarity: "common", disclosed: false });
   assert.equal(fx.shots[0].ang, 0); // purely rightward
 });
 
 test("spawnShot can be called multiple times", () => {
   const fx = createInstrumentFx();
-  spawnShot(fx, { fromX: 0, fromY: 0, toX: 1, toY: 1, id: "a", type: 0, rarity: "common", disclosed: false });
-  spawnShot(fx, { fromX: 0, fromY: 0, toX: 2, toY: 2, id: "b", type: 1, rarity: "rare", disclosed: true });
+  spawnShot(fx, { fromX: 0, fromY: 0, toX: 1, toY: 1, id: "a", type: "unpatched-ssh", rarity: "common", disclosed: false });
+  spawnShot(fx, { fromX: 0, fromY: 0, toX: 2, toY: 2, id: "b", type: "zero-day-rce", rarity: "rare", disclosed: true });
   assert.equal(fx.shots.length, 2);
 });
 
@@ -277,7 +278,7 @@ function makeInstrumentState(overrides = {}) {
   const ringCount = overrides.ringCount ?? 2;
   const fx = createInstrumentFx();
   const shieldRings = createShieldRings(ringCount);
-  const stagingRing = createStagingRing([{ rarity: "common", types: [0] }]);
+  const stagingRing = createStagingRing([{ rarity: "common", types: ["unpatched-ssh"] }]);
   return {
     cx: 270, cy: 260,
     coherence01: 1,
@@ -342,7 +343,7 @@ test("drawInstrument smoke: cracked=true does not throw", () => {
 test("drawInstrument smoke: with active shots + shards does not throw", () => {
   const ctx = makeFakeCtx();
   const state = makeInstrumentState({ ringCount: 2 });
-  spawnShot(state.fx, { fromX: 300, fromY: 250, toX: 270, toY: 260, id: "cafebabe", type: 1, rarity: "rare", disclosed: false });
+  spawnShot(state.fx, { fromX: 300, fromY: 250, toX: 270, toY: 260, id: "cafebabe", type: "kernel-exploit", rarity: "rare", disclosed: false });
   spawnSegShards(state.fx, 270, 200);
   assert.doesNotThrow(() => drawInstrument(ctx, state));
 });
@@ -393,14 +394,52 @@ test("drawInstrument calls stroke for heat bezel ticks", () => {
   assert.ok(strokes.length >= 56, `expected ≥56 strokes, got ${strokes.length}`);
 });
 
+// ── drawVulnGlyph ──────────────────────────────────────────────────────────
+
+test("drawVulnGlyph: known vuln id renders without throwing", () => {
+  const ctx = makeFakeCtx();
+  assert.doesNotThrow(() => drawVulnGlyph(ctx, "unpatched-ssh", 32, 32, 22));
+});
+
+test("drawVulnGlyph: unknown (fallback) id renders without throwing", () => {
+  const ctx = makeFakeCtx();
+  assert.doesNotThrow(() => drawVulnGlyph(ctx, "nonexistent-vuln-id", 32, 32, 22));
+});
+
+test("drawVulnGlyph: all known vuln ids render without throwing", () => {
+  const ctx = makeFakeCtx();
+  const ids = [
+    "unpatched-ssh", "weak-auth", "stale-firmware", "open-telnet", "buffer-overflow", "snmp-public",
+    "path-traversal", "deserialization", "side-channel", "race-condition", "kernel-exploit",
+    "zero-day-rce", "supply-chain", "hardware-backdoor", "cryptographic-weakness",
+  ];
+  for (const id of ids) {
+    assert.doesNotThrow(() => drawVulnGlyph(ctx, id, 32, 32, 22), `should not throw for ${id}`);
+  }
+});
+
+test("drawVulnGlyph: issues at least one stroke call for a known id", () => {
+  const ctx = makeFakeCtx();
+  drawVulnGlyph(ctx, "unpatched-ssh", 32, 32, 22);
+  const strokes = ctx.calls.filter(c => c.method === "stroke" || c.method === "strokeRect");
+  assert.ok(strokes.length >= 1, "expected at least one stroke call");
+});
+
 // ── createStagingRing / createShieldRings ──────────────────────────────────
 
 test("createStagingRing returns a ring with slots", () => {
-  const ring = createStagingRing([{ rarity: "common", types: [0] }]);
+  const ring = createStagingRing([{ rarity: "common", types: ["unpatched-ssh"] }]);
   assert.ok(Array.isArray(ring.slots));
   assert.ok(ring.slots.length >= 12);
   assert.equal(ring.dir, 1);
   assert.equal(typeof ring.rot, "number");
+});
+
+test("createStagingRing: slots have string vuln-id types", () => {
+  const ring = createStagingRing([{ rarity: "uncommon", types: ["kernel-exploit"] }]);
+  for (const slot of ring.slots) {
+    assert.equal(typeof slot.type, "string", "slot.type must be a vuln-id string");
+  }
 });
 
 test("createShieldRings returns correct count", () => {

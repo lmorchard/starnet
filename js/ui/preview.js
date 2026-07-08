@@ -28,6 +28,7 @@ import {
   setInstrumentStateReader,
   setHeatThresholds,
 } from "./combat-instrument-overlay.js";
+import { ALL_VULN_GLYPH_IDS } from "./vuln-glyphs.js";
 import { HEAT_ALARM_THRESHOLD } from "../core/balance.js";
 
 /** Typed element lookup for the harness — returns `any` so input `.value`,
@@ -546,7 +547,7 @@ if (heatDemo && heatSlider) {
     Array.from({ length: n }, (_, i) => ({
       id: `r${i}`,
       rarity: RARITIES[i % RARITIES.length],
-      types: [i % 5],
+      types: [ALL_VULN_GLYPH_IDS[i % ALL_VULN_GLYPH_IDS.length]],
       disclosed: false,
     }));
   mock.player.hoard = buildHoard(40);
@@ -607,6 +608,7 @@ if (heatDemo && heatSlider) {
         stepInstrument({
           chip,
           rarity: round?.rarity || "common",
+          types: round?.types,
           disclosed,
           roundId: round?.id || "----",
         });

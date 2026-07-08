@@ -133,8 +133,8 @@ export function initVisualRenderer() {
     const grade = _getState()?.nodes?.[nodeId]?.grade ?? "C";
     startInstrument(nodeId, grade);
   });
-  on(E.PROCESS_STEP, ({ type, chip, rarity, disclosed, roundId }) => {
-    if (type === "autoburn") stepInstrument({ chip, rarity, disclosed, roundId });
+  on(E.PROCESS_STEP, ({ type, chip, rarity, types, disclosed, roundId }) => {
+    if (type === "autoburn") stepInstrument({ chip, rarity, types, disclosed, roundId });
   });
   on(E.PROCESS_ENDED, ({ type }) => { if (type === "autoburn") stopInstrument(); });
 

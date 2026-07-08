@@ -187,7 +187,7 @@ export function startInstrument(nodeId, grade = "C") {
 
 /**
  * Fire a projectile inward for one burn step. Tinted by rarity/disclosed.
- * @param {{ rarity?: string, disclosed?: boolean, chip?: number, roundId?: string }} step
+ * @param {{ rarity?: string, disclosed?: boolean, chip?: number, roundId?: string, types?: string[] }} step
  */
 export function stepInstrument(step = {}) {
   if (!_fx || !_stagingRing) return;
@@ -208,7 +208,7 @@ export function stepInstrument(step = {}) {
   spawnShot(_fx, {
     fromX, fromY, toX, toY,
     id: step.roundId || "----",
-    type: Math.floor(Math.random() * 5),
+    type: step.types?.[0] ?? "unpatched-ssh",
     rarity: step.rarity || "common",
     disclosed: !!step.disclosed,
   });

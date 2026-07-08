@@ -108,6 +108,7 @@ registerProcess("autoburn", {
       coherence: next,
       roundId: round.id,
       rarity: round.rarity,
+      types: round.types,
       disclosed: round.disclosed,
     });
 
