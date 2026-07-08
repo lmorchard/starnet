@@ -174,7 +174,7 @@ export function startInstrument(nodeId, grade = "C") {
   const ringCount = RING_COUNT[grade] ?? RING_COUNT.C;
   const hoard = _hoardSnapshot();
   _shieldRings = createShieldRings(ringCount);
-  _stagingRing = createStagingRing(hoard.length ? hoard : [{ rarity: "common", types: [0] }]);
+  _stagingRing = createStagingRing(hoard.length ? hoard : [{ rarity: "common", types: ["unpatched-ssh"] }]);
   _fx = createInstrumentFx();
 
   _focusOn(nodeId);
@@ -339,7 +339,17 @@ function _hoardFrac() {
 function _heat01() {
   const s = _readState();
   if (!s) return 0;
-  const ceiling = _heatCeiling(s);
+  // Prefer the burst-local heat fraction from the active autoburn process — this
+  // reflects the actual abort condition (proc.heat >= proc.ceiling), not the global
+  // heat meter which decays independently. Falls back to global heat when the process
+  // is gone (post-burn settle after PROCESS_ENDED removed it).
+  const proc = s.processes && _nodeId
+    ? s.processes.find((p) => p.type === "autoburn" && p.nodeId === _nodeId)
+    : null;
+  if (proc) {
+    return proc.ceiling > 0 ? Math.max(0, Math.min(1, proc.heat / proc.ceiling)) : 0;
+  }
+  const ceiling = _heatCeiling();
   return ceiling > 0 ? Math.max(0, Math.min(1, (s.heat || 0) / ceiling)) : 0;
 }
 

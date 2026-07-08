@@ -153,7 +153,7 @@ describe("heat — fed by core activity", () => {
     tick(BURN_ARM_TICKS + shotsNeeded * BURN_CADENCE_TICKS + 5);
 
     assert.notEqual(getState().globalAlert, "green",
-      `sustained barrage (${shotsNeeded} shots) must escalate alert above green via heat ratchet`
+      `sustained barrage (≥${shotsNeeded} shots) must escalate alert above green via heat ratchet`
     );
   });
 });

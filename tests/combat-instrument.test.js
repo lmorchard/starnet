@@ -425,6 +425,19 @@ test("drawVulnGlyph: issues at least one stroke call for a known id", () => {
   assert.ok(strokes.length >= 1, "expected at least one stroke call");
 });
 
+test("drawVulnGlyph: cached and uncached renders produce identical stroke counts", () => {
+  // The first call parses + caches; the second call hits the cache.
+  // Identical stroke counts confirm the cache doesn't lose or duplicate primitives.
+  const id = "kernel-exploit";
+  const ctx1 = makeFakeCtx();
+  const ctx2 = makeFakeCtx();
+  drawVulnGlyph(ctx1, id, 32, 32, 22); // may or may not be cached already
+  drawVulnGlyph(ctx2, id, 32, 32, 22); // guaranteed cache hit (same id)
+  const strokes1 = ctx1.calls.filter(c => c.method === "stroke" || c.method === "strokeRect").length;
+  const strokes2 = ctx2.calls.filter(c => c.method === "stroke" || c.method === "strokeRect").length;
+  assert.equal(strokes1, strokes2, "cached and uncached renders produce same stroke count");
+});
+
 // ── createStagingRing / createShieldRings ──────────────────────────────────
 
 test("createStagingRing returns a ring with slots", () => {

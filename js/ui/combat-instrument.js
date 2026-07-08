@@ -183,10 +183,67 @@ function _parsePoints(pts) {
 }
 
 /**
+ * @typedef {{ tag: string, pts?: {x:number,y:number}[], x1?: number, y1?: number, x2?: number, y2?: number, x?: number, y?: number, w?: number, h?: number }} ParsedPrimitive
+ */
+
+/**
+ * Parsed glyph primitive cache — keyed by vuln id, populated once per id.
+ * A module-level Map is safe (pure memo; no DOM or global state).
+ * @type {Map<string, ParsedPrimitive[]>}
+ */
+const _glyphPrimCache = new Map();
+
+/**
+ * Return the parsed primitive list for a vuln glyph id, using a memo cache
+ * so regex parsing happens at most once per distinct id.
+ * @param {string} id
+ * @returns {ParsedPrimitive[]}
+ */
+function _parsedGlyphPrimitives(id) {
+  if (_glyphPrimCache.has(id)) return _glyphPrimCache.get(id);
+  const { body } = vulnGlyphFor(id);
+  const rawPrims = body.match(/<[^>]+>/g) || [];
+  /** @type {ParsedPrimitive[]} */
+  const parsed = [];
+  for (const prim of rawPrims) {
+    if (prim.startsWith("<polygon")) {
+      const m = prim.match(/points="([^"]*)"/);
+      if (!m) continue;
+      const pts = _parsePoints(m[1]);
+      if (!pts.length) continue;
+      parsed.push({ tag: "polygon", pts });
+    } else if (prim.startsWith("<polyline")) {
+      const m = prim.match(/points="([^"]*)"/);
+      if (!m) continue;
+      const pts = _parsePoints(m[1]);
+      if (!pts.length) continue;
+      parsed.push({ tag: "polyline", pts });
+    } else if (prim.startsWith("<line")) {
+      const x1m = prim.match(/x1="([^"]*)"/);
+      const y1m = prim.match(/y1="([^"]*)"/);
+      const x2m = prim.match(/x2="([^"]*)"/);
+      const y2m = prim.match(/y2="([^"]*)"/);
+      if (!x1m || !y1m || !x2m || !y2m) continue;
+      parsed.push({ tag: "line", x1: +x1m[1], y1: +y1m[1], x2: +x2m[1], y2: +y2m[1] });
+    } else if (prim.startsWith("<rect")) {
+      const xm = prim.match(/ x="([^"]*)"/);
+      const ym = prim.match(/ y="([^"]*)"/);
+      const wm = prim.match(/width="([^"]*)"/);
+      const hm = prim.match(/height="([^"]*)"/);
+      if (!xm || !ym || !wm || !hm) continue;
+      parsed.push({ tag: "rect", x: +xm[1], y: +ym[1], w: +wm[1], h: +hm[1] });
+    }
+  }
+  _glyphPrimCache.set(id, parsed);
+  return parsed;
+}
+
+/**
  * Draw the game's per-vuln weakness-type glyph on canvas.
  * Renders the stroke-only SVG primitives from vuln-glyphs.js scaled from the
  * 64×64 viewBox to `size` px, centered at (cx, cy).
  * Uses the CURRENT ctx.strokeStyle — caller sets rarity color before calling.
+ * Primitive parsing is memoized per glyph id (parsed once, reused each frame).
  * @param {CanvasRenderingContext2D} ctx
  * @param {string} id - vuln type id (e.g. "unpatched-ssh")
  * @param {number} cx - center x
@@ -194,51 +251,32 @@ function _parsePoints(pts) {
  * @param {number} size - rendered size in canvas px
  */
 export function drawVulnGlyph(ctx, id, cx, cy, size) {
-  const { body } = vulnGlyphFor(id);
   const scale = size / 64;
   // sx/sy: map viewBox coord (vx,vy) → canvas coord centered at (cx,cy)
   const sx = (vx) => cx + (vx - 32) * scale;
   const sy = (vy) => cy + (vy - 32) * scale;
 
-  // Parse each primitive with small regexes.
-  const primitives = body.match(/<[^>]+>/g) || [];
-  for (const prim of primitives) {
-    if (prim.startsWith("<polygon")) {
-      const m = prim.match(/points="([^"]*)"/);
-      if (!m) continue;
-      const pts = _parsePoints(m[1]);
-      if (!pts.length) continue;
+  for (const prim of _parsedGlyphPrimitives(id)) {
+    if (prim.tag === "polygon") {
+      const pts = prim.pts;
       ctx.beginPath();
       ctx.moveTo(sx(pts[0].x), sy(pts[0].y));
       for (let i = 1; i < pts.length; i++) ctx.lineTo(sx(pts[i].x), sy(pts[i].y));
       ctx.closePath();
       ctx.stroke();
-    } else if (prim.startsWith("<polyline")) {
-      const m = prim.match(/points="([^"]*)"/);
-      if (!m) continue;
-      const pts = _parsePoints(m[1]);
-      if (!pts.length) continue;
+    } else if (prim.tag === "polyline") {
+      const pts = prim.pts;
       ctx.beginPath();
       ctx.moveTo(sx(pts[0].x), sy(pts[0].y));
       for (let i = 1; i < pts.length; i++) ctx.lineTo(sx(pts[i].x), sy(pts[i].y));
       ctx.stroke();
-    } else if (prim.startsWith("<line")) {
-      const x1m = prim.match(/x1="([^"]*)"/);
-      const y1m = prim.match(/y1="([^"]*)"/);
-      const x2m = prim.match(/x2="([^"]*)"/);
-      const y2m = prim.match(/y2="([^"]*)"/);
-      if (!x1m || !y1m || !x2m || !y2m) continue;
+    } else if (prim.tag === "line") {
       ctx.beginPath();
-      ctx.moveTo(sx(+x1m[1]), sy(+y1m[1]));
-      ctx.lineTo(sx(+x2m[1]), sy(+y2m[1]));
+      ctx.moveTo(sx(prim.x1), sy(prim.y1));
+      ctx.lineTo(sx(prim.x2), sy(prim.y2));
       ctx.stroke();
-    } else if (prim.startsWith("<rect")) {
-      const xm = prim.match(/ x="([^"]*)"/);
-      const ym = prim.match(/ y="([^"]*)"/);
-      const wm = prim.match(/width="([^"]*)"/);
-      const hm = prim.match(/height="([^"]*)"/);
-      if (!xm || !ym || !wm || !hm) continue;
-      ctx.strokeRect(sx(+xm[1]), sy(+ym[1]), +wm[1] * scale, +hm[1] * scale);
+    } else if (prim.tag === "rect") {
+      ctx.strokeRect(sx(prim.x), sy(prim.y), prim.w * scale, prim.h * scale);
     }
   }
 }
