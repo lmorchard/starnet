@@ -130,7 +130,9 @@ describe("heat — fed by core activity", () => {
   it("a sustained auto-burn barrage escalates the alert via heat (integration: barrage is the noise)", () => {
     // Confirms: enough shots crossing the HEAT_ALARM_THRESHOLD ratchet steps the alert up.
     // No new wiring — this exercises the shipped recordHeat path.
-    // Grade C: threshold=9, xploit cost=2 → need ≥5 shots (heat 10 > 9).
+    // HEAT_COST.xploit is calibrated low (per-shot) so a single crack doesn't chain-trace;
+    // this test simulates a prolonged multi-crack session: enough shots to exceed the threshold.
+    // shots_needed = ceil((HEAT_ALARM_THRESHOLD.C + 1) / HEAT_COST.xploit)
     initGame(() => buildCorporateExchange(), "heat-barrage-escalation");
     initAutoBurn();
     getState().spec = { ...(getState().spec ?? {}), threat: "C" };
@@ -139,16 +141,17 @@ describe("heat — fed by core activity", () => {
     assert.equal(getState().globalAlert, "green", "precondition: alert starts green");
 
     // Generous hoard, very high coherence so it won't crack
-    for (let i = 0; i < 20; i++) {
+    const shotsNeeded = Math.ceil((HEAT_ALARM_THRESHOLD.C + 1) / HEAT_COST.xploit);
+    for (let i = 0; i < shotsNeeded + 10; i++) {
       setHoard([...getState().player.hoard, { id: `bar${i}`, rarity: "common", types: ["unpatched-ssh"], disclosed: false }]);
     }
     setNodeCoherence(nodeId, 99999);
 
     startAutoBurn(nodeId);
-    tick(10); // 10 shots × HEAT_COST.xploit(2) = 20 heat → crosses threshold(9) at shot 5
+    tick(shotsNeeded + 5); // enough shots to cross threshold; one shot per tick
 
     assert.notEqual(getState().globalAlert, "green",
-      "sustained barrage (10 shots) must escalate alert above green via heat ratchet"
+      `sustained barrage (${shotsNeeded + 5} shots) must escalate alert above green via heat ratchet`
     );
   });
 });
