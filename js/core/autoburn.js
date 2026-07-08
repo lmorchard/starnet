@@ -100,6 +100,7 @@ registerProcess("autoburn", {
       chip: dmg,
       coherence: next,
       roundId: round.id,
+      rarity: round.rarity,
       disclosed: round.disclosed,
     });
 

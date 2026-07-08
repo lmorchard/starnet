@@ -14,6 +14,16 @@ import { getState as _getState } from "../core/state.js";
 import { getAvailableActions } from "../core/actions/node-actions.js";
 import { isScriptAction } from "../core/actions/scripts.js";
 import { updateNodeStyle, getCy, flashNode, addIceNode, syncIceGraph, syncSelection } from "./graph.js";
+import {
+  mountInstrumentOverlay,
+  startInstrument,
+  stepInstrument,
+  crackInstrument,
+  stopInstrument,
+  setInstrumentStateReader,
+  setHeatThresholds,
+} from "./combat-instrument-overlay.js";
+import { HEAT_ALARM_THRESHOLD } from "../core/balance.js";
 import { initializeGraphOverlays } from "./overlays/index.js";
 import { dispatchActionFeedback } from "./overlays/dispatch.js";
 import { getVisibleTimers } from "../core/timers.js";
@@ -95,8 +105,12 @@ export function initVisualRenderer() {
     dispatchActionFeedback(overlays.byName, activeNodeIds, payload, { onXploitProgress: updateExploitProgress, manager: overlays.manager }));
 
   // Exploit result flash — driven by ACTION_RESOLVED
-  on(E.ACTION_RESOLVED, ({ action, nodeId, success }) => {
-    if (action === A.XPLOIT) flashNode(nodeId, success ? "success" : "failure");
+  on(E.ACTION_RESOLVED, ({ action, nodeId, success, detail }) => {
+    if (action !== A.XPLOIT) return;
+    flashNode(nodeId, success ? "success" : "failure");
+    // Coherence instrument: crack → cyan core bloom (held through the settle
+    // timer). PROCESS_ENDED still schedules the tear-down after fx settle.
+    if (detail?.outcome === "cracked") crackInstrument();
   });
 
   // SWEEP: pulse each node a wave touches (per-node probe feedback; the dedicated
@@ -105,6 +119,24 @@ export function initVisualRenderer() {
   on(E.PROCESS_STEP, ({ type, nodes }) => {
     if (type === "sweep" && Array.isArray(nodes)) nodes.forEach((id) => flashNode(id, "reveal"));
   });
+
+  // ── AUTO-BURN coherence instrument ──────────────────────────
+  // Live node-anchored canvas driven by the auto-burn process. The overlay module
+  // is DOM/cy-guarded, so these subscriptions are safe no-ops headless. It reads
+  // live coherence/hoard/heat via the injected getState reader each rAF frame.
+  setInstrumentStateReader(_getState);
+  setHeatThresholds(HEAT_ALARM_THRESHOLD);
+  mountInstrumentOverlay();
+
+  on(E.PROCESS_STARTED, ({ type, nodeId }) => {
+    if (type !== "autoburn") return;
+    const grade = _getState()?.nodes?.[nodeId]?.grade ?? "C";
+    startInstrument(nodeId, grade);
+  });
+  on(E.PROCESS_STEP, ({ type, chip, rarity, disclosed, roundId }) => {
+    if (type === "autoburn") stepInstrument({ chip, rarity, disclosed, roundId });
+  });
+  on(E.PROCESS_ENDED, ({ type }) => { if (type === "autoburn") stopInstrument(); });
 
   on(E.RUN_STARTED, () => {
     overlays.byKey.forEach((o) => o.clear());

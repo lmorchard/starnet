@@ -20,6 +20,15 @@ import { ALL_GLYPH_TYPES } from "./node-glyphs.js";
 import { FLOW_TYPES } from "./flow-glyphs.js";
 import { iceStrikeCage } from "./ice-glyphs.js";
 import { initGraphDegradation, updateFromState as updateGraphDegradation } from "./graph-degradation/index.js";
+import {
+  startInstrument,
+  stepInstrument,
+  crackInstrument,
+  stopInstrument,
+  setInstrumentStateReader,
+  setHeatThresholds,
+} from "./combat-instrument-overlay.js";
+import { HEAT_ALARM_THRESHOLD } from "../core/balance.js";
 
 /** Typed element lookup for the harness — returns `any` so input `.value`,
  *  custom-element props (.frac/.kind/.w), etc. need no per-site casts.
@@ -48,6 +57,10 @@ const FLASH_NODE = { id: "demo-flash", label: "FLASH", type: "router", grade: "C
 // ICE presence (Strike Cage) composites onto the SAME node as the detection
 // overlay ("demo-ice") so the two ICE effects can be seen together.
 const ICE_PRESENCE_NODE_ID = "demo-ice";
+
+// Coherence instrument demo node — its own node so the burn can zoom/scrim
+// without disturbing the other demos.
+const INSTRUMENT_NODE = { id: "demo-instrument", label: "BURN", type: "fileserver", grade: "C", x: 750, y: 340 };
 
 // Glyph gallery — full vocabulary from node-glyphs, plus an unmapped node to
 // demonstrate the microchip fallback. Cycles grades so border colors vary.
@@ -106,7 +119,7 @@ const FLOW_EDGE = ["flow-src", "flow-dst"];
 
 // ── Initialize Cytoscape ─────────────────────────────────────
 
-const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, ...SHAPE_NODES, ...ALERT_NODES, ...ACCESS_NODES, ...NET_NODES, ...FLOW_NODES];
+const allNodes = [...EFFECT_NODES, SELECT_NODE, FLASH_NODE, INSTRUMENT_NODE, ...SHAPE_NODES, ...ALERT_NODES, ...ACCESS_NODES, ...NET_NODES, ...FLOW_NODES];
 const networkData = {
   nodes: allNodes.map(n => ({ id: n.id, label: n.label, type: n.type, grade: n.grade })),
   edges: [],
@@ -513,6 +526,99 @@ if (heatDemo && heatSlider) {
   bindHeat("heat-scope-speed", "heat-scope-speed-val", "speed", 0);
   bindHeat("heat-scope-gap", "heat-scope-gap-val", "bandGap", 0, (v) => (+v).toFixed(1));
   bindHeat("heat-scope-bloom", "heat-scope-bloom-val", "bloom", 0);
+}
+
+// ── Coherence Instrument demo ─────────────────────────────────
+// Drives the live overlay module with a MOCK state (no game engine here): a
+// grade select, a "RUN BURN" button that erodes a mock coherence over time
+// feeding stepInstrument (+ crack at the end), and a coherence slider for manual
+// scrub. Mirrors the "ICE Presence" tuning surface.
+{
+  const INSTR_NODE = "demo-instrument";
+  const RARITIES = ["common", "uncommon", "rare"];
+  // Mock state the overlay reads each frame via setInstrumentStateReader.
+  const mock = {
+    heat: 0,
+    player: { hoard: [] },
+    nodes: { [INSTR_NODE]: { grade: "C", coherence: 400, coherenceMax: 400 } },
+  };
+  const buildHoard = (n) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `r${i}`,
+      rarity: RARITIES[i % RARITIES.length],
+      types: [i % 5],
+      disclosed: false,
+    }));
+  mock.player.hoard = buildHoard(40);
+
+  setInstrumentStateReader(() => mock);
+  setHeatThresholds(HEAT_ALARM_THRESHOLD);
+
+  const gradeSel = $("instr-grade");
+  const runBtn = $("btn-instr-run");
+  const cohSlider = $("instr-coherence");
+  const cohVal = $("instr-coherence-val");
+
+  const syncSliderFromMock = () => {
+    const node = mock.nodes[INSTR_NODE];
+    const pct = Math.round((node.coherence / node.coherenceMax) * 100);
+    if (cohSlider) cohSlider.value = String(pct);
+    if (cohVal) cohVal.textContent = `${pct}%`;
+  };
+
+  // Manual scrub: set coherence directly (only meaningful while a burn shows the
+  // overlay; harmless otherwise).
+  if (cohSlider) {
+    cohSlider.addEventListener("input", () => {
+      const node = mock.nodes[INSTR_NODE];
+      node.coherence = (+cohSlider.value / 100) * node.coherenceMax;
+      if (cohVal) cohVal.textContent = `${cohSlider.value}%`;
+    });
+  }
+
+  let burnTimer = null;
+  const stopDemoBurn = () => {
+    if (burnTimer) { clearInterval(burnTimer); burnTimer = null; }
+  };
+
+  if (runBtn) {
+    runBtn.addEventListener("click", () => {
+      stopDemoBurn();
+      const grade = gradeSel?.value || "C";
+      const node = mock.nodes[INSTR_NODE];
+      node.grade = grade;
+      node.coherenceMax = 400;
+      node.coherence = 400;
+      mock.heat = 0;
+      mock.player.hoard = buildHoard(40);
+      syncSliderFromMock();
+
+      startInstrument(INSTR_NODE, grade);
+
+      // Erode coherence over ~5s, one "shot" per interval, disclosing occasionally.
+      burnTimer = setInterval(() => {
+        const chip = 400 / 25;
+        node.coherence = Math.max(0, node.coherence - chip);
+        mock.heat = Math.min(HEAT_ALARM_THRESHOLD[grade] ?? 15, mock.heat + 0.6);
+        // Occasionally "disclose" (burn) a hoard round to thin the staging ring.
+        const round = mock.player.hoard.find((r) => !r.disclosed);
+        const disclosed = Math.random() < 0.25;
+        if (disclosed && round) round.disclosed = true;
+        stepInstrument({
+          chip,
+          rarity: round?.rarity || "common",
+          disclosed,
+          roundId: round?.id || "----",
+        });
+        syncSliderFromMock();
+        if (node.coherence <= 0) {
+          stopDemoBurn();
+          crackInstrument();
+          stopInstrument();
+        }
+      }, 200);
+    });
+  }
 }
 
 // FPS meter toggle — dev frame-time readout (js/ui/fps-meter.js; `cheat fps` in game).
