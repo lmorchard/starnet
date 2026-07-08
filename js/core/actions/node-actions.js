@@ -19,6 +19,11 @@ import { activeIceInstances } from "../state/ice.js";
 import { isScriptAction } from "./scripts.js";
 import { activeProcessOnNode, abortNodeProcesses } from "../processes.js";
 import { startAutoBurn } from "../autoburn.js";
+// isNodeBusy is the canonical game-layer "is this node busy" check (#288 B1) — ORs graph
+// operator busy with process busy. Not yet consumed below: the process early-return is the
+// process-specific ABORT *affordance*, kept as activeProcessOnNode on purpose here; Task B2
+// unifies it with the graph's operator-abort path.
+import { isNodeBusy } from "../busy.js";
 
 /**
  * Returns all available actions for the given node and game state.

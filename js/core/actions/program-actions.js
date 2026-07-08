@@ -15,6 +15,7 @@ import { A } from "../action-ids.js";
 import { visibleIncidentFlows, flowId } from "../programs.js";
 import { startSweep } from "../sweep.js";
 import { activeProcessOnNode } from "../processes.js";
+import { isNodeBusy } from "../busy.js";
 import { SWEEP_MAX_DEPTH, SNIFF_DURATION, REPLAY_DURATION } from "../balance.js";
 import { timedActiveAttr, getTimedActionAttrNames } from "../node-graph/timed-actions.js";
 
@@ -129,7 +130,7 @@ export function getProgramActions(node, state) {
 
   // SNIFF/REPLAY are now timed actions (#187 Phase 2) — a node already running one (including
   // an in-flight sniff/replay) can't start another.
-  const busy = state.nodeGraph?.isNodeBusy(node.id);
+  const busy = isNodeBusy(node, state);
 
   // SNIFF: requires the node be PROBED — a measure of careful preparation (you scan/fingerprint
   // the node before reading its traffic), but a single recon act, NOT the locked→open→owned
