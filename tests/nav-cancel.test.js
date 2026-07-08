@@ -8,11 +8,25 @@
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
 
-import { createGateway, createRouter } from "../js/core/node-graph/node-factories.js";
+import { createGateway, createRouter, createFileserver, createWAN } from "../js/core/node-graph/node-factories.js";
 import { initGame, getState } from "../js/core/state.js";
 import { emitEvent, on, off, E, clearHandlers } from "../js/core/events.js";
 import { initNavigationCancelHandler } from "../js/core/node-graph/game-ctx.js";
 import { ABORTABLE_TIMED_ACTIONS, getTimedActionAttrNames } from "../js/core/node-graph/timed-actions.js";
+
+// Nav-cancel now resets structurally (getActiveAbortableTimedAction, #288 B2) — it only
+// finds an action on a node that actually carries the matching timed-action operator. So
+// this network carries one node per action's real trait requirement (router: probe/mine
+// via "hackable"; fileserver: dump/fetch via "lootable"; wan: lie-low via "darknet"),
+// rather than forcing every action onto a single router that may lack the operator.
+const NODE_FOR_ACTION = {
+  probe: "router-a",
+  dump: "fileserver-a",
+  fetch: "fileserver-a",
+  mine: "router-a",
+  "lie-low": "wan-a",
+  reboot: "router-a",
+};
 
 function buildMinimalLAN() {
   return {
@@ -20,8 +34,10 @@ function buildMinimalLAN() {
       nodes: [
         createGateway("gateway", { attributes: { visibility: "accessible" } }),
         createRouter("router-a"),
+        createFileserver("fileserver-a"),
+        createWAN("wan-a"),
       ],
-      edges: [["gateway", "router-a"]],
+      edges: [["gateway", "router-a"], ["gateway", "fileserver-a"], ["gateway", "wan-a"]],
       triggers: [],
     },
     meta: { startNode: "gateway", startCash: 0, moneyCost: "F" },
@@ -36,7 +52,7 @@ for (const def of ABORTABLE_TIMED_ACTIONS) {
   test(`PLAYER_NAVIGATED cancels an in-progress "${def.action}"`, () => {
     initGame(() => buildMinimalLAN(), `nav-${def.action}`);
     const graph = getState().nodeGraph;
-    const nodeId = "router-a";
+    const nodeId = NODE_FOR_ACTION[def.action];
     const { progressAttr, durationAttr } = getTimedActionAttrNames(def.action);
 
     // Put the action in progress.

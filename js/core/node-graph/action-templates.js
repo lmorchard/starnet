@@ -83,7 +83,7 @@ const ABORT_ACTION = {
   desc: "Cancel the current timed action.",
   requires: [{ type: "active-abortable-timed-action" }],
   effects: [
-    { effect: "ctx-call", method: "abortTimedAction", args: ["$nodeId"] },
+    { effect: "ctx-call", method: "abortNode", args: ["$nodeId"] },
   ],
 };
 

@@ -17,13 +17,12 @@ import { getProgramActions } from "./program-actions.js";
 import { A } from "../action-ids.js";
 import { activeIceInstances } from "../state/ice.js";
 import { isScriptAction } from "./scripts.js";
-import { activeProcessOnNode, abortNodeProcesses } from "../processes.js";
+import { activeProcessOnNode } from "../processes.js";
 import { startAutoBurn } from "../autoburn.js";
 // isNodeBusy is the canonical game-layer "is this node busy" check (#288 B1) — ORs graph
-// operator busy with process busy. Not yet consumed below: the process early-return is the
-// process-specific ABORT *affordance*, kept as activeProcessOnNode on purpose here; Task B2
-// unifies it with the graph's operator-abort path.
+// operator busy with process busy.
 import { isNodeBusy } from "../busy.js";
+import { abortNode } from "../node-graph/game-ctx.js";
 
 /**
  * Returns all available actions for the given node and game state.
@@ -40,11 +39,13 @@ export function getAvailableActions(node, state) {
   // A node running a progressive process (SWEEP, …) is BUSY: the only node action is ABORT.
   // Uniform rule at the actions layer (the graph's NOT_BUSY can't see processes) — future
   // progressive verbs inherit it. Nav-away also aborts (game-ctx nav-cancel handler).
+  // execute routes through the single abortNode entry point (#288 B2) so this affordance
+  // stays equivalent to the graph-side ABORT and to nav-cancel.
   if (activeProcessOnNode(state, node.id)) {
     return [...global, {
       id: A.ABORT, label: "ABORT", available: () => true,
       desc: () => "Stop the running operation.",
-      execute: (n) => abortNodeProcesses(n.id),
+      execute: (n) => abortNode(n.id),
     }];
   }
 

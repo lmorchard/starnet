@@ -32,13 +32,47 @@ import { getState } from "../state.js";
 import { abortNodeProcesses } from "../processes.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
-import { getTimedActionAttrNames, ABORTABLE_TIMED_ACTIONS, TIMED_ACTIONS } from "./timed-actions.js";
+import { getTimedActionAttrNames } from "./timed-actions.js";
 import { sniffFlow, replayCredential } from "../programs.js";
 
 /** Convenience: `_ta_<action>_progress` for the given timed action. */
 const progressAttr = (action) => getTimedActionAttrNames(action).progressAttr;
 /** Convenience: `_ta_<action>_duration` for the given timed action. */
 const durationAttr = (action) => getTimedActionAttrNames(action).durationAttr;
+
+/**
+ * Reset any active ABORTABLE timed-action operator on a node — the generic sweep the
+ * ABORT action and nav-cancel share. Non-abortable actions (reboot, volatile) are
+ * left running by design (getActiveAbortableTimedAction already excludes them).
+ * Emits the `cancel` ACTION_FEEDBACK so overlays tear down.
+ * @param {string} nodeId
+ */
+export function resetActiveAbortableTimedAction(nodeId) {
+  const graph = getState().nodeGraph;
+  if (!graph) return;
+  const active = graph.getActiveAbortableTimedAction(nodeId);
+  if (!active) return;
+  // xploit special-case removed (#310 made it a process); no clearOnCancel entries remain.
+  graph.setNodeAttr(nodeId, active.activeAttr, false);
+  // Reset duration too: the timed-action operator only re-emits the "start" phase when
+  // BOTH progress and duration are 0. A stale duration after a cancel would make a restart
+  // skip "start", leaving the overlay/log dispatcher un-armed (it keys off "start").
+  graph.setNodeAttr(nodeId, active.progressAttr, 0);
+  graph.setNodeAttr(nodeId, active.durationAttr, 0);
+  emitEvent(E.ACTION_FEEDBACK, { nodeId, action: active.action, phase: "cancel", progress: 0 });
+}
+
+/**
+ * The one abort entry point (#288 B2): cancel whatever kind of operation is running
+ * on a node — an abortable timed-action operator and/or a process. Called by the
+ * ABORT action, the process-ABORT affordance, and nav-cancel.
+ * @param {string} nodeId
+ * @param {string} [reason]
+ */
+export function abortNode(nodeId, reason = "aborted") {
+  resetActiveAbortableTimedAction(nodeId);
+  abortNodeProcesses(nodeId, reason);
+}
 
 /**
  * Build the real CtxInterface for game integration.
@@ -100,32 +134,8 @@ export function buildGameCtx(opts = {}) {
       }
       emitEvent(E.ACTION_FEEDBACK, { nodeId: exploitingNode.id, action: A.XPLOIT, phase: "cancel", progress: 0 });
     },
-    abortTimedAction: (nodeId) => {
-      // Unified abort — query the node's timed-action operators to find whichever
-      // one is active, then clear it generically. No hardcoded action list.
-      // getActiveAbortableTimedAction (not getActiveTimedAction) is deliberate
-      // (#187 Phase 2 review fix): defense in depth so this is a no-op on a
-      // non-abortable active action (reboot) even if invoked outside the normal
-      // ABORT_ACTION.requires gate, which already excludes it.
-      if (!ctx._graph) return;
-      const active = ctx._graph.getActiveAbortableTimedAction(nodeId);
-      if (!active) return;
-
-      // Exploit is special — has extra attributes (activeExploitId) beyond the
-      // standard activeAttr/progressAttr/durationAttr pattern.
-      if (active.action === A.XPLOIT) {
-        ctx.cancelExploit();
-        return;
-      }
-
-      ctx._graph.setNodeAttr(nodeId, active.activeAttr, false);
-      ctx._graph.setNodeAttr(nodeId, active.progressAttr, 0);
-      // Reset duration too: the timed-action operator only re-emits the "start" phase when
-      // BOTH progress and duration are 0. A stale duration after a cancel would make a restart
-      // skip "start", leaving the overlay/log dispatcher un-armed (it keys off "start").
-      ctx._graph.setNodeAttr(nodeId, active.durationAttr, 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: active.action, phase: "cancel", progress: 0 });
-    },
+    abortTimedAction: (nodeId) => resetActiveAbortableTimedAction(nodeId),
+    abortNode: (nodeId) => abortNode(nodeId),
     startRead: (_nodeId) => { /* now handled by timed-action operator */ },
     cancelRead: () => { /* now handled by cancel-read action effects */ },
     startLoot: (_nodeId) => { /* now handled by timed-action operator */ },
@@ -371,38 +381,12 @@ export function initNavigationCancelHandler() {
   const graph = s.nodeGraph;
   if (!graph) return;
 
-  // Derive the abortable set from the TIMED_ACTIONS registry (#225) rather than hand-enumerating
-  // each action — adding a new abortable timed action now cancels correctly with no edit here.
-  // The registry `action` id is exactly the ACTION_FEEDBACK action constant (A.PROBE === "probe",
-  // etc.), so emitting `def.action` matches the former per-branch A.* payloads byte-for-byte.
+  // Single structural pass (#288 B2): resetActiveAbortableTimedAction already covers both
+  // the enumerated core verbs and any synthesized `timed` action (getActiveAbortableTimedAction
+  // spans both, and excludes non-abortable actions like reboot/volatile) — so the former
+  // registry loop + generalized structural-fallback loop collapse into one call per node.
   for (const nodeId of graph.getNodeIds()) {
-    const attrs = graph.getNodeState(nodeId);
-    for (const def of ABORTABLE_TIMED_ACTIONS) {
-      if (!attrs[def.activeAttr]) continue;
-      // Reset duration along with progress on every cancel: the timed-action operator only
-      // re-emits "start" when both are 0, so a stale duration would leave a restarted action's
-      // overlay/log un-armed.
-      graph.setNodeAttr(nodeId, def.activeAttr, false);
-      graph.setNodeAttr(nodeId, progressAttr(def.action), 0);
-      graph.setNodeAttr(nodeId, durationAttr(def.action), 0);
-      // Extra per-action cleanup (e.g. xploit's activeExploitId), centralized in the registry.
-      for (const attr of def.clearOnCancel ?? []) graph.setNodeAttr(nodeId, attr, null);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: def.action, phase: "cancel", progress: 0 });
-    }
-
-    // Generalized fallback (#187 Phase 2): a synthesized timed action (declarative
-    // ActionDef.timed) isn't in the TIMED_ACTIONS registry, so the enumerated loop
-    // above can't see it by name. getActiveTimedAction finds it structurally (any
-    // active timed-action operator) instead — cancel it the same way. Skip anything
-    // already IN the registry: the loop above either already reset it (abortable),
-    // or it's intentionally excluded (reboot — involuntary, ABORT can't touch it).
-    const active = graph.getActiveTimedAction(nodeId);
-    if (active && !TIMED_ACTIONS.some((t) => t.action === active.action)) {
-      graph.setNodeAttr(nodeId, active.activeAttr, false);
-      graph.setNodeAttr(nodeId, active.progressAttr, 0);
-      graph.setNodeAttr(nodeId, active.durationAttr, 0);
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: active.action, phase: "cancel", progress: 0 });
-    }
+    resetActiveAbortableTimedAction(nodeId);
   }
   // Progressive processes (SWEEP, …) also cancel on navigation — parity with timed actions.
   for (const proc of [...getState().processes]) abortNodeProcesses(proc.nodeId);
