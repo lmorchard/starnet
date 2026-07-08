@@ -1,5 +1,14 @@
 # Notes — Butterchurn brain-damage overlay (exploration)
 
+## Session summary
+
+Explored using butterchurn (WebGL Milkdrop) as the "organic brain-damage" overlay bleeding
+through the vector-CRT graph on wetware damage. Built two reference labs (standalone aesthetic
+proof + live-game hybrid-drive proof). **Outcome: GO** — the intentional aesthetic clash reads as
+brain-damage, the hybrid drive (live audio + damage-delta shocks + severity bed) works end-to-end
+against real gameplay, perf is acceptable, and butterchurn can replace the existing WebGL1 plasma.
+No game source changed; productionization is scoped for a future port session (see VERDICT below).
+
 ## Lab A — aesthetic checkpoint (PASSED)
 
 **Verdict on the core question:** ✅ Yes — composited over the vector UI, butterchurn
@@ -61,8 +70,51 @@ Les's words: "surprisingly great as a first stab." The clash lands as the fictio
   running under butterchurn and mixed with it (both driven by the same severity). Since butterchurn
   is the plasma's *replacement*, Lab B now hides the plasma layer on load (restored via
   `window.__labB.teardown()`). Re-check clean.
-- **Still to confirm:** does the `connect`-shim tap make butterchurn visibly react to the *live
-  game audio* (vs. just rendering)? — the riskiest Lab B unknown.
+- **Audio tap confirmed working.** ✅ The `connect`-shim tap catches the live signal — the
+  visualizer is definitely moving to the game audio, not just idling on preset motion.
+- **Replaces the plasma.** ✅ With the plasma hidden, butterchurn-alone carries the brain-damage
+  effect — Les: "this can replace the plasma."
+
+## VERDICT — GO
+
+Both labs pass. Butterchurn is a viable **replacement** for the WebGL1 health-plasma as the
+brain-damage overlay. The hybrid drive works end-to-end against real gameplay:
+- live game audio → analyser (tap) → reactive texture ✅
+- health/deck damage delta → synthetic bass-impulse shock ✅
+- `degradationParams` severity → ambient-bed opacity ✅
+- perf acceptable (WebGL2 + feedback over `#cy`, no significant fps hit) ✅
+
+## Productionization notes (for the port session)
+
+1. **Vendor** butterchurn + a curated preset set into `dist/` via esbuild (like cytoscape/lit).
+   Mind bundle size — the full presets pack is large; ship only the curated subset.
+2. **Clean audio tap:** add a single master `GainNode` in `js/audio/` (all sources → master →
+   destination; analyser off master) instead of the runtime `AudioNode.connect` shim. Small,
+   contained game-source change; also removes the "load early / long-lived nodes missed" caveat.
+3. **Damage signal:** no discrete damage event exists today. Either keep the delta-watch or (cleaner)
+   emit an `E.PLAYER_DAMAGED` (pool + amount) from `js/core/player-orchestration.js` — generally
+   useful (SFX, etc.). Recommend adding the event.
+4. **Port the drive** into `js/ui/graph-degradation/`: replace `health-plasma.js`'s shader path
+   with a butterchurn-backed layer (retire the WebGL1 shader) and **remove/disable the plasma**
+   (the labs showed they stack). Leave `deck-perturbation.js` alone (independent effect).
+5. **Preset curation + categorization by damage type** (health / deck / ICE / trace) — the design
+   direction Les liked. Categorized preset families signal *what kind* of impairment is happening.
+6. **Blend/severity:** `screen` for the ambient bed (graceful thickening); reserve heavier
+   `normal`/full-takeover for peak shock / near-death. Severity→opacity curve is blend-dependent.
+7. **WebGL2 fallback:** butterchurn needs WebGL2 (plasma was WebGL1). Use `isButterchurnSupported()`;
+   decide the no-WebGL2 fallback (keep a minimal plasma, or degrade gracefully to nothing).
+8. **Preview harness:** add a butterchurn demo node to `preview.html` per the "new effects go in
+   preview" rule.
+9. **Licensing:** presets as separable **content** (wad) under the AGPL-engine / separable-content
+   model — curated permissive subset or original presets. Resolve before ship.
+
+## Lab index (reference artifacts)
+
+- `lab-a.html` + `lab-a-boot.js` — standalone aesthetic proof (butterchurn over a graph screenshot,
+  placeholder mp3, sliders). Open at `/docs/.../lab-a`.
+- `lab-b.js` + `lab-b-README.md` — live-game hybrid-drive proof (devtools import into a running game).
+- `lab-audio.mp3` — trimmed placeholder track. `graph-shot.png` — Lab A backdrop.
+
 
 ### Env note
 
