@@ -180,7 +180,7 @@ export function initLogRenderer() {
       add(`[SWEEP] probed ${count} node${count !== 1 ? "s" : ""}.`, "info");
     } else if (type === "autoburn") {
       const discNote = disclosed ? " · round burned" : "";
-      add(`[XPLOIT] chip ${chip} → coherence ${coherence}${discNote}`, "meta");
+      add(`[XPLOIT] chip ${Math.round(chip)} → coherence ${Math.round(coherence)}${discNote}`, "meta");
     }
   });
   on(E.PROCESS_ENDED, ({ type, reason }) => {

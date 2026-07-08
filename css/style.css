@@ -295,6 +295,50 @@ html, body {
   overflow: visible;
 }
 
+/* ── Hoard strip (Phase 7b) ─────────────────────────────── */
+/* Replaces #hand-strip in index.html. One-line compact readout. */
+#hoard-strip {
+  flex: 0 0 auto;
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.hoard-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono, monospace);
+  font-size: 0.8rem;
+  color: var(--cyan);
+  text-shadow: var(--glow-sm);
+  white-space: nowrap;
+}
+
+.hoard-label {
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.hoard-count {
+  color: var(--fg);
+}
+
+.hoard-sep {
+  color: var(--dim, #444);
+}
+
+.hoard-rarity {
+  font-size: 0.78rem;
+}
+
+.hoard-common   { color: var(--fg); }
+.hoard-uncommon { color: var(--cyan); }
+.hoard-rare     { color: var(--magenta); }
+
 /* Hand header — toggle button row */
 .hand-header {
   display: flex;

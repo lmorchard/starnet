@@ -466,20 +466,11 @@ function syncHud(state) {
   // End screen
   if (state.phase === "ended") {
     closeActionChoices();
-    const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
-    if (handEl) {
-      handEl.cards = [];
-      handEl.executingCardId = null;
-      handEl.execProgress = 0;
-      handEl.isSelecting = false;
-      handEl.selectedNode = null;
-      handEl.selectedNodeId = "";
-    }
     renderEndScreen(state);
     return;
   }
 
-  syncHandPane(state);
+  syncHoardPane(state);
 }
 
 // ── Mission pane ──────────────────────────────────────────
@@ -491,32 +482,20 @@ function syncMissionPane(state) {
 }
 
 
-// ── Hand pane ─────────────────────────────────────────────
+// ── Hoard pane (Phase 7b) ─────────────────────────────────
+// Phase 7b: sync the hoard strip from state.player.hoard.
+// The old card-era hand strip and exec-progress callback are vestigial
+// (auto-burn is a process; no per-card ACTION_FEEDBACK progress); removed
+// in Phase 9 sweep alongside player.hand / starnet-hand.js.
 
-function updateExploitProgress(progress = null) {
-  if (progress === null) return;
-  const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
-  if (handEl) handEl.execProgress = progress;
+function updateExploitProgress(_progress = null) {
+  // Dead: auto-burn uses process ticks, not per-card progress. No-op.
 }
 
-function syncHandPane(state) {
-  const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
-  if (!handEl) return;
-
-  const selectedNode = state.selectedNodeId ? state.nodes[state.selectedNodeId] : null;
-  const exploitingId = selectedNode?.exploiting ? selectedNode.activeExploitId : null;
-  const executing = !!exploitingId;
-  const isSelecting = !!state.selectedNodeId && !executing;
-  const sortedHand = selectedNode
-    ? [...state.player.hand].sort((a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode))
-    : state.player.hand;
-
-  handEl.cards = sortedHand.map(c => ({ ...c }));
-  handEl.selectedNode = selectedNode ? { ...selectedNode } : null;
-  handEl.executingCardId = exploitingId;
-  handEl.isSelecting = isSelecting;
-  handEl.selectedNodeId = state.selectedNodeId || "";
-  handEl.collapsed = state.ui?.handCollapsed ?? false;
+function syncHoardPane(state) {
+  const hoardEl = /** @type {any} */ (document.getElementById("hoard-strip"));
+  if (!hoardEl) return;
+  hoardEl.hoard = state.player.hoard ?? [];
 }
 
 // ── ICE timers ────────────────────────────────────────────

@@ -244,7 +244,7 @@ if (jsonMode) {
     if (type === "sweep") out(`[SWEEP] probed ${count} node(s).`);
     else if (type === "autoburn") {
       const discNote = disclosed ? " · round burned" : "";
-      out(`[XPLOIT] chip ${chip} → coherence ${coherence}${discNote}`);
+      out(`[XPLOIT] chip ${Math.round(chip)} → coherence ${Math.round(coherence)}${discNote}`);
     }
   });
   on(E.PROCESS_ENDED, ({ type, reason }) => {
