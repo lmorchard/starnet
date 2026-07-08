@@ -267,8 +267,6 @@ function _frame() {
     ringCount: RING_COUNT[_grade] ?? RING_COUNT.C,
     hoardFrac: _hoardFrac(),
     heat01: _heat01(),
-    gradeLabel: _grade,
-    cracked: _cracked,
     fx: _fx,
     shieldRings: _shieldRings,
     stagingRing: _stagingRing,
@@ -284,7 +282,10 @@ function _focusOn(nodeId) {
   if (!cy) return;
   const node = cy.getElementById(nodeId);
   if (!node || node.length === 0) return;
-  _savedViewport = { zoom: cy.zoom(), pan: { ...cy.pan() } };
+  // Only capture on the FIRST burn of a chain — a new burn started during the
+  // prior burn's settle must not overwrite the true pre-burn viewport with the
+  // already-zoomed-in one (that would restore to the wrong, zoomed frame).
+  if (_savedViewport == null) _savedViewport = { zoom: cy.zoom(), pan: { ...cy.pan() } };
   // Lock auto viewport for the whole focus (through restore) so a reveal/selection
   // re-fit can't yank the camera off the burning node mid-barrage.
   setViewportLock(true);
