@@ -61,6 +61,13 @@ Object.assign(canvas.style, {
 });
 container.appendChild(canvas);
 
+// Suppress the existing WebGL1 health-plasma while Lab B is active — butterchurn is its
+// candidate REPLACEMENT, so evaluate it clean rather than mixed with the old overlay.
+// (The #cy CSS haze filter is left alone; it also carries the base bloom.)
+const plasma = document.getElementById("graph-degradation-layer");
+const plasmaPrevDisplay = plasma ? plasma.style.display : null;
+if (plasma) plasma.style.display = "none";
+
 const viz = butterchurn.createVisualizer(ctx, canvas, {
   width: container.clientWidth, height: container.clientHeight,
 });
@@ -191,6 +198,13 @@ function updateReadout(h, d) {
   readout.textContent = `health sev ${h.toFixed(2)} · deck sev ${d.toFixed(2)} · lastHit ${lastPool ?? "—"}`;
 }
 
+// Remove the overlay + panel and restore the suppressed plasma (for a clean re-import).
+function teardown() {
+  canvas.remove();
+  if (panel) panel.remove();
+  if (plasma) plasma.style.display = plasmaPrevDisplay ?? "";
+}
+
 // Exposed for devtools poking.
-window.__labB = { ctx, analyser, viz, canvas, cfg, fireShock };
-export { ctx, analyser, viz, canvas, cfg, fireShock };
+window.__labB = { ctx, analyser, viz, canvas, cfg, fireShock, teardown };
+export { ctx, analyser, viz, canvas, cfg, fireShock, teardown };

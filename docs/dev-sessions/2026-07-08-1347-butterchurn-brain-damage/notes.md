@@ -50,6 +50,20 @@ Les's words: "surprisingly great as a first stab." The clash lands as the fictio
   Production would instead add a single master `GainNode` (one-line game-source change, out of
   scope for the lab).
 
+## Lab B — live-game checkpoint (in progress)
+
+- **Works against the live game.** ✅ Mounts over `#cy`, panel drives it, shocks fire on
+  cheat-`hurt` damage.
+- **Perf: not significantly affected.** ✅ Continuous WebGL2 + feedback over `#cy` did NOT tank
+  fps in Les's run — the big viability worry is resolved (no half-res fallback needed so far).
+- **Shock reads well** over the live moving graph — as good as static Lab A.
+- **Bug found + fixed:** the old WebGL1 health-plasma (`#graph-degradation-layer`, zIndex 5) kept
+  running under butterchurn and mixed with it (both driven by the same severity). Since butterchurn
+  is the plasma's *replacement*, Lab B now hides the plasma layer on load (restored via
+  `window.__labB.teardown()`). Re-check clean.
+- **Still to confirm:** does the `connect`-shim tap make butterchurn visibly react to the *live
+  game audio* (vs. just rendering)? — the riskiest Lab B unknown.
+
 ### Env note
 
 - butterchurn requires **WebGL2** (the game's health-plasma is WebGL1). Confirmed working in
