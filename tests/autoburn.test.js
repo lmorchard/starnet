@@ -142,7 +142,7 @@ describe("autoburn — hoard-dry stop", () => {
     on(E.ACTION_RESOLVED, (p) => resolvedEvents.push(p));
 
     startAutoBurn(nodeId);
-    tick(50);
+    tick(250); // pacing: shots span arm+cadence ticks — tick enough for the lone round to disclose (dry)
 
     // Node must NOT be owned
     assert.notEqual(s().nodes[nodeId].accessLevel, "owned", "node not cracked");

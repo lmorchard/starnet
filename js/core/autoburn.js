@@ -22,7 +22,7 @@ import { markRoundDisclosed } from "./state/player.js";
 import { recordHeat } from "./alert.js";
 import { chip, rollDisclosure } from "./coherence.js";
 import { nextRound } from "./burn-select.js";
-import { COHERENCE, BURN_CEILING_DEFAULT, HEAT_COST } from "./balance.js";
+import { COHERENCE, BURN_CEILING_DEFAULT, HEAT_COST, BURN_ARM_TICKS, BURN_CADENCE_TICKS } from "./balance.js";
 import { emitEvent, E } from "./events.js";
 import { A } from "./action-ids.js";
 
@@ -73,6 +73,13 @@ registerProcess("autoburn", {
   step(proc, s) {
     const node = s.nodes[proc.nodeId];
     if (!node || node.accessLevel === "owned") return true;
+
+    // Pacing: wait out the arm delay (camera focus settles + instrument arms),
+    // then fire only on the cadence beat. Non-firing ticks just wait — the process
+    // stays alive. Keeps the barrage watchable and sequenced after the zoom.
+    proc.tick = (proc.tick ?? 0) + 1;
+    if (proc.tick <= BURN_ARM_TICKS) return false;
+    if ((proc.tick - BURN_ARM_TICKS - 1) % BURN_CADENCE_TICKS !== 0) return false;
 
     const round = nextRound(s.player.hoard, node, proc);
     if (!round) {
@@ -157,7 +164,7 @@ export function startAutoBurn(nodeId, params = {}) {
   }
 
   const ceiling = params.ceiling ?? BURN_CEILING_DEFAULT;
-  addProcess({ id: nextProcessId(), type: "autoburn", nodeId, source: "player", ceiling, heat: 0 });
+  addProcess({ id: nextProcessId(), type: "autoburn", nodeId, source: "player", ceiling, heat: 0, tick: 0 });
   emitEvent(E.PROCESS_STARTED, { type: "autoburn", nodeId, ceiling });
 }
 

@@ -131,3 +131,11 @@ export const TYPE_BITE      = 1.0;
 export const CHIP_JITTER    = 0.15;
 // Run heat ceiling (the abort wager) — auto-burn stops when burst heat hits this.
 export const BURN_CEILING_DEFAULT = 40;
+
+// Auto-burn PACING (watchability + drama; 1 tick = 100ms).
+// The process waits BURN_ARM_TICKS before the first round so the focus camera-zoom
+// settles + the instrument arms (no "camera moving while rounds fly" jumble), then
+// fires one round every BURN_CADENCE_TICKS ticks (a visible beat, not a 10/sec blur).
+// Tune in the feel pass: lower = faster/tenser, higher = slower/more readable.
+export const BURN_ARM_TICKS = 5;      // ~500ms wind-up (focus animate is ~350ms)
+export const BURN_CADENCE_TICKS = 3;  // ~300ms between rounds

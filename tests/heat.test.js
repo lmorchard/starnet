@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { initGame, getState, serializeState, deserializeState } from "../js/core/state.js";
 import { addHeat, decayHeat } from "../js/core/state/flow.js";
 import { recordHeat, startHeatDecay, handleHeatDecay } from "../js/core/alert.js";
-import { HEAT_ALARM_THRESHOLD, HEAT_DISCHARGE_FRAC, HEAT_COST } from "../js/core/balance.js";
+import { HEAT_ALARM_THRESHOLD, HEAT_DISCHARGE_FRAC, HEAT_COST, BURN_ARM_TICKS, BURN_CADENCE_TICKS } from "../js/core/balance.js";
 import { startAutoBurn, initAutoBurn } from "../js/core/autoburn.js";
 import { setHoard } from "../js/core/state/player.js";
 import { setNodeCoherence } from "../js/core/state/node.js";
@@ -121,7 +121,7 @@ describe("heat — fed by core activity", () => {
 
     const before = getState().heat;
     startAutoBurn(nodeId);
-    tick(1); // fire exactly one round (1 tick = 1 process step)
+    tick(BURN_ARM_TICKS + 1); // arm delay, then the first round fires on the next tick
 
     assert.notEqual(getState().nodes[nodeId].accessLevel, "owned", "precondition: not cracked in one shot");
     assert.equal(getState().heat, before + HEAT_COST.xploit, "one auto-burn shot adds one shot's heat");
@@ -148,10 +148,12 @@ describe("heat — fed by core activity", () => {
     setNodeCoherence(nodeId, 99999);
 
     startAutoBurn(nodeId);
-    tick(shotsNeeded + 5); // enough shots to cross threshold; one shot per tick
+    // Shots span multiple ticks now (arm delay + cadence), so tick enough real
+    // ticks to fire shotsNeeded rounds.
+    tick(BURN_ARM_TICKS + shotsNeeded * BURN_CADENCE_TICKS + 5);
 
     assert.notEqual(getState().globalAlert, "green",
-      `sustained barrage (${shotsNeeded + 5} shots) must escalate alert above green via heat ratchet`
+      `sustained barrage (${shotsNeeded} shots) must escalate alert above green via heat ratchet`
     );
   });
 });
