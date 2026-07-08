@@ -6,8 +6,8 @@
 /** @typedef {import('./types.js').ExploitRound} ExploitRound */
 /** @typedef {import('./types.js').Rarity} Rarity */
 
-import { RNG, random, shuffle } from "./rng.js";
-import { VULNERABILITY_TYPES, RARITY_WEIGHTS, pickTargetVulns } from "./exploits.js";
+import { RNG, random } from "./rng.js";
+import { RARITY_WEIGHTS, pickTargetVulns } from "./exploits.js";
 
 // ── Default starting hoard ────────────────────────────────────────────────────
 
@@ -87,12 +87,14 @@ export function generateRound(rarity = null, types = null) {
 
 /**
  * Bulk-mint a hoard from a spec of per-rarity counts.
- * Resets the round-id counter first so the same seed always yields the same hoard.
+ * The round-id counter is NOT reset here — it is monotonic across all calls within
+ * a session so ids are guaranteed unique across the starting hoard and any packs
+ * opened mid-run. Call resetRoundIdCounter() explicitly at session/test start if
+ * deterministic ids are needed.
  * @param {{ common?: number, uncommon?: number, rare?: number }} spec
  * @returns {ExploitRound[]}
  */
 export function generateHoard(spec) {
-  resetRoundIdCounter();
   const out = /** @type {ExploitRound[]} */ ([]);
   for (const rarity of /** @type {Rarity[]} */ (["common", "uncommon", "rare"])) {
     const count = spec[rarity] ?? 0;

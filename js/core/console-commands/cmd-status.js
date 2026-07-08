@@ -10,6 +10,7 @@ import { getVisibleTimers } from "../timers.js";
 import { resolveNode, resolveImplicitNode } from "./resolvers.js";
 import { isObscured } from "../state/node.js";
 import { mineYieldChance } from "../mining.js";
+import { activeProcessOnNode } from "../processes.js";
 
 /**
  * Renders per-instance ICE status lines for both cmdStatusFull and cmdStatusIce.
@@ -68,15 +69,19 @@ export function cmdStatusSummary() {
     lines.push(`  Selected: none`);
   }
 
-  // Show active timed actions from graph node attributes
+  // Show active timed actions (graph node attrs) and process-framework operations
   if (s.nodeGraph) {
     for (const nodeId of s.nodeGraph.getNodeIds()) {
       const attrs = s.nodeGraph.getNodeState(nodeId);
       const label = attrs.label ?? nodeId;
       if (attrs.probing) lines.push(`  Scanning: ${label}`);
-      if (attrs.exploiting) lines.push(`  Executing: auto-burn @ ${label}`);
       if (attrs.reading) lines.push(`  Reading: ${label}`);
       if (attrs.looting) lines.push(`  Extracting: ${label}`);
+      // Auto-burn is a process, not a node attr — detect via the process framework.
+      if (activeProcessOnNode(s, nodeId)) {
+        const proc = s.processes.find((p) => p.nodeId === nodeId && p.type === "autoburn");
+        if (proc) lines.push(`  Auto-burn in progress: ${label}`);
+      }
     }
   }
 
@@ -222,7 +227,7 @@ export function cmdStatusHand() {
     if (byRarity.common)   lines.push(`  common:   ${byRarity.common}`);
     if (byRarity.uncommon) lines.push(`  uncommon: ${byRarity.uncommon}`);
     if (byRarity.rare)     lines.push(`  rare:     ${byRarity.rare}`);
-    if (disclosed > 0) lines.push(`  disclosed: ${disclosed} (will be culled after barrage)`);
+    if (disclosed > 0) lines.push(`  disclosed: ${disclosed} (unusable; discard at the hub)`);
   }
   lines.forEach((l) => addLogEntry(l, "meta"));
 }

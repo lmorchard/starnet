@@ -8,7 +8,6 @@ import { emitEvent, E } from "../core/events.js";
 import { resumeTimers } from "../core/timers.js";
 import { getPackCatalog } from "../core/packs.js";
 import { buyFromStore } from "../core/store-logic.js";
-import { getState } from "../core/state.js";
 
 /**
  * Open the darknet broker store modal. Pauses timers while open.
