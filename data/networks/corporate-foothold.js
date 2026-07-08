@@ -83,7 +83,6 @@ export function buildNetwork() {
       startNode: "gateway",
       startCash: 1000,
       moneyCost: "C",
-      startHand: ["common", "common", "uncommon", "uncommon"],
       // Gentle intro ICE (#114). Grade C is the most forgiving disturbance-tracking
       // tier (move 7s, dwell 5.5s, noise threshold 5) and takes 2 detections to
       // trace — real pressure that teaches the mechanic without being punishing.

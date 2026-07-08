@@ -112,7 +112,6 @@ export function buildNetwork() {
       startNode: "gateway",
       startCash: 200,
       moneyCost: "A",
-      startHand: ["common", "uncommon", "uncommon", "rare", "rare"],
       ice: { grade: "B", startNode: "sec/monitor" },
       // Flow substrate (declarative, visual-only): typed packets riding real edges.
       // Each renders once both endpoints are revealed (fog-of-war). A money artery flows
