@@ -26,7 +26,7 @@ test("same seed run twice in one process yields identical results", () => {
   assert.equal(second.success, first.success, "success differs between runs");
   assert.equal(second.failReason, first.failReason, "failReason differs between runs");
   assert.equal(second.nodesOwned, first.nodesOwned, "nodesOwned differs between runs");
-  assert.equal(second.cardsUsed, first.cardsUsed, "cardsUsed differs between runs");
+  assert.equal(second.autoBurns, first.autoBurns, "autoBurns differs between runs");
 });
 
 test("three consecutive runs are all identical (no progressive corruption)", () => {

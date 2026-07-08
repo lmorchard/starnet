@@ -36,15 +36,6 @@
  */
 
 /**
- * @typedef {Object} WorldCard
- * @property {string} id
- * @property {string} name
- * @property {string[]} targetVulnTypes
- * @property {number} quality
- * @property {number} usesLeft
- */
-
-/**
  * @typedef {Object} WorldMission
  * @property {string|null} targetMacguffinId
  * @property {string|null} targetName
@@ -67,12 +58,12 @@
  * @property {{ nodeId: string, vulnTypes: Set<string> }[]} minable — owned nodes whose mine action is still available
  * @property {WorldIce} ice
  * @property {WorldPlayer} player
- * @property {WorldCard[]} hand
- * @property {Map<string, string[]>} cardMatchesByNode — nodeId → matching card IDs
+ * @property {import('../../js/core/types.js').ExploitRound[]} hoard — the exploit hoard (ammo)
+ * @property {number} hoardUsable — count of non-disclosed (usable) rounds in the hoard
  * @property {Map<string, import('../../js/core/types.js').ActionDef[]>} availableActions
  * @property {WorldMission} mission
  * @property {string} gamePhase
- * @property {Set<string>} failedExploits — "nodeId:cardId" pairs that already failed
+ * @property {Set<string>} failedNodes — nodes where auto-burn stalled without cracking
  * @property {Set<string>} completedActions — "nodeId:actionId" pairs already completed
  * @property {Set<string>} iceCooldown — node IDs recently interrupted by ICE
  * @property {(fromId: string, toId: string) => string[]|null} shortestPath
@@ -101,8 +92,7 @@
  * @property {number} ticksElapsed
  * @property {number} nodesOwned
  * @property {number} nodesTotal
- * @property {number} cardsUsed
- * @property {number} cardsBurned
+ * @property {number} autoBurns
  * @property {number} storeVisits
  * @property {number} cashSpent
  * @property {number} cashRemaining
@@ -113,6 +103,6 @@
  * @property {number} disarmActionsUsed
  * @property {number} mineAttempts
  * @property {number} mineResolved
- * @property {number} mineCards
+ * @property {number} mineRounds
  * @property {Record<string, number>} strategyCounts
  */

@@ -1,5 +1,5 @@
 // @ts-check
-// Mine heuristic — mine owned nodes for exploit cards when blocked on cards.
+// Mine heuristic — mine owned nodes to replenish the exploit hoard when ammo is low.
 
 /** @typedef {import('../types.js').WorldModel} WorldModel */
 /** @typedef {import('../types.js').ScoredAction} ScoredAction */
@@ -8,6 +8,8 @@ import { A } from "../../../js/core/action-ids.js";
 
 const STRATEGY = "mine";
 const MINE_SCORE = 30;
+// Replenish when the usable hoard drops below this. Mining deposits one round per hit.
+const LOW_HOARD_THRESHOLD = 5;
 
 /**
  * @param {WorldModel} world
@@ -19,12 +21,8 @@ export function mineStrategy(world) {
   if (world.needsExploit.length === 0) return proposals;
   if (!world.minable || world.minable.length === 0) return proposals;
 
-  // Only when there is no usable matching card already (same gate as cards buy).
-  const hasUsableMatch = world.needsExploit.some((nodeId) => {
-    const ids = world.cardMatchesByNode.get(nodeId) ?? [];
-    return ids.some((cardId) => !world.failedExploits.has(`${nodeId}:${cardId}`));
-  });
-  if (hasUsableMatch) return proposals;
+  // Only mine to replenish when the usable hoard is running low.
+  if (world.hoardUsable >= LOW_HOARD_THRESHOLD) return proposals;
 
   // Vuln types we still need (from blocked nodes).
   const needed = new Set();

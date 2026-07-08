@@ -23,8 +23,8 @@ export function runLoop(strategies, opts = {}) {
   const verbose = opts.verbose ?? false;
   const stats = createStats();
   let totalTicks = 0;
-  /** @type {Set<string>} */
-  const failedExploits = new Set();
+  /** @type {Set<string>} Nodes where auto-burn stalled (ceiling/dry) without cracking */
+  const failedNodes = new Set();
   /** @type {Set<string>} Track disarmed node:action pairs to avoid retrying */
   const completedActions = new Set();
   /** @type {Set<string>} Nodes where ICE recently interrupted — avoid for a cycle */
@@ -52,7 +52,7 @@ export function runLoop(strategies, opts = {}) {
       const state = getState();
       if (state.phase !== "playing") break;
 
-      const world = perceive(state, { failedExploits, completedActions, iceCooldown });
+      const world = perceive(state, { failedNodes, completedActions, iceCooldown });
 
       // If mission is complete, jack out
       if (world.mission.complete) {
@@ -79,15 +79,15 @@ export function runLoop(strategies, opts = {}) {
         ? getState().nodes[choice.nodeId]?.accessLevel
         : null;
 
-      // Snapshot cash before buy-card for tracking spend
-      const cashBefore = choice.action === "buy-card" ? getState().player.cash : 0;
+      // Snapshot cash before buy-pack for tracking spend
+      const cashBefore = choice.action === "buy-pack" ? getState().player.cash : 0;
 
       recordAction(stats, choice);
       const result = execute(choice, world);
       totalTicks += result.ticksUsed || 1;
 
-      // Track buy-card cash spent
-      if (choice.action === "buy-card") {
+      // Track buy-pack cash spent
+      if (choice.action === "buy-pack") {
         stats.cashSpent += cashBefore - getState().player.cash;
       }
 
@@ -96,17 +96,15 @@ export function runLoop(strategies, opts = {}) {
         completedActions.add(`${choice.nodeId}:${choice.action}`);
       }
 
-      // Track failed exploits: if access level didn't change, mark this card+node as failed
+      // Track failed nodes: an auto-burn that completed WITHOUT reaching "owned"
+      // stalled on heat-ceiling or hoard-dry. Mark the node so the bot doesn't
+      // retry it forever. Cracking it (owned) leaves it off the failed set.
       if (choice.action === A.XPLOIT && result.completed && choice.nodeId) {
         const accessAfter = getState().nodes[choice.nodeId]?.accessLevel;
-        const cardId = choice.payload?.exploitId;
-        if (cardId && accessAfter === accessBefore) {
-          failedExploits.add(`${choice.nodeId}:${cardId}`);
-        } else if (accessAfter !== accessBefore) {
-          // Progress was made — clear failures for this node so cards can be retried
-          for (const key of [...failedExploits]) {
-            if (key.startsWith(`${choice.nodeId}:`)) failedExploits.delete(key);
-          }
+        if (accessAfter === "owned") {
+          failedNodes.delete(choice.nodeId);
+        } else if (accessAfter === accessBefore) {
+          failedNodes.add(choice.nodeId);
         }
       }
 

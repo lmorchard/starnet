@@ -22,8 +22,7 @@ export function createStats() {
     ticksElapsed: 0,
     nodesOwned: 0,
     nodesTotal: 0,
-    cardsUsed: 0,
-    cardsBurned: 0,
+    autoBurns: 0,
     storeVisits: 0,
     cashSpent: 0,
     cashRemaining: 0,
@@ -34,7 +33,7 @@ export function createStats() {
     disarmActionsUsed: 0,
     mineAttempts: 0,
     mineResolved: 0,
-    mineCards: 0,
+    mineRounds: 0,
     strategyCounts: {},
   };
 }
@@ -49,8 +48,8 @@ export function recordAction(stats, action) {
   const name = action.strategy ?? "unknown";
   stats.strategyCounts[name] = (stats.strategyCounts[name] ?? 0) + 1;
 
-  if (action.action === A.XPLOIT) stats.cardsUsed++;
-  if (action.action === "buy-card") stats.storeVisits++;
+  if (action.action === A.XPLOIT) stats.autoBurns++;
+  if (action.action === "buy-pack") stats.storeVisits++;
   if (action.action === A.MINE) stats.mineAttempts++;
   if (action.action?.startsWith("disarm")) stats.disarmActionsUsed++;
 }
@@ -62,7 +61,7 @@ export function recordAction(stats, action) {
  */
 export function recordMineResolved(stats, detail) {
   stats.mineResolved++;
-  if (detail?.outcome === "card") stats.mineCards++;
+  if (detail?.outcome === "round") stats.mineRounds++;
 }
 
 /**

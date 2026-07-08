@@ -4,7 +4,6 @@
 
 /** @typedef {import('./types.js').WorldModel} WorldModel */
 /** @typedef {import('./types.js').WorldNode} WorldNode */
-/** @typedef {import('./types.js').WorldCard} WorldCard */
 
 import { getAvailableActions } from "../../js/core/actions/node-actions.js";
 import { A } from "../../js/core/action-ids.js";
@@ -13,7 +12,7 @@ import { activeIceInstances } from "../../js/core/state/ice.js";
 /**
  * Build a WorldModel snapshot from current game state.
  * @param {import('../../js/core/types.js').GameState} state
- * @param {{ failedExploits?: Set<string>, completedActions?: Set<string>, iceCooldown?: Set<string> }} [context]
+ * @param {{ failedNodes?: Set<string>, completedActions?: Set<string>, iceCooldown?: Set<string> }} [context]
  * @returns {WorldModel}
  */
 export function perceive(state, context = {}) {
@@ -98,19 +97,10 @@ export function perceive(state, context = {}) {
     }
   }
 
-  // Build card-to-node match map
-  /** @type {Map<string, string[]>} */
-  const cardMatchesByNode = new Map();
-  const hand = buildHand(state);
-
-  for (const [nodeId, node] of nodes) {
-    if (!node.vulnerabilities?.length) continue;
-    const vulnTypes = new Set(node.vulnerabilities.map(v => v.id));
-    const matching = hand.filter(c =>
-      c.targetVulnTypes.some(t => vulnTypes.has(t))
-    ).map(c => c.id);
-    if (matching.length > 0) cardMatchesByNode.set(nodeId, matching);
-  }
+  // Exploit hoard: usable (non-disclosed) rounds are the ammo the auto-burn loop
+  // draws from. hoardUsable gates whether XPLOIT is worth proposing at all.
+  const hoard = state.player.hoard ?? [];
+  const hoardUsable = hoard.filter((r) => !r.disclosed).length;
 
   // ICE state — aggregate over ALL active instances. isOnSelectedNode and
   // nodeId are any-instance aggregates so evasion (which reads them) keeps
@@ -156,33 +146,16 @@ export function perceive(state, context = {}) {
     minable,
     ice,
     player,
-    hand,
-    cardMatchesByNode,
+    hoard,
+    hoardUsable,
     availableActions,
     mission,
     gamePhase: state.phase,
-    failedExploits: context.failedExploits ?? new Set(),
+    failedNodes: context.failedNodes ?? new Set(),
     completedActions: context.completedActions ?? new Set(),
     iceCooldown: context.iceCooldown ?? new Set(),
     shortestPath,
   };
-}
-
-/**
- * Build hand summary from state.
- * @param {import('../../js/core/types.js').GameState} state
- * @returns {WorldCard[]}
- */
-function buildHand(state) {
-  return (state.player.hand ?? [])
-    .filter(c => c.usesRemaining > 0 && c.decayState !== "disclosed")
-    .map(c => ({
-      id: c.id,
-      name: c.name,
-      targetVulnTypes: c.targetVulnTypes,
-      quality: c.quality ?? 50,
-      usesLeft: c.usesRemaining,
-    }));
 }
 
 /**

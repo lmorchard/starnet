@@ -73,49 +73,19 @@ export function securityStrategy(world) {
         reason: "probe IDS for subversion",
         strategy: STRATEGY,
       });
-    } else {
-      // Probed but not owned — exploit (only if we have a matching card)
-      const card = pickBestCard(world, nodeId);
-      if (card) {
-        // Only propose at high priority if card actually matches a vuln
-        const matchingIds = world.cardMatchesByNode.get(nodeId) ?? [];
-        const isMatch = matchingIds.includes(card.id);
-        proposals.push({
-          action: A.XPLOIT,
-          nodeId,
-          score: (isMatch ? BASE_RECONFIGURE + 1 : BASE_RECONFIGURE - 30) - alertPenalty,
-          reason: isMatch ? "exploit IDS for subversion" : "hail-mary exploit on IDS",
-          strategy: STRATEGY,
-          payload: { exploitId: card.id },
-        });
-      }
+    } else if (world.hoardUsable > 0 && !world.failedNodes.has(nodeId)) {
+      // Probed but not owned — auto-burn the hoard (no card payload). Only when
+      // we have usable ammo and the node hasn't already stalled.
+      proposals.push({
+        action: A.XPLOIT,
+        nodeId,
+        score: (BASE_RECONFIGURE + 1) - alertPenalty,
+        reason: "auto-burn IDS for subversion",
+        strategy: STRATEGY,
+        payload: {},
+      });
     }
   }
 
   return proposals;
-}
-
-/**
- * @param {WorldModel} world
- * @param {string} nodeId
- * @returns {import('../types.js').WorldCard|null}
- */
-function pickBestCard(world, nodeId) {
-  const available = world.hand.filter(c =>
-    !world.failedExploits.has(`${nodeId}:${c.id}`)
-  );
-  if (available.length === 0) return null;
-
-  const matchingIds = world.cardMatchesByNode.get(nodeId);
-  const matching = matchingIds
-    ? available.filter(c => matchingIds.includes(c.id))
-    : [];
-
-  if (matching.length > 0) {
-    matching.sort((a, b) => b.quality - a.quality || b.usesLeft - a.usesLeft);
-    return matching[0];
-  }
-
-  const sorted = [...available].sort((a, b) => b.quality - a.quality);
-  return sorted[0];
 }
