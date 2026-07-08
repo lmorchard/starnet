@@ -17,7 +17,7 @@
 import { getState, revealNeighbors } from "./state.js";
 import { addProcess, nextProcessId } from "./state/process.js";
 import { registerProcess, activeProcessOnNode } from "./processes.js";
-import { setNodeAccessLevel, setNodeCoherence, setNodeCoherenceMax } from "./state/node.js";
+import { setNodeAccessLevel, setNodeCoherence, setNodeCoherenceMax, setNodeProbed } from "./state/node.js";
 import { markRoundDisclosed } from "./state/player.js";
 import { recordHeat } from "./alert.js";
 import { chip, rollDisclosure } from "./coherence.js";
@@ -43,6 +43,7 @@ function crackNode(nodeId) {
   const prev = node.accessLevel;
   const label = node.label ?? nodeId;
   setNodeAccessLevel(nodeId, "owned");
+  setNodeProbed(nodeId);   // "own it = know it": crack implies full recon, so DUMP is available
   revealNeighbors(nodeId);
   emitEvent(E.NODE_ACCESSED, { nodeId, label, prev, next: "owned" });
   emitEvent(E.ACTION_RESOLVED, {

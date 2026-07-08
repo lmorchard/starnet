@@ -17,6 +17,8 @@ import { clearAll, tick } from "../js/core/timers.js";
 import { _forceNext, RNG, initRng } from "../js/core/rng.js";
 import { COHERENCE, HEAT_COST, BURN_CEILING_DEFAULT } from "../js/core/balance.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
+import { getAvailableActions } from "../js/core/actions/node-actions.js";
+import { A } from "../js/core/action-ids.js";
 
 afterEach(() => { clearHandlers(); clearAll(); });
 
@@ -347,5 +349,60 @@ describe("state/node.js setNodeCoherence", () => {
     initGame(() => buildCorporateExchange(), "ab-nodecoherence-2");
     setNodeCoherence("gateway", 0);
     assert.equal(getState().nodes["gateway"].coherence, 0);
+  });
+});
+
+// ── Test: crackNode sets probed (own-it-know-it) ─────────────────────────────
+//
+// Regression: crackNode previously set accessLevel="owned" + revealNeighbors
+// but did NOT call setNodeProbed. A player who auto-burns an accessible+unprobed
+// node ended up with owned:true && probed:false, which blocks both DUMP (requires
+// probed:true) and PROBE (requires locked). The node's loot was permanently
+// unrecoverable. This test is the regression guard.
+
+describe("autoburn — crackNode sets probed (own-it-know-it)", () => {
+  it("cracked-unprobed node exposes DUMP after auto-burn owns it", () => {
+    // Scenario: player fires XPLOIT on a locked+unprobed node (skipping PROBE),
+    // auto-burn cracks it to owned. Without the fix, owned+probed:false means
+    // DUMP (needs probed:true) and PROBE (needs locked) are both unavailable —
+    // the loot is permanently unrecoverable. The fix: crackNode calls setNodeProbed.
+    initGame(() => buildCorporateExchange(), "ab-crack-probed-1");
+    initAutoBurn();
+
+    const s = () => getState();
+    // "office/fileserver" is a lootable node (has DUMP when owned+probed) that starts
+    // locked+unprobed — the classic scenario where a player fires XPLOIT without probing first.
+    const nodeId = "office/fileserver";
+
+    // Preconditions: not yet owned, not yet probed
+    assert.ok(s().nodes[nodeId], "precondition: node exists in the network");
+    assert.notEqual(s().nodes[nodeId].accessLevel, "owned",
+      "precondition: node is not owned before auto-burn");
+    assert.ok(!s().nodes[nodeId].probed,
+      "precondition: node is unprobed before auto-burn");
+
+    // Generous hoard, very low coherence → guaranteed crack in one tick batch
+    for (let i = 0; i < 20; i++) {
+      addRoundToHoard(makeRound("rare", `crack${i.toString(16).padStart(4, "0")}`));
+    }
+    setNodeCoherence(nodeId, 1); // nearly dead
+
+    startAutoBurn(nodeId);
+    tick(50);
+
+    // (a) Node is now owned
+    assert.equal(s().nodes[nodeId].accessLevel, "owned",
+      "(a) accessLevel === 'owned' after auto-burn crack");
+
+    // (b) Node is probed — "own it = know it"
+    assert.ok(s().nodes[nodeId].probed === true,
+      "(b) probed === true after auto-burn crack (own-it-know-it)");
+
+    // (c) DUMP is available — loot is recoverable
+    const node = s().nodes[nodeId];
+    const actions = getAvailableActions(node, s());
+    const hasDump = actions.some((a) => a.id === A.DUMP);
+    assert.ok(hasDump,
+      `(c) DUMP is in getAvailableActions for cracked node (available: ${actions.map(a=>a.id).join(", ")})`);
   });
 });
