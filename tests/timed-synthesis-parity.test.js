@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { createFileserver, createCryptovault } from "../js/core/node-graph/node-factories.js";
 import { NodeGraph } from "../js/core/node-graph/runtime.js";
 import { mockCtx } from "../js/core/node-graph/ctx.js";
+import { getTrait } from "../js/core/node-graph/traits.js";
 
 /** Expected (action → { activeAttr, durationTable }) the hand-wired operators used. */
 const EXPECTED = {
@@ -37,5 +38,31 @@ describe("core-verb synthesis parity (#288 A1)", () => {
       assert.deepEqual(op.durationTable, EXPECTED[action].durationTable, `${action} durationTable`);
       assert.deepEqual(op.onComplete?.[0]?.effect, "ctx-call", `${action} onComplete is a ctx-call`);
     }
+  });
+
+  it("hackable trait no longer hand-wires probe/mine timed-action operators", () => {
+    const hackableOps = getTrait("hackable").operators;
+    const timedActions = hackableOps
+      .filter((o) => o.name === "timed-action")
+      .map((o) => o.action);
+    assert.deepEqual(
+      timedActions,
+      [],
+      "hackable should declare no timed-action operators (probe/mine are synthesized)",
+    );
+    assert.ok(
+      hackableOps.some((o) => o.name === "sweep-cascade"),
+      "hackable should still declare sweep-cascade (untouched by #288 A1)",
+    );
+  });
+
+  it("lootable trait no longer hand-wires dump/fetch timed-action operators", () => {
+    const lootableOps = getTrait("lootable").operators;
+    const timedActions = lootableOps.filter((o) => o.name === "timed-action");
+    assert.deepEqual(
+      timedActions,
+      [],
+      "lootable should declare no timed-action operators at all (dump/fetch are synthesized)",
+    );
   });
 });
