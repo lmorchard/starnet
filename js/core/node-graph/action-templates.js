@@ -15,7 +15,9 @@
 /** @typedef {import('./types.js').OperatorConfig} OperatorConfig */
 
 import { A } from "../action-ids.js";
-import { getExploitChoices, getExploitEmptyReason } from "../exploits.js";
+// getExploitChoices / getExploitEmptyReason removed: XPLOIT followup (card picker)
+// was removed in Phase 3 (E1). Those functions remain in exploits.js for use by
+// profile/hub/store code (Phase 5 cleanup will sweep them).
 import { ABORTABLE_FLAGS, getTimedActionAttrNames } from "./timed-actions.js";
 
 // ── Shared action templates ──────────────────────────────────
@@ -88,39 +90,35 @@ const ABORT_ACTION = {
 };
 
 /**
- * Exploit action template. NOTE: the exploitId (card selection) is passed via
- * event payload, not through the action system. The dispatcher handles exploit
- * specially — it extracts exploitId and calls ctx.startExploit(nodeId, exploitId)
- * directly. The graph.executeAction path is bypassed for exploit.
+ * Exploit action template — launches the coherence auto-burn process.
  *
- * Multi-step action: choosing XPLOIT opens a node-anchored card picker (the UI reads
- * this followup). Picking a card re-dispatches starnet:action with { exploitId }, which
- * the dispatcher routes to ctx.startExploit. The hand + console supply exploitId directly
- * and skip the picker entirely.
+ * Phase 3 (E1 combat rework): XPLOIT is now arg-less. No card picker (followup)
+ * is offered; auto-burn draws from player.hoard directly. The node-actions.js
+ * special-case calls startAutoBurn(node.id) instead of the old startExploit.
+ *
+ * The NOT_BUSY guard and the active-process guard (node-actions.js) together
+ * ensure only one operation runs at a time. Auto-burn's busy-state comes from
+ * activeProcessOnNode, not from a timed-action flag — the NOT_BUSY conditions
+ * below guard entry; the process-level ABORT in node-actions.js handles cancel.
  * @type {ActionDef}
  */
 const EXPLOIT_ACTION = {
   id: A.XPLOIT,
   label: "XPLOIT",
-  desc: "Attack with an exploit card.",
+  desc: "Launch a coherence burn on this node.",
   requires: [
     { type: "node-attr", attr: "visibility", eq: "accessible" },
     ...NOT_BUSY,
-    // Owned nodes are already at max access — don't offer XPLOIT at all (the
-    // hand stays a full-agency override for a deliberate re-exploit).
+    // Owned nodes are already at max access — don't offer XPLOIT.
     { type: "not", condition: { type: "node-attr", attr: "accessLevel", eq: "owned" } },
-    // Finesse-locked nodes can't be brute-forced — they only trust a captured
-    // credential replayed in (REPLAY program). Harmless on ordinary nodes, where
-    // finesseLocked is undefined and reads as not-true.
+    // Finesse-locked nodes require a captured credential replayed in (REPLAY).
     { type: "not", condition: { type: "node-attr", attr: "finesseLocked", eq: true } },
   ],
-  followup: {
-    title: (node) => `XPLOIT ${node.id}`,
-    choices: getExploitChoices,
-    empty: getExploitEmptyReason,
-  },
+  // No followup: auto-burn is a single dispatch — no card selection needed.
   effects: [
-    { effect: "ctx-call", method: "startExploit", args: ["$nodeId"] },
+    // The node-actions.js special-case intercepts XPLOIT before graph.executeAction
+    // and calls startAutoBurn(node.id) directly. This effects array is vestigial
+    // (never executed for XPLOIT) but kept as documentation of intent.
   ],
 };
 

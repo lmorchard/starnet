@@ -3,7 +3,7 @@
 
 import { getState } from "../state.js";
 import { addLogEntry, getRecentLog } from "../log.js";
-import { exploitSortKey, getStoreCatalog } from "../exploits.js";
+import { getStoreCatalog } from "../exploits.js";
 import { getAvailableActions, getScriptActions } from "../actions/node-actions.js";
 import { buyFromStore } from "../store-logic.js";
 import {
@@ -78,20 +78,16 @@ export const COMMANDS = [
   // static `exec` command, not registered as top-level verbs. See dynamic-actions.js.
 
   // ── exploit ────────────────────────────────────────────────────────────────
+  // Phase 3 (E1 combat rework): xploit is now arg-less — launches auto-burn
+  // from player.hoard. No card selection needed.
 
   { verb: "xploit",
-    complete(args, partial, state) {
-      // Only cards (from the targeted node's hand ordering). Never node candidates.
-      if (args.length === 0 && state.selectedNodeId) return fromCards(state.player.hand, partial);
-      return null;
-    },
+    complete() { return null; },
     execute(args) {
-      const node = resolveImplicitNode();                 // targeted node or logs the error
+      if (args.length > 0) { addLogEntry("xploit takes no arguments — it acts on the targeted node.", "error"); return; }
+      const node = resolveImplicitNode();
       if (!node) return;
-      if (args.length < 1) { addLogEntry("Usage: xploit <card>  (target a node first)", "error"); return; }
-      const card = resolveCard(args.join(" "));
-      if (!card) return;
-      dispatch(A.XPLOIT, { nodeId: node.id, exploitId: card.id });
+      dispatch(A.XPLOIT, { nodeId: node.id });
     },
   },
 
@@ -215,22 +211,9 @@ export const COMMANDS = [
         }
 
         if (has.has(A.XPLOIT)) {
-          const sorted = [...s.player.hand].sort(
-            (a, b) => exploitSortKey(a, sel) - exploitSortKey(b, sel)
-          );
-          if (sorted.length > 0) {
-            lines.push(`  xploit <n>               — attack ${sel.id} (${sel.accessLevel}):`);
-            sorted.forEach((card, i) => {
-              const knownVulnIds = sel.probed
-                ? sel.vulnerabilities.filter((v) => !v.patched && !v.hidden).map((v) => v.id)
-                : [];
-              const matches = card.targetVulnTypes.some((t) => knownVulnIds.includes(t));
-              const worn = card.usesRemaining <= 0 ? "  [WORN]" : "";
-              const disclosed = card.decayState === "disclosed" ? "  [DISCLOSED]" : "";
-              const matchStr = sel.probed ? (matches ? "  ✓ match" : "  no match") : "";
-              lines.push(`    ${i + 1}. ${card.name} [${card.rarity}]  targets: ${card.targetVulnTypes.join(", ")}${matchStr}${worn}${disclosed}`);
-            });
-          }
+          // Phase 3 (E1): xploit is now arg-less — auto-burn draws from hoard.
+          const hoardCount = s.player.hoard?.length ?? 0;
+          lines.push(`  xploit                   — burn coherence on ${sel.id} (${sel.accessLevel}) [${hoardCount} rounds in hoard]`);
         }
 
         if (has.has(A.DUMP)) {
@@ -359,7 +342,7 @@ export const COMMANDS = [
         "  target <node>             Set active node (by id or label prefix)",
         "  untarget                  Clear node selection",
         "  probe                     Reveal vulnerabilities. Raises local alert.",
-        "  xploit <card>             Launch exploit. Card by index, id, or name prefix.",
+        "  xploit                    Launch coherence burn on targeted node (auto-burn from hoard).",
         "  dump                      Scan node contents.",
         "  fetch                     Collect macguffins from owned node.",
         "  exec [<script>]           Run a node script (corrupt, cancel-trace, unlock-vault, …). No arg lists scripts.",

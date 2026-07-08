@@ -87,6 +87,11 @@ export function addRoundToHoard(round) {
   mutate((s) => { s.player.hoard.push(round); });
 }
 
+/** Replace player.hoard with the given array. Used by tests to set up known hoard state. */
+export function setHoard(rounds) {
+  mutate((s) => { s.player.hoard = rounds; });
+}
+
 /** Marks a round in state.player.hoard as disclosed (pattern exposed). */
 export function markRoundDisclosed(roundId) {
   mutate((s) => {

@@ -24,7 +24,7 @@ import { resolveNode } from "./resolvers.js";
 import { cmdStatusNode } from "./cmd-status.js";
 import { addCardToHand } from "../state/player.js";
 import { setNodeAccessLevel, setNodeVisible, setNodeProbed } from "../state/node.js";
-import { generateExploit, exploitSortKey } from "../exploits.js";
+import { generateExploit } from "../exploits.js";
 import { flowId } from "../programs.js";
 import { clearAll } from "../timers.js";
 import { on, off, E } from "../events.js";
@@ -137,55 +137,30 @@ describe("untarget", () => {
 
 // ── exploit ───────────────────────────────────────────────────────────────────
 
+// Phase 3 (E1 combat rework): xploit is now arg-less — launches auto-burn from hoard.
+// No card selection. The console verb is a no-arg dispatch to A.XPLOIT.
 describe("xploit", () => {
-  it("dispatches exploit on the targeted node: card by 1-based index", () => {
+  it("dispatches xploit on the targeted node with no card argument", () => {
     navigateTo("gateway");
-    const card = generateExploit();
-    addCardToHand(card);
-    // resolveCard sorts by exploitSortKey when a node is selected, so the
-    // display index of our card depends on the full hand — compute it here.
-    const selectedNode = getState().nodes["gateway"];
-    const sorted = [...getState().player.hand].sort(
-      (a, b) => exploitSortKey(a, selectedNode) - exploitSortKey(b, selectedNode)
-    );
-    const idx = String(sorted.findIndex((c) => c.id === card.id) + 1);
-    const evts = actions(() => getCommand("xploit").execute([idx]));
-    assert.equal(evts.length, 1);
+    const evts = actions(() => getCommand("xploit").execute([]));
+    assert.equal(evts.length, 1, "exactly one action dispatched");
     assert.equal(evts[0].actionId, "xploit");
     assert.equal(evts[0].nodeId, "gateway");
-    assert.equal(evts[0].exploitId, card.id);
-  });
-
-  it("dispatches exploit on the targeted node: card by id", () => {
-    navigateTo("gateway");
-    const card = generateExploit();
-    addCardToHand(card);
-    const evts = actions(() => getCommand("xploit").execute([card.id]));
-    assert.equal(evts.length, 1);
-    assert.equal(evts[0].exploitId, card.id);
+    assert.ok(!evts[0].exploitId, "no exploitId — arg-less dispatch");
   });
 
   it("logs 'No node targeted' error and dispatches nothing when nothing is targeted", () => {
+    // No navigateTo → no targeted node
     let evts;
-    const ls = logs(() => { evts = actions(() => getCommand("xploit").execute(["some-card"])); });
+    const ls = logs(() => { evts = actions(() => getCommand("xploit").execute([])); });
     assert.ok(ls.some((l) => l.type === "error" && l.text.includes("No node targeted")));
     assert.equal(evts.length, 0);
   });
 
-  it("logs error for an unknown card", () => {
+  it("logs error when given unexpected arguments (xploit is arg-less)", () => {
     navigateTo("gateway");
-    const ls = logs(() => getCommand("xploit").execute(["no-such-card"]));
-    assert.ok(ls.some((l) => l.type === "error"));
-  });
-
-  it("the explicit-node form is gone: 'gateway AuthBrute' is treated as one card token, not node+card", () => {
-    navigateTo("gateway");
-    let evts;
-    const ls = logs(() => {
-      evts = actions(() => getCommand("xploit").execute(["gateway", "AuthBrute"]));
-    });
-    assert.equal(evts.length, 0, "must not dispatch an xploit against the literal 'gateway' node");
-    assert.ok(ls.some((l) => l.type === "error" && l.text.includes("gateway AuthBrute")));
+    const ls = logs(() => getCommand("xploit").execute(["some-extra-arg"]));
+    assert.ok(ls.some((l) => l.type === "error"), "error logged for unexpected arg");
   });
 });
 

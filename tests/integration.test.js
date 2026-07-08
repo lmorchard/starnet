@@ -52,6 +52,9 @@ import { buildNetwork as buildCorporateExchange } from "../data/networks/corpora
 import { activeIceInstances } from "../js/core/state/ice.js";
 import { cmdStatusIce } from "../js/core/console-commands/cmd-status.js";
 import { initActionDispatcher, buildActionContext } from "../js/core/actions/action-context.js";
+import { activeProcessOnNode } from "../js/core/processes.js";
+import { setNodeCoherence } from "../js/core/state/node.js";
+import { DEFAULT_START_HOARD } from "../js/core/hoard.js";
 
 /** First active ICE instance, or null. */
 const firstIce = () => activeIceInstances(getState())[0] ?? null;
@@ -1928,5 +1931,124 @@ describe("Exploit cards: duplicate id reconciliation", () => {
     deserializeState(snap);
     const ids = getState().player.hand.map((c) => c.id);
     assert.equal(new Set(ids).size, ids.length, `loaded hand ids must be unique, got: ${ids.join(", ")}`);
+  });
+});
+
+// ── Phase 3: XPLOIT → auto-burn wiring ───────────────────────────────────────
+//
+// TDD: these tests were written BEFORE the wiring was implemented.
+// They verify that:
+//   1. Dispatching XPLOIT launches an autoburn process (not the old card timed-action).
+//   2. A seeded hoard at run-start gives the auto-burn process ammo to crack a soft node.
+//   3. The full probe→XPLOIT→crack→owned→dump flow works headlessly.
+//   4. Console `xploit` (arg-less) launches the same process as the GUI dispatch.
+// Seed: "itest-xploit-autoburn" for determinism.
+
+describe("Phase 3: XPLOIT → coherence auto-burn (wiring)", () => {
+  // Soft LAN: gateway accessible, router-a exploitable (visibility: accessible, grade C)
+  function buildXploitLAN() {
+    return {
+      graphDef: {
+        nodes: [
+          createGateway("gateway", { attributes: { visibility: "accessible" } }),
+          createRouter("router-a", { attributes: { visibility: "accessible" } }),
+        ],
+        edges: [["gateway", "router-a"]],
+        triggers: [],
+      },
+      meta: { startNode: "gateway", startCash: 0, moneyCost: "C", ice: null },
+    };
+  }
+
+  beforeEach(() => {
+    clearAll();
+    initGame(() => buildXploitLAN(), "itest-xploit-autoburn");
+    initActionDispatcher(buildActionContext());
+  });
+
+  it("DEFAULT_START_HOARD is exported from hoard.js", () => {
+    // Phase 3: hoard.js must export DEFAULT_START_HOARD
+    assert.ok(DEFAULT_START_HOARD, "DEFAULT_START_HOARD exported");
+    assert.ok(DEFAULT_START_HOARD.common > 0, "has common rounds");
+  });
+
+  it("run-start seeds player.hoard with DEFAULT_START_HOARD rounds (not empty)", () => {
+    // Phase 3: initState must seed player.hoard from DEFAULT_START_HOARD
+    const hoard = getState().player.hoard;
+    assert.ok(hoard.length > 0, `player.hoard should be seeded at run-start, got length ${hoard.length}`);
+  });
+
+  it("dispatching XPLOIT starts an autoburn process on the target node", () => {
+    // Make router-a accessible + probed so XPLOIT is available
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+
+    // Dispatch XPLOIT via the action system (no exploitId — auto-burn is arg-less)
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+
+    assert.ok(
+      activeProcessOnNode(getState(), "router-a"),
+      "an autoburn process should be active on router-a after XPLOIT dispatch"
+    );
+  });
+
+  it("XPLOIT dispatch does NOT start the old timed-action (exploiting attr is not true)", () => {
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+
+    // The old timed-action path set node.exploiting = true; auto-burn must NOT do that
+    assert.notEqual(
+      getState().nodes["router-a"].exploiting,
+      true,
+      "auto-burn must not set the old exploiting timed-action flag to true"
+    );
+  });
+
+  it("full flow: probe → XPLOIT auto-burn → crack → owned", () => {
+    // Setup: make router-a soft (grade F-equivalent: set coherence low)
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+    setNodeCoherence("router-a", 5); // very low — will crack in a few rounds
+
+    const accessedEvents = [];
+    on(E.NODE_ACCESSED, (p) => accessedEvents.push(p));
+
+    // Launch auto-burn via action dispatch
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+    assert.ok(activeProcessOnNode(getState(), "router-a"), "process started");
+
+    // Run until crack
+    tick(200);
+
+    assert.equal(getState().nodes["router-a"].accessLevel, "owned", "router-a cracked to owned");
+    assert.ok(accessedEvents.some((e) => e.next === "owned"), "NODE_ACCESSED{next:owned} emitted");
+    assert.equal(getState().processes.length, 0, "process cleaned up after crack");
+  });
+
+  it("console xploit (arg-less) starts an autoburn process — same as GUI dispatch", () => {
+    // Point selection at router-a so the console verb has a target
+    const g = getState().nodeGraph;
+    g.setNodeAttr("router-a", "visibility", "accessible");
+    g.setNodeAttr("router-a", "accessLevel", "locked");
+    g.setNodeAttr("router-a", "probed", true);
+
+    // Select the node (console resolveImplicitNode reads selectedNodeId)
+    emitEvent("starnet:action", { actionId: A.SELECT, nodeId: "router-a" });
+
+    // Issue arg-less xploit via the console command
+    emitEvent("starnet:action", { actionId: A.XPLOIT, nodeId: "router-a" });
+
+    assert.ok(
+      activeProcessOnNode(getState(), "router-a"),
+      "console xploit must start an autoburn process (arg-less dispatch)"
+    );
   });
 });

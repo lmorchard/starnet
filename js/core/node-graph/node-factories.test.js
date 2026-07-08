@@ -143,12 +143,16 @@ describe("operators", () => {
     assert.ok(mon.operators.some(o => o.name === "flag" && o.on === "alert"));
   });
 
-  it("gateway and firewall have only timed-action operators from hackable", () => {
+  it("gateway and firewall have timed-action operators from hackable", () => {
     for (const factory of [createGateway, createFirewall]) {
       const def = resolve(factory("test"));
-      // hackable trait provides timed-action operators for probe + exploit
-      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "probe"));
-      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "xploit"));
+      // hackable trait provides timed-action operators for probe (+ mine for some types).
+      // Phase 3 (E1): xploit is now a progressive process (autoburn), not a timed action —
+      // the xploit timed-action operator was removed from hackable in this phase.
+      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "probe"),
+        "probe timed-action present");
+      assert.ok(!def.operators.some(o => o.name === "timed-action" && o.action === "xploit"),
+        "xploit timed-action removed (now autoburn process)");
     }
   });
 

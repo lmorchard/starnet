@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { initGame, getState } from "../js/core/state.js";
 import { startAutoBurn, initAutoBurn } from "../js/core/autoburn.js";
 import { activeProcessOnNode } from "../js/core/processes.js";
-import { addRoundToHoard, markRoundDisclosed, removeDisclosedRounds } from "../js/core/state/player.js";
+import { addRoundToHoard, markRoundDisclosed, removeDisclosedRounds, setHoard } from "../js/core/state/player.js";
 import { setNodeCoherence } from "../js/core/state/node.js";
 import { clearHandlers, on, E } from "../js/core/events.js";
 import { clearAll, tick } from "../js/core/timers.js";
@@ -96,8 +96,9 @@ describe("autoburn — hoard-dry stop", () => {
     const nodeId = "gateway";
     const s = () => getState();
 
-    // Put one round in the hoard — not enough to crack an S-grade node
-    addRoundToHoard(makeRound("common", "bbbb0001"));
+    // Replace hoard with exactly one round — not enough to crack an S-grade node.
+    // (initGame now seeds a generous default hoard; setHoard overrides it.)
+    setHoard([makeRound("common", "bbbb0001")]);
 
     // Force coherence very high (hard to crack)
     setNodeCoherence(nodeId, COHERENCE["S"] ?? 2000);
@@ -170,10 +171,12 @@ describe("autoburn — disclosure thins the hoard", () => {
     const nodeId = "gateway";
     const s = () => getState();
 
-    // Add exactly 3 rounds to the hoard
-    for (let i = 1; i <= 3; i++) {
-      addRoundToHoard(makeRound("common", `dddd000${i}`));
-    }
+    // Replace hoard with exactly 3 rounds (initGame seeds a generous default; setHoard overrides).
+    setHoard([
+      makeRound("common", "dddd0001"),
+      makeRound("common", "dddd0002"),
+      makeRound("common", "dddd0003"),
+    ]);
 
     // Set coherence high enough that the node won't crack in 3 shots
     setNodeCoherence(nodeId, COHERENCE["S"] ?? 2000);
@@ -263,12 +266,13 @@ describe("autoburn — no double-start", () => {
 // ── Bonus: player.hoard state additions ───────────────────────────────────────
 
 describe("state/player.js hoard setters", () => {
-  it("addRoundToHoard appends to player.hoard", () => {
+  it("addRoundToHoard appends a round to player.hoard", () => {
     initGame(() => buildCorporateExchange(), "ab-hoard-add-1");
+    const before = getState().player.hoard.length;
     const round = makeRound("common", "1111aaaa");
     addRoundToHoard(round);
-    assert.equal(getState().player.hoard.length, 1);
-    assert.equal(getState().player.hoard[0].id, "1111aaaa");
+    assert.equal(getState().player.hoard.length, before + 1, "hoard grew by one");
+    assert.ok(getState().player.hoard.some((r) => r.id === "1111aaaa"), "round present by id");
   });
 
   it("markRoundDisclosed marks the matching round", () => {
@@ -276,22 +280,24 @@ describe("state/player.js hoard setters", () => {
     const round = makeRound("uncommon", "2222bbbb");
     addRoundToHoard(round);
     markRoundDisclosed("2222bbbb");
-    assert.equal(getState().player.hoard[0].disclosed, true);
+    const marked = getState().player.hoard.find((r) => r.id === "2222bbbb");
+    assert.ok(marked?.disclosed, "round with id 2222bbbb is disclosed");
   });
 
   it("removeDisclosedRounds removes disclosed rounds and keeps undisclosed", () => {
     initGame(() => buildCorporateExchange(), "ab-hoard-remove-1");
-    addRoundToHoard(makeRound("common", "3333cccc"));
-    addRoundToHoard(makeRound("common", "4444dddd"));
+    // Use setHoard so the test controls exactly what is present.
+    setHoard([makeRound("common", "3333cccc"), makeRound("common", "4444dddd")]);
     markRoundDisclosed("3333cccc");
     removeDisclosedRounds();
-    assert.equal(getState().player.hoard.length, 1);
-    assert.equal(getState().player.hoard[0].id, "4444dddd");
+    assert.equal(getState().player.hoard.length, 1, "one round remains after removal");
+    assert.equal(getState().player.hoard[0].id, "4444dddd", "undisclosed round kept");
   });
 
-  it("player.hoard starts as empty array in initState", () => {
+  it("player.hoard is seeded at run-start (DEFAULT_START_HOARD rounds)", () => {
+    // Phase 3: hoard is seeded to DEFAULT_START_HOARD, not empty, at initGame.
     initGame(() => buildCorporateExchange(), "ab-hoard-init-1");
-    assert.deepEqual(getState().player.hoard, []);
+    assert.ok(getState().player.hoard.length > 0, "hoard non-empty after initGame");
   });
 });
 

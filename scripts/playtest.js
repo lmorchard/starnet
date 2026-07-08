@@ -111,7 +111,7 @@ if (generatedArg) {
 if (!cmdStr) {
   console.error("Usage: node scripts/playtest.js [--state <file>] [--seed <s>] [--time <grade>] [--money <grade>] [--force-piece <id>] <command>");
   console.error("Commands: reset  tick <n>  target <node>  untarget");
-  console.error("          probe  xploit <card>  dump  fetch  mine");
+  console.error("          probe  xploit  dump  fetch  mine");
   console.error("          sniff [flow]  replay  sweep <depth>  exec [<script>]  jackout");
   console.error("          abort  kick   reboot");
   console.error("          status [summary|full|ice|hand|node|alert|mission]");

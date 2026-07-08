@@ -27,6 +27,7 @@ import { RNG, initRng, getSeed, serializeRng, deserializeRng, randomPick, random
 import { pickIceTypeId, getType } from "../ice/index.js";
 import { generateStartingHand, generateVulnerabilities, _exploitIdCounter, setExploitIdCounter, reconcileHandIds } from "../exploits.js";
 import { generateMacguffin, flagMissionMacguffin } from "../loot.js";
+import { generateHoard, DEFAULT_START_HOARD } from "../hoard.js";
 import { clearAll as clearAllTimers, serializeTimers, deserializeTimers, setGraphForTick } from "../timers.js";
 import { emitEvent, E } from "../events.js";
 import { createRunContext, getActiveRun, setActiveRun, requireActiveRun } from "../run-context.js";
@@ -201,8 +202,10 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
       hand: meta.startHandCards
         ? meta.startHandCards.map((c) => ({ ...c, targetVulnTypes: [...c.targetVulnTypes] }))
         : generateStartingHand(meta.startHand),
-      // Exploit-round hoard: disposable ammo for the auto-burn loop (E1). Phase 4 wires XPLOIT here.
-      hoard: [],
+      // Exploit-round hoard: disposable ammo for the auto-burn loop (E1).
+      // Seeded from meta.startHoard (network override) or DEFAULT_START_HOARD.
+      // Mirrors meta.startHand / meta.startHandCards pattern.
+      hoard: generateHoard(meta.startHoard ?? DEFAULT_START_HOARD),
       health:        { current: meta.startHealth        ?? 100, max: meta.startHealth        ?? 100 },
       deckIntegrity: { current: meta.startDeckIntegrity ?? 100, max: meta.startDeckIntegrity ?? 100 },
       // Credential tokens captured off flows via SNIFF; consumed by REPLAY. Serializable.

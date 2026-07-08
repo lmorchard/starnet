@@ -158,6 +158,10 @@ registerTrait("hackable", {
     probed: false,
     vulnerabilities: [],
     probing: false,
+    // exploiting / activeExploitId removed: xploit is now a progressive process
+    // (autoburn), not a timed action. Attributes kept below as vestigial — they
+    // may be read by game-ctx.cancelExploit and abortTimedAction which are still
+    // called from the old card path (profile/hub/store, Phase 5 cleanup).
     exploiting: false,
     rebooting: false,
     alertState: "green",
@@ -175,17 +179,11 @@ registerTrait("hackable", {
       durationTable: { S: 50, A: 40, B: 30, C: 20, D: 20, F: 10 },
       onComplete: [{ effect: "ctx-call", method: "resolveProbe", args: ["$nodeId"] }],
     },
-    {
-      name: "timed-action",
-      action: "xploit",
-      activeAttr: "exploiting",
-      // No durationTable — ctx.startExploit sets duration from card quality
-      onComplete: [{ effect: "ctx-call", method: "resolveExploit", args: ["$nodeId"] }],
-      onProgressInterval: 0.1,
-      onProgressEffects: [
-        { effect: "emit-message", type: "exploit-noise", payload: {} },
-      ],
-    },
+    // xploit timed-action operator removed (Phase 3 E1): XPLOIT is now a
+    // progressive process (autoburn). The attributes above (exploiting,
+    // activeExploitId) stay vestigial until Phase 5 cleanup.
+    // OLD: { name: "timed-action", action: "xploit", activeAttr: "exploiting",
+    //        onComplete: [resolveExploit], … }
     {
       name: "timed-action",
       action: "mine",

@@ -34,8 +34,10 @@ function definedTimedActions() {
 
 describe("TIMED_ACTIONS registry", () => {
   test("getTimedActionAttrNames derives the conventional _ta_<action>_* names", () => {
+    // Phase 3 (E1): xploit is no longer in TIMED_ACTIONS (it's a progressive process now).
+    // activeAttr should be undefined for it; the _ta_ attr names still derive correctly.
     assert.deepEqual(getTimedActionAttrNames("xploit"), {
-      activeAttr: "exploiting",
+      activeAttr: undefined,
       progressAttr: "_ta_xploit_progress",
       durationAttr: "_ta_xploit_duration",
     });
@@ -47,9 +49,11 @@ describe("TIMED_ACTIONS registry", () => {
     });
   });
 
-  test("ABORTABLE_FLAGS excludes reboot (involuntary, ABORT can't cancel it)", () => {
-    assert.ok(!ABORTABLE_FLAGS.includes("rebooting"));
-    assert.deepEqual(ABORTABLE_FLAGS, ["probing", "exploiting", "reading", "looting", "mining", "lyingLow"]);
+  test("ABORTABLE_FLAGS excludes reboot (involuntary) and xploit (progressive process)", () => {
+    // Phase 3 (E1): xploit is no longer a timed action — it's auto-burn (progressive process).
+    assert.ok(!ABORTABLE_FLAGS.includes("rebooting"), "rebooting excluded (involuntary)");
+    assert.ok(!ABORTABLE_FLAGS.includes("exploiting"), "exploiting excluded (xploit is now autoburn)");
+    assert.deepEqual(ABORTABLE_FLAGS, ["probing", "reading", "looting", "mining", "lyingLow"]);
   });
 
   test("every defined timed-action operator matches a registry entry (action + activeAttr)", () => {

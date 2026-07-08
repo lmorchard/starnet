@@ -9,6 +9,16 @@
 import { RNG, random, shuffle } from "./rng.js";
 import { VULNERABILITY_TYPES, RARITY_WEIGHTS, pickTargetVulns } from "./exploits.js";
 
+// ── Default starting hoard ────────────────────────────────────────────────────
+
+/**
+ * Generous starting ammo for a fresh run. Placeholder values — feel / census
+ * tuned in a later phase once the full auto-burn loop is wired end-to-end.
+ * Networks may override via `meta.startHoard`.
+ * @type {{ common: number, uncommon: number, rare: number }}
+ */
+export const DEFAULT_START_HOARD = { common: 120, uncommon: 30, rare: 6 };
+
 // ── Hex-ID minting ────────────────────────────────────────────────────────────
 
 const TOTAL_WEIGHT = RARITY_WEIGHTS.reduce((s, r) => s + r.weight, 0);
