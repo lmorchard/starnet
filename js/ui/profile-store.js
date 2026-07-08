@@ -120,6 +120,15 @@ export function prepareLaunch({ withdrawAmount }) {
 let _commitWired = false;
 
 /**
+ * Reset the commit-wiring guard. TEST-ONLY — call in beforeEach after
+ * clearHandlers() so each lifecycle test re-registers the RUN_ENDED handler
+ * from a clean state. Never call this in production code.
+ */
+export function _resetCommitWiringForTest() {
+  _commitWired = false;
+}
+
+/**
  * Wire the run-end → profile commit (call once at app init). On RUN_ENDED:
  * clean deposits run cash and persists the final carried hoard; caught keeps the
  * hoard unchanged (E1: no loss) and deposits nothing (run cash already forfeit).

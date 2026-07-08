@@ -21,6 +21,7 @@ const { initRng } = await import("../js/core/rng.js");
 const { buildNetwork: buildCorporateFoothold } = await import("../data/networks/corporate-foothold.js");
 const {
   loadProfile, saveProfile, prepareLaunch, initProfileRunCommit,
+  _resetCommitWiringForTest,
 } = await import("../js/ui/profile-store.js");
 
 const PROFILE_KEY = "starnet:profile"; // mirror profile-store.js
@@ -52,7 +53,11 @@ describe("initGame — hoard seeding at run-start", () => {
 });
 
 describe("run lifecycle — profile ↔ run hoard", () => {
-  beforeEach(() => { localStorage.removeItem(PROFILE_KEY); initRng("lifecycle-test"); });
+  beforeEach(() => {
+    localStorage.removeItem(PROFILE_KEY);
+    initRng("lifecycle-test");
+    _resetCommitWiringForTest(); // reset guard so each test re-registers the RUN_ENDED handler
+  });
 
   it("launch seeds player.hoard from the profile; a clean jack-out persists the (thinned) hoard", () => {
     initProfileRunCommit();
