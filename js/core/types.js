@@ -64,6 +64,19 @@
  */
 
 /**
+ * A disposable exploit round in the player's hoard (E1 exploit economy).
+ * Unlike ExploitCards (named gear with uses and quality), rounds are anonymous
+ * ammunition identified by a terse hex tag. Rare rounds carry multiple exploit
+ * types; uncommon carry 2; common carry 1.
+ * @typedef {{
+ *   id: string,
+ *   rarity: Rarity,
+ *   types: string[],
+ *   disclosed: boolean,
+ * }} ExploitRound
+ */
+
+/**
  * Result of resolveExploit() / resolveCombat(). The first six fields are the pure
  * combat outcome; the rest form the side-effect-free PLAN that resolveCombat decides
  * and applyCombatResult executes (access transition, alert raise, staged-vuln
@@ -93,11 +106,15 @@
  * Per-node game state. Core fields are listed here; trait-provided attributes
  * (probing, exploiting, reading, looting, activeExploitId, mining, mineAttempts,
  * mineExhausted, etc.) are dynamic and accessed via index signature.
+ * `coherence` and `coherenceMax` are optional fields added by the E1 exploit-hoard
+ * combat rework — wired in a later phase; absent on nodes not yet participating.
  * @typedef {{
  *   id: string,
  *   type: string,
  *   label: string,
  *   visibility: string,
+ *   coherence?: number,
+ *   coherenceMax?: number,
  *   [key: string]: any,
  * }} NodeState
  */

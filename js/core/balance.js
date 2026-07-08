@@ -115,3 +115,19 @@ export const ICE_NOISE_THRESHOLD = { S: 1, A: 2, B: 3, C: 5, D: 7, F: 9 };
 // Matches the ICE movement animation duration so the visual and the
 // detection timer stay in sync — player sees ICE arrive, then countdown starts.
 export const ARRIVAL_DELAY_MS = 400;
+
+// ── Coherence erosion (exploit hoard auto-burn; E1) ──────────────────────────
+// Node coherence reserve by grade — how much fuzzing it absorbs before it faults.
+// Ported from feel-lab A (starting points; feel + census tuned later).
+export const COHERENCE      = { S: 2000, A: 1200, B: 700, C: 400, D: 220, F: 140 };
+// Base per-shot bite by grade (soft nodes take fatter chips).
+export const CHIP_FACTOR    = { S: 6, A: 10, B: 16, C: 26, D: 40, F: 60 };
+// Rarity multiplier on the bite.
+export const RARITY_PUNCH   = { common: 1, uncommon: 2.2, rare: 5 };
+// Type-match amplifier: a round whose type hits the node's revealed vuln profile
+// bites (1 + TYPE_BITE)x harder. Type amplifies; it does not gate eligibility.
+export const TYPE_BITE      = 1.0;
+// ± per-shot jitter fraction (liveliness; every shot still counts toward the break).
+export const CHIP_JITTER    = 0.15;
+// Run heat ceiling (the abort wager) — auto-burn stops when burst heat hits this.
+export const BURN_CEILING_DEFAULT = 40;
