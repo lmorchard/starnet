@@ -140,8 +140,8 @@ Create `SESSION/lab-a-boot.js`:
 ```js
 // Lab A — standalone butterchurn aesthetic proof. Throwaway reference lab.
 // butterchurn + presets from esm.sh (ESM build, matches the documented `import` API).
-import butterchurn from "https://esm.sh/butterchurn@3";
-import butterchurnPresets from "https://esm.sh/butterchurn-presets@3";
+import butterchurn from "https://esm.sh/butterchurn@2.6.7";
+import butterchurnPresets from "https://esm.sh/butterchurn-presets@2.4.7";
 
 const $ = (id) => document.getElementById(id);
 const canvas = $("bc");
@@ -215,7 +215,7 @@ export { audioCtx, analyser, shockBus, viz, loadPresetByName };
 - [ ] **Step 2: Verify butterchurn loads and animates to the mp3.**
 
 Reload the lab. Click **▶ start audio**.
-Expected: status shows "audio playing — N presets loaded"; the butterchurn canvas (once opacity is raised in the next task, or temporarily set `#bc` opacity to 1 in devtools) animates in time with the track. If `esm.sh@3` fails to resolve, fall back to `@2` or an unpinned `https://esm.sh/butterchurn` and note the working version in `notes.md`.
+Expected: status shows "audio playing — N presets loaded"; the butterchurn canvas (once opacity is raised in the next task, or temporarily set `#bc` opacity to 1 in devtools) animates in time with the track. Pins are the current stable releases (butterchurn `2.6.7`, presets `2.4.7`); `@3` is beta-only. If they fail to resolve, note the working version in `notes.md`.
 
 - [ ] **Step 3: Confirm WebGL2 is available.**
 
@@ -411,8 +411,8 @@ Create `SESSION/lab-b.js`. Uses the constants/preset chosen in Lab A (fill the C
 ```js
 // Lab B — live-game butterchurn brain-damage proof. Injected into the running game.
 // Reference artifact; does NOT modify shippable game logic. Loaded via ?dev flag (see README).
-import butterchurn from "https://esm.sh/butterchurn@3";
-import butterchurnPresets from "https://esm.sh/butterchurn-presets@3";
+import butterchurn from "https://esm.sh/butterchurn@2.6.7";
+import butterchurnPresets from "https://esm.sh/butterchurn-presets@2.4.7";
 import { getState } from "/js/core/state.js";
 import { on, E } from "/js/core/events.js";
 
