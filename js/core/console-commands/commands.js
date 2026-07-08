@@ -23,7 +23,7 @@ import {
 
 // ── Shared constants for completion ──────────────────────────────────────────
 
-const STATUS_NOUNS     = ["summary", "ice", "hand", "node", "alert", "mission"];
+const STATUS_NOUNS     = ["summary", "ice", "hoard", "hand", "node", "alert", "mission"];
 const SWEEP_DEPTHS     = ["1", "2", "3", "max"];
 const CHEAT_SUBS       = ["give", "alert", "hurt", "heal", "own", "own-all", "trace", "summon-ice", "teleport-ice", "ice-state", "snapshot", "relayout", "restore", "fps", "help"];
 const CHEAT_GIVE_SUBS  = ["matching", "card", "cash"];
@@ -271,12 +271,13 @@ export const COMMANDS = [
         case "full":    return cmdStatusFull();
         case "summary": return cmdStatusSummary();
         case "ice":     return cmdStatusIce();
-        case "hand":    return cmdStatusHand();
+        case "hoard":   return cmdStatusHand();  // primary noun for the new mechanic
+        case "hand":    return cmdStatusHand();  // alias — old muscle memory
         case "node":    return cmdStatusNode(args.slice(1));
         case "alert":   return cmdStatusAlert();
         case "mission": return cmdStatusMission();
         default:
-          addLogEntry(`Unknown status noun: ${noun}. Try: full summary ice hand node alert mission`, "error");
+          addLogEntry(`Unknown status noun: ${noun}. Try: full summary ice hoard hand node alert mission`, "error");
       }
     },
   },
@@ -352,7 +353,7 @@ export const COMMANDS = [
         "  reboot                    Send ICE home. Node offline briefly.",
         "  jackout                   Disconnect and end run.",
         "  actions                   List all currently valid actions with context.",
-        "  status [noun]             Game state. Nouns: summary ice hand node alert mission",
+        "  status [noun]             Game state. Nouns: summary ice hoard hand node alert mission",
         "  darknet                   List darknet broker pack catalog (requires WAN selected).",
         "  buy <index>               Purchase research pack from broker (requires WAN selected).",
         "  log [n]                   Replay last n log entries (default: 20).",

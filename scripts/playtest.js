@@ -114,7 +114,7 @@ if (!cmdStr) {
   console.error("          probe  xploit  dump  fetch  mine");
   console.error("          sniff [flow]  replay  sweep <depth>  exec [<script>]  jackout");
   console.error("          abort  kick   reboot");
-  console.error("          status [summary|full|ice|hand|node|alert|mission]");
+  console.error("          status [summary|full|ice|hoard|hand|node|alert|mission]");
   console.error("          actions  log [n]  help  cheat ...");
   process.exit(1);
 }
@@ -189,11 +189,21 @@ if (jsonMode) {
       out(`[${action.toUpperCase()}] ${label}: cancelled.`);
     }
   });
-  on(E.ACTION_RESOLVED, ({ action, label, success, detail }) => {
+  on(E.ACTION_RESOLVED, ({ action, nodeId, label, success, detail }) => {
     if (action === A.PROBE) out(`[NODE] ${label}: vulnerabilities scanned.`);
     else if (action === A.XPLOIT) {
       const d = detail ?? {};
-      out(`[EXPLOIT] ${label} — ${d.exploitName}: ${success ? "SUCCESS" : "FAIL"} (roll ${d.roll} vs ${d.successChance}%)`);
+      if (d.outcome === "cracked") {
+        const s = getState();
+        const nodeName = label ?? s?.nodes[nodeId]?.label ?? nodeId;
+        out(`[XPLOIT] CRACKED — ${nodeName} owned`);
+      } else if (d.outcome === "hoard-dry") {
+        out(`[XPLOIT] barrage stopped — hoard dry`);
+      } else if (d.outcome === "heat-ceiling") {
+        out(`[XPLOIT] barrage stopped — heat ceiling`);
+      } else {
+        out(`[EXPLOIT] ${label} — ${d.exploitName}: ${success ? "SUCCESS" : "FAIL"} (roll ${d.roll} vs ${d.successChance}%)`);
+      }
     }
     else if (action === A.DUMP) out(`[NODE] ${label}: ${detail?.macguffinCount ?? 0} item(s) found.`);
     else if (action === A.FETCH) out(`[NODE] ${label}: looted ${detail?.items} item(s) — ¥${(detail?.total ?? 0).toLocaleString()}.`);
@@ -222,9 +232,24 @@ if (jsonMode) {
   on(E.CREDENTIAL_CAPTURED,  ({ key })                   => out(`[SNIFF] Credential captured: ${key}.`));
   on(E.CREDENTIAL_REPLAYED,  ({ nodeId, key })           => out(`[REPLAY] ${nodeId}: credential ${key} accepted — trusted access.`));
   on(E.HEAT_ALARM,           ({ level })                 => out(`[HEAT] Activity noticed — alert rising to ${String(level).toUpperCase()}.`));
-  on(E.PROCESS_STARTED,      ({ type, nodeId, depthCap }) => { if (type === "sweep") out(`[SWEEP] ${nodeId}: broadcast probe — depth ${depthCap}.`); });
-  on(E.PROCESS_STEP,         ({ type, count })           => { if (type === "sweep") out(`[SWEEP] probed ${count} node(s).`); });
-  on(E.PROCESS_ENDED,        ({ type, reason })          => { if (type === "sweep") out(`[SWEEP] ${reason === "aborted" ? "aborted." : "complete."}`); });
+  on(E.PROCESS_STARTED, ({ type, nodeId, depthCap, ceiling }) => {
+    if (type === "sweep") out(`[SWEEP] ${nodeId}: broadcast probe — depth ${depthCap}.`);
+    else if (type === "autoburn") {
+      const s = getState();
+      const coh = s?.nodes[nodeId]?.coherenceMax ?? s?.nodes[nodeId]?.coherence ?? "?";
+      out(`[XPLOIT] Auto-burn on ${nodeId} — coherence ${coh}. Ceiling ${ceiling}.`);
+    }
+  });
+  on(E.PROCESS_STEP, ({ type, count, chip, coherence, disclosed }) => {
+    if (type === "sweep") out(`[SWEEP] probed ${count} node(s).`);
+    else if (type === "autoburn") {
+      const discNote = disclosed ? " · round burned" : "";
+      out(`[XPLOIT] chip ${chip} → coherence ${coherence}${discNote}`);
+    }
+  });
+  on(E.PROCESS_ENDED, ({ type, reason }) => {
+    if (type === "sweep") out(`[SWEEP] ${reason === "aborted" ? "aborted." : "complete."}`);
+  });
   on(E.ICE_MOVED,            ({ fromLabel, toLabel, fromVisible, toVisible }) => {
     if (fromVisible || toVisible) out(`[ICE] Moving: ${fromLabel} → ${toLabel}`);
   });

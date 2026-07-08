@@ -94,7 +94,7 @@ describe("tabComplete: status noun completion", () => {
 
   it("empty partial after status shows all nouns", () => {
     const r = tabComplete("status ", state);
-    assert.ok(r.suggestions.length === 6); // summary ice hand node alert mission
+    assert.ok(r.suggestions.length === 7); // summary ice hoard hand node alert mission
   });
 });
 

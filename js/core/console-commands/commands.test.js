@@ -254,7 +254,7 @@ describe("status sub-commands", () => {
   it("full — produces structured output", () => {
     const ls = logs(() => getCommand("status").execute(["full"]));
     assert.ok(ls.some((l) => l.text.includes("### NETWORK")));
-    assert.ok(ls.some((l) => l.text.includes("### HAND")));
+    assert.ok(ls.some((l) => l.text.includes("### HOARD")));
   });
 
   it("summary — contains seed and alert level", () => {
@@ -270,11 +270,11 @@ describe("status sub-commands", () => {
     assert.ok(ls.some((l) => l.text.match(/status:.*NONE|INACTIVE|ACTIVE/)));
   });
 
-  it("hand — reports hand size", () => {
-    const card = generateExploit();
-    addCardToHand(card);
+  it("hand — reports hoard (now aliases to status hoard)", () => {
+    // "status hand" now shows the hoard summary, not individual card names.
+    // Hoard is seeded at run-start; check that the HOARD header appears.
     const ls = logs(() => getCommand("status").execute(["hand"]));
-    assert.ok(ls.some((l) => l.text.includes(card.name)));
+    assert.ok(ls.some((l) => l.text.includes("HOARD")), "hand alias shows HOARD header");
   });
 
   it("alert — reports global alert", () => {

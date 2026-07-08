@@ -17,7 +17,7 @@
 import { getState, revealNeighbors } from "./state.js";
 import { addProcess, nextProcessId } from "./state/process.js";
 import { registerProcess, activeProcessOnNode } from "./processes.js";
-import { setNodeAccessLevel, setNodeCoherence } from "./state/node.js";
+import { setNodeAccessLevel, setNodeCoherence, setNodeCoherenceMax } from "./state/node.js";
 import { markRoundDisclosed } from "./state/player.js";
 import { recordHeat } from "./alert.js";
 import { chip, rollDisclosure } from "./coherence.js";
@@ -41,12 +41,14 @@ function crackNode(nodeId) {
   const node = s.nodes[nodeId];
   if (!node) return;
   const prev = node.accessLevel;
+  const label = node.label ?? nodeId;
   setNodeAccessLevel(nodeId, "owned");
   revealNeighbors(nodeId);
-  emitEvent(E.NODE_ACCESSED, { nodeId, prev, next: "owned" });
+  emitEvent(E.NODE_ACCESSED, { nodeId, label, prev, next: "owned" });
   emitEvent(E.ACTION_RESOLVED, {
     action: A.XPLOIT,
     nodeId,
+    label,
     success: true,
     detail: { outcome: "cracked" },
   });
@@ -145,9 +147,11 @@ export function startAutoBurn(nodeId, params = {}) {
   if (activeProcessOnNode(s, nodeId)) return;
   if (node.accessLevel === "owned") return;
 
-  // Lazy-seed coherence if not already set
+  // Lazy-seed coherence if not already set; record the max for UI readouts.
   if (node.coherence == null) {
-    setNodeCoherence(nodeId, COHERENCE[node.grade] ?? COHERENCE["C"]);
+    const cohMax = COHERENCE[node.grade] ?? COHERENCE["C"];
+    setNodeCoherence(nodeId, cohMax);
+    setNodeCoherenceMax(nodeId, cohMax);
   }
 
   const ceiling = params.ceiling ?? BURN_CEILING_DEFAULT;
