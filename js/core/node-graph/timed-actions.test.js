@@ -1,31 +1,40 @@
 // The TIMED_ACTIONS registry (#170) is the single source of truth for the
-// timed-action set. These tests assert the traits.js operator configs and the
-// attr-name helper stay consistent with it — so adding a timed action to one
-// place without the registry fails CI instead of drifting silently.
+// timed-action set. These tests assert the *synthesized* node operators (probe/
+// dump/fetch/mine/reboot are now produced by `synthesizeTimedActions` from their
+// ActionDef `timed:` blocks, #288 A1 — the trait objects no longer carry
+// hand-wired `timed-action` operators to scan directly) and the attr-name helper
+// stay consistent with the registry — so adding a timed action to one place
+// without the registry fails CI instead of drifting silently.
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { TIMED_ACTIONS, ABORTABLE_FLAGS, getTimedActionAttrNames } from "./timed-actions.js";
-import { getTrait } from "./traits.js";
+import { TIMED_ACTIONS, ABORTABLE_FLAGS, getTimedActionAttrNames, timedActiveAttr } from "./timed-actions.js";
+import { createCryptovault } from "./node-factories.js";
+import { NodeGraph } from "./runtime.js";
+import { mockCtx } from "./ctx.js";
 import { LIE_LOW_OPERATOR } from "./action-templates.js";
-
-// Importing traits.js registers the built-in traits at module load.
-const TRAITS_WITH_TIMED_ACTIONS = ["hackable", "lootable", "rebootable"];
 
 /**
  * Every (action, activeAttr) from a timed-action operator the game defines —
- * across the built-in traits plus the standalone LIE_LOW_OPERATOR in action-templates.js
- * (lie-low is a WAN action, not a trait). This is the set the registry must mirror.
+ * read off a constructed cryptovault node (composes hackable + lootable + rebootable,
+ * so it synthesizes probe/dump/fetch/mine/reboot) plus the standalone LIE_LOW_OPERATOR
+ * in action-templates.js (lie-low is a WAN action, not a trait). This is the set the
+ * registry must mirror.
+ *
+ * Cryptovault also synthesizes a `kick` timed-action (rebootable's KICK_ACTION has
+ * carried its own flat `timed:{duration:5}` block since #187, unrelated to this task's
+ * migration) — it's excluded here because it mints the default `_ta_active_kick`
+ * attr rather than an irregular hand-picked one, so per timed-actions.js's own
+ * contract it has no fixed activeAttr to register (see `timedActiveAttr` doc comment).
  */
 function definedTimedActions() {
-  const found = [];
-  for (const name of TRAITS_WITH_TIMED_ACTIONS) {
-    const trait = getTrait(name);
-    for (const op of trait?.operators ?? []) {
-      if (op.name === "timed-action") found.push({ action: op.action, activeAttr: op.activeAttr });
-    }
-  }
+  const def = createCryptovault("cv", { grade: "B" });
+  const g = new NodeGraph({ nodes: [def], edges: [] }, mockCtx());
+  const node = g._nodes.get("cv");
+  const found = node.operators
+    .filter((o) => o.name === "timed-action" && o.activeAttr !== timedActiveAttr(o.action))
+    .map((o) => ({ action: o.action, activeAttr: o.activeAttr }));
   if (LIE_LOW_OPERATOR?.name === "timed-action") {
     found.push({ action: LIE_LOW_OPERATOR.action, activeAttr: LIE_LOW_OPERATOR.activeAttr });
   }
