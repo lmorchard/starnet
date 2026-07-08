@@ -130,12 +130,10 @@ const DUMP_ACTION = {
   label: "DUMP",
   desc: "Scan node contents for loot or connections.",
   requires: [
-    {
-      type: "any-of", conditions: [
-        { type: "node-attr", attr: "accessLevel", eq: "open" },
-        { type: "node-attr", attr: "accessLevel", eq: "owned" },
-      ],
-    },
+    // Available once recon exposes the node — probed is enough (whether or not
+    // owned). Access collapsed to two tiers, so "reveal loot on recon" hangs off
+    // probed, not an intermediate access step.
+    { type: "node-attr", attr: "probed", eq: true },
     { type: "node-attr", attr: "read", eq: false },
     ...NOT_BUSY,
   ],
@@ -222,12 +220,7 @@ const RECONFIGURE_ACTION = {
   label: "CORRUPT",
   desc: "Disable event forwarding to security monitor.",
   requires: [
-    {
-      type: "any-of", conditions: [
-        { type: "node-attr", attr: "accessLevel", eq: "open" },
-        { type: "node-attr", attr: "accessLevel", eq: "owned" },
-      ],
-    },
+    { type: "node-attr", attr: "accessLevel", eq: "owned" },
     { type: "node-attr", attr: "forwardingEnabled", eq: true },
     ...NOT_BUSY,
   ],
@@ -292,12 +285,7 @@ const SCRUB_LOGS_ACTION = {
   id: A.SCRUB_LOGS,
   label: "SCRUB LOGS",
   desc: "Wipe this monitor's accumulated alert logs, easing the global alert one level.",
-  requires: [{
-    type: "any-of", conditions: [
-      { type: "node-attr", attr: "accessLevel", eq: "open" },
-      { type: "node-attr", attr: "accessLevel", eq: "owned" },
-    ],
-  }],
+  requires: [{ type: "node-attr", attr: "accessLevel", eq: "owned" }],
   effects: [
     { effect: "ctx-call", method: "scrubLogs", args: ["$nodeId"] },
   ],

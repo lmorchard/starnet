@@ -14,7 +14,7 @@
 /** @typedef {import('./types.js').GameState} GameState */
 /** @typedef {import('./types.js').Process} Process */
 
-import { getState } from "./state.js";
+import { getState, revealNeighbors } from "./state.js";
 import { addProcess, nextProcessId } from "./state/process.js";
 import { registerProcess, activeProcessOnNode } from "./processes.js";
 import { setNodeAccessLevel, setNodeCoherence } from "./state/node.js";
@@ -29,7 +29,10 @@ import { A } from "./action-ids.js";
 // ── Crack helper ──────────────────────────────────────────────────────────────
 
 /**
- * Grant access: set node to "owned" and emit the standard pair of game events.
+ * Grant access: set node to "owned", reveal its neighbors, and emit the standard
+ * pair of game events. Owning a node reveals what's beyond it — the same "own it =
+ * see past it" rule the retired card path applied, and the only reveal path for
+ * gateAccess:"owned" gates (firewalls, IDS, monitors) now that access is two-tier.
  * Decoupled from the process step so it reads cleanly and can be tested standalone.
  * @param {string} nodeId
  */
@@ -39,6 +42,7 @@ function crackNode(nodeId) {
   if (!node) return;
   const prev = node.accessLevel;
   setNodeAccessLevel(nodeId, "owned");
+  revealNeighbors(nodeId);
   emitEvent(E.NODE_ACCESSED, { nodeId, prev, next: "owned" });
   emitEvent(E.ACTION_RESOLVED, {
     action: A.XPLOIT,

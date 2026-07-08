@@ -86,6 +86,39 @@ describe("autoburn — crack a soft node", () => {
   });
 });
 
+// ── Test 1b: Crack reveals neighbors ──────────────────────────────────────────
+
+describe("autoburn — crack reveals neighbors", () => {
+  it("owning a node via auto-burn reveals its hidden neighbors", () => {
+    initGame(() => buildCorporateExchange(), "ab-crack-reveal-1");
+    initAutoBurn();
+
+    const s = () => getState();
+    // switch-1 (a router) is adjacent to switch-2, which starts hidden.
+    const nodeId = "switch-1";
+    const neighborId = "switch-2";
+
+    assert.equal(
+      s().nodes[neighborId].visibility, "hidden",
+      "precondition: neighbor starts hidden",
+    );
+
+    for (let i = 0; i < 20; i++) {
+      addRoundToHoard(makeRound("rare", `abcd${i.toString(16).padStart(4, "0")}`));
+    }
+    setNodeCoherence(nodeId, 1); // nearly dead → cracks fast
+
+    startAutoBurn(nodeId);
+    tick(50);
+
+    assert.equal(s().nodes[nodeId].accessLevel, "owned", "node cracked to owned");
+    assert.notEqual(
+      s().nodes[neighborId].visibility, "hidden",
+      "cracking the node revealed its hidden neighbor",
+    );
+  });
+});
+
 // ── Test 2: Hoard-dry stop ────────────────────────────────────────────────────
 
 describe("autoburn — hoard-dry stop", () => {

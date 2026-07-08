@@ -106,6 +106,11 @@ describe("default attributes", () => {
     assert.equal(fw.attributes.gateAccess, "owned");
   });
 
+  it("router gateAccess is probed (reveals neighbors on recon, unlike a firewall)", () => {
+    const r = resolve(createRouter("r-1"));
+    assert.equal(r.attributes.gateAccess, "probed");
+  });
+
   it("wan starts accessible and owned", () => {
     const wan = createWAN("wan-1");
     assert.equal(wan.attributes.visibility, "accessible");
@@ -198,8 +203,9 @@ describe("action availability", () => {
     assert.ok(!actions.some(a => a.id === "xploit"));
   });
 
-  it("exploit still available on open node", () => {
-    const gw = createGateway("gw", { attributes: { visibility: "accessible", accessLevel: "open" } });
+  it("exploit still available on a not-yet-owned accessible node", () => {
+    // XPLOIT is offered on any accessible node that isn't already owned.
+    const gw = createGateway("gw", { attributes: { visibility: "accessible", accessLevel: "locked" } });
     const graph = new NodeGraph({ nodes: [gw], edges: [] });
     const actions = graph.getAvailableActions("gw");
     assert.ok(actions.some(a => a.id === "xploit"));
@@ -212,9 +218,10 @@ describe("action availability", () => {
     assert.ok(!actions.some(a => a.id === "xploit"));
   });
 
-  it("dump available on open unread fileserver", () => {
+  it("dump available on probed unread fileserver", () => {
+    // DUMP is gated on recon (probed), not on an access step.
     const fs = createFileserver("fs", {
-      attributes: { visibility: "accessible", accessLevel: "open" },
+      attributes: { visibility: "accessible", accessLevel: "locked", probed: true },
     });
     const graph = new NodeGraph({ nodes: [fs], edges: [] });
     const actions = graph.getAvailableActions("fs");
@@ -239,9 +246,9 @@ describe("action availability", () => {
     assert.ok(!actions.some(a => a.id === "fetch"));
   });
 
-  it("corrupt available on open IDS with forwarding enabled", () => {
+  it("corrupt available on owned IDS with forwarding enabled", () => {
     const ids = createIDS("ids-1", {
-      attributes: { visibility: "accessible", accessLevel: "open" },
+      attributes: { visibility: "accessible", accessLevel: "owned" },
     });
     const graph = new NodeGraph({ nodes: [ids], edges: [] });
     const actions = graph.getAvailableActions("ids-1");

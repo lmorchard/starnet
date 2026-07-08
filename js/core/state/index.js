@@ -306,7 +306,7 @@ export function getState() {
 }
 
 // ── Graph traversal utilities ────────────────────────────
-// Used by combat.js, cheats.js — reveal/access neighbor nodes.
+// Used by autoburn.js, cheats.js — reveal/access neighbor nodes.
 
 export function revealNeighbors(nodeId) {
   const state = getState();
@@ -377,7 +377,7 @@ export function isIceVisible(ice, nodes, selectedNodeId = null) {
   if (!ice?.active) return false;
   if (selectedNodeId && ice.attentionNodeId === selectedNodeId) return true;
   const atAccess = nodes[ice.attentionNodeId]?.accessLevel;
-  return atAccess === "open" || atAccess === "owned";
+  return atAccess === "owned";
 }
 
 // ── Store / card acquisition ──────────────────────────────

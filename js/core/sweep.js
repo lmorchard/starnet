@@ -7,7 +7,8 @@
  * (initSweepForwarding) sends sweep-pulse{ttl-1} to each now-revealed reachable neighbor and
  * clears the node's _cascade_ttl. The process step() is a liveness watcher — it returns true
  * (ended) when no node carries _cascade_ttl. Gate-bounded (resolveProbe reveals neighbors only
- * through probe-gate nodes → stops at routers/firewalls/IDS/monitors) and depth-capped.
+ * through probe-gate nodes → flows through routers, stops at owned-gates: firewalls/IDS/monitors)
+ * and depth-capped.
  *
  * Heat: each node hit charges HEAT_COST.sweep up front (via the sweep-cascade operator) plus the
  * probe's own HEAT_COST.probe on completion — a wide/deep sweep is loud.

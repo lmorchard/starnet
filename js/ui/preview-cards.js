@@ -165,7 +165,7 @@ export function mountIndicatorSwatches(container) {
 
   // Access level — 3-chevron tier badge (lit bottom-up by tier)
   row("Access level");
-  for (const level of ["locked", "open", "owned"]) {
+  for (const level of ["locked", "owned"]) {
     container.appendChild(cell(accessGlyphDataUri(level), level));
   }
 }

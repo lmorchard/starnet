@@ -26,18 +26,12 @@ import { setNodeRebooting } from "../state/node.js";
 import { RNG, random } from "../rng.js";
 import { setGlobalAlert } from "../state/alert.js";
 import { emitEvent, E } from "../events.js";
-// Exploit duration formula: higher quality = longer execution (more complex payload).
-// Range: 2s (quality=0) to 7s (quality=1).
-function exploitDuration(quality) {
-  return Math.round((2 + quality * 5) * 1000); // ms
-}
 import { endRun, nextAlertLevel, revealNeighbors } from "../state.js";
 import { pauseTimers } from "../timers.js";
 import { getState } from "../state.js";
 import { abortNodeProcesses } from "../processes.js";
 import { setNodeProbed, setNodeAlertState, setNodeRead, collectMacguffins, setNodeLooted, incrementMineAttempts, setMineExhausted } from "../state/node.js";
 import { setLastDisturbedNode } from "../state/ice.js";
-import { launchExploit } from "../combat.js";
 import { getTimedActionAttrNames, ABORTABLE_TIMED_ACTIONS, TIMED_ACTIONS } from "./timed-actions.js";
 import { sniffFlow, replayCredential } from "../programs.js";
 
@@ -93,27 +87,6 @@ export function buildGameCtx(opts = {}) {
     // in the trait-based action system. These stubs remain for backward compat.
     startProbe: (_nodeId) => { /* now handled by timed-action operator */ },
     cancelProbe: () => { /* now handled by abort action */ },
-    startExploit: (nodeId, exploitId) => {
-      // Exploit is special: needs exploitId from event payload to compute duration.
-      // Set node attributes so the timed-action operator drives the lifecycle.
-      const s = getState();
-      const node = s.nodes[nodeId];
-      const exploit = s.player.hand.find((c) => c.id === exploitId);
-      if (!node || !exploit || exploit.decayState === "disclosed" || exploit.usesRemaining === 0) return;
-
-      const durationMs = exploitDuration(exploit.quality);
-      const durationTicks = Math.round(durationMs / 100); // 100ms per tick
-      if (ctx._graph) {
-        ctx._graph.setNodeAttr(nodeId, "exploiting", true);
-        ctx._graph.setNodeAttr(nodeId, "activeExploitId", exploitId);
-        ctx._graph.setNodeAttr(nodeId, progressAttr("xploit"), 0);
-        ctx._graph.setNodeAttr(nodeId, durationAttr("xploit"), durationTicks);
-      }
-      // Emit start feedback immediately (operator skips start for pre-set durations)
-      emitEvent(E.ACTION_FEEDBACK, { nodeId, action: A.XPLOIT, phase: "start", progress: 0, durationTicks });
-      // Alert ICE immediately
-      setLastDisturbedNode(nodeId);
-    },
     cancelExploit: () => {
       // Find the node that's exploiting and reset it
       const s = getState();
@@ -233,14 +206,6 @@ export function buildGameCtx(opts = {}) {
       if (newAlert && newAlert !== prevAlert) {
         emitEvent(E.NODE_ALERT_RAISED, { nodeId, label: node.label, prev: prevAlert, next: newAlert });
       }
-    },
-
-    resolveExploit: (nodeId) => {
-      const s = getState();
-      const node = s.nodes[nodeId];
-      const exploitId = /** @type {any} */ (node)?.activeExploitId;
-      if (!exploitId) return;
-      launchExploit(nodeId, exploitId);
     },
 
     resolveRead: (nodeId) => {

@@ -311,7 +311,7 @@
  * mock; the real game wires up actual implementations later.
  *
  * Includes both set-piece-level callbacks (startTrace, giveReward, etc.) and
- * game action callbacks (startProbe, startExploit, etc.) so that NodeDef actions
+ * game action callbacks (startProbe, resolveProbe, etc.) so that NodeDef actions
  * can invoke any game function via ctx-call effects.
  *
  * @typedef {Object} CtxInterface
@@ -332,7 +332,6 @@
  * @property {(message: string) => void} log
  * @property {(nodeId: string) => void} startProbe
  * @property {() => void} cancelProbe
- * @property {(nodeId: string, exploitId?: string) => void} startExploit
  * @property {() => void} cancelExploit
  * @property {(nodeId: string) => void} startRead
  * @property {() => void} cancelRead
@@ -345,7 +344,6 @@
  * @property {() => void} openDarknetsStore
  * @property {() => void} jackOut
  * @property {(nodeId: string) => void} [resolveProbe]
- * @property {(nodeId: string) => void} [resolveExploit]
  * @property {(nodeId: string) => void} [resolveRead]
  * @property {(nodeId: string) => void} [resolveLoot]
  * @property {(nodeId: string) => void} [resolveMine]

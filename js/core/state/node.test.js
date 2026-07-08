@@ -26,8 +26,8 @@ describe("state/node — node mutations", () => {
 
   it("setNodeAccessLevel changes accessLevel and bumps version", () => {
     const v = getVersion();
-    setNodeAccessLevel("gateway", "open");
-    assert.equal(getState().nodes["gateway"].accessLevel, "open");
+    setNodeAccessLevel("gateway", "owned");
+    assert.equal(getState().nodes["gateway"].accessLevel, "owned");
     assert.equal(getVersion(), v + 1);
   });
 
@@ -129,13 +129,6 @@ describe("state/node — isObscured", () => {
     // (PROBE requires locked), so the only escape from sig-N is the "own it = know it" rule.
     assert.equal(
       isObscured({ sigAlias: "sig-11", accessLevel: "owned", probed: false }),
-      false
-    );
-  });
-
-  it("open-but-unprobed node is NOT obscured (you're inside it)", () => {
-    assert.equal(
-      isObscured({ sigAlias: "sig-1", accessLevel: "open", probed: false }),
       false
     );
   });

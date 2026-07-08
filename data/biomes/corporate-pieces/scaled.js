@@ -20,7 +20,7 @@ export const largeServerBank = {
   id: "large-server-bank",
   description: "Cluster of five lootable fileservers connected to a hub. Rich harvest.",
   nodes: [
-    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "open" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "probed" }, operators: [{ name: "relay" }], actions: [] },
     { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
@@ -216,7 +216,7 @@ export const dataCenter = {
   id: "data-center",
   description: "Hub connected to six fileservers. Major loot haul for deep runs.",
   nodes: [
-    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "open" }, operators: [{ name: "relay" }], actions: [] },
+    { id: "hub", type: "router", traits: ["graded", "hackable", "rebootable", "gate"], attributes: { accessLevel: "locked", gateAccess: "probed" }, operators: [{ name: "relay" }], actions: [] },
     { id: "server-1", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-2", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },
     { id: "server-3", type: "fileserver", traits: ["graded", "hackable", "rebootable", "lootable", "gate"], attributes: { accessLevel: "locked" }, operators: [], actions: [] },

@@ -348,10 +348,9 @@ registerTrait("encrypted", {
     label: "DUMP",
     desc: "Scan encrypted node contents (requires decryption key).",
     requires: [
-      { type: "any-of", conditions: [
-        { type: "node-attr", attr: "accessLevel", eq: "open" },
-        { type: "node-attr", attr: "accessLevel", eq: "owned" },
-      ]},
+      // Mirror DUMP: available once recon exposes the node (probed), not gated on
+      // an intermediate access step (access is now two-tier).
+      { type: "node-attr", attr: "probed", eq: true },
       { type: "node-attr", attr: "read", eq: false },
       { type: "node-attr", attr: "rebooting", eq: false },
       { type: "node-attr", attr: "reading", eq: false },

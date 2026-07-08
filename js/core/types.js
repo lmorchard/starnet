@@ -6,7 +6,7 @@
 // ── String union types ────────────────────────────────────
 
 /** @typedef {"hidden"|"revealed"|"accessible"} Visibility */
-/** @typedef {"locked"|"open"|"owned"} AccessLevel */
+/** @typedef {"locked"|"owned"} AccessLevel */
 /** @typedef {"green"|"yellow"|"red"} NodeAlertLevel */
 /** @typedef {"green"|"yellow"|"red"|"trace"} GlobalAlertLevel */
 /** @typedef {"fresh"|"worn"|"disclosed"} DecayState */
@@ -74,30 +74,6 @@
  *   types: string[],
  *   disclosed: boolean,
  * }} ExploitRound
- */
-
-/**
- * Result of resolveExploit() / resolveCombat(). The first six fields are the pure
- * combat outcome; the rest form the side-effect-free PLAN that resolveCombat decides
- * and applyCombatResult executes (access transition, alert raise, staged-vuln
- * surfacing). partialBurn is set later by applyCardDecay.
- * @typedef {{
- *   success: boolean,
- *   disclosed: boolean,
- *   successChance: number,
- *   roll: number,
- *   matchingVulns: Vulnerability[],
- *   flavor: string,
- *   levelChanged?: boolean,
- *   partialBurn?: boolean,
- *   skippedToOwned?: boolean,
- *   prevAccess?: AccessLevel,
- *   nextAccess?: AccessLevel,
- *   revealNeighbors?: boolean,
- *   vulnsToSurface?: number[],
- *   prevAlert?: NodeAlertLevel,
- *   nextAlert?: NodeAlertLevel,
- * }} ExploitResult
  */
 
 // ── Composite shapes ──────────────────────────────────────
@@ -317,7 +293,7 @@
  *   lootConfig?:    { count: number[] },
  *   combatConfig?:  CombatConfig,
  *   vulnConfig?:    VulnConfig,
- *   gateAccess?:    "probed"|"open"|"owned",
+ *   gateAccess?:    "probed"|"owned",
  *   gradeOverrides?: Partial<Record<Grade, GradeOverride>>,
  * }} NodeTypeDef
  */
