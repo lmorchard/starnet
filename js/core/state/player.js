@@ -81,3 +81,21 @@ export function setPlayerDeckIntegrity(value) {
     s.player.deckIntegrity.current = Math.min(s.player.deckIntegrity.max, Math.max(0, value));
   });
 }
+
+/** Pushes an ExploitRound to state.player.hoard. */
+export function addRoundToHoard(round) {
+  mutate((s) => { s.player.hoard.push(round); });
+}
+
+/** Marks a round in state.player.hoard as disclosed (pattern exposed). */
+export function markRoundDisclosed(roundId) {
+  mutate((s) => {
+    const r = s.player.hoard.find((r) => r.id === roundId);
+    if (r) r.disclosed = true;
+  });
+}
+
+/** Removes all disclosed rounds from state.player.hoard. */
+export function removeDisclosedRounds() {
+  mutate((s) => { s.player.hoard = s.player.hoard.filter((r) => !r.disclosed); });
+}

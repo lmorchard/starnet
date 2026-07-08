@@ -163,6 +163,7 @@
  * @typedef {{
  *   cash: number,
  *   hand: ExploitCard[],
+ *   hoard: ExploitRound[],
  *   health: { current: number, max: number },
  *   deckIntegrity: { current: number, max: number },
  *   capturedCredentials: string[],

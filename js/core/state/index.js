@@ -41,6 +41,9 @@ import { buildGameCtx } from "../node-graph/game-ctx.js";
 // Import sweep.js: registers the sweep-cascade operator (side effect) and also
 // exports initSweepForwarding so initGame can re-register it after clearHandlers().
 import { initSweepForwarding } from "../sweep.js";
+// Import autoburn.js: registers the "autoburn" process type (side effect) and also
+// exports initAutoBurn so initGame can re-register its event handler after clearHandlers().
+import { initAutoBurn } from "../autoburn.js";
 
 // ── State + version counter ──────────────────────────────
 
@@ -130,6 +133,8 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
 
   // Re-register sweep forwarding handler (cleared by clearHandlers() between runs/tests).
   initSweepForwarding();
+  // Re-register auto-burn process (cleared by clearHandlers() between runs/tests).
+  initAutoBurn();
 
   // Generate vulnerabilities for each node (seeded RNG)
   for (const nodeId of graph.getNodeIds()) {
@@ -196,6 +201,8 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
       hand: meta.startHandCards
         ? meta.startHandCards.map((c) => ({ ...c, targetVulnTypes: [...c.targetVulnTypes] }))
         : generateStartingHand(meta.startHand),
+      // Exploit-round hoard: disposable ammo for the auto-burn loop (E1). Phase 4 wires XPLOIT here.
+      hoard: [],
       health:        { current: meta.startHealth        ?? 100, max: meta.startHealth        ?? 100 },
       deckIntegrity: { current: meta.startDeckIntegrity ?? 100, max: meta.startDeckIntegrity ?? 100 },
       // Credential tokens captured off flows via SNIFF; consumed by REPLAY. Serializable.

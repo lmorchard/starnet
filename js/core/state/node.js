@@ -58,6 +58,15 @@ export function setNodeAccessLevel(nodeId, level) {
   syncToGraph(nodeId, "accessLevel", level);
 }
 
+/** Sets node.coherence (remaining coherence reserve before the node faults). */
+export function setNodeCoherence(nodeId, value) {
+  mutate((s) => {
+    const node = s.nodes[nodeId];
+    if (node) node.coherence = value;
+  });
+  syncToGraph(nodeId, "coherence", value);
+}
+
 /** Marks a node as probed. */
 export function setNodeProbed(nodeId) {
   mutate((s) => {
