@@ -359,7 +359,7 @@ export function drawInstrument(ctx, state) {
     ctx.strokeStyle = lit ? nc : "#20302a";
     ctx.shadowColor = nc;
     ctx.shadowBlur = lit ? 8 : 0;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(cx + noiseRadius * Math.cos(a), cy + noiseRadius * Math.sin(a));
     ctx.lineTo(cx + (noiseRadius + 7) * Math.cos(a), cy + (noiseRadius + 7) * Math.sin(a));
@@ -385,9 +385,9 @@ export function drawInstrument(ctx, state) {
     const y = cy + STAGING_R * Math.sin(a);
     let color = cell.dark ? "#0c110d" : cell.c;
     let glow = 0;
-    let lw = 1.5;
-    if (cell.g > 0) { color = "#7dffb0"; glow = 8; lw = 2; cell.g--; }
-    if (cell.r > 0) { color = "#ff5a5a"; glow = 8; lw = 2; cell.r--; }
+    let lw = 1;
+    if (cell.g > 0) { color = "#7dffb0"; glow = 8; lw = 1.5; cell.g--; }
+    if (cell.r > 0) { color = "#ff5a5a"; glow = 8; lw = 1.5; cell.r--; }
     ctx.strokeStyle = color;
     ctx.shadowColor = color;
     ctx.shadowBlur = glow;
@@ -408,7 +408,7 @@ export function drawInstrument(ctx, state) {
   ctx.strokeStyle = "#ff2a2a";
   ctx.shadowColor = "#ff2a2a";
   ctx.shadowBlur = 8;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 1.5;
 
   for (let j = 0; j < ringCount; j++) {
     const ring = shieldRings[j];
@@ -442,7 +442,7 @@ export function drawInstrument(ctx, state) {
   ctx.strokeStyle = isCracked ? "#21e6ff" : "#ff5a5a";
   ctx.shadowColor = ctx.strokeStyle;
   ctx.shadowBlur = fx.flash > 0 ? 30 : 10;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   polygon(ctx, cx, cy, CORE_R, 6);
   ctx.stroke();
   ctx.shadowBlur = 0;
@@ -468,7 +468,7 @@ export function drawInstrument(ctx, state) {
     ctx.fillStyle = col;
     ctx.shadowColor = col;
     ctx.shadowBlur = 8;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     drawVulnGlyph(ctx, s.type, -9, 0, 22);
     ctx.font = "9px monospace";
     ctx.textAlign = "left";
