@@ -11,17 +11,18 @@
 // vestigial inventory (Phase 6 repoints it to round packs).
 
 import { loadProfile, saveProfile, prepareLaunch, prepareFastStartLaunch } from "./profile-store.js";
-import { generateTargets, removeDisclosedRounds } from "../core/profile/index.js";
+import { generateTargets, removeDisclosedRounds, hasGear } from "../core/profile/index.js";
 import { buyFromStoreToProfile, buyGearToProfile } from "../core/store-logic.js";
 import { getPackCatalog } from "../core/packs.js";
-import { getGearCatalog } from "../core/gear.js";
+import { getGearCatalog, gearById } from "../core/gear.js";
+import { GEAR_SLOTS } from "../core/balance.js";
 import { startRun } from "./run-control.js";
 import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
 import { NAMED_NETWORKS } from "../../data/networks/index.js";
 import { emitEvent, E } from "../core/events.js";
 
-/** @type {{ withdrawAmount: number }} */
-let selection = { withdrawAmount: 0 };
+/** @type {{ withdrawAmount: number, loadoutGearIds: string[] }} */
+let selection = { withdrawAmount: 0, loadoutGearIds: [] };
 /** @type {import('../core/profile/targets.js').HubTarget[]} */
 let targets = [];
 /** True while the darknet store modal is open from the hub (for console context). */
@@ -56,6 +57,8 @@ function refresh() {
   const p = loadProfile();
   el.bank = p.bank;
   el.hoard = p.hoard;
+  el.gear = p.gear;
+  el.loadout = selection.loadoutGearIds;
   el.withdrawAmount = selection.withdrawAmount;
   el.targets = targets;
 }
@@ -69,6 +72,8 @@ export function initHub() {
   el.addEventListener("discard-disclosed", () => discardDisclosed());
   el.addEventListener("visit-darknet", () => openHubDarknet());
   el.addEventListener("close", () => { el.open = false; });
+  el.addEventListener("equip-gear", (e) => equipGear(e.detail.gearId));
+  el.addEventListener("unequip-gear", (e) => unequipGear(e.detail.gearId));
 }
 
 /** Show the hub and sync it, without disturbing the in-progress selection or targets. */
@@ -102,9 +107,17 @@ export function openHub() {
   p._hubVisits = (p._hubVisits ?? 0) + 1;
   saveProfile(p);
   targets = generateTargets(p);
-  selection = { withdrawAmount: 0 };
+  selection = { withdrawAmount: 0, loadoutGearIds: [] };
   showHub();
   log(`[HUB] Overworld hub — bank ¥${p.bank.toLocaleString()}, ${p.hoard.length} rounds in the hoard.`);
+}
+
+/**
+ * Reset loadout selection to empty. TEST-ONLY helper — call in beforeEach so
+ * each test starts with a clean loadout. In production, openHub() resets this.
+ */
+export function resetLoadoutSelection() {
+  selection = { withdrawAmount: selection.withdrawAmount, loadoutGearIds: [] };
 }
 
 // ── Operations (shared by GUI events and console commands) ───────────────────
@@ -117,11 +130,51 @@ export function setWithdraw(amount) {
   refresh();
 }
 
-/** Start a run against the given target carrying the whole hoard + carried cash. */
+/**
+ * Equip a gear item into the loadout selection (in-hub only, not persisted
+ * until launch). Returns true on success, false on rejection.
+ * Rejects: not owned, already equipped (dedupe), or cap exceeded.
+ * @param {string} gearId
+ * @returns {boolean}
+ */
+export function equipGear(gearId) {
+  const g = gearById(gearId);
+  if (!g) { log(`[HUB] Unknown gear: ${gearId}`, "error"); return false; }
+  const p = loadProfile();
+  if (!hasGear(p, gearId)) { log(`[HUB] Not owned: ${g.name}`, "error"); return false; }
+  if (selection.loadoutGearIds.includes(gearId)) { log(`[HUB] ${g.name} already equipped.`); return false; }
+  if (selection.loadoutGearIds.length >= GEAR_SLOTS) {
+    log(`[HUB] Loadout full (${GEAR_SLOTS} slots). Unequip something first.`, "error");
+    return false;
+  }
+  selection.loadoutGearIds = [...selection.loadoutGearIds, gearId];
+  log(`[HUB] Equipped ${g.name} (${selection.loadoutGearIds.length}/${GEAR_SLOTS} slots).`);
+  refresh();
+  return true;
+}
+
+/**
+ * Unequip a gear item from the loadout selection.
+ * No-ops if the gear is not currently equipped.
+ * @param {string} gearId
+ */
+export function unequipGear(gearId) {
+  const g = gearById(gearId);
+  const name = g ? g.name : gearId;
+  if (!selection.loadoutGearIds.includes(gearId)) { return; }
+  selection.loadoutGearIds = selection.loadoutGearIds.filter((id) => id !== gearId);
+  log(`[HUB] Unequipped ${name} (${selection.loadoutGearIds.length}/${GEAR_SLOTS} slots).`);
+  refresh();
+}
+
+/** Start a run against the given target carrying the whole hoard + carried cash + equipped loadout. */
 export function launchTarget(targetId) {
   const target = targets.find((t) => t.id === targetId);
   if (!target) { log(`[HUB] No such target: ${targetId}`, "error"); return; }
-  const launchMeta = prepareLaunch({ withdrawAmount: selection.withdrawAmount });
+  const launchMeta = prepareLaunch({
+    withdrawAmount: selection.withdrawAmount,
+    loadoutGearIds: selection.loadoutGearIds,
+  });
   if (!launchMeta) { log("[HUB] Insufficient bank for that carry amount.", "error"); return; }
   // Authored jobs build a hand-crafted named network; procedural targets build from seed + spec (#261).
   let result;
@@ -141,7 +194,14 @@ export function launchTarget(targetId) {
 /** Read-only snapshot for console listing. */
 export function getHub() {
   const p = loadProfile();
-  return { bank: p.bank, hoard: p.hoard, targets, selection };
+  return {
+    bank: p.bank,
+    hoard: p.hoard,
+    gear: p.gear,
+    loadout: selection.loadoutGearIds,
+    targets,
+    selection,
+  };
 }
 
 /** Discard all disclosed (spent) rounds from the hoard. */

@@ -12,9 +12,11 @@ import {
   buildRunHoard,
   commitRun,
   withdraw,
+  hasGear,
   PROFILE_VERSION,
 } from "../core/profile/index.js";
 import { generateHoard, DEFAULT_START_HOARD } from "../core/hoard.js";
+import { GEAR_SLOTS } from "../core/balance.js";
 import { on, E } from "../core/events.js";
 import { getState } from "../core/state.js";
 
@@ -97,28 +99,32 @@ let activeRun = null;
  * must not deposit cash or alter the hoard. Always succeeds (no bank/profile
  * dependency), so the player lands in a playable LAN regardless of profile state.
  * @param {number} [_maxCards] - unused; retained for the quickStartRun call signature
- * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number }}
+ * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number, startLoadout: string[] }}
  */
 export function prepareFastStartLaunch(_maxCards) {
   activeRun = null; // a fast-start run does not commit back to the profile
-  return { startHoard: generateHoard(DEFAULT_START_HOARD), startCash: 0 };
+  return { startHoard: generateHoard(DEFAULT_START_HOARD), startCash: 0, startLoadout: [] };
 }
 
 /**
  * Prepare a run launch from the profile: withdraw the carried cash and clone the
- * ENTIRE hoard into the run (no loadout — the whole hoard is carried). Records the
- * active run so it can be committed when it ends. Returns the meta additions
- * (startHoard + startCash) for the caller to merge into the network meta and start
- * via startRun(); returns null if the bank can't cover the carried cash.
- * @param {{ withdrawAmount: number }} args
- * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number } | null}
+ * ENTIRE hoard into the run. Records the active run so it can be committed when it
+ * ends. The equipped gear loadout is threaded into the meta as `startLoadout`
+ * (validated: only owned ids, capped at GEAR_SLOTS). Returns null if the bank
+ * can't cover the carried cash.
+ * @param {{ withdrawAmount: number, loadoutGearIds?: string[] }} args
+ * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number, startLoadout: string[] } | null}
  */
-export function prepareLaunch({ withdrawAmount }) {
+export function prepareLaunch({ withdrawAmount, loadoutGearIds = [] }) {
   const profile = loadProfile();
   if (!withdraw(profile, withdrawAmount)) return null;
   saveProfile(profile); // bank debited at launch
   activeRun = { active: true };
-  return { startHoard: buildRunHoard(profile.hoard), startCash: withdrawAmount };
+  // Defensive: filter to owned ids only, then cap at GEAR_SLOTS.
+  const startLoadout = loadoutGearIds
+    .filter((id) => hasGear(profile, id))
+    .slice(0, GEAR_SLOTS);
+  return { startHoard: buildRunHoard(profile.hoard), startCash: withdrawAmount, startLoadout };
 }
 
 let _commitWired = false;
