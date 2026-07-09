@@ -30,6 +30,26 @@ export function gearById(id) {
 }
 
 /**
+ * Return a catalog view of all gear items, optionally marking which are owned.
+ * Mirrors getPackCatalog() shape for the store UI.
+ * @param {import('./types.js').StarnetProfile | null} [profile]
+ * @returns {{ id: string, name: string, kind: string, price: number, desc: string, owned: boolean }[]}
+ */
+export function getGearCatalog(profile = null) {
+  return ALL_GEAR_IDS.map((id) => {
+    const g = GEAR[id];
+    return {
+      id: g.id,
+      name: g.name,
+      kind: g.kind,
+      price: g.price,
+      desc: g.desc,
+      owned: profile ? (Array.isArray(profile.gear) && profile.gear.includes(id)) : false,
+    };
+  });
+}
+
+/**
  * Resolve an equipped loadout (array of gear ids) → the burn's effective modifiers.
  * Unknown ids in the array are silently ignored (they produce no effect).
  * @param {string[]} [loadoutIds]

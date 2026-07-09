@@ -6,9 +6,10 @@
 
 import { registerCommand, getCommand } from "../core/console-commands/index.js";
 import { emitEvent, E } from "../core/events.js";
+import { ALL_GEAR_IDS } from "../core/gear.js";
 import {
   openHub, setWithdraw, launchTarget, getHub,
-  discardDisclosed, isHubContext, hubBuy, listHubCatalog,
+  discardDisclosed, isHubContext, hubBuy, hubBuyGear, listHubCatalog,
 } from "./hub.js";
 
 function log(text, type = "meta") {
@@ -81,9 +82,15 @@ registerCommand({
   complete: coreBuy?.complete ?? null,
   execute(args) {
     if (isHubContext()) {
-      if (!args[0]) { log("Usage: buy <index>", "error"); return; }
-      const n = parseInt(args[0], 10);
-      const key = !isNaN(n) && String(n) === args[0] ? n : args[0];
+      if (!args[0]) { log("Usage: buy <index|packId|gearId>", "error"); return; }
+      const arg = args[0];
+      // Route gear ids directly to the gear path (avoids a spurious "unknown pack" log).
+      if (typeof arg === "string" && ALL_GEAR_IDS.includes(arg)) {
+        hubBuyGear(arg);
+        return;
+      }
+      const n = parseInt(arg, 10);
+      const key = !isNaN(n) && String(n) === arg ? n : arg;
       hubBuy(key);
       return;
     }

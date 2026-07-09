@@ -12,8 +12,9 @@
 
 import { loadProfile, saveProfile, prepareLaunch, prepareFastStartLaunch } from "./profile-store.js";
 import { generateTargets, removeDisclosedRounds } from "../core/profile/index.js";
-import { buyFromStoreToProfile } from "../core/store-logic.js";
+import { buyFromStoreToProfile, buyGearToProfile } from "../core/store-logic.js";
 import { getPackCatalog } from "../core/packs.js";
+import { getGearCatalog } from "../core/gear.js";
 import { startRun } from "./run-control.js";
 import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
 import { NAMED_NETWORKS } from "../../data/networks/index.js";
@@ -158,9 +159,17 @@ export function isHubContext() {
   return Boolean(hubEl()?.open) || hubStoreOpen;
 }
 
+/** Refresh the store modal's catalog and balance from current profile state. */
+function refreshHubStore(storeEl) {
+  const profile = loadProfile();
+  storeEl.cash = profile.bank;
+  storeEl.catalog = getPackCatalog();
+  storeEl.gearCatalog = getGearCatalog(profile);
+}
+
 /**
  * Open the darknet broker from the hub. Reuses the in-run store modal, but spends
- * bank cash and delivers to the persistent inventory. Hides the hub while shopping.
+ * bank cash and delivers to the persistent inventory. Shows both packs and gear.
  */
 export function openHubDarknet() {
   const storeEl = /** @type {any} */ (document.getElementById("darknet-store"));
@@ -169,31 +178,35 @@ export function openHubDarknet() {
 
   // Pop over the hub (left visible behind) and mark it as the overworld broker so
   // it reads distinctly from an in-run LAN session — see #darknet-store.from-hub.
-  const profile = loadProfile();
   storeEl.classList.add("from-hub");
   storeEl.subtitle = "OVERWORLD — spending bank, delivering to hoard";
-  storeEl.catalog = getPackCatalog();
-  storeEl.cash = profile.bank;
+  refreshHubStore(storeEl);
   storeEl.open = true;
   log("[DARKNET] Broker online — spending bank, delivering to hoard.");
 
   const onBuy = (evt) => {
     if (hubBuy(evt.detail.index)) {
-      const p = loadProfile();
-      storeEl.cash = p.bank;
-      storeEl.catalog = getPackCatalog();
+      refreshHubStore(storeEl);
+    }
+  };
+  const onBuyGear = (evt) => {
+    if (hubBuyGear(evt.detail.gearId)) {
+      refreshHubStore(storeEl);
     }
   };
   const onClose = () => {
     storeEl.open = false;
     storeEl.classList.remove("from-hub");
     storeEl.subtitle = "";
+    storeEl.gearCatalog = [];
     storeEl.removeEventListener("buy", onBuy);
+    storeEl.removeEventListener("buy-gear", onBuyGear);
     storeEl.removeEventListener("close", onClose);
     hubStoreOpen = false;
     refresh(); // the hub stayed open behind; just sync the updated bank/inventory
   };
   storeEl.addEventListener("buy", onBuy);
+  storeEl.addEventListener("buy-gear", onBuyGear);
   storeEl.addEventListener("close", onClose);
 }
 
@@ -208,6 +221,20 @@ export function hubBuy(indexOrPackId) {
   return result;
 }
 
+/** Buy a gear item from the broker into the persistent profile (spends bank). Hub only. */
+export function hubBuyGear(gearId) {
+  const profile = loadProfile();
+  const result = buyGearToProfile(profile, gearId);
+  if (!result) {
+    log("[DARKNET] Gear purchase failed — insufficient bank, already owned, or unknown item.", "error");
+    return null;
+  }
+  saveProfile(profile);
+  log(`[DARKNET] Acquired ${result.gear.name} for ¥${result.price.toLocaleString()} — added to gear.`, "success");
+  refresh();
+  return result;
+}
+
 /** Console: list the broker catalog and bank balance (hub context). */
 export function listHubCatalog() {
   const p = loadProfile();
@@ -217,5 +244,11 @@ export function listHubCatalog() {
     const afford = p.bank >= item.price ? "" : "  [INSUFFICIENT BANK]";
     log(`  [${i + 1}] ${item.name}  [${item.size} rounds]  ¥${item.price}${afford}`);
   });
-  log("Use: buy <index>");
+  log("GEAR");
+  getGearCatalog(p).forEach((item) => {
+    const owned = item.owned ? "  [OWNED]" : "";
+    const afford = !item.owned && p.bank < item.price ? "  [INSUFFICIENT BANK]" : "";
+    log(`  ${item.id}  ${item.name}  (${item.kind})  ¥${item.price}${owned}${afford}`);
+  });
+  log("Use: buy <index|packId|gearId>");
 }

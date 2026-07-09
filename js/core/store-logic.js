@@ -7,8 +7,9 @@
 
 import { getState } from "./state.js";
 import { addCash, addRoundToHoard } from "./state/player.js";
-import { withdraw, addRoundToHoard as profileAddRound } from "./profile/index.js";
+import { withdraw, addRoundToHoard as profileAddRound, addGear, hasGear } from "./profile/index.js";
 import { getPackCatalog, openPack } from "./packs.js";
+import { gearById } from "./gear.js";
 
 /**
  * Resolve a catalog pack from a 1-based index or a pack id string (exact match,
@@ -59,4 +60,21 @@ export function buyFromStoreToProfile(profile, indexOrPackId) {
   const rounds = openPack(item.id);
   for (const round of rounds) profileAddRound(profile, round);
   return { pack: { id: item.id, name: item.name, size: item.size }, price: item.price, rounds };
+}
+
+/**
+ * Buy a gear item from the broker into a persistent profile (spends bank cash,
+ * adds to profile.gear). Hub/profile context only — the in-run store sells packs only.
+ * @param {import('./types.js').StarnetProfile} profile
+ * @param {string} gearId
+ * @returns {{ gear: import('./gear.js').Gear, price: number } | null}
+ */
+export function buyGearToProfile(profile, gearId) {
+  const gear = gearById(gearId);
+  if (!gear) return null;
+  if (hasGear(profile, gearId)) return null;
+  if (profile.bank < gear.price) return null;
+  withdraw(profile, gear.price);
+  addGear(profile, gearId);
+  return { gear, price: gear.price };
 }
