@@ -159,8 +159,9 @@ registerTrait("hackable", {
     probing: false,
     // exploiting / activeExploitId removed: xploit is now a progressive process
     // (autoburn), not a timed action. Attributes kept below as vestigial — they
-    // may be read by game-ctx.cancelExploit and abortTimedAction which are still
-    // called from the old card path (profile/hub/store, Phase 5 cleanup).
+    // may still be read by game-ctx.cancelExploit on the old card path
+    // (profile/hub/store, Phase 5 cleanup). The generic abortTimedAction no longer
+    // special-cases xploit (#288 B2).
     exploiting: false,
     rebooting: false,
     alertState: "green",

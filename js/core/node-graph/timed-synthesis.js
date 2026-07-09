@@ -90,8 +90,8 @@ export function synthesizeTimedActions(node) {
     // codebase; honor it so a migrated core verb keeps its load-bearing flag name.
     // Everything else (corrupt/kick/sniff/replay/set-piece scripts) mints
     // `_ta_active_<id>` as before — fully backward-compatible (#288 A0).
-    const activeAttr = getTimedActionAttrNames(action.id).activeAttr ?? timedActiveAttr(action.id);
-    const { progressAttr, durationAttr } = getTimedActionAttrNames(action.id);
+    const { activeAttr: registryActiveAttr, progressAttr, durationAttr } = getTimedActionAttrNames(action.id);
+    const activeAttr = registryActiveAttr ?? timedActiveAttr(action.id);
 
     operators = [
       ...operators,
