@@ -191,6 +191,25 @@
           <button id="btn-ice-toggle">SHOW</button>
           <button id="btn-ice-pulse">PULSE</button>
         </div>
+
+        <h3>Coherence Instrument</h3>
+        <div class="btn-row">
+          <label>GRADE</label>
+          <select id="instr-grade">
+            <option value="S">S</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C" selected>C</option>
+            <option value="D">D</option>
+            <option value="F">F</option>
+          </select>
+          <button id="btn-instr-run">▶ RUN BURN</button>
+        </div>
+        <div class="btn-row">
+          <label>COHERENCE</label>
+          <input type="range" id="instr-coherence" min="0" max="100" step="1" value="100">
+          <span id="instr-coherence-val">100%</span>
+        </div>
       </div>
 
       <!-- Graph degradation overlay — health/deck sliders (js/ui/preview.js). -->

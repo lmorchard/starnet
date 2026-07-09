@@ -17,12 +17,12 @@
 import { getState, revealNeighbors } from "./state.js";
 import { addProcess, nextProcessId } from "./state/process.js";
 import { registerProcess, activeProcessOnNode } from "./processes.js";
-import { setNodeAccessLevel, setNodeCoherence, setNodeCoherenceMax, setNodeProbed } from "./state/node.js";
+import { setNodeAccessLevel, setNodeCoherence, setNodeCoherenceMax, setNodeProbed, setNodeAlertState } from "./state/node.js";
 import { markRoundDisclosed } from "./state/player.js";
 import { recordHeat } from "./alert.js";
 import { chip, rollDisclosure } from "./coherence.js";
 import { nextRound } from "./burn-select.js";
-import { COHERENCE, BURN_CEILING_DEFAULT, HEAT_COST } from "./balance.js";
+import { COHERENCE, BURN_CEILING_DEFAULT, HEAT_COST, BURN_ARM_TICKS, BURN_CADENCE_TICKS } from "./balance.js";
 import { emitEvent, E } from "./events.js";
 import { A } from "./action-ids.js";
 
@@ -44,6 +44,7 @@ function crackNode(nodeId) {
   const label = node.label ?? nodeId;
   setNodeAccessLevel(nodeId, "owned");
   setNodeProbed(nodeId);   // "own it = know it": crack implies full recon, so DUMP is available
+  setNodeAlertState(nodeId, "green"); // owning clears the node's local alarm glow (mirrors REPLAY→owned)
   revealNeighbors(nodeId);
   emitEvent(E.NODE_ACCESSED, { nodeId, label, prev, next: "owned" });
   emitEvent(E.ACTION_RESOLVED, {
@@ -74,6 +75,13 @@ registerProcess("autoburn", {
     const node = s.nodes[proc.nodeId];
     if (!node || node.accessLevel === "owned") return true;
 
+    // Pacing: wait out the arm delay (camera focus settles + instrument arms),
+    // then fire only on the cadence beat. Non-firing ticks just wait — the process
+    // stays alive. Keeps the barrage watchable and sequenced after the zoom.
+    proc.tick = (proc.tick ?? 0) + 1;
+    if (proc.tick <= BURN_ARM_TICKS) return false;
+    if ((proc.tick - BURN_ARM_TICKS - 1) % BURN_CADENCE_TICKS !== 0) return false;
+
     const round = nextRound(s.player.hoard, node, proc);
     if (!round) {
       emitEvent(E.ACTION_RESOLVED, {
@@ -100,6 +108,8 @@ registerProcess("autoburn", {
       chip: dmg,
       coherence: next,
       roundId: round.id,
+      rarity: round.rarity,
+      types: round.types,
       disclosed: round.disclosed,
     });
 
@@ -156,7 +166,7 @@ export function startAutoBurn(nodeId, params = {}) {
   }
 
   const ceiling = params.ceiling ?? BURN_CEILING_DEFAULT;
-  addProcess({ id: nextProcessId(), type: "autoburn", nodeId, source: "player", ceiling, heat: 0 });
+  addProcess({ id: nextProcessId(), type: "autoburn", nodeId, source: "player", ceiling, heat: 0, tick: 0 });
   emitEvent(E.PROCESS_STARTED, { type: "autoburn", nodeId, ceiling });
 }
 
