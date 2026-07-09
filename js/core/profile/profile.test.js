@@ -26,7 +26,7 @@ describe("createProfile", () => {
   it("sets version and bank, and carries a hoard", () => {
     const p = createProfile({ bank: 1000, hoard: [round("a"), round("b")] });
     assert.equal(p.version, PROFILE_VERSION);
-    assert.equal(p.version, 2, "profile is version 2 after the hoard cutover");
+    assert.equal(p.version, 3, "profile is version 3 after the E2 gear cutover");
     assert.equal(p.bank, 1000);
     assert.equal(p.hoard.length, 2);
     assert.deepEqual(p.hoard.map((r) => r.id).sort(), ["a", "b"]);

@@ -139,3 +139,10 @@ export const BURN_CEILING_DEFAULT = 40;
 // Tune in the feel pass: lower = faster/tenser, higher = slower/more readable.
 export const BURN_ARM_TICKS = 6;      // ~600ms wind-up (camera focus ~350ms settles, instrument arms, then fire)
 export const BURN_CADENCE_TICKS = 3;  // ~300ms between rounds
+
+// ── Smash-tooling gear (E2) ───────────────────────────────────────────────────
+// Census-tuned starting points — mark as such. Adjust in the feel/census pass once
+// gear is wired into burn resolution (Phase 2).
+export const GEAR_SLOTS = 2;           // equipped loadout size (< roster of 3 → a forced per-run choice)
+export const DAMPENER_HEAT_MULT = 0.5; // Dampener: per-shot burn heat ×this
+export const RECON_BITE_BONUS = 1.0;   // Recon Rig: added to TYPE_BITE on a type match

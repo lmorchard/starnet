@@ -207,6 +207,8 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
       deckIntegrity: { current: meta.startDeckIntegrity ?? 100, max: meta.startDeckIntegrity ?? 100 },
       // Credential tokens captured off flows via SNIFF; consumed by REPLAY. Serializable.
       capturedCredentials: [...(meta.startCredentials ?? [])],
+      // Equipped gear ids for this run (E2 Phase 1). Populated from profile.gear at launch (Phase 4+).
+      loadout: [...(meta.startLoadout ?? [])],
     },
     globalAlert: "green",
     traceSecondsRemaining: null,

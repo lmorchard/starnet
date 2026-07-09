@@ -25,8 +25,9 @@ const DEFAULT_BANK = 1000; // matches initGame's startCash fallback
 
 /**
  * Load the profile from localStorage, or bootstrap a new one if absent/corrupt.
- * A stored profile from before the hoard cutover (version !== 2) is discarded and
- * re-bootstrapped fresh — there is no card→round migration (E1 v1 reset).
+ * v1 (card-inventory) profiles are discarded and re-bootstrapped — no migration.
+ * v2 profiles are migrated gently to v3 (gear field added, bank/hoard preserved).
+ * v3 profiles load and normalize as-is.
  * @returns {StarnetProfile}
  */
 export function loadProfile() {
@@ -34,8 +35,8 @@ export function loadProfile() {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      // Only version-2 profiles survive; anything older/missing is reset.
-      if (parsed && typeof parsed === "object" && parsed.version === PROFILE_VERSION) {
+      // v2 and v3 survive; v1 and anything older/missing is reset.
+      if (parsed && typeof parsed === "object" && (parsed.version === 2 || parsed.version === PROFILE_VERSION)) {
         return normalizeProfile(parsed);
       }
     } catch {
@@ -46,9 +47,12 @@ export function loadProfile() {
 }
 
 /**
- * Repair a parsed v2 profile to the current shape, filling missing/invalid fields so
- * a partially-written payload can't crash the hub downstream. Mutates and returns
- * the object. (Pre-v2 payloads never reach here — loadProfile resets them.)
+ * Repair/migrate a parsed v2 or v3 profile to the current shape, filling missing or
+ * invalid fields so a partially-written payload can't crash the hub downstream.
+ * Mutates and returns the object.
+ *
+ * v2 → v3 migration: adds `gear: []` (preserving bank + hoard — NOT a reset).
+ * Pre-v2 payloads never reach here — loadProfile resets them.
  * @param {any} p
  * @returns {StarnetProfile}
  */
@@ -56,7 +60,9 @@ function normalizeProfile(p) {
   if (typeof p.bank !== "number") p.bank = 0;
   if (!Array.isArray(p.hoard)) p.hoard = [];
   if (typeof p._hubVisits !== "number") p._hubVisits = 0;
-  if (typeof p.version !== "number") p.version = PROFILE_VERSION;
+  // v2 → v3: gentle migration — add gear field if missing, bump version.
+  if (!Array.isArray(p.gear)) p.gear = [];
+  if (typeof p.version !== "number" || p.version < PROFILE_VERSION) p.version = PROFILE_VERSION;
   return p;
 }
 
