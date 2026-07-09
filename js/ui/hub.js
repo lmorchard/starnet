@@ -5,10 +5,11 @@
 // GUI/console symmetry principle). The pure profile model is in js/core/profile;
 // the run-start path is run-control.js.
 //
-// E1 hoard cutover (Phase 5): no loadout/equip — the ENTIRE persistent hoard is
-// carried into every run. The hub shows a minimal hoard summary (the rich grouped
-// view is Phase 7). The hub darknet-store buy path still delivers CARDS into the
-// vestigial inventory (Phase 6 repoints it to round packs).
+// The ENTIRE persistent hoard is carried into every run (carry-all ammo, no
+// per-run loadout of rounds). GEAR is different: the hub equips up to GEAR_SLOTS
+// of the profile's owned gear into a loadout that rides into the run (player.loadout,
+// which the auto-burn consumes). The hub darknet-store buys round packs into the
+// hoard and gear into profile.gear (bank-funded).
 
 import { loadProfile, saveProfile, prepareLaunch, prepareFastStartLaunch } from "./profile-store.js";
 import { generateTargets, removeDisclosedRounds, hasGear } from "../core/profile/index.js";
