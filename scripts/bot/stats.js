@@ -35,6 +35,8 @@ export function createStats() {
     mineResolved: 0,
     mineRounds: 0,
     strategyCounts: {},
+    roundsFired: 0,
+    heatGenerated: 0,
   };
 }
 
@@ -70,6 +72,24 @@ export function recordMineResolved(stats, detail) {
  */
 export function recordEvasion(stats) {
   stats.iceEvasions++;
+}
+
+/**
+ * Record one autoburn round fired (from a PROCESS_STEP{type:"autoburn"} event).
+ * @param {BotRunStats} stats
+ */
+export function recordRoundFired(stats) {
+  stats.roundsFired++;
+}
+
+/**
+ * Record heat generated (from a HEAT_CHANGED event; positive amounts only).
+ * Negative amounts are cooldown/decay — not counted against the run total.
+ * @param {BotRunStats} stats
+ * @param {number} amount
+ */
+export function recordHeatGenerated(stats, amount) {
+  if (amount > 0) stats.heatGenerated += amount;
 }
 
 /**

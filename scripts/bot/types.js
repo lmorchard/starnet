@@ -105,4 +105,6 @@
  * @property {number} mineResolved
  * @property {number} mineRounds
  * @property {Record<string, number>} strategyCounts
+ * @property {number} roundsFired — coherence rounds fired across all auto-burn bursts this run
+ * @property {number} heatGenerated — total heat added to the system this run (Dampener halves per-shot)
  */

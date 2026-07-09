@@ -15,6 +15,7 @@ import { parseGradeArgs } from "../lib/grade-args.js";
 let seedCount = 50;
 let networkName = null;
 let full = false;
+let comparePresets = false;
 /** @type {string[]|null} null = no gear (bare); override with --loadout <preset> */
 let loadout = null;
 
@@ -24,6 +25,7 @@ for (let i = 0; i < argv.length; i++) {
   if (argv[i] === "--seeds" && argv[i + 1]) seedCount = parseInt(argv[++i], 10) || 50;
   else if (argv[i] === "--network" && argv[i + 1]) networkName = argv[++i];
   else if (argv[i] === "--full") full = true;
+  else if (argv[i] === "--compare-presets") comparePresets = true;
   else if (argv[i] === "--loadout" && argv[i + 1]) {
     const presetName = argv[++i];
     if (!(presetName in LOADOUT_PRESETS)) {
@@ -110,7 +112,85 @@ const summary = {
     const rounds = runs.reduce((a, r) => a + (r.mineRounds ?? 0), 0);
     return resolved > 0 ? Math.round((rounds / resolved) * 1000) / 1000 : 0;
   })(),
+  // Efficiency metrics (gear-sensitivity signal)
+  avgRoundsFired: avg(runs, "roundsFired"),
+  avgHeat: avg(runs, "heatGenerated"),
 };
+
+// ── Compare-presets mode ─────────────────────────────────────
+// Run all named presets and print a side-by-side efficiency table to stdout.
+// Usage: node scripts/bot/census.js --compare-presets --seeds 20
+
+if (comparePresets) {
+  /** @param {any[]} runSet */
+  function summariseRuns(runSet) {
+    const successCount = runSet.filter(r => r.success).length;
+    const traceCount = runSet.filter(r => r.traceFired).length;
+    return {
+      successRate: Math.round((successCount / runSet.length) * 1000) / 1000,
+      traceFiredRate: Math.round((traceCount / runSet.length) * 1000) / 1000,
+      avgAutoBurns: avg(runSet, "autoBurns"),
+      avgCash: avg(runSet, "cashRemaining"),
+      avgRoundsFired: avg(runSet, "roundsFired"),
+      avgHeat: avg(runSet, "heatGenerated"),
+    };
+  }
+
+  /** @type {Record<string, ReturnType<typeof summariseRuns>>} */
+  const results = {};
+
+  for (const [presetName, presetGear] of Object.entries(LOADOUT_PRESETS)) {
+    /** @type {any[]} */
+    const presetRuns = [];
+    process.stderr.write(`\n  ${presetName}: `);
+    for (let i = 0; i < seedCount; i++) {
+      const seed = `census-${i}`;
+      try {
+        const buildFn = () => {
+          if (networkName) {
+            const fn = NAMED_NETWORKS[networkName];
+            if (!fn) throw new Error(`Unknown network: ${networkName}`);
+            return fn();
+          }
+          return buildGenerated({ seed, spec });
+        };
+        presetRuns.push(runBot(buildFn, { seed, loadout: presetGear }));
+      } catch (e) {
+        presetRuns.push({ success: false, failReason: "error", error: e.message });
+      }
+      if ((i + 1) % 10 === 0 || i === seedCount - 1) {
+        process.stderr.write(`${i + 1}/${seedCount}... `);
+      }
+    }
+    results[presetName] = summariseRuns(presetRuns);
+  }
+  process.stderr.write("\n\n");
+
+  // Print comparison table
+  const presetNames = Object.keys(LOADOUT_PRESETS);
+  const cols = ["preset", "successRate", "traceFiredRate", "avgAutoBurns", "avgCash", "avgRoundsFired", "avgHeat"];
+  const widths = cols.map(c => c.length);
+  for (const name of presetNames) {
+    widths[0] = Math.max(widths[0], name.length);
+    const row = results[name];
+    cols.slice(1).forEach((c, i) => {
+      widths[i + 1] = Math.max(widths[i + 1], String(row[c]).length);
+    });
+  }
+
+  /** @param {string} s @param {number} w */
+  const pad = (s, w) => String(s).padStart(w);
+  const header = cols.map((c, i) => pad(c, widths[i])).join("  ");
+  const sep = widths.map(w => "-".repeat(w)).join("  ");
+  console.log(header);
+  console.log(sep);
+  for (const name of presetNames) {
+    const row = results[name];
+    const cells = [pad(name, widths[0]), ...cols.slice(1).map((c, i) => pad(row[c], widths[i + 1]))];
+    console.log(cells.join("  "));
+  }
+  process.exit(0);
+}
 
 // ── Output ──────────────────────────────────────────────────
 
