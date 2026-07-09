@@ -20,6 +20,10 @@
 // Phase 4a session tuned the *visual* overlay with Les; the drone/cue are neutral placeholders,
 // tunable later via preview/sfx.html) so every timed action without a bespoke profile still gets
 // legible feedback.
+//
+// Feedback boundary (#288 B3): this module resolves per-node timed-WORK feedback only —
+// PROCESS orchestration lifecycle (PROCESS_STARTED/STEP/ENDED) is a separate channel; see
+// js/core/processes.js header for the full boundary rationale.
 
 import { A } from "../core/action-ids.js";
 

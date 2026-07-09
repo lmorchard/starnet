@@ -61,10 +61,8 @@ const PROBE_ACTION = {
     { type: "node-attr", attr: "probed", eq: false },
     ...NOT_BUSY,
   ],
-  effects: [
-    { effect: "set-attr", attr: "probing", value: true },
-    { effect: "set-attr", attr: getTimedActionAttrNames("probe").progressAttr, value: 0 },
-  ],
+  timed: { durationTable: { S: 50, A: 40, B: 30, C: 20, D: 20, F: 10 } },
+  effects: [{ effect: "ctx-call", method: "resolveProbe", args: ["$nodeId"] }],
 };
 
 // Abort: unified cancel for any timed action. The execution is generic
@@ -85,7 +83,7 @@ const ABORT_ACTION = {
   desc: "Cancel the current timed action.",
   requires: [{ type: "active-abortable-timed-action" }],
   effects: [
-    { effect: "ctx-call", method: "abortTimedAction", args: ["$nodeId"] },
+    { effect: "ctx-call", method: "abortNode", args: ["$nodeId"] },
   ],
 };
 
@@ -137,11 +135,8 @@ const DUMP_ACTION = {
     { type: "node-attr", attr: "read", eq: false },
     ...NOT_BUSY,
   ],
-  effects: [
-    { effect: "set-attr", attr: "reading", value: true },
-    // Derived from the registry so it always matches the dump operator's progress attr.
-    { effect: "set-attr", attr: getTimedActionAttrNames("dump").progressAttr, value: 0 },
-  ],
+  timed: { durationTable: { S: 40, A: 35, B: 25, C: 15, D: 15, F: 8 } },
+  effects: [{ effect: "ctx-call", method: "resolveRead", args: ["$nodeId"] }],
 };
 
 // cancel-dump removed — absorbed into unified ABORT_ACTION
@@ -157,11 +152,8 @@ const FETCH_ACTION = {
     { type: "node-attr", attr: "looted", eq: false },
     ...NOT_BUSY,
   ],
-  effects: [
-    { effect: "set-attr", attr: "looting", value: true },
-    // Derived from the registry so it always matches the fetch operator's progress attr.
-    { effect: "set-attr", attr: getTimedActionAttrNames("fetch").progressAttr, value: 0 },
-  ],
+  timed: { durationTable: { S: 30, A: 25, B: 20, C: 12, D: 10, F: 6 } },
+  effects: [{ effect: "ctx-call", method: "resolveLoot", args: ["$nodeId"] }],
 };
 
 // cancel-fetch removed — absorbed into unified ABORT_ACTION
@@ -176,10 +168,8 @@ const MINE_ACTION = {
     { type: "node-attr", attr: "mineExhausted", eq: false },
     ...NOT_BUSY,
   ],
-  effects: [
-    { effect: "set-attr", attr: "mining", value: true },
-    { effect: "set-attr", attr: getTimedActionAttrNames("mine").progressAttr, value: 0 },
-  ],
+  timed: { durationTable: { S: 70, A: 60, B: 50, C: 40, D: 35, F: 30 } },
+  effects: [{ effect: "ctx-call", method: "resolveMine", args: ["$nodeId"] }],
 };
 
 /** @type {ActionDef} */

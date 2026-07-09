@@ -7,6 +7,15 @@
  * `state.processes` (serializable). Abort/busy is uniform: a node with an active process is busy.
  */
 
+// Feedback boundary (#288 B3): a PROCESS is orchestration — its lifecycle is
+// reported via PROCESS_STARTED/STEP/ENDED (log lines + node flashes). Per-node
+// timed WORK reports separately via ACTION_FEEDBACK (overlays/drones/cues resolved
+// through js/ui/feedback-profiles.js). These are two intentionally-separate channels
+// answering different questions ("is a multi-node op in flight" vs "how far along is
+// this node's action"); they are not routed through one another. A process that also
+// runs per-node timed work (SWEEP) gets per-node rings via the operator's
+// ACTION_FEEDBACK, not via PROCESS_* — that's why there's no PROCESS_*→feedback bridge.
+
 /** @typedef {import('./types.js').Process} Process */
 /** @typedef {import('./types.js').GameState} GameState */
 

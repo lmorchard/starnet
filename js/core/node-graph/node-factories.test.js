@@ -149,14 +149,19 @@ describe("operators", () => {
   });
 
   it("gateway and firewall have timed-action operators from hackable", () => {
+    // probe's timed-action operator is synthesized from PROBE_ACTION's `timed:` block
+    // (#288 A1) rather than hand-wired on the trait, so it only appears on a
+    // NodeGraph-constructed node (synthesis runs in the constructor) — resolveTraits()
+    // alone won't show it.
     for (const factory of [createGateway, createFirewall]) {
-      const def = resolve(factory("test"));
+      const graph = new NodeGraph({ nodes: [factory("test")], edges: [] });
+      const node = graph._nodes.get("test");
       // hackable trait provides timed-action operators for probe (+ mine for some types).
       // Phase 3 (E1): xploit is now a progressive process (autoburn), not a timed action —
       // the xploit timed-action operator was removed from hackable in this phase.
-      assert.ok(def.operators.some(o => o.name === "timed-action" && o.action === "probe"),
+      assert.ok(node.operators.some(o => o.name === "timed-action" && o.action === "probe"),
         "probe timed-action present");
-      assert.ok(!def.operators.some(o => o.name === "timed-action" && o.action === "xploit"),
+      assert.ok(!node.operators.some(o => o.name === "timed-action" && o.action === "xploit"),
         "xploit timed-action removed (now autoburn process)");
     }
   });

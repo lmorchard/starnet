@@ -25,7 +25,6 @@
  * @property {import('./types.js').TriggerDef[]} [triggers]
  */
 
-import { getTimedActionAttrNames } from "./timed-actions.js";
 import { registerOperator } from "./operators.js";
 
 /** @type {Map<string, TraitDef>} */
@@ -160,8 +159,9 @@ registerTrait("hackable", {
     probing: false,
     // exploiting / activeExploitId removed: xploit is now a progressive process
     // (autoburn), not a timed action. Attributes kept below as vestigial — they
-    // may be read by game-ctx.cancelExploit and abortTimedAction which are still
-    // called from the old card path (profile/hub/store, Phase 5 cleanup).
+    // may still be read by game-ctx.cancelExploit on the old card path
+    // (profile/hub/store, Phase 5 cleanup). The generic abortTimedAction no longer
+    // special-cases xploit (#288 B2).
     exploiting: false,
     rebooting: false,
     alertState: "green",
@@ -172,25 +172,9 @@ registerTrait("hackable", {
   },
   operators: [
     { name: "sweep-cascade" },
-    {
-      name: "timed-action",
-      action: "probe",
-      activeAttr: "probing",
-      durationTable: { S: 50, A: 40, B: 30, C: 20, D: 20, F: 10 },
-      onComplete: [{ effect: "ctx-call", method: "resolveProbe", args: ["$nodeId"] }],
-    },
-    // xploit timed-action operator removed (Phase 3 E1): XPLOIT is now a
-    // progressive process (autoburn). The attributes above (exploiting,
-    // activeExploitId) stay vestigial until Phase 5 cleanup.
-    // OLD: { name: "timed-action", action: "xploit", activeAttr: "exploiting",
-    //        onComplete: [resolveExploit], … }
-    {
-      name: "timed-action",
-      action: "mine",
-      activeAttr: "mining",
-      durationTable: { S: 70, A: 60, B: 50, C: 40, D: 35, F: 30 },
-      onComplete: [{ effect: "ctx-call", method: "resolveMine", args: ["$nodeId"] }],
-    },
+    // probe & mine timed-action operators removed (#288 A1): probe/mine are now
+    // synthesized from their ActionDef `timed:` blocks (action-templates.js). The
+    // TIMED_ACTIONS registry still owns their activeAttr (`probing`/`mining`).
   ],
   actions: [
     ACTION_TEMPLATES.PROBE,
@@ -210,20 +194,8 @@ registerTrait("lootable", {
     looting: false,
   },
   operators: [
-    {
-      name: "timed-action",
-      action: "dump",
-      activeAttr: "reading",
-      durationTable: { S: 40, A: 35, B: 25, C: 15, D: 15, F: 8 },
-      onComplete: [{ effect: "ctx-call", method: "resolveRead", args: ["$nodeId"] }],
-    },
-    {
-      name: "timed-action",
-      action: "fetch",
-      activeAttr: "looting",
-      durationTable: { S: 30, A: 25, B: 20, C: 12, D: 10, F: 6 },
-      onComplete: [{ effect: "ctx-call", method: "resolveLoot", args: ["$nodeId"] }],
-    },
+    // dump & fetch timed-action operators removed (#288 A1): synthesized from
+    // ACTION_TEMPLATES.DUMP/FETCH `timed:` blocks. Registry owns reading/looting.
   ],
   actions: [
     ACTION_TEMPLATES.DUMP,
@@ -234,6 +206,9 @@ registerTrait("lootable", {
 registerTrait("rebootable", {
   attributes: { rebooting: false },
   operators: [
+    // reboot STAYS hand-wired (#288): its arm does irreducible non-generic work —
+    // startReboot evicts ICE, deselects, and rolls an RNG duration (no durationTable).
+    // The declarative `timed:` schema can't express arm-time computation. See game-ctx.startReboot.
     {
       name: "timed-action",
       action: "reboot",
@@ -356,11 +331,8 @@ registerTrait("encrypted", {
       { type: "node-attr", attr: "reading", eq: false },
       { type: "quality-from-attr", attr: "encryptionKey", gte: 1 },
     ],
-    effects: [
-      { effect: "set-attr", attr: "reading", value: true },
-      // Derived from the registry so it always matches the dump operator's progress attr.
-      { effect: "set-attr", attr: getTimedActionAttrNames("dump").progressAttr, value: 0 },
-    ],
+    timed: { durationTable: { S: 40, A: 35, B: 25, C: 15, D: 15, F: 8 } },
+    effects: [{ effect: "ctx-call", method: "resolveRead", args: ["$nodeId"] }],
   }],
 });
 
