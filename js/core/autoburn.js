@@ -22,6 +22,7 @@ import { markRoundDisclosed } from "./state/player.js";
 import { recordHeat } from "./alert.js";
 import { chip, rollDisclosure } from "./coherence.js";
 import { nextRound } from "./burn-select.js";
+import { resolveLoadoutEffects } from "./gear.js";
 import { COHERENCE, BURN_CEILING_DEFAULT, HEAT_COST, BURN_ARM_TICKS, BURN_CADENCE_TICKS } from "./balance.js";
 import { emitEvent, E } from "./events.js";
 import { A } from "./action-ids.js";
@@ -93,12 +94,13 @@ registerProcess("autoburn", {
       return true;
     }
 
-    const dmg = chip(round, node, true);
+    const dmg = chip(round, node, true, proc.biteBonus ?? 0);
     const next = Math.max(0, (node.coherence ?? 0) - dmg);
     setNodeCoherence(proc.nodeId, next);
 
-    proc.heat += HEAT_COST.xploit;       // burst-local heat (drives ceiling stop)
-    recordHeat(HEAT_COST.xploit);        // global heat → shipped alert ratchet
+    const shotHeat = HEAT_COST.xploit * (proc.heatMult ?? 1);
+    proc.heat += shotHeat;               // burst-local heat (drives ceiling stop)
+    recordHeat(shotHeat);               // global heat → shipped alert ratchet
 
     if (rollDisclosure(node.grade)) markRoundDisclosed(round.id);
 
@@ -166,7 +168,19 @@ export function startAutoBurn(nodeId, params = {}) {
   }
 
   const ceiling = params.ceiling ?? BURN_CEILING_DEFAULT;
-  addProcess({ id: nextProcessId(), type: "autoburn", nodeId, source: "player", ceiling, heat: 0, tick: 0 });
+  const eff = resolveLoadoutEffects(getState().player.loadout ?? []);
+  addProcess({
+    id: nextProcessId(),
+    type: "autoburn",
+    nodeId,
+    source: "player",
+    ceiling,
+    heat: 0,
+    tick: 0,
+    selection: eff.selection,
+    heatMult: eff.heatMult,
+    biteBonus: eff.biteBonus,
+  });
   emitEvent(E.PROCESS_STARTED, { type: "autoburn", nodeId, ceiling });
 }
 

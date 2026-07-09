@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { initRng, _forceNext, RNG } from "../js/core/rng.js";
 import { chip, rollDisclosure } from "../js/core/coherence.js";
-import { DISCLOSURE_CHANCE } from "../js/core/balance.js";
+import { DISCLOSURE_CHANCE, TYPE_BITE, RECON_BITE_BONUS } from "../js/core/balance.js";
 
 // ── Minimal node fixtures ─────────────────────────────────────────────────────
 
@@ -150,5 +150,59 @@ describe("rollDisclosure() — RNG boundary", () => {
     initRng("disc-boundary-4");
     _forceNext(RNG.COMBAT, 1); // 1 > 0.85 → false
     assert.equal(rollDisclosure(grade), false);
+  });
+});
+
+// ── chip() biteBonus (E2-P2) ──────────────────────────────────────────────────
+
+describe("chip() — biteBonus param (E2-P2 Recon Rig)", () => {
+  it("biteBonus increases chip on a TYPE MATCH (Recon Rig effect)", () => {
+    // Node probed with matching vuln; round targets it → match fires biteBonus.
+    const node = makeNode("C", ["unpatched-ssh"]);
+    const round = makeRound("common", ["unpatched-ssh"]);
+
+    const withBonus    = chip(round, node, false, RECON_BITE_BONUS);
+    const withoutBonus = chip(round, node, false, 0);
+
+    assert.ok(
+      withBonus > withoutBonus,
+      `match+biteBonus (${withBonus}) must exceed match+no-bonus (${withoutBonus})`
+    );
+
+    // The bonus adds RECON_BITE_BONUS to the TYPE_BITE multiplier factor.
+    // Expected ratio: (1 + TYPE_BITE + RECON_BITE_BONUS) / (1 + TYPE_BITE).
+    const baseFactor    = 1 + TYPE_BITE;
+    const bonusFactor   = 1 + TYPE_BITE + RECON_BITE_BONUS;
+    const expectedRatio = bonusFactor / baseFactor;
+    const actualRatio   = withBonus / withoutBonus;
+    assert.ok(
+      Math.abs(actualRatio - expectedRatio) < 0.0001,
+      `ratio should be ${expectedRatio}, got ${actualRatio}`
+    );
+  });
+
+  it("biteBonus has NO effect on an UNMATCHED round (Recon Rig only amplifies matches)", () => {
+    // Node has no vulns (not probed) → no match → bonus must be zero regardless.
+    const node  = makeNode("C"); // not probed, no vulns
+    const round = makeRound("common", ["unpatched-ssh"]);
+
+    const withBonus    = chip(round, node, false, RECON_BITE_BONUS);
+    const withoutBonus = chip(round, node, false, 0);
+
+    assert.equal(
+      withBonus, withoutBonus,
+      `biteBonus must NOT change chip on an unmatched round (got ${withBonus} vs ${withoutBonus})`
+    );
+  });
+
+  it("default biteBonus = 0 preserves E1 behavior (empty loadout baseline)", () => {
+    // chip(round, node, false) must equal chip(round, node, false, 0) — signature compat.
+    const node  = makeNode("B", ["ssh"]);
+    const round = makeRound("uncommon", ["ssh"]);
+
+    const legacy  = chip(round, node, false);         // old 3-arg call
+    const neutral = chip(round, node, false, 0);      // explicit bonus=0
+
+    assert.equal(legacy, neutral, "chip() with no biteBonus arg == chip() with biteBonus=0");
   });
 });

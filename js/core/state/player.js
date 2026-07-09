@@ -81,3 +81,8 @@ export function markRoundDisclosed(roundId) {
 export function removeDisclosedRounds() {
   mutate((s) => { s.player.hoard = s.player.hoard.filter((r) => !r.disclosed); });
 }
+
+/** Sets the player's equipped loadout (array of gear ids) for the current run. */
+export function setLoadout(ids) {
+  mutate((s) => { s.player.loadout = [...ids]; });
+}
