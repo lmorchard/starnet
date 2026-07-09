@@ -192,17 +192,19 @@ things carry across runs:
 From the hub you:
 
 1. **Carry your hoard** — your entire persistent hoard travels with you into every
-   run. There is no equip step and no loadout limit; you bring everything you own.
-2. **Carry cash** — decide how much of your bank to bring along, e.g. to buy
+   run. No limit; you bring everything you own.
+2. **Equip gear** — choose up to 2 pieces of smash-tooling gear from your profile
+   for this run (`equip <gear>` / `unequip <gear>`). See GEAR / LOADOUT below.
+3. **Carry cash** — decide how much of your bank to bring along, e.g. to buy
    research packs from the darknet broker mid-run. (`carry <amount>`.)
-3. **Pick a target** — the hub offers a short list of **procedurally-generated
+4. **Pick a target** — the hub offers a short list of **procedurally-generated
    jobs** at varying difficulty (soft / standard / hard), plus a set of
    **authored networks** (hand-crafted set-piece LANs). Selecting one launches the
    run. (`targets` lists them, `launch <id>`.)
 
 From the hub you can also **discard disclosed rounds** (burned-out ammo cluttering
 your hoard) and **visit the darknet broker** — opened from the hub, the broker
-spends your **bank** and delivers research packs straight to your **hoard**
+spends your **bank** and delivers research packs and gear straight to your profile
 (rather than in-run cash).
 
 ### Stakes
@@ -491,6 +493,72 @@ buying a pack from the broker.
 The spatial insight: **you're farming the network's own vulnerabilities back against
 itself.** A node you've already owned is a potential ammo factory for the nodes
 around it.
+
+---
+
+## GEAR / LOADOUT
+
+Your cyberdeck can be fitted with **smash-tooling gear** — persistent hardware that modifies
+how the coherence auto-burn fires. Gear is bought at the **darknet broker** (hub or WAN node)
+and persists in your **profile** between runs. It does not decay and is never lost on a trace.
+
+### The Gear Roster
+
+| Gear       | Effect                                                   | Price |
+|------------|----------------------------------------------------------|-------|
+| **Analyzer**  | Fires best-matched rounds first instead of a blind spray | ¢400  |
+| **Dampener**  | Quiets the barrage — less heat per round                 | ¢350  |
+| **Recon Rig** | Sharper targeting — matched rounds bite harder           | ¢350  |
+
+- **Analyzer** — changes round selection from random to best-match (rounds whose type tags match
+  the target's vulnerabilities fire before unmatched rounds). Cracking is more efficient; you
+  waste fewer rounds on misses.
+- **Dampener** — halves the heat contribution of each round fired during a burst. You can push
+  further into a node before the heat ceiling stops you, at the cost of burning more rounds.
+- **Recon Rig** — adds a flat bonus to the coherence bite of matched rounds. Combined with the
+  Analyzer, matched rounds hit significantly harder.
+
+### Loadout (the forced choice)
+
+You can equip at most **2 pieces of gear** for each run (your deck has limited slots). The gear
+roster has 3 items, so you must choose 2 — the third stays benched. This is the intended design:
+each run you pick a style.
+
+| Style preset | Gear equipped        | Play feel                                                |
+|--------------|----------------------|----------------------------------------------------------|
+| Analyzer + Dampener  | Analyzer, Dampener   | Smart and quiet — efficient burns, lower heat            |
+| Ghost        | Dampener, Recon Rig  | Quiet and hard-hitting — lower heat, deeper matched bites|
+| Smash        | Analyzer, Recon Rig  | Fast crack — best-match + matched bite bonus; runs hot   |
+
+**Ammo (hoard) and gear are separate concerns.** You carry your entire hoard into every run
+with no limit. Gear is the 2-slot structured choice on top of that.
+
+### Equipping for a Run
+
+At the **hub**, before launching:
+
+```
+> equip analyzer      # add to loadout (up to GEAR_SLOTS limit)
+> equip dampener
+> unequip recon-rig   # remove from loadout
+> status              # shows Loadout: Analyzer · Dampener  (best-match · heat×0.5)
+```
+
+Gear is also buyable from the darknet broker at the hub. Purchased gear goes straight
+into your profile; you then equip up to 2 pieces before launching.
+
+Your equipped loadout is shown in `status` and `status full` during a run.
+
+### Effect on Auto-burn
+
+When `xploit` starts a coherence burst, the equipped gear takes effect immediately:
+
+- **Analyzer** active → log notes "best-match" round selection
+- **Dampener** active → heat per shot is reduced; you'll see fewer heat-ceiling stops
+- **Recon Rig** active → matched rounds bite harder; coherence drops faster on type hits
+
+The gear effects are fixed at burst start — swapping gear mid-run (at the hub store) does not
+affect a burst already in progress.
 
 ---
 
@@ -855,20 +923,23 @@ jackout                End run.
 menu                   Toggle the status-bar controls panel (NEW RUN / PAUSE / SAVE / LOAD).
 hand                   Toggle collapse of the exploit hoard strip.
 
-darknet                List darknet broker research pack catalog (requires WAN targeted).
-buy <index>            Purchase a research pack from the broker (requires WAN targeted); rounds deposit to your hoard.
+darknet                List darknet broker research pack + gear catalog (requires WAN targeted or hub).
+buy <index>            Purchase a research pack or gear item from the broker; rounds/gear go to your profile.
+
+equip <gear>           Add a gear item to your loadout for the next run (hub only; up to GEAR_SLOTS limit).
+unequip <gear>         Remove a gear item from your current loadout (hub only).
 
 hub                    Open the overworld hub (between runs).
-inventory              List your bank balance and persistent exploit hoard.
+inventory              List your bank balance, persistent exploit hoard, and owned gear.
 carry <amount>         Set how much cash to carry into the next run.
 discard-disclosed      Discard all disclosed (burned) rounds from your hoard.
 targets                List available targets to launch.
-launch <targetId>      Start a run against a target with your full hoard + carried cash.
+launch <targetId>      Start a run against a target with your full hoard, equipped loadout, and carried cash.
                        (At the hub, `darknet` lists the broker catalog and `buy <index>`
                         purchases a pack into your hoard, spending bank.)
 
-status                 Summary status — alert, wallet, HEALTH, DECK INTEGRITY, ICE, hoard (alias: status summary)
-status full            Complete state dump — includes HEALTH and DECK INTEGRITY
+status                 Summary status — alert, wallet, HEALTH, DECK INTEGRITY, ICE, hoard, loadout (alias: status summary)
+status full            Complete state dump — includes HEALTH, DECK INTEGRITY, and loadout
 status ice             ICE grade, position (if visible), detection timer
 status hand            Exploit hoard summary with round counts by rarity
 status alert           Global alert, trace countdown, security node states

@@ -6,7 +6,7 @@
 //   node scripts/bot/census.js --seeds 50 --threat S --wealth A --full
 //   node scripts/bot/census.js --seeds 20 --network corporate-foothold
 
-import { runBot } from "./run.js";
+import { runBot, LOADOUT_PRESETS } from "./run.js";
 import { NAMED_NETWORKS, buildGenerated } from "../../data/networks/index.js";
 import { parseGradeArgs } from "../lib/grade-args.js";
 
@@ -15,6 +15,8 @@ import { parseGradeArgs } from "../lib/grade-args.js";
 let seedCount = 50;
 let networkName = null;
 let full = false;
+/** @type {string[]|null} null = no gear (bare); override with --loadout <preset> */
+let loadout = null;
 
 const argv = process.argv.slice(2);
 const spec = parseGradeArgs(argv);
@@ -22,6 +24,14 @@ for (let i = 0; i < argv.length; i++) {
   if (argv[i] === "--seeds" && argv[i + 1]) seedCount = parseInt(argv[++i], 10) || 50;
   else if (argv[i] === "--network" && argv[i + 1]) networkName = argv[++i];
   else if (argv[i] === "--full") full = true;
+  else if (argv[i] === "--loadout" && argv[i + 1]) {
+    const presetName = argv[++i];
+    if (!(presetName in LOADOUT_PRESETS)) {
+      console.error(`Unknown loadout preset: "${presetName}". Available: ${Object.keys(LOADOUT_PRESETS).join(", ")}`);
+      process.exit(1);
+    }
+    loadout = LOADOUT_PRESETS[presetName];
+  }
 }
 
 // ── Run census ──────────────────────────────────────────────
@@ -43,7 +53,7 @@ for (let i = 0; i < seedCount; i++) {
       }
       return buildGenerated({ seed, spec });
     };
-    const stats = runBot(buildFn, { seed });
+    const stats = runBot(buildFn, { seed, loadout: loadout ?? [] });
     runs.push(stats);
   } catch (e) {
     runs.push({ success: false, failReason: "error", error: e.message });
@@ -104,11 +114,20 @@ const summary = {
 
 // ── Output ──────────────────────────────────────────────────
 
+// Derive preset name for reporting (reverse-lookup)
+const loadoutPresetName = loadout === null
+  ? "bare"
+  : Object.entries(LOADOUT_PRESETS).find(([, ids]) =>
+      ids.length === loadout.length && ids.every((id) => loadout.includes(id))
+    )?.[0] ?? "custom";
+
 const output = {
   config: {
     seeds: seedCount,
     spec,
     network: networkName ?? "generated",
+    loadout: loadout ?? [],
+    loadoutPreset: loadoutPresetName,
   },
   summary,
 };
