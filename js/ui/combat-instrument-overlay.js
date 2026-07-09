@@ -67,7 +67,6 @@ let _grade = "C";
 let _shieldRings = null;
 let _stagingRing = null;
 let _fx = null;
-let _cracked = false;
 
 // Prior viewport for restore after focus.
 let _savedViewport = null;  // { zoom, pan }
@@ -170,7 +169,6 @@ export function startInstrument(nodeId, grade = "C") {
 
   _nodeId = nodeId;
   _grade = grade;
-  _cracked = false;
   const ringCount = RING_COUNT[grade] ?? RING_COUNT.C;
   const hoard = _hoardSnapshot();
   _shieldRings = createShieldRings(ringCount);
@@ -224,7 +222,6 @@ export function stepInstrument(step = {}) {
 /** Mark the core cracked + spawn the cyan crack bloom. */
 export function crackInstrument() {
   if (!_fx) return;
-  _cracked = true;
   spawnCrackShards(_fx, CENTER, CENTER);
   _fx.flash = 1;
 }
@@ -246,7 +243,6 @@ export function stopInstrument() {
     _shieldRings = null;
     _stagingRing = null;
     _fx = null;
-    _cracked = false;
   }, SETTLE_MS);
 }
 

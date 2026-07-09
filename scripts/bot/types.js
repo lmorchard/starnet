@@ -76,7 +76,7 @@
  * @property {number} score
  * @property {string} reason — human-readable explanation
  * @property {string} [strategy] — which heuristic produced this
- * @property {Object} [payload] — extra data (e.g. { exploitId })
+ * @property {Object} [payload] — extra data (e.g. { packId })
  */
 
 /**

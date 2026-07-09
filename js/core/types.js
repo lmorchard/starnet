@@ -329,7 +329,7 @@
  *   ice: IceCollection|null,
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
- *   ui: { menuOpen: boolean, handCollapsed: boolean },
+ *   ui: { menuOpen: boolean },
  *   nodeGraph?: any,
  *   spec?: Object|null,
  * }} GameState

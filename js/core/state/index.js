@@ -218,7 +218,7 @@ export function initGame(buildNetworkFn, seedString, opts = {}) {
     ice: null,
     lastDisturbedNodeId: null,
     mission: null,
-    ui: { menuOpen: false, handCollapsed: false },
+    ui: { menuOpen: false },
   };
   const state = ctx.state;   // local alias so the rest of initGame reads unchanged
 
@@ -395,7 +395,7 @@ export function deserializeState(snapshot, opts = {}) {
   // Heal saves that predate state.ui (the persisted UI toggles). Reads are
   // ?.-guarded, but the toggle setters write s.ui.x — without this they'd throw
   // on the first hamburger/hand toggle after loading an older save.
-  if (!ctx.state.ui) ctx.state.ui = { menuOpen: false, handCollapsed: false };
+  if (!ctx.state.ui) ctx.state.ui = { menuOpen: false };
   // Heal saves that predate state.flows — the flow renderer reads getState().flows directly.
   if (!ctx.state.flows) ctx.state.flows = [];
   // Heal saves that predate the flow-program fields (Session 1) and the heat model.

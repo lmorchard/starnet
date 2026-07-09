@@ -20,7 +20,6 @@ import {
 /**
  * True if the round's type list intersects the node's currently-revealed
  * vulnerabilities (probed, not patched, not hidden).
- * Mirrors the semantics of exploits.js:matchingVulnIds but for ExploitRound.types.
  * @param {ExploitRound} round
  * @param {NodeState} node
  * @returns {boolean}

@@ -110,9 +110,8 @@ const FACE_POLYGON_POINTS = (() => {
  * @type {Record<string, { gap: number, color: string }>}
  */
 const FENCE = {
-  locked:      { gap: 11,  color: "#246060" },
-  open: { gap: 7,   color: "#1c6a85" },
-  owned:       { gap: 4.5, color: "#1c8a4a" },
+  locked: { gap: 11,  color: "#246060" },
+  owned:  { gap: 4.5, color: "#1c8a4a" },
 };
 const FENCE_OPACITY = 0.42;
 const FENCE_WIDTH = 0.8;
