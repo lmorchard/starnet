@@ -499,8 +499,9 @@ around it.
 ## GEAR / LOADOUT
 
 Your cyberdeck can be fitted with **smash-tooling gear** — persistent hardware that modifies
-how the coherence auto-burn fires. Gear is bought at the **darknet broker** (hub or WAN node)
-and persists in your **profile** between runs. It does not decay and is never lost on a trace.
+how the coherence auto-burn fires. Gear is bought at the **hub darknet broker** (the in-run
+WAN broker sells ammo packs only) and persists in your **profile** between runs. It does not
+decay and is never lost on a trace.
 
 ### The Gear Roster
 
@@ -921,10 +922,9 @@ reboot                 Force ICE home; node goes briefly offline.
 jackout                End run.
 
 menu                   Toggle the status-bar controls panel (NEW RUN / PAUSE / SAVE / LOAD).
-hand                   Toggle collapse of the exploit hoard strip.
 
-darknet                List darknet broker research pack + gear catalog (requires WAN targeted or hub).
-buy <index>            Purchase a research pack or gear item from the broker; rounds/gear go to your profile.
+darknet                List the broker catalog. At the hub: research packs + gear. In a run (WAN targeted): packs only.
+buy <index>            Purchase from the broker. At the hub: packs + gear into your profile (spends bank). In a run: packs into your run hoard (spends wallet).
 
 equip <gear>           Add a gear item to your loadout for the next run (hub only; up to GEAR_SLOTS limit).
 unequip <gear>         Remove a gear item from your current loadout (hub only).

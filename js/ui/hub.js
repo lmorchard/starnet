@@ -240,10 +240,10 @@ export function openHubDarknet() {
   // Pop over the hub (left visible behind) and mark it as the overworld broker so
   // it reads distinctly from an in-run LAN session — see #darknet-store.from-hub.
   storeEl.classList.add("from-hub");
-  storeEl.subtitle = "OVERWORLD — spending bank, delivering to hoard";
+  storeEl.subtitle = "OVERWORLD — spending bank, stocking your profile (packs + gear)";
   refreshHubStore(storeEl);
   storeEl.open = true;
-  log("[DARKNET] Broker online — spending bank, delivering to hoard.");
+  log("[DARKNET] Broker online — spending bank; packs and gear delivered to your profile.");
 
   const onBuy = (evt) => {
     if (hubBuy(evt.detail.index)) {
