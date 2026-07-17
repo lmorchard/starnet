@@ -9,7 +9,7 @@ import { A } from "../../js/core/action-ids.js";
 import { perceive } from "./perception.js";
 import { score } from "./scoring.js";
 import { execute } from "./execute.js";
-import { createStats, recordAction, recordEvasion, recordMineResolved, updatePeakAlert, finalizeStats } from "./stats.js";
+import { createStats, recordAction, recordEvasion, recordMineResolved, updatePeakAlert, finalizeStats, recordRoundFired, recordHeatGenerated } from "./stats.js";
 
 /**
  * Run the bot loop until the game ends or budget is exhausted.
@@ -40,12 +40,18 @@ export function runLoop(strategies, opts = {}) {
   const onResolved = ({ action, detail }) => {
     if (action === A.MINE) recordMineResolved(stats, detail);
   };
+  const onProcessStep = ({ type }) => {
+    if (type === "autoburn") recordRoundFired(stats);
+  };
+  const onHeatChanged = ({ amount }) => { recordHeatGenerated(stats, amount); };
 
   on(E.ICE_DETECTED, onDetected);
   on(E.ALERT_TRACE_STARTED, onTraceStarted);
   on(E.ALERT_GLOBAL_RAISED, onAlertRaised);
   on(E.RUN_ENDED, onRunEnded);
   on(E.ACTION_RESOLVED, onResolved);
+  on(E.PROCESS_STEP, onProcessStep);
+  on(E.HEAT_CHANGED, onHeatChanged);
 
   try {
     while (totalTicks < tickBudget) {
@@ -130,6 +136,8 @@ export function runLoop(strategies, opts = {}) {
     off(E.ALERT_GLOBAL_RAISED, onAlertRaised);
     off(E.RUN_ENDED, onRunEnded);
     off(E.ACTION_RESOLVED, onResolved);
+    off(E.PROCESS_STEP, onProcessStep);
+    off(E.HEAT_CHANGED, onHeatChanged);
   }
 
   stats.ticksElapsed = totalTicks;

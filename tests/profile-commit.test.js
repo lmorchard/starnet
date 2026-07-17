@@ -99,7 +99,7 @@ describe("run lifecycle — profile ↔ run hoard", () => {
 describe("loadProfile — v1 reset (no migration)", () => {
   beforeEach(() => { localStorage.removeItem(PROFILE_KEY); initRng("v1-reset-test"); });
 
-  it("discards a stored v1 (inventory-based) profile and bootstraps a fresh v2 with a generated hoard", () => {
+  it("discards a stored v1 (inventory-based) profile and bootstraps a fresh v3 with a generated hoard", () => {
     const v1 = {
       version: 1,
       bank: 4242,
@@ -109,19 +109,20 @@ describe("loadProfile — v1 reset (no migration)", () => {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(v1));
 
     const p = loadProfile();
-    assert.equal(p.version, 2, "loaded profile is a fresh v2");
+    assert.equal(p.version, 3, "loaded profile is a fresh v3 (bootstrapped from v1 discard)");
     assert.ok(Array.isArray(p.hoard) && p.hoard.length > 0, "fresh profile has a generated hoard");
     assert.notEqual(p.bank, 4242, "the v1 bank is discarded (fresh bootstrap), not migrated");
     // The v1 profile is not crashed on — it is simply replaced.
     assert.doesNotThrow(() => loadProfile());
   });
 
-  it("normalizes a v2 profile without discarding (ensures a hoard array)", () => {
+  it("migrates a v2 profile to v3 without discarding (ensures hoard array + adds gear)", () => {
     const v2 = { version: 2, bank: 10, _hubVisits: 0, inventory: [] }; // missing hoard
     localStorage.setItem(PROFILE_KEY, JSON.stringify(v2));
     const p = loadProfile();
-    assert.equal(p.version, 2);
-    assert.equal(p.bank, 10, "a valid v2 profile is kept, not reset");
+    assert.equal(p.version, 3, "v2 profile is migrated to v3");
+    assert.equal(p.bank, 10, "a valid v2 profile is kept (bank preserved), not reset");
     assert.ok(Array.isArray(p.hoard), "a missing hoard is healed to an array");
+    assert.ok(Array.isArray(p.gear), "gear field is added by migration");
   });
 });

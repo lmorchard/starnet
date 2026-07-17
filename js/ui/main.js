@@ -1,6 +1,6 @@
 // @ts-check
 import { initGraph } from "./graph.js";
-import { getState, toggleMenuOpen, toggleHandCollapsed } from "../core/state.js";
+import { getState, toggleMenuOpen } from "../core/state.js";
 import { handleIceTick, handleIceDetect } from "../core/ice.js";
 import { initConsole, runCommand } from "./console.js";
 import { on, emitEvent, E } from "../core/events.js";
@@ -106,13 +106,6 @@ function init() {
   // dispatcher listens on the event bus. This listener connects the two.
   document.addEventListener("starnet:action", (e) => {
     emitEvent("starnet:action", /** @type {CustomEvent} */ (e).detail);
-  });
-
-  // Hand collapse toggle — mirrors the console `hand` command.
-  document.addEventListener("starnet:toggle-hand", () => {
-    const c = toggleHandCollapsed();
-    const handEl = /** @type {any} */ (document.getElementById("hand-strip"));
-    if (handEl) handEl.collapsed = c;
   });
 
   // Wire HUD actions via <starnet-hud> custom events. hudEl is the custom element,

@@ -20,12 +20,11 @@ import {
 /**
  * True if the round's type list intersects the node's currently-revealed
  * vulnerabilities (probed, not patched, not hidden).
- * Mirrors the semantics of exploits.js:matchingVulnIds but for ExploitRound.types.
  * @param {ExploitRound} round
  * @param {NodeState} node
  * @returns {boolean}
  */
-function roundMatchesNode(round, node) {
+export function roundMatchesNode(round, node) {
   if (!node?.probed) return false;
   const knownVulnIds = (node.vulnerabilities ?? [])
     .filter((v) => !v.patched && !v.hidden)
@@ -39,22 +38,25 @@ function roundMatchesNode(round, node) {
  * Compute how many coherence points a single round chips from a node.
  *
  * Formula:
- *   CHIP_FACTOR[grade] * RARITY_PUNCH[rarity] * (1 + (match ? TYPE_BITE : 0)) * jitterFactor
+ *   CHIP_FACTOR[grade] * RARITY_PUNCH[rarity] * (1 + (match ? TYPE_BITE + biteBonus : 0)) * jitterFactor
  *
  * where jitterFactor is 1 +/- CHIP_JITTER drawn from RNG.COMBAT when rollJitter is true,
- * otherwise exactly 1.
+ * otherwise exactly 1. biteBonus (default 0) is added to TYPE_BITE only on a type match —
+ * the Recon Rig gear effect. An unmatched round is unchanged regardless of biteBonus.
  *
  * @param {ExploitRound} round
  * @param {NodeState} node
  * @param {boolean} [rollJitter] - set false in tests for deterministic assertions
+ * @param {number} [biteBonus] - bonus added to TYPE_BITE on a type match (Recon Rig; default 0)
  * @returns {number} positive chip value
  */
-export function chip(round, node, rollJitter = true) {
+export function chip(round, node, rollJitter = true, biteBonus = 0) {
   const grade = node.grade ?? "C";
   const match = roundMatchesNode(round, node);
+  const bite = match ? (TYPE_BITE + biteBonus) : 0;
   const baseFactor = (CHIP_FACTOR[grade] ?? CHIP_FACTOR["C"]) *
                      (RARITY_PUNCH[round.rarity] ?? 1) *
-                     (1 + (match ? TYPE_BITE : 0));
+                     (1 + bite);
 
   let jitterFactor = 1;
   if (rollJitter) {

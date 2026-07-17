@@ -6,6 +6,7 @@
 
 import { initHeadlessEngine, resetGame } from "../lib/headless-engine.js";
 import { runLoop } from "./loop.js";
+import { setLoadout } from "../../js/core/state/player.js";
 
 // Default strategies
 import { exploreStrategy } from "./heuristics/explore.js";
@@ -32,10 +33,25 @@ const DEFAULT_STRATEGIES = [
 let engineInitialized = false;
 
 /**
+ * Named loadout presets for census runs.
+ * These equip the preset directly at run start — no buy-in required.
+ * @type {Record<string, string[]>}
+ */
+export const LOADOUT_PRESETS = {
+  bare:     [],
+  analyzer: ["analyzer"],
+  ghost:    ["dampener", "recon-rig"],
+  smash:    ["analyzer", "recon-rig"],
+};
+
+/** Default loadout for single-bot-cli runs (sensible smart+quiet combo). */
+export const DEFAULT_BOT_LOADOUT = ["analyzer", "dampener"];
+
+/**
  * Run the bot against a network.
  *
  * @param {() => { graphDef: any, meta: any }} buildNetworkFn
- * @param {{ seed?: string, strategies?: Strategy[], tickBudget?: number, verbose?: boolean }} [opts]
+ * @param {{ seed?: string, strategies?: Strategy[], tickBudget?: number, verbose?: boolean, loadout?: string[] }} [opts]
  * @returns {BotRunStats}
  */
 export function runBot(buildNetworkFn, opts = {}) {
@@ -46,6 +62,11 @@ export function runBot(buildNetworkFn, opts = {}) {
 
   resetGame(buildNetworkFn, opts.seed);
   resetPuzzleTracking();
+
+  // Equip the requested loadout (default: analyzer+dampener for single runs).
+  // Census overrides this per-preset. bare=[] disables gear entirely.
+  const loadout = opts.loadout ?? DEFAULT_BOT_LOADOUT;
+  setLoadout(loadout);
 
   const strategies = opts.strategies ?? DEFAULT_STRATEGIES;
   return runLoop(strategies, {

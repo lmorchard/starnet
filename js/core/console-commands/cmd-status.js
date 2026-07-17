@@ -11,6 +11,24 @@ import { resolveNode, resolveImplicitNode } from "./resolvers.js";
 import { isObscured } from "../state/node.js";
 import { mineYieldChance } from "../mining.js";
 import { activeProcessOnNode } from "../processes.js";
+import { gearById, resolveLoadoutEffects } from "../gear.js";
+
+/**
+ * Format equipped loadout for display.
+ * Returns e.g. "analyzer · dampener (best-match · heat×0.5)" or "(none)"
+ * @param {string[]} loadout
+ * @returns {string}
+ */
+function formatLoadout(loadout) {
+  if (!loadout || loadout.length === 0) return "(none)";
+  const eff = resolveLoadoutEffects(loadout);
+  const names = loadout.map((id) => gearById(id)?.name ?? id).join(" · ");
+  const effects = [];
+  if (eff.selection === "best-match") effects.push("best-match");
+  if (eff.heatMult !== 1) effects.push(`heat×${eff.heatMult}`);
+  if (eff.biteBonus !== 0) effects.push(`bite+${eff.biteBonus}`);
+  return effects.length > 0 ? `${names}  (${effects.join(" · ")})` : names;
+}
 
 /**
  * Renders per-instance ICE status lines for both cmdStatusFull and cmdStatusIce.
@@ -89,6 +107,9 @@ export function cmdStatusSummary() {
   const hoardStr = hoard.length === 1 ? "1 round" : `${hoard.length} rounds`;
   lines.push(`  Hoard: ${hoardStr}`);
 
+  const loadout = s.player.loadout ?? [];
+  lines.push(`  Loadout: ${formatLoadout(loadout)}`);
+
   const nodes = Object.values(s.nodes);
   const accessibleCount = nodes.filter((n) => n.visibility === "accessible").length;
   const ownedCount = nodes.filter((n) => n.accessLevel === "owned").length;
@@ -131,6 +152,7 @@ export function cmdStatusFull() {
   lines.push(`- health: ${s.player.health.current}/${s.player.health.max}`);
   lines.push(`- deck integrity: ${s.player.deckIntegrity.current}/${s.player.deckIntegrity.max}`);
   lines.push(`- ${hoardDesc}`);
+  lines.push(`- loadout: ${formatLoadout(s.player.loadout ?? [])}`);
 
   lines.push(`### ALERT`);
   const traceStr = s.traceSecondsRemaining !== null ? `${s.traceSecondsRemaining}s` : "--";

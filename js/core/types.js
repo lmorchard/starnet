@@ -56,6 +56,13 @@
  * }} ExploitRound
  */
 
+/**
+ * A piece of smash-tooling gear the player can own and equip (E2 Phase 1).
+ * Owned ids live in StarnetProfile.gear; the equipped subset for a run lives in
+ * PlayerState.loadout. See js/core/gear.js for the full registry and resolver.
+ * @typedef {{ id: string, name: string, kind: "select"|"heat"|"bite", price: number, desc: string }} Gear
+ */
+
 // ── Composite shapes ──────────────────────────────────────
 
 /**
@@ -119,6 +126,7 @@
  * @typedef {{
  *   cash: number,
  *   hoard: ExploitRound[],
+ *   loadout: string[],
  *   health: { current: number, max: number },
  *   deckIntegrity: { current: number, max: number },
  *   capturedCredentials: string[],
@@ -132,10 +140,13 @@
  * `hoard` is the persistent carry-all ammunition (E1 hoard cutover). The legacy
  * card `inventory` was removed in the Phase 9 sweep once every consumer was
  * repointed to the hoard.
+ * `gear` is the player's owned gear ids (E2 Phase 1). Empty by default; store-bought
+ * (wired in Phase 3). Loadout (equipped subset) lives in PlayerState for the run.
  * @typedef {{
  *   version: number,
  *   bank: number,
  *   hoard: ExploitRound[],
+ *   gear: string[],
  *   _hubVisits: number,
  * }} StarnetProfile
  */
@@ -329,7 +340,7 @@
  *   ice: IceCollection|null,
  *   lastDisturbedNodeId: string|null,
  *   mission: MissionState|null,
- *   ui: { menuOpen: boolean, handCollapsed: boolean },
+ *   ui: { menuOpen: boolean },
  *   nodeGraph?: any,
  *   spec?: Object|null,
  * }} GameState

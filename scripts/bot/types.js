@@ -76,7 +76,7 @@
  * @property {number} score
  * @property {string} reason — human-readable explanation
  * @property {string} [strategy] — which heuristic produced this
- * @property {Object} [payload] — extra data (e.g. { exploitId })
+ * @property {Object} [payload] — extra data (e.g. { packId })
  */
 
 /**
@@ -105,4 +105,6 @@
  * @property {number} mineResolved
  * @property {number} mineRounds
  * @property {Record<string, number>} strategyCounts
+ * @property {number} roundsFired — coherence rounds fired across all auto-burn bursts this run
+ * @property {number} heatGenerated — total heat added to the system this run (Dampener halves per-shot)
  */

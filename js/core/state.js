@@ -46,5 +46,5 @@ export {
 } from "./state/process.js";
 
 export {
-  setSelectedNode, setPhase, setRunOutcome, toggleMenuOpen, toggleHandCollapsed,
+  setSelectedNode, setPhase, setRunOutcome, toggleMenuOpen,
 } from "./state/game.js";

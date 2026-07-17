@@ -5,22 +5,25 @@
 // GUI/console symmetry principle). The pure profile model is in js/core/profile;
 // the run-start path is run-control.js.
 //
-// E1 hoard cutover (Phase 5): no loadout/equip — the ENTIRE persistent hoard is
-// carried into every run. The hub shows a minimal hoard summary (the rich grouped
-// view is Phase 7). The hub darknet-store buy path still delivers CARDS into the
-// vestigial inventory (Phase 6 repoints it to round packs).
+// The ENTIRE persistent hoard is carried into every run (carry-all ammo, no
+// per-run loadout of rounds). GEAR is different: the hub equips up to GEAR_SLOTS
+// of the profile's owned gear into a loadout that rides into the run (player.loadout,
+// which the auto-burn consumes). The hub darknet-store buys round packs into the
+// hoard and gear into profile.gear (bank-funded).
 
 import { loadProfile, saveProfile, prepareLaunch, prepareFastStartLaunch } from "./profile-store.js";
-import { generateTargets, removeDisclosedRounds } from "../core/profile/index.js";
-import { buyFromStoreToProfile } from "../core/store-logic.js";
+import { generateTargets, removeDisclosedRounds, hasGear } from "../core/profile/index.js";
+import { buyFromStoreToProfile, buyGearToProfile } from "../core/store-logic.js";
 import { getPackCatalog } from "../core/packs.js";
+import { getGearCatalog, gearById } from "../core/gear.js";
+import { GEAR_SLOTS } from "../core/balance.js";
 import { startRun } from "./run-control.js";
 import { buildNetwork as buildGenerated } from "../../data/networks/generated.js";
 import { NAMED_NETWORKS } from "../../data/networks/index.js";
 import { emitEvent, E } from "../core/events.js";
 
-/** @type {{ withdrawAmount: number }} */
-let selection = { withdrawAmount: 0 };
+/** @type {{ withdrawAmount: number, loadoutGearIds: string[] }} */
+let selection = { withdrawAmount: 0, loadoutGearIds: [] };
 /** @type {import('../core/profile/targets.js').HubTarget[]} */
 let targets = [];
 /** True while the darknet store modal is open from the hub (for console context). */
@@ -55,6 +58,8 @@ function refresh() {
   const p = loadProfile();
   el.bank = p.bank;
   el.hoard = p.hoard;
+  el.gear = p.gear;
+  el.loadout = selection.loadoutGearIds;
   el.withdrawAmount = selection.withdrawAmount;
   el.targets = targets;
 }
@@ -68,6 +73,8 @@ export function initHub() {
   el.addEventListener("discard-disclosed", () => discardDisclosed());
   el.addEventListener("visit-darknet", () => openHubDarknet());
   el.addEventListener("close", () => { el.open = false; });
+  el.addEventListener("equip-gear", (e) => equipGear(e.detail.gearId));
+  el.addEventListener("unequip-gear", (e) => unequipGear(e.detail.gearId));
 }
 
 /** Show the hub and sync it, without disturbing the in-progress selection or targets. */
@@ -101,9 +108,17 @@ export function openHub() {
   p._hubVisits = (p._hubVisits ?? 0) + 1;
   saveProfile(p);
   targets = generateTargets(p);
-  selection = { withdrawAmount: 0 };
+  selection = { withdrawAmount: 0, loadoutGearIds: [] };
   showHub();
   log(`[HUB] Overworld hub — bank ¥${p.bank.toLocaleString()}, ${p.hoard.length} rounds in the hoard.`);
+}
+
+/**
+ * Reset loadout selection to empty. TEST-ONLY helper — call in beforeEach so
+ * each test starts with a clean loadout. In production, openHub() resets this.
+ */
+export function resetLoadoutSelection() {
+  selection = { withdrawAmount: selection.withdrawAmount, loadoutGearIds: [] };
 }
 
 // ── Operations (shared by GUI events and console commands) ───────────────────
@@ -116,11 +131,51 @@ export function setWithdraw(amount) {
   refresh();
 }
 
-/** Start a run against the given target carrying the whole hoard + carried cash. */
+/**
+ * Equip a gear item into the loadout selection (in-hub only, not persisted
+ * until launch). Returns true on success, false on rejection.
+ * Rejects: not owned, already equipped (dedupe), or cap exceeded.
+ * @param {string} gearId
+ * @returns {boolean}
+ */
+export function equipGear(gearId) {
+  const g = gearById(gearId);
+  if (!g) { log(`[HUB] Unknown gear: ${gearId}`, "error"); return false; }
+  const p = loadProfile();
+  if (!hasGear(p, gearId)) { log(`[HUB] Not owned: ${g.name}`, "error"); return false; }
+  if (selection.loadoutGearIds.includes(gearId)) { log(`[HUB] ${g.name} already equipped.`); return false; }
+  if (selection.loadoutGearIds.length >= GEAR_SLOTS) {
+    log(`[HUB] Loadout full (${GEAR_SLOTS} slots). Unequip something first.`, "error");
+    return false;
+  }
+  selection.loadoutGearIds = [...selection.loadoutGearIds, gearId];
+  log(`[HUB] Equipped ${g.name} (${selection.loadoutGearIds.length}/${GEAR_SLOTS} slots).`);
+  refresh();
+  return true;
+}
+
+/**
+ * Unequip a gear item from the loadout selection.
+ * No-ops if the gear is not currently equipped.
+ * @param {string} gearId
+ */
+export function unequipGear(gearId) {
+  const g = gearById(gearId);
+  const name = g ? g.name : gearId;
+  if (!selection.loadoutGearIds.includes(gearId)) { return; }
+  selection.loadoutGearIds = selection.loadoutGearIds.filter((id) => id !== gearId);
+  log(`[HUB] Unequipped ${name} (${selection.loadoutGearIds.length}/${GEAR_SLOTS} slots).`);
+  refresh();
+}
+
+/** Start a run against the given target carrying the whole hoard + carried cash + equipped loadout. */
 export function launchTarget(targetId) {
   const target = targets.find((t) => t.id === targetId);
   if (!target) { log(`[HUB] No such target: ${targetId}`, "error"); return; }
-  const launchMeta = prepareLaunch({ withdrawAmount: selection.withdrawAmount });
+  const launchMeta = prepareLaunch({
+    withdrawAmount: selection.withdrawAmount,
+    loadoutGearIds: selection.loadoutGearIds,
+  });
   if (!launchMeta) { log("[HUB] Insufficient bank for that carry amount.", "error"); return; }
   // Authored jobs build a hand-crafted named network; procedural targets build from seed + spec (#261).
   let result;
@@ -140,7 +195,14 @@ export function launchTarget(targetId) {
 /** Read-only snapshot for console listing. */
 export function getHub() {
   const p = loadProfile();
-  return { bank: p.bank, hoard: p.hoard, targets, selection };
+  return {
+    bank: p.bank,
+    hoard: p.hoard,
+    gear: p.gear,
+    loadout: selection.loadoutGearIds,
+    targets,
+    selection,
+  };
 }
 
 /** Discard all disclosed (spent) rounds from the hoard. */
@@ -158,9 +220,17 @@ export function isHubContext() {
   return Boolean(hubEl()?.open) || hubStoreOpen;
 }
 
+/** Refresh the store modal's catalog and balance from current profile state. */
+function refreshHubStore(storeEl) {
+  const profile = loadProfile();
+  storeEl.cash = profile.bank;
+  storeEl.catalog = getPackCatalog();
+  storeEl.gearCatalog = getGearCatalog(profile);
+}
+
 /**
  * Open the darknet broker from the hub. Reuses the in-run store modal, but spends
- * bank cash and delivers to the persistent inventory. Hides the hub while shopping.
+ * bank cash and delivers to the persistent inventory. Shows both packs and gear.
  */
 export function openHubDarknet() {
   const storeEl = /** @type {any} */ (document.getElementById("darknet-store"));
@@ -169,31 +239,35 @@ export function openHubDarknet() {
 
   // Pop over the hub (left visible behind) and mark it as the overworld broker so
   // it reads distinctly from an in-run LAN session — see #darknet-store.from-hub.
-  const profile = loadProfile();
   storeEl.classList.add("from-hub");
-  storeEl.subtitle = "OVERWORLD — spending bank, delivering to hoard";
-  storeEl.catalog = getPackCatalog();
-  storeEl.cash = profile.bank;
+  storeEl.subtitle = "OVERWORLD — spending bank, stocking your profile (packs + gear)";
+  refreshHubStore(storeEl);
   storeEl.open = true;
-  log("[DARKNET] Broker online — spending bank, delivering to hoard.");
+  log("[DARKNET] Broker online — spending bank; packs and gear delivered to your profile.");
 
   const onBuy = (evt) => {
     if (hubBuy(evt.detail.index)) {
-      const p = loadProfile();
-      storeEl.cash = p.bank;
-      storeEl.catalog = getPackCatalog();
+      refreshHubStore(storeEl);
+    }
+  };
+  const onBuyGear = (evt) => {
+    if (hubBuyGear(evt.detail.gearId)) {
+      refreshHubStore(storeEl);
     }
   };
   const onClose = () => {
     storeEl.open = false;
     storeEl.classList.remove("from-hub");
     storeEl.subtitle = "";
+    storeEl.gearCatalog = [];
     storeEl.removeEventListener("buy", onBuy);
+    storeEl.removeEventListener("buy-gear", onBuyGear);
     storeEl.removeEventListener("close", onClose);
     hubStoreOpen = false;
     refresh(); // the hub stayed open behind; just sync the updated bank/inventory
   };
   storeEl.addEventListener("buy", onBuy);
+  storeEl.addEventListener("buy-gear", onBuyGear);
   storeEl.addEventListener("close", onClose);
 }
 
@@ -208,6 +282,20 @@ export function hubBuy(indexOrPackId) {
   return result;
 }
 
+/** Buy a gear item from the broker into the persistent profile (spends bank). Hub only. */
+export function hubBuyGear(gearId) {
+  const profile = loadProfile();
+  const result = buyGearToProfile(profile, gearId);
+  if (!result) {
+    log("[DARKNET] Gear purchase failed — insufficient bank, already owned, or unknown item.", "error");
+    return null;
+  }
+  saveProfile(profile);
+  log(`[DARKNET] Acquired ${result.gear.name} for ¥${result.price.toLocaleString()} — added to gear.`, "success");
+  refresh();
+  return result;
+}
+
 /** Console: list the broker catalog and bank balance (hub context). */
 export function listHubCatalog() {
   const p = loadProfile();
@@ -217,5 +305,11 @@ export function listHubCatalog() {
     const afford = p.bank >= item.price ? "" : "  [INSUFFICIENT BANK]";
     log(`  [${i + 1}] ${item.name}  [${item.size} rounds]  ¥${item.price}${afford}`);
   });
-  log("Use: buy <index>");
+  log("GEAR");
+  getGearCatalog(p).forEach((item) => {
+    const owned = item.owned ? "  [OWNED]" : "";
+    const afford = !item.owned && p.bank < item.price ? "  [INSUFFICIENT BANK]" : "";
+    log(`  ${item.id}  ${item.name}  (${item.kind})  ¥${item.price}${owned}${afford}`);
+  });
+  log("Use: buy <index|packId|gearId>");
 }

@@ -15,10 +15,12 @@ import { setNodeCoherence, setNodeAlertState } from "../js/core/state/node.js";
 import { clearHandlers, on, E } from "../js/core/events.js";
 import { clearAll, tick } from "../js/core/timers.js";
 import { _forceNext, RNG, initRng } from "../js/core/rng.js";
-import { COHERENCE, HEAT_COST, BURN_CEILING_DEFAULT } from "../js/core/balance.js";
+import { COHERENCE, HEAT_COST, BURN_CEILING_DEFAULT, DAMPENER_HEAT_MULT, RECON_BITE_BONUS, TYPE_BITE, CHIP_FACTOR, RARITY_PUNCH } from "../js/core/balance.js";
 import { buildNetwork as buildCorporateExchange } from "../data/networks/corporate-exchange.js";
 import { getAvailableActions } from "../js/core/actions/node-actions.js";
 import { A } from "../js/core/action-ids.js";
+import { setLoadout } from "../js/core/state/player.js";
+import { chip } from "../js/core/coherence.js";
 
 afterEach(() => { clearHandlers(); clearAll(); });
 
@@ -408,5 +410,224 @@ describe("autoburn — crackNode sets probed (own-it-know-it)", () => {
     const hasDump = actions.some((a) => a.id === A.DUMP);
     assert.ok(hasDump,
       `(c) DUMP is in getAvailableActions for cracked node (available: ${actions.map(a=>a.id).join(", ")})`);
+  });
+});
+
+// ── E2-P2: loadout wired end-to-end ──────────────────────────────────────────
+//
+// These tests assert that player.loadout effects flow through startAutoBurn → the
+// process → step (heat mult + bite + selection). The CRITICAL guard: empty loadout
+// must reproduce E1 behavior exactly.
+
+describe("autoburn E2-P2 — Dampener: per-shot heat is scaled by DAMPENER_HEAT_MULT", () => {
+  it("dampener loadout: PROCESS_STEP events accumulate proc.heat at half rate", () => {
+    initGame(() => buildCorporateExchange(), "ab-dampener-1");
+    initAutoBurn();
+
+    const nodeId = "gateway";
+
+    // Generous hoard — we want multiple shots before ceiling or crack
+    for (let i = 0; i < 20; i++) {
+      addRoundToHoard(makeRound("common", `ddamp${i.toString(16).padStart(4, "0")}`));
+    }
+
+    // High coherence so node won't crack; ceiling = 4 shots baseline heat (won't trigger w/ dampener either)
+    setNodeCoherence(nodeId, COHERENCE["S"] ?? 2000);
+
+    // Baseline run: no loadout, small ceiling = exactly 2 shots
+    const baselineCeiling = HEAT_COST.xploit * 2;
+    startAutoBurn(nodeId, { ceiling: baselineCeiling });
+    tick(50);
+
+    const baseProc = getState().processes; // should be empty (hit ceiling)
+    // After hitting ceiling at exactly 2 shots, process ends
+    const heatEvents2shots = HEAT_COST.xploit * 2;
+
+    // Now a fresh run with dampener: same ceiling should allow MORE shots
+    // because per-shot heat is halved.
+    initGame(() => buildCorporateExchange(), "ab-dampener-2");
+    initAutoBurn();
+    setLoadout(["dampener"]);
+
+    for (let i = 0; i < 20; i++) {
+      addRoundToHoard(makeRound("common", `damp2${i.toString(16).padStart(4, "0")}`));
+    }
+    setNodeCoherence(nodeId, COHERENCE["S"] ?? 2000);
+
+    const stepEvents = [];
+    on(E.PROCESS_STEP, (p) => stepEvents.push(p));
+
+    startAutoBurn(nodeId, { ceiling: baselineCeiling });
+    tick(50);
+
+    // With dampener, each shot costs HEAT_COST.xploit * DAMPENER_HEAT_MULT.
+    // In 2 shots' worth of heat budget, dampener allows floor(1/DAMPENER_HEAT_MULT)=2
+    // but the ceiling is 2 * xploit. Actually floor(2 * xploit / (xploit * 0.5)) = 4.
+    // So we must see MORE than 2 shots with dampener.
+    const dampenerShotCount = stepEvents.length;
+    assert.ok(
+      dampenerShotCount > 2,
+      `dampener should allow more than 2 shots in the same heat budget; got ${dampenerShotCount}`
+    );
+  });
+
+  it("dampener: recordHeat receives scaled heat, not baseline HEAT_COST.xploit", () => {
+    // A more direct test: check that the PROCESS_STEP doesn't crash and heat
+    // accumulates correctly. We'll do this by checking the exact shot count vs
+    // a ceiling set to exactly 1 shot's worth of dampened heat (should fire 1 shot).
+    initGame(() => buildCorporateExchange(), "ab-dampener-direct-1");
+    initAutoBurn();
+    setLoadout(["dampener"]);
+
+    const nodeId = "gateway";
+    for (let i = 0; i < 20; i++) {
+      addRoundToHoard(makeRound("common", `dd${i.toString(16).padStart(4, "0")}`));
+    }
+    setNodeCoherence(nodeId, COHERENCE["S"] ?? 2000);
+
+    const stepEvents = [];
+    on(E.PROCESS_STEP, (p) => stepEvents.push(p));
+
+    // Ceiling = exactly 1 shot with dampener (HEAT_COST.xploit * DAMPENER_HEAT_MULT)
+    // but slightly less than 2 shots, to confirm exactly 1 fires.
+    const oneShotDampened = HEAT_COST.xploit * DAMPENER_HEAT_MULT;
+    startAutoBurn(nodeId, { ceiling: oneShotDampened });
+    tick(50);
+
+    assert.equal(stepEvents.length, 1, `exactly 1 shot fired at ceiling=${oneShotDampened}`);
+    assert.equal(getState().processes.length, 0, "process ends after ceiling");
+  });
+});
+
+describe("autoburn E2-P2 — Recon Rig: chip is larger on a matched round", () => {
+  it("recon-rig loadout: a matched round chips MORE than baseline on the same node", () => {
+    // Direct chip() comparison: with recon vs without, on an exactly-matched node.
+    // rollJitter=false for determinism.
+
+    // Matched node
+    const node = {
+      id: "test", type: "router", label: "test", visibility: "accessible",
+      grade: "C", probed: true,
+      vulnerabilities: [{ id: "unpatched-ssh", name: "", description: "", rarity: "common",
+        patched: false, patchTurn: null, hidden: false, unlockedBy: null }],
+    };
+    const round = { id: "r1", rarity: "common", types: ["unpatched-ssh"], disclosed: false };
+
+    const withRecon    = chip(round, node, false, RECON_BITE_BONUS);
+    const withoutRecon = chip(round, node, false, 0);
+
+    assert.ok(withRecon > withoutRecon,
+      `recon chip (${withRecon}) must exceed no-recon chip (${withoutRecon}) on a matched round`);
+  });
+
+  it("recon-rig loadout stamped on process: proc.biteBonus = RECON_BITE_BONUS", () => {
+    initGame(() => buildCorporateExchange(), "ab-recon-proc-1");
+    initAutoBurn();
+    setLoadout(["recon-rig"]);
+
+    const nodeId = "gateway";
+    addRoundToHoard(makeRound("common", "recon0001"));
+
+    startAutoBurn(nodeId);
+
+    // The process should have biteBonus stamped by startAutoBurn before any tick.
+    const proc = getState().processes.find((p) => p.nodeId === nodeId && p.type === "autoburn");
+    assert.ok(proc, "autoburn process exists after startAutoBurn");
+    assert.equal(proc.biteBonus, RECON_BITE_BONUS, "proc.biteBonus stamped by startAutoBurn");
+  });
+});
+
+describe("autoburn E2-P2 — Analyzer: best-match selection stamped on process", () => {
+  it("analyzer loadout: proc.selection = 'best-match' after startAutoBurn", () => {
+    initGame(() => buildCorporateExchange(), "ab-analyzer-proc-1");
+    initAutoBurn();
+    setLoadout(["analyzer"]);
+
+    const nodeId = "gateway";
+    addRoundToHoard(makeRound("common", "ana00001"));
+
+    startAutoBurn(nodeId);
+
+    const proc = getState().processes.find((p) => p.nodeId === nodeId && p.type === "autoburn");
+    assert.ok(proc, "autoburn process exists");
+    assert.equal(proc.selection, "best-match", "proc.selection stamped as 'best-match' for analyzer");
+  });
+
+  it("analyzer: fires the matched round first (end-to-end, matched node)", () => {
+    initGame(() => buildCorporateExchange(), "ab-analyzer-e2e-1");
+    initAutoBurn();
+    setLoadout(["analyzer"]);
+
+    // gateway has grade C; probe it by setting vulnerabilities directly
+    const nodeId = "gateway";
+    const s = getState();
+    const gwNode = s.nodes[nodeId];
+    // Set the node as probed with a known vuln so the matched round can be detected
+    gwNode.probed = true;
+    gwNode.vulnerabilities = [{
+      id: "unpatched-ssh", name: "unpatched-ssh", description: "",
+      rarity: "common", patched: false, patchTurn: null, hidden: false, unlockedBy: null,
+    }];
+
+    // Hoard: mostly unmatched commons + one matched rare
+    setHoard([
+      makeRound("common", "unmatched-c1"),
+      makeRound("common", "unmatched-c2"),
+      makeRound("common", "unmatched-c3"),
+      { id: "matched-rare", rarity: "rare", types: ["unpatched-ssh"], disclosed: false },
+      makeRound("common", "unmatched-c4"),
+    ]);
+
+    setNodeCoherence(nodeId, COHERENCE["S"] ?? 2000); // won't crack
+
+    const stepEvents = [];
+    on(E.PROCESS_STEP, (p) => stepEvents.push(p));
+
+    // Ceiling = just enough for 1 shot (baseline heat)
+    startAutoBurn(nodeId, { ceiling: HEAT_COST.xploit });
+    tick(50);
+
+    assert.equal(stepEvents.length, 1, "exactly 1 shot fired");
+    assert.equal(stepEvents[0].roundId, "matched-rare",
+      `analyzer fires matched-rare first; got ${stepEvents[0].roundId}`);
+  });
+});
+
+describe("autoburn E2-P2 — empty loadout = E1 baseline (structural guard)", () => {
+  it("no loadout: proc.selection='blind', proc.heatMult=1, proc.biteBonus=0", () => {
+    initGame(() => buildCorporateExchange(), "ab-empty-loadout-1");
+    initAutoBurn();
+    // player.loadout is [] by default (seeded from meta.startLoadout ?? [])
+    assert.deepEqual(getState().player.loadout, [], "precondition: empty loadout");
+
+    const nodeId = "gateway";
+    addRoundToHoard(makeRound("common", "base0001"));
+    startAutoBurn(nodeId);
+
+    const proc = getState().processes.find((p) => p.nodeId === nodeId && p.type === "autoburn");
+    assert.ok(proc, "autoburn process exists");
+    assert.equal(proc.selection, "blind",  "empty loadout → proc.selection='blind'");
+    assert.equal(proc.heatMult, 1,         "empty loadout → proc.heatMult=1");
+    assert.equal(proc.biteBonus, 0,        "empty loadout → proc.biteBonus=0");
+  });
+
+  it("no loadout: heat per shot is HEAT_COST.xploit (unchanged from E1)", () => {
+    initGame(() => buildCorporateExchange(), "ab-empty-heat-1");
+    initAutoBurn();
+
+    const nodeId = "gateway";
+    for (let i = 0; i < 20; i++) {
+      addRoundToHoard(makeRound("common", `base2${i.toString(16).padStart(4, "0")}`));
+    }
+    setNodeCoherence(nodeId, COHERENCE["S"] ?? 2000);
+
+    const stepEvents = [];
+    on(E.PROCESS_STEP, (p) => stepEvents.push(p));
+
+    // Ceiling = exactly HEAT_COST.xploit → should fire exactly 1 shot
+    startAutoBurn(nodeId, { ceiling: HEAT_COST.xploit });
+    tick(50);
+
+    assert.equal(stepEvents.length, 1, "exactly 1 shot fired at 1-shot ceiling (E1 baseline heat)");
   });
 });

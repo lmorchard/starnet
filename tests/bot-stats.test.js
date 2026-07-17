@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createStats, updatePeakAlert, finalizeStats } from "../scripts/bot/stats.js";
+import { createStats, updatePeakAlert, finalizeStats, recordRoundFired, recordHeatGenerated } from "../scripts/bot/stats.js";
 
 // Minimal GameState stub for finalizeStats (it reads nodes/player.cash/mission).
 function stubState({ complete = false } = {}) {
@@ -75,4 +75,34 @@ test("finalizeStats: completed mission is a success regardless of trace", () => 
   finalizeStats(stats, stubState({ complete: true }));
   assert.equal(stats.success, true);
   assert.equal(stats.failReason, null);
+});
+
+// Efficiency counters (gear-sensitivity signal)
+
+test("createStats: roundsFired and heatGenerated start at zero", () => {
+  const stats = createStats();
+  assert.equal(stats.roundsFired, 0);
+  assert.equal(stats.heatGenerated, 0);
+});
+
+test("recordRoundFired increments roundsFired", () => {
+  const stats = createStats();
+  recordRoundFired(stats);
+  recordRoundFired(stats);
+  assert.equal(stats.roundsFired, 2);
+});
+
+test("recordHeatGenerated accumulates positive amounts", () => {
+  const stats = createStats();
+  recordHeatGenerated(stats, 1.5);
+  recordHeatGenerated(stats, 0.5);
+  assert.equal(stats.heatGenerated, 2);
+});
+
+test("recordHeatGenerated ignores zero and negative amounts (cooldown events)", () => {
+  const stats = createStats();
+  recordHeatGenerated(stats, 3);
+  recordHeatGenerated(stats, -1);  // heat decay / lie-low
+  recordHeatGenerated(stats, 0);
+  assert.equal(stats.heatGenerated, 3);
 });

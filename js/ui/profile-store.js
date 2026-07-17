@@ -12,9 +12,11 @@ import {
   buildRunHoard,
   commitRun,
   withdraw,
+  hasGear,
   PROFILE_VERSION,
 } from "../core/profile/index.js";
 import { generateHoard, DEFAULT_START_HOARD } from "../core/hoard.js";
+import { GEAR_SLOTS } from "../core/balance.js";
 import { on, E } from "../core/events.js";
 import { getState } from "../core/state.js";
 
@@ -25,8 +27,9 @@ const DEFAULT_BANK = 1000; // matches initGame's startCash fallback
 
 /**
  * Load the profile from localStorage, or bootstrap a new one if absent/corrupt.
- * A stored profile from before the hoard cutover (version !== 2) is discarded and
- * re-bootstrapped fresh — there is no card→round migration (E1 v1 reset).
+ * v1 (card-inventory) profiles are discarded and re-bootstrapped — no migration.
+ * v2 profiles are migrated gently to v3 (gear field added, bank/hoard preserved).
+ * v3 profiles load and normalize as-is.
  * @returns {StarnetProfile}
  */
 export function loadProfile() {
@@ -34,8 +37,8 @@ export function loadProfile() {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      // Only version-2 profiles survive; anything older/missing is reset.
-      if (parsed && typeof parsed === "object" && parsed.version === PROFILE_VERSION) {
+      // v2 and v3 survive; v1 and anything older/missing is reset.
+      if (parsed && typeof parsed === "object" && (parsed.version === 2 || parsed.version === PROFILE_VERSION)) {
         return normalizeProfile(parsed);
       }
     } catch {
@@ -46,9 +49,12 @@ export function loadProfile() {
 }
 
 /**
- * Repair a parsed v2 profile to the current shape, filling missing/invalid fields so
- * a partially-written payload can't crash the hub downstream. Mutates and returns
- * the object. (Pre-v2 payloads never reach here — loadProfile resets them.)
+ * Repair/migrate a parsed v2 or v3 profile to the current shape, filling missing or
+ * invalid fields so a partially-written payload can't crash the hub downstream.
+ * Mutates and returns the object.
+ *
+ * v2 → v3 migration: adds `gear: []` (preserving bank + hoard — NOT a reset).
+ * Pre-v2 payloads never reach here — loadProfile resets them.
  * @param {any} p
  * @returns {StarnetProfile}
  */
@@ -56,7 +62,9 @@ function normalizeProfile(p) {
   if (typeof p.bank !== "number") p.bank = 0;
   if (!Array.isArray(p.hoard)) p.hoard = [];
   if (typeof p._hubVisits !== "number") p._hubVisits = 0;
-  if (typeof p.version !== "number") p.version = PROFILE_VERSION;
+  // v2 → v3: gentle migration — add gear field if missing, bump version.
+  if (!Array.isArray(p.gear)) p.gear = [];
+  if (typeof p.version !== "number" || p.version < PROFILE_VERSION) p.version = PROFILE_VERSION;
   return p;
 }
 
@@ -91,28 +99,32 @@ let activeRun = null;
  * must not deposit cash or alter the hoard. Always succeeds (no bank/profile
  * dependency), so the player lands in a playable LAN regardless of profile state.
  * @param {number} [_maxCards] - unused; retained for the quickStartRun call signature
- * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number }}
+ * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number, startLoadout: string[] }}
  */
 export function prepareFastStartLaunch(_maxCards) {
   activeRun = null; // a fast-start run does not commit back to the profile
-  return { startHoard: generateHoard(DEFAULT_START_HOARD), startCash: 0 };
+  return { startHoard: generateHoard(DEFAULT_START_HOARD), startCash: 0, startLoadout: [] };
 }
 
 /**
  * Prepare a run launch from the profile: withdraw the carried cash and clone the
- * ENTIRE hoard into the run (no loadout — the whole hoard is carried). Records the
- * active run so it can be committed when it ends. Returns the meta additions
- * (startHoard + startCash) for the caller to merge into the network meta and start
- * via startRun(); returns null if the bank can't cover the carried cash.
- * @param {{ withdrawAmount: number }} args
- * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number } | null}
+ * ENTIRE hoard into the run. Records the active run so it can be committed when it
+ * ends. The equipped gear loadout is threaded into the meta as `startLoadout`
+ * (validated: only owned ids, capped at GEAR_SLOTS). Returns null if the bank
+ * can't cover the carried cash.
+ * @param {{ withdrawAmount: number, loadoutGearIds?: string[] }} args
+ * @returns {{ startHoard: import('../core/types.js').ExploitRound[], startCash: number, startLoadout: string[] } | null}
  */
-export function prepareLaunch({ withdrawAmount }) {
+export function prepareLaunch({ withdrawAmount, loadoutGearIds = [] }) {
   const profile = loadProfile();
   if (!withdraw(profile, withdrawAmount)) return null;
   saveProfile(profile); // bank debited at launch
   activeRun = { active: true };
-  return { startHoard: buildRunHoard(profile.hoard), startCash: withdrawAmount };
+  // Defensive: filter to owned ids only, then cap at GEAR_SLOTS.
+  const startLoadout = loadoutGearIds
+    .filter((id) => hasGear(profile, id))
+    .slice(0, GEAR_SLOTS);
+  return { startHoard: buildRunHoard(profile.hoard), startCash: withdrawAmount, startLoadout };
 }
 
 let _commitWired = false;

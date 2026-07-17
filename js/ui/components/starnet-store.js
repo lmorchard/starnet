@@ -1,5 +1,6 @@
 // <starnet-store> — Darknet broker store modal.
 // Shows research pack catalog with buy buttons. Controlled by store.js bridge.
+// At the hub, also shows a GEAR section below packs (gearCatalog property).
 // The element itself acts as the backdrop overlay (styled via #darknet-store in CSS).
 
 import { html, nothing } from "lit";
@@ -18,6 +19,7 @@ class StarnetStore extends StarnetElement {
   static properties = {
     open: { type: Boolean },
     catalog: { type: Array },
+    gearCatalog: { type: Array },
     cash: { type: Number },
     subtitle: { type: String },
   };
@@ -26,6 +28,7 @@ class StarnetStore extends StarnetElement {
     super();
     this.open = false;
     this.catalog = [];
+    this.gearCatalog = [];
     this.cash = 0;
     this.subtitle = "";
   }
@@ -49,6 +52,13 @@ class StarnetStore extends StarnetElement {
     }));
   }
 
+  _onBuyGear(item) {
+    this.dispatchEvent(new CustomEvent("buy-gear", {
+      bubbles: true,
+      detail: { gearId: item.id },
+    }));
+  }
+
   _onClose() {
     this.dispatchEvent(new CustomEvent("close", { bubbles: true }));
   }
@@ -59,6 +69,8 @@ class StarnetStore extends StarnetElement {
 
   render() {
     if (!this.open) return nothing;
+
+    const hasGearSection = Array.isArray(this.gearCatalog) && this.gearCatalog.length > 0;
 
     return html`
       <div class="store-box">
@@ -83,6 +95,26 @@ class StarnetStore extends StarnetElement {
               </div>`;
           })}
         </div>
+        ${hasGearSection ? html`
+          <div class="store-section-header">// GEAR</div>
+          <div class="store-card-list store-gear-list">
+            ${this.gearCatalog.map((item) => {
+              const canAfford = this.cash >= item.price;
+              return html`
+                <div class="store-card-row">
+                  <span class="store-item-name">${item.name}
+                    <span class="store-item-mix">${item.kind}</span>
+                    <span class="store-item-desc">${item.desc}</span>
+                  </span>
+                  <span class="store-item-price">¥${item.price}</span>
+                  ${item.owned
+                    ? html`<span class="store-item-owned">[ OWNED ]</span>`
+                    : html`<button class="store-buy-btn" ?disabled=${!canAfford}
+                                   @click=${() => this._onBuyGear(item)}>[ BUY ]</button>`}
+                </div>`;
+            })}
+          </div>
+        ` : nothing}
         <div class="store-footer">
           <button class="store-close-btn" @click=${this._onClose}>[ CLOSE ]</button>
         </div>
