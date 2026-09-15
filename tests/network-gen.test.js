@@ -15,6 +15,7 @@ import {
   minWingSlots,
 } from "../js/core/network/budget.js";
 
+import { GRADE_INDEX } from "../js/core/grades.js";
 import { instantiate } from "../js/core/network/set-pieces.js";
 import {
   CORPORATE_BIOME, SUB_BIOMES, RECIPES,
@@ -693,5 +694,98 @@ describe("assembleNetwork: ICE placement per security-monitor", () => {
       assert.equal(cfg.grade, "B");
       assert.ok(monitors.some(m => m.id === cfg.startNode));
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Node grade baseline — generated networks must have real grade variance
+// ---------------------------------------------------------------------------
+
+describe("node grade baseline", () => {
+  const specAt = (threat, complexity = "C") => ({ threat, wealth: "B", complexity, depth: "C" });
+
+  /** Graded nodes of a generated network, as {type, grade} pairs. */
+  const gradesOf = (seed, spec) =>
+    generateNetwork(seed, spec, CORPORATE_BIOME).graphDef.nodes
+      .filter((n) => n.traits?.includes("graded"))
+      .map((n) => ({ type: n.type, grade: n.attributes?.grade }));
+
+  it("produces more than one distinct grade across generated networks", () => {
+    const grades = new Set();
+    for (let i = 0; i < 10; i++) {
+      for (const { grade } of gradesOf(`grade-${i}`, specAt("C"))) grades.add(grade);
+    }
+    assert.ok(grades.size > 1, `expected grade variety, got ${[...grades].join(",")}`);
+  });
+
+  it("grades every graded node, leaving none undefined", () => {
+    for (const { type, grade } of gradesOf("grade-all", specAt("C"))) {
+      assert.ok(grade, `${type} has no grade`);
+    }
+  });
+
+  // threat/complexity A: the C/C palette places no cryptovaults at all (measured 0% over 25
+  // seeds), while A/A places them in ~80% of networks. Workstations are ~100% everywhere.
+  it("grades a cryptovault harder than a workstation", () => {
+    for (let i = 0; i < 40; i++) {
+      const nodes = gradesOf(`grade-pair-${i}`, specAt("A", "A"));
+      const vault = nodes.find((n) => n.type === "cryptovault");
+      const ws = nodes.find((n) => n.type === "workstation");
+      if (!vault || !ws) continue;
+      assert.ok(
+        GRADE_INDEX[vault.grade] > GRADE_INDEX[ws.grade],
+        `vault ${vault.grade} should outrank workstation ${ws.grade}`
+      );
+      return;
+    }
+    assert.fail("no generated network contained both a cryptovault and a workstation");
+  });
+
+  it("does not override a grade the piece declared", () => {
+    // assembleNetwork takes INSTANTIATED pieces ({nodes, edges, triggers}); raw defs carry
+    // internalEdges. Clone first so this test can't pollute the shared module-level def.
+    const piece = instantiate(structuredClone(backboneRouter), "declared");
+    piece.nodes[0].attributes = { ...piece.nodes[0].attributes, grade: "F" };
+    const { graphDef } = assembleNetwork([piece], [], specAt("C"), CORPORATE_BIOME, "declared");
+    const router = graphDef.nodes.find((n) => n.type === "router");
+    // threat C + complexity C = offset 0, so a declared F must survive verbatim.
+    assert.equal(router.attributes.grade, "F");
+  });
+
+  it("leaves nodes without the `graded` trait ungraded", () => {
+    const { graphDef } = generateNetwork("grade-wan", specAt("C"), CORPORATE_BIOME);
+    const wan = graphDef.nodes.find((n) => n.type === "wan");
+    assert.ok(wan, "expected a wan node");
+    assert.equal(wan.attributes?.grade, undefined);
+  });
+
+  it("scales the distribution with the run spec", () => {
+    const meanIndex = (threat) => {
+      const all = [];
+      for (let i = 0; i < 10; i++) {
+        for (const { grade } of gradesOf(`grade-scale-${i}`, specAt(threat))) {
+          all.push(GRADE_INDEX[grade]);
+        }
+      }
+      return all.reduce((a, b) => a + b, 0) / all.length;
+    };
+    assert.ok(meanIndex("S") > meanIndex("F"), "threat S should grade harder than threat F");
+  });
+
+  // Structural invariants. instantiate() shallow-spreads nodes, so an instance's `attributes`
+  // is the SAME object as the module-level piece def's. An in-place grade write would leak into
+  // the def and compound across every network built in this process (i.e. across a census).
+
+  it("does not mutate the module-level piece definition", () => {
+    const before = backboneRouter.nodes[0].attributes.grade;
+    for (let i = 0; i < 5; i++) generateNetwork(`grade-leak-${i}`, specAt("S"), CORPORATE_BIOME);
+    assert.equal(backboneRouter.nodes[0].attributes.grade, before);
+  });
+
+  it("is idempotent across repeated generation in one process", () => {
+    const first = gradesOf("grade-idem", specAt("S"));
+    for (let i = 0; i < 3; i++) generateNetwork(`grade-noise-${i}`, specAt("S"), CORPORATE_BIOME);
+    const again = gradesOf("grade-idem", specAt("S"));
+    assert.deepEqual(again, first, "same seed must yield the same grades regardless of history");
   });
 });

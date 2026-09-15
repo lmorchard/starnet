@@ -14,6 +14,7 @@
 /** @typedef {import('../node-graph/types.js').TriggerDef} TriggerDef */
 
 import { gradeModifier, startCash, gradeToNumber, shiftGrade, GRADE_INDEX } from "./budget.js";
+import { NODE_GRADE_BASELINE, DEFAULT_NODE_GRADE } from "../balance.js";
 
 // ---------------------------------------------------------------------------
 // Assembly
@@ -38,6 +39,34 @@ export function assembleNetwork(pieces, crossEdges, spec, biome, seed) {
   /** @type {TriggerDef[]} */
   const allTriggers = [];
 
+  // 1a. Grade assignment — baseline by node type, then the per-piece (wing) or global offset.
+  //     A grade the piece declared always wins; the baseline only fills a missing one.
+  //
+  //     Runs BEFORE nodes are collected, and assigns a NEW attributes object rather than
+  //     mutating: instantiate() shallow-spreads nodes, so an instance's `attributes` is the
+  //     same object as the module-level piece def's. An in-place write leaks into the def and
+  //     every later network built in this process inherits it (a census builds 50 in one).
+  const globalModifier = gradeModifier(spec);
+  for (const piece of pieces) {
+    // Wing pieces have gradeOffset set; backbone/flat pieces use global modifier
+    const rawOffset = piece.gradeOffset ?? globalModifier;
+    piece.nodes = piece.nodes.map((node) => {
+      if (!node.traits?.includes("graded")) return node;
+      const declared = node.attributes?.grade;
+      // Declared grades keep the historical full-strength offset (authored pieces rely on it).
+      // A baseline-derived grade gets a COMPRESSED offset: the baseline already spans F..A, and
+      // the raw offsets run -2..+3 (wing offsets come from sub-biome base grades, independent of
+      // the LAN spec), so applying them at full strength clamps the whole range to F or S and
+      // destroys the variety this baseline exists to create. Spec difficulty still scales
+      // strongly through node *composition* — hard specs place cryptovaults and firewalls far
+      // more often.
+      const offset = declared ? rawOffset : Math.max(-1, Math.min(1, rawOffset));
+      const base = declared ?? NODE_GRADE_BASELINE[node.type] ?? DEFAULT_NODE_GRADE;
+      const grade = offset === 0 ? base : shiftGrade(base, offset);
+      return { ...node, attributes: { ...node.attributes, grade } };
+    });
+  }
+
   for (const piece of pieces) {
     allNodes.push(...piece.nodes);
     allEdges.push(...piece.edges);
@@ -46,19 +75,6 @@ export function assembleNetwork(pieces, crossEdges, spec, biome, seed) {
 
   // Add cross-piece edges
   allEdges.push(...crossEdges);
-
-  // 2. Grade scaling — per-piece offsets (wing-specific) or global modifier
-  const globalModifier = gradeModifier(spec);
-  for (const piece of pieces) {
-    // Wing pieces have gradeOffset set; backbone/flat pieces use global modifier
-    const offset = piece.gradeOffset ?? globalModifier;
-    if (offset === 0) continue;
-    for (const node of piece.nodes) {
-      if (node.attributes?.grade) {
-        node.attributes.grade = shiftGrade(node.attributes.grade, offset);
-      }
-    }
-  }
 
   // 3. ICE placement — one roaming ICE per security-monitor (cap 3), threat >= B.
   /** @type {{ instances: { startNode: string, grade: import('../types.js').Grade }[] } | null} */

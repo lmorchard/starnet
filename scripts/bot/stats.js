@@ -37,6 +37,8 @@ export function createStats() {
     strategyCounts: {},
     roundsFired: 0,
     heatGenerated: 0,
+    /** @type {Record<string, number>} outcome -> count, from ACTION_RESOLVED{XPLOIT} */
+    burnStops: {},
   };
 }
 
@@ -90,6 +92,21 @@ export function recordRoundFired(stats) {
  */
 export function recordHeatGenerated(stats, amount) {
   if (amount > 0) stats.heatGenerated += amount;
+}
+
+/**
+ * Record how one auto-burn barrage ended (from ACTION_RESOLVED{action:XPLOIT}).
+ *
+ * Outcomes come from js/core/autoburn.js: "cracked" (coherence hit zero), "hoard-dry" (no
+ * usable rounds left), "heat-ceiling" (burst heat hit the abort wager). Counted as an open map
+ * rather than fixed fields so a new stop reason shows up in census instead of being dropped.
+ *
+ * @param {BotRunStats} stats
+ * @param {string} [outcome]
+ */
+export function recordBurnStop(stats, outcome) {
+  if (!outcome) return;
+  stats.burnStops[outcome] = (stats.burnStops[outcome] ?? 0) + 1;
 }
 
 /**

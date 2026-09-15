@@ -107,4 +107,7 @@
  * @property {Record<string, number>} strategyCounts
  * @property {number} roundsFired — coherence rounds fired across all auto-burn bursts this run
  * @property {number} heatGenerated — total heat added to the system this run (Dampener halves per-shot)
+ * @property {Record<string, number>} burnStops — auto-burn outcome counts ("cracked",
+ *   "hoard-dry", "heat-ceiling") across every barrage this run. The distribution is the signal
+ *   for whether the economy's stop conditions bind at all.
  */

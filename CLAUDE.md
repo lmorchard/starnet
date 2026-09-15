@@ -142,12 +142,12 @@ Rules:
 8. Global alert rises as detection nodes fire events to security monitors
 9. At TRACE: countdown begins (30–90s by threat grade) — jack out or lose your score
 
-## Alert System (two sensors, one ladder)
+## Alert System (three sensors, one ladder)
 
-Global alert (`green → yellow → red → trace`) is driven by two independent sensors that share
+Global alert (`green → yellow → red → trace`) is driven by three independent sensors that share
 the same ladder and trace clock. It only escalates, never de-escalates (below trace), except
-the deliberate cancel paths (own the monitor → `cancelTrace`; jack out). Both sensors live in
-`js/core/alert.js` and call into the trace-countdown machinery there.
+the deliberate relief paths (own the monitor → `cancelTrace`; `scrubLogs`; jack out). All three
+sensors live in `js/core/alert.js` and call into the trace-countdown machinery there.
 
 - **Security grid (passive).** On a *failed* exploit (the graph bridge's `ACTION_RESOLVED`
   handler, `XPLOIT` with `success:false` — routine probing does NOT trip the grid), the bridge
@@ -159,19 +159,33 @@ the deliberate cancel paths (own the monitor → `cancelTrace`; jack out). Both 
   monitor.
 - **ICE (active).** `recordIceDetection` — detections climb the same ladder and start the trace
   at a grade-scaled count. Owned by the ICE subsystem.
-- An ICE-less LAN relies entirely on the grid — its only failure clock.
+- **Heat (burst pacing).** `recordHeat` — every noisy act adds heat (`HEAT_COST`: probe, xploit
+  shot, sniff, replay, sweep-per-node). Heat *decays* continuously (`HEAT_DECAY_PER_TICK` via the
+  self-starting `TIMER.HEAT_DECAY`), so pacing actions out keeps you under the bar while a burst
+  spikes over it. Crossing the network's hidden, threat-scaled `HEAT_ALARM_THRESHOLD` trips **one**
+  escalation-only step up the ladder, then discharges heat to `threshold * HEAT_DISCHARGE_FRAC` so
+  it must rebuild — a rising edge without a separate armed flag. Emits `HEAT_ALARM`.
+- An ICE-less LAN relies on the grid and heat — its only failure clocks.
 
 Escalation lives in `recordMonitorAlert` / `recordIceDetection` (+ set-piece `startTrace`
 alarms). There is no node-`alertState`-counting global recompute — that legacy layer was
 retired in #173. (Node `alertState` is now purely the per-node visual alert glow.)
 
-**Cooldown (grid-only, below-trace; #174).** The grid can be pushed back down via `coolGrid` in
-`alert.js`: `scrubLogs(monitorId)` (a `scrub-logs` action on an open monitor — resets that
-monitor's `alertCount`, eases the level one step) and `lieLow(wanNodeId)` (a timed `lie-low` action
-on every WAN node via the shared `LIE_LOW_OPERATOR`/`LIE_LOW_ATTRS` — fully calms the grid to green,
-limited to a couple of uses/run via `lieLowUsesRemaining`/`lieLowExhausted`). Both no-op at trace and
-never touch ICE `detectionCount`. Emits `ALERT_COOLED`. Numbers are tuned by feel/playtest — the bot
-doesn't use these levers, so census only confirms no-regression, not their value.
+**Cooldown — two levers with two different jobs (below-trace only).** Under the two-layer model
+heat is recoverable and the alert ladder is not, so the levers are split:
+
+- `scrubLogs(monitorId)` — **lowers the alert ladder.** A `scrub-logs` action on an open monitor:
+  resets that monitor's `alertCount` and eases the global level one step via `coolGrid` in
+  `alert.js`. Emits `ALERT_COOLED`. This is the subversion path — the ladder only comes down by
+  going after the network's watchers.
+- `lieLow(wanNodeId)` — **sheds heat only; does NOT touch the alert ladder.** A timed `lie-low`
+  action on every WAN node via the shared `LIE_LOW_OPERATOR`/`LIE_LOW_ATTRS`; drops heat by
+  `LIE_LOW_HEAT_DROP` and spends one of a couple of uses/run
+  (`lieLowUsesRemaining`/`lieLowExhausted`). Emits `HEAT_CHANGED`. It prevents the *next* ratchet;
+  it cannot undo one that already fired.
+
+Both no-op at trace and never touch ICE `detectionCount`. Numbers are tuned by feel/playtest — the
+bot uses neither lever, so census only confirms no-regression, not their value.
 
 ## Branching and Pull Requests
 

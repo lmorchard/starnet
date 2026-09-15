@@ -649,7 +649,7 @@ describe("cascade-shutdown: subvert all relays before watchdog expires", () => {
     // which resets the watchdog timer. Need 5 more ticks for it to expire (grade D).
     graph.executeAction("cs1/relay-a", "subvert");
     graph.tick(20); // subvert is timed-by-default (#187 default-flip) — completing emits the ping that arms the watchdog
-    graph.tick(5); // watchdog period elapses without further messages (grade D)
+    graph.tick(50); // watchdog period elapses without further messages (grade D = 50 ticks)
 
     assert.equal(ctx.calls.startTrace?.length, 1);
   });
@@ -675,7 +675,7 @@ describe("cascade-shutdown: watchdog stays dormant until the player engages", ()
     graph._nodes.get("cs1/relay-a").attributes.accessLevel = "owned";
     graph.executeAction("cs1/relay-a", "subvert"); // arms the watchdog once it completes
     graph.tick(20); // subvert is timed-by-default (#187 default-flip) — completing emits the arming ping
-    graph.tick(6); // the now-armed watchdog expires (grade D period 5)
+    graph.tick(50); // the now-armed watchdog expires (grade D period 50)
 
     assert.equal(ctx.calls.startTrace?.length, 1);
   });

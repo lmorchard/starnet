@@ -110,7 +110,13 @@ export const deadmanCircuit = {
       id: "heartbeat-clock",
       type: "heartbeat-source",
       traits: ["graded", "hackable", "rebootable"],
-      attributes: {},
+      // Explicit grade, matching `watchdog` below. This piece's correctness depends on
+      // "clock period < watchdog period", but each period resolves from its OWN node's grade —
+      // so leaving both to NODE_GRADE_BASELINE let a balance-table edit invert the relationship
+      // and fire the alarm with no player input. Equal declared grades hold the invariant at
+      // every spec offset (both shift together): 15<25, 20<30, 25<40, 30<50, 40<60, 50<80.
+      // Enforced by validateSetPiece check #14 (cross-node-timing).
+      attributes: { grade: "B" },
       // Clock sends heartbeat — must be faster than watchdog period
       operators: [{ name: "clock", period: 30, periodTable: { S: 15, A: 20, B: 25, C: 30, D: 40, F: 50 } }],
       actions: [],
@@ -137,7 +143,9 @@ export const deadmanCircuit = {
       id: "watchdog",
       type: "watchdog-daemon",
       traits: ["graded", "hackable", "rebootable"],
-      attributes: {},
+      // Explicit grade, matching `heartbeat-clock` above — see the note there. Both must share a
+      // grade or the heartbeat can end up slower than the timeout it is meant to suppress.
+      attributes: { grade: "B" },
       // Watchdog resets on any non-tick message. If no message arrives within
       // the period, it fires a "set" message to the alarm latch.
       operators: [{ name: "watchdog", period: 50, periodTable: { S: 25, A: 30, B: 40, C: 50, D: 60, F: 80 } }],
@@ -302,10 +310,24 @@ export const cascadeShutdown = {
       type: "watchdog-daemon",
       traits: ["graded", "hackable", "rebootable"],
       attributes: {},
-      // armable: dormant until the first subvert-ping arrives (see watchdog
-      // operator). The countdown starts when the player commits to the heist,
-      // not at network init — otherwise it traces before they can reach a relay.
-      operators: [{ name: "watchdog", period: 4, periodTable: { S: 2, A: 3, B: 3, C: 4, D: 5, F: 6 }, armable: true }],
+      // armable + armOn: dormant until the first subvert-ping arrives (see watchdog
+      // operator). The countdown starts when the player commits to the heist, not at
+      // network init — otherwise it traces before they can reach a relay. armOn is
+      // required, not decorative: plain `armable` arms on ANY non-tick message, so
+      // stray traffic from elsewhere in the network armed this ~20 ticks in with no
+      // player input at all. Guarded by tests/generated-network-idle.test.js.
+      // Period is in TICKS (100ms each). The old 4 (=400ms at grade C, 600ms at F) left no
+      // window at all: `subvert` is a TIMED action (timed-by-default since #187 — the set-piece
+      // tests advance ~20 ticks for one to complete), so a single follow-up subvert could not
+      // even finish inside the old period, let alone two. Scaled ×10 → 2s (S) to 6s (F).
+      // Because armOn resets on every subvert-ping, this window is PER RELAY, not for all three.
+      operators: [{
+        name: "watchdog",
+        period: 40,
+        periodTable: { S: 20, A: 25, B: 30, C: 40, D: 50, F: 60 },
+        armable: true,
+        armOn: "subvert-ping",
+      }],
       actions: [],
     },
     {

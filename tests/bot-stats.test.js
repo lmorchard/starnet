@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createStats, updatePeakAlert, finalizeStats, recordRoundFired, recordHeatGenerated } from "../scripts/bot/stats.js";
+import { createStats, updatePeakAlert, finalizeStats, recordRoundFired, recordHeatGenerated, recordBurnStop } from "../scripts/bot/stats.js";
 
 // Minimal GameState stub for finalizeStats (it reads nodes/player.cash/mission).
 function stubState({ complete = false } = {}) {
@@ -105,4 +105,58 @@ test("recordHeatGenerated ignores zero and negative amounts (cooldown events)", 
   recordHeatGenerated(stats, -1);  // heat decay / lie-low
   recordHeatGenerated(stats, 0);
   assert.equal(stats.heatGenerated, 3);
+});
+
+// ── Auto-burn stop reasons ───────────────────────────────────────────────────
+// The distribution of how barrages END is the signal that reveals whether the
+// auto-burn economy's levers bind at all. Before the grade-baseline fix, 100%
+// of barrages ended "cracked" — heat-ceiling and hoard-dry never fired — which
+// is why gear could only change efficiency, never outcomes. Census reported
+// avgRoundsFired and avgHeat but not this, so the pathology was invisible to it.
+
+test("burnStops starts empty", () => {
+  const stats = createStats();
+  assert.deepEqual(stats.burnStops, {});
+});
+
+test("recordBurnStop tallies outcomes by name", () => {
+  const stats = createStats();
+  recordBurnStop(stats, "cracked");
+  recordBurnStop(stats, "cracked");
+  recordBurnStop(stats, "heat-ceiling");
+  assert.deepEqual(stats.burnStops, { cracked: 2, "heat-ceiling": 1 });
+});
+
+test("recordBurnStop counts hoard-dry separately from heat-ceiling", () => {
+  const stats = createStats();
+  recordBurnStop(stats, "hoard-dry");
+  recordBurnStop(stats, "heat-ceiling");
+  assert.deepEqual(stats.burnStops, { "hoard-dry": 1, "heat-ceiling": 1 });
+});
+
+test("recordBurnStop ignores a missing outcome", () => {
+  const stats = createStats();
+  recordBurnStop(stats, undefined);
+  recordBurnStop(stats, "");
+  assert.deepEqual(stats.burnStops, {});
+});
+
+test("recordBurnStop tracks aborted barrages alongside resolved ones", () => {
+  // A barrage ended by an ICE abort / nav-away / run-end emits no ACTION_RESOLVED. Without a
+  // bucket for those, the distribution silently becomes a tally over normally resolved barrages
+  // only, and could read 100% "cracked" while many burns were interrupted.
+  const s = createStats();
+  recordBurnStop(s, "cracked");
+  recordBurnStop(s, "aborted");
+  recordBurnStop(s, "aborted");
+  assert.deepEqual(s.burnStops, { cracked: 1, aborted: 2 });
+  const total = Object.values(s.burnStops).reduce((a, b) => a + b, 0);
+  assert.equal(total, 3, "every barrage must land in exactly one bucket");
+});
+
+test("recordBurnStop does not share state between runs", () => {
+  const a = createStats();
+  const b = createStats();
+  recordBurnStop(a, "cracked");
+  assert.deepEqual(b.burnStops, {}, "a fresh stats object must start clean");
 });

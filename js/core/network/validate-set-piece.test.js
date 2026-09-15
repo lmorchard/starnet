@@ -211,6 +211,55 @@ describe("validateSetPiece: watchdog-armed (9) — static angle on #215", () => 
   });
 });
 
+describe("validateSetPiece: cross-node-timing (14)", () => {
+  /** Two grade-scaled-timing nodes, deadman shape — the relationship that broke. */
+  const twoTimingNodes = (clockAttrs, wdAttrs) => {
+    const def = basePiece();
+    def.id = "timing-pair";
+    def.nodes = [
+      {
+        id: "clock", type: "generic", traits: [], attributes: clockAttrs,
+        operators: [{ name: "clock", period: 30, periodTable: { S: 15, A: 20, B: 25, C: 30, D: 40, F: 50 } }],
+        actions: [],
+      },
+      {
+        id: "wd", type: "generic", traits: [], attributes: wdAttrs,
+        operators: [{ name: "watchdog", period: 50, periodTable: { S: 25, A: 30, B: 40, C: 50, D: 60, F: 80 } }],
+        actions: [],
+      },
+    ];
+    def.internalEdges = [["clock", "wd"]];
+    def.externalPorts = ["clock"];
+    def.ports = [{ nodeId: "clock", direction: "inbound", wantsTags: [], required: true }];
+    return def;
+  };
+
+  it("flags two grade-scaled-timing nodes that declare no explicit grade", () => {
+    // This is the deadman-circuit regression in miniature: both periods resolve from their
+    // OWN node's grade, so the piece silently depends on NODE_GRADE_BASELINE and a table
+    // edit can invert "clock faster than watchdog".
+    const errs = checks(validateSetPiece(twoTimingNodes({}, {})), "cross-node-timing");
+    assert.ok(errs.length >= 1, "expected cross-node-timing to fire");
+    assert.match(errs[0].message, /clock, wd/);
+  });
+
+  it("flags when only one of the two declares a grade", () => {
+    const errs = checks(validateSetPiece(twoTimingNodes({ grade: "B" }, {})), "cross-node-timing");
+    assert.ok(errs.length >= 1, "a half-pinned pair is still table-dependent");
+  });
+
+  it("passes when both declare an explicit grade (the fix applied to deadman)", () => {
+    const def = twoTimingNodes({ grade: "B" }, { grade: "B" });
+    assert.equal(checks(validateSetPiece(def), "cross-node-timing").length, 0);
+  });
+
+  it("ignores a piece with only one grade-scaled-timing node (nothing to relate)", () => {
+    const def = basePiece();
+    def.nodes[0].operators = [{ name: "watchdog", period: 5, periodTable: { S: 2, A: 3, B: 3, C: 4, D: 5, F: 6 }, armable: true }];
+    assert.equal(checks(validateSetPiece(def), "cross-node-timing").length, 0);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Instantiated / behavioral checks (10-12)
 // ---------------------------------------------------------------------------
@@ -334,6 +383,13 @@ describe("no-trace-at-init (12): pieces do not self-trace without player action"
       const inst = instantiate(def, "t");
       const ctx = mockCtx();
       const graph = new NodeGraph(inst, ctx);
+      // MUST run the init lifecycle before ticking. initGame() calls graph.init()
+      // (js/core/state/index.js:131), which broadcasts {type:"init"} to every node.
+      // Without it this check exercised a path the game never takes — and that gap is
+      // exactly how the armable-watchdog insta-trace shipped: `init` counted as "any
+      // non-tick message" and armed every armable watchdog, so 55% of generated
+      // networks traced themselves at tick 2 while this check stayed green.
+      graph.init();
       graph.tick(MAX_TICKS);
       assert.equal(
         ctx.calls.startTrace,
