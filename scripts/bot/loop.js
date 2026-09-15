@@ -9,7 +9,7 @@ import { A } from "../../js/core/action-ids.js";
 import { perceive } from "./perception.js";
 import { score } from "./scoring.js";
 import { execute } from "./execute.js";
-import { createStats, recordAction, recordEvasion, recordMineResolved, updatePeakAlert, finalizeStats, recordRoundFired, recordHeatGenerated } from "./stats.js";
+import { createStats, recordAction, recordEvasion, recordMineResolved, updatePeakAlert, finalizeStats, recordRoundFired, recordHeatGenerated, recordBurnStop } from "./stats.js";
 
 /**
  * Run the bot loop until the game ends or budget is exhausted.
@@ -37,11 +37,23 @@ export function runLoop(strategies, opts = {}) {
   const onRunEnded = ({ outcome }) => {
     if (outcome === "caught") stats.failReason = "trace";
   };
-  const onResolved = ({ action, detail }) => {
+  const onResolved = ({ action, detail, success }) => {
     if (action === A.MINE) recordMineResolved(stats, detail);
+    // XPLOIT resolves once per auto-burn barrage, carrying how it ended.
+    if (action === A.XPLOIT) recordBurnStop(stats, detail?.outcome ?? (success ? "cracked" : "unknown"));
   };
   const onProcessStep = ({ type }) => {
     if (type === "autoburn") recordRoundFired(stats);
+  };
+  // A barrage can also end WITHOUT an ACTION_RESOLVED: an ICE abort, navigating away, or the
+  // run ending mid-burn (autoburn.onAbort is a no-op, and stepProcesses stops once the run
+  // leaves "playing"). Those would vanish from burnStops, making the distribution a tally over
+  // *normally resolved* barrages rather than all of them — it could read 100% "cracked" while
+  // many burns were actually interrupted. Recording them keeps the denominator complete.
+  // NB: "aborted" is external interruption, not the economy failing — exclude it when judging
+  // whether the economy's own stop conditions bind (see docs/BOT-PLAYER.md).
+  const onProcessEnded = ({ type, reason }) => {
+    if (type === "autoburn" && reason !== "complete") recordBurnStop(stats, "aborted");
   };
   const onHeatChanged = ({ amount }) => { recordHeatGenerated(stats, amount); };
 
@@ -51,6 +63,7 @@ export function runLoop(strategies, opts = {}) {
   on(E.RUN_ENDED, onRunEnded);
   on(E.ACTION_RESOLVED, onResolved);
   on(E.PROCESS_STEP, onProcessStep);
+  on(E.PROCESS_ENDED, onProcessEnded);
   on(E.HEAT_CHANGED, onHeatChanged);
 
   try {
@@ -137,6 +150,7 @@ export function runLoop(strategies, opts = {}) {
     off(E.RUN_ENDED, onRunEnded);
     off(E.ACTION_RESOLVED, onResolved);
     off(E.PROCESS_STEP, onProcessStep);
+    off(E.PROCESS_ENDED, onProcessEnded);
     off(E.HEAT_CHANGED, onHeatChanged);
   }
 

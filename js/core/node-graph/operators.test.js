@@ -368,6 +368,85 @@ describe("watchdog operator", () => {
     // Only 2 ticks since last reset — period (5) not reached
     assert.ok((attrs._watchdog_ticks ?? 0) < 5);
   });
+
+  // ── armable ──────────────────────────────────────────────────────────────
+  // `armable` exists so a watchdog with nothing feeding it stays dormant until
+  // the player engages (cascade-shutdown: the first subvert starts the clock).
+  // graph.init() broadcasts {type:"init"} to EVERY node (runtime.js:269-273),
+  // and "any non-tick message arms it" counted that system lifecycle broadcast
+  // — so armable watchdogs armed at network init, which is the exact thing the
+  // flag was added to prevent. Measured effect: 55% of generated networks
+  // traced themselves at tick 2 with no player input.
+
+  it("armable watchdog stays dormant through the init lifecycle message", () => {
+    const init = createMessage({ type: "init", origin: "__system__" });
+    const r = invoke("watchdog", { period: 3, armable: true }, {}, init);
+    assert.notEqual(r.attributes?._watchdog_armed, true, "init must not arm an armable watchdog");
+  });
+
+  it("armable watchdog does not fire after init followed by period ticks", () => {
+    const init = createMessage({ type: "init", origin: "__system__" });
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    let attrs = {};
+    attrs = { ...attrs, ...invoke("watchdog", { period: 3, armable: true }, attrs, init).attributes };
+    for (let i = 0; i < 6; i++) {
+      const r = invoke("watchdog", { period: 3, armable: true }, attrs, tick);
+      assert.equal(r.outgoing?.length ?? 0, 0, `fired on tick ${i + 1} despite never being armed`);
+      attrs = { ...attrs, ...r.attributes };
+    }
+  });
+
+  it("armable watchdog arms on a gameplay message and then fires", () => {
+    const ping = createMessage({ type: "subvert-ping", origin: "relay-a" });
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    let attrs = {};
+    attrs = { ...attrs, ...invoke("watchdog", { period: 3, armable: true }, attrs, ping).attributes };
+    assert.equal(attrs._watchdog_armed, true, "a gameplay message must arm it");
+    let fired = false;
+    for (let i = 0; i < 3; i++) {
+      const r = invoke("watchdog", { period: 3, armable: true }, attrs, tick);
+      attrs = { ...attrs, ...r.attributes };
+      if ((r.outgoing?.length ?? 0) > 0) fired = true;
+    }
+    assert.ok(fired, "armed watchdog must still fire after its period");
+  });
+
+  it("armOn watchdog ignores stray traffic and arms only on the named signal", () => {
+    const stray = createMessage({ type: "signal", origin: "some-other-piece" });
+    const ping = createMessage({ type: "subvert-ping", origin: "relay-a" });
+    const cfg = { period: 3, armable: true, armOn: "subvert-ping" };
+
+    const strayResult = invoke("watchdog", cfg, {}, stray);
+    assert.notEqual(strayResult.attributes?._watchdog_armed, true, "stray traffic must not arm it");
+
+    const pingResult = invoke("watchdog", cfg, {}, ping);
+    assert.equal(pingResult.attributes?._watchdog_armed, true, "the named signal must arm it");
+  });
+
+  it("armOn watchdog is not postponed by stray traffic once armed", () => {
+    const stray = createMessage({ type: "signal", origin: "some-other-piece" });
+    const ping = createMessage({ type: "subvert-ping", origin: "relay-a" });
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    const cfg = { period: 2, armable: true, armOn: "subvert-ping" };
+
+    let attrs = { ...invoke("watchdog", cfg, {}, ping).attributes };
+    attrs = { ...attrs, ...invoke("watchdog", cfg, attrs, tick).attributes };
+    // Stray traffic must NOT reset the countdown — otherwise unrelated network
+    // chatter could postpone the alarm indefinitely.
+    attrs = { ...attrs, ...invoke("watchdog", cfg, attrs, stray).attributes };
+    const r = invoke("watchdog", cfg, attrs, tick);
+    assert.equal(r.outgoing?.[0].type, "set", "countdown should have completed despite stray traffic");
+  });
+
+  it("non-armable watchdog is unaffected by init (still counts from zero)", () => {
+    const init = createMessage({ type: "init", origin: "__system__" });
+    const tick = createMessage({ type: "tick", origin: "__system__" });
+    let attrs = {};
+    attrs = { ...attrs, ...invoke("watchdog", { period: 2 }, attrs, init).attributes };
+    attrs = { ...attrs, ...invoke("watchdog", { period: 2 }, attrs, tick).attributes };
+    const r = invoke("watchdog", { period: 2 }, attrs, tick);
+    assert.equal(r.outgoing?.[0].type, "set", "a plain watchdog still free-runs by design");
+  });
 });
 
 // ---------------------------------------------------------------------------

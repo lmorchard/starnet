@@ -76,7 +76,13 @@ export const TRACE_SECONDS = { S: 30, A: 40, B: 45, C: 60, D: 75, F: 90 };
 // (→ threshold*HEAT_DISCHARGE_FRAC) so it must rebuild — bursts trip, paced play stays cool.
 // PLACEHOLDER VALUES — feel + census tuned with Les (heat now feeds probe/xploit, so it moves the
 // bot's difficulty curve; census is a real gate, not just no-regression).
-export const HEAT_COST = { probe: 1, xploit: 0.1, sniff: 1, replay: 3, sweep: 2 };
+// `xploit` is charged PER AUTO-BURN SHOT, one shot every BURN_CADENCE_TICKS (300ms), so its
+// effective rate is xploit * 3.333/s against HEAT_DECAY_PER_TICK (0.6/s). E1 set it to 0.1 to
+// stop one crack walking straight to trace, but that put accrual (0.333/s) BELOW decay — so a
+// barrage contributed no net heat at all, the burst ceiling was unreachable (measured 1.5% of
+// it), and Dampener halved a rounding error. Balance pass: 0.25 → 0.833/s, net +0.233/s, so
+// sustained smashing is genuinely loud while a short barrage on a soft node still is not.
+export const HEAT_COST = { probe: 1, xploit: 0.25, sniff: 1, replay: 3, sweep: 2 };
 export const HEAT_ALARM_THRESHOLD = { S: 6, A: 8, B: 11, C: 15, D: 20, F: 26 }; // grade-keyed sensitivity
 export const HEAT_DECAY_PER_TICK = 0.6;   // heat shed per HEAT_DECAY interval (pacing must actually cool)
 export const HEAT_DISCHARGE_FRAC = 0.5;   // on a trip, heat → threshold * this
@@ -115,6 +121,53 @@ export const ICE_NOISE_THRESHOLD = { S: 1, A: 2, B: 3, C: 5, D: 7, F: 9 };
 // Matches the ICE movement animation duration so the visual and the
 // detection timer stay in sync — player sees ICE arrive, then countdown starts.
 export const ARRIVAL_DELAY_MS = 400;
+
+// ── Node grade baseline (generated networks) ─────────────────────────────────
+// Baseline node grade by node type, applied in assembleNetwork BEFORE the generator's
+// per-wing/global grade offset. Generated pieces declare no grade, so without this every
+// generated node fell through to the `graded` trait's default and the whole per-grade balance
+// system below (COHERENCE / CHIP_FACTOR / DISCLOSURE_CHANCE) collapsed to its D column.
+//
+// A grade declared by a piece always wins; this only fills a missing one. Only types where a
+// non-default baseline is meaningful are listed — alarm latches, logic gates, heartbeat and
+// tamper atoms fall through to DEFAULT_NODE_GRADE.
+//
+// Shape of the curve: soft edge (workstations/sensors) → infrastructure (routers) → content
+// (fileservers/IDS) → defenses (monitors/firewalls) → the prize (cryptovault).
+export const DEFAULT_NODE_GRADE = "D";
+export const NODE_GRADE_BASELINE = {
+  workstation:        "F",
+  "traffic-sensor":   "F",
+  "traffic-scanner":  "F",
+  "tripwire-sensor":  "F",
+
+  gateway:            "D",   // MANUAL.md: "The gateway is usually grade D or F"
+  router:             "D",
+  "routing-switch":   "D",
+  "routing-panel":    "D",
+  "data-relay":       "D",
+
+  fileserver:         "C",
+  "key-server":       "C",
+  "hidden-server":    "C",
+  "honey-pot":        "C",
+  ids:                "C",
+
+  "security-monitor": "B",
+  // Heartbeat infrastructure — sensible defaults only. The deadman circuit no longer
+  // relies on these: its clock and watchdog declare `grade: "B"` inline, because a
+  // piece whose invariant spans two nodes must not depend on this table (see
+  // validateSetPiece check #14, cross-node-timing).
+  "heartbeat-source": "B",
+  "heartbeat-monitor": "B",
+  // Deliberately softer than createFirewall's "A" default: a *generated* firewall sits on the
+  // critical path, so the big wall belongs on the optional prize (cryptovault), not a mandatory
+  // gate. Authored networks still pick their own grade explicitly.
+  firewall:           "B",
+  "watchdog-daemon":  "B",
+
+  cryptovault:        "A",   // reaches S under high-threat scaling — MANUAL.md:137
+};
 
 // ── Coherence erosion (exploit hoard auto-burn; E1) ──────────────────────────
 // Node coherence reserve by grade — how much fuzzing it absorbs before it faults.

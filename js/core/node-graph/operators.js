@@ -369,9 +369,22 @@ registerOperator("flag", (config, _attrs, message, _ctx) => {
  * the watchdog before the player engages (e.g. cascade-shutdown, where the first
  * subvert starts the countdown); without it the watchdog free-runs from network
  * init and fires before the player can reach the cluster.
+ *
+ * config.armOn (optional, requires armable): name the ONE message type that arms
+ * and resets it. Without this, "any non-tick message" includes stray traffic
+ * from elsewhere in a live network (another set-piece's heartbeat, a relayed
+ * alert), which armed cascade-shutdown ~20 ticks in with no player input. Naming
+ * the signal makes the arming condition mean what the piece says it means.
  */
 registerOperator("watchdog", (config, attrs, message, _ctx) => {
   if (!message) return {};
+  // The `init` lifecycle broadcast is not a gameplay signal. graph.init()
+  // delivers {type:"init"} to EVERY node, so counting it as "any non-tick
+  // message" armed every armable watchdog at network init — defeating the exact
+  // thing `armable` exists to prevent. Measured: 55% of generated networks
+  // traced themselves at tick 2 with no player input. Ignore it outright: an
+  // armable watchdog stays dormant, and a plain one's counter is already 0 here.
+  if (message.type === "init") return {};
   const period = resolveGradedTiming(config, attrs, "period");
   const armable = config.armable === true;
   if (message.type === "tick") {
@@ -386,8 +399,13 @@ registerOperator("watchdog", (config, attrs, message, _ctx) => {
     }
     return { attributes: { _watchdog_ticks: ticks } };
   }
-  // Any non-tick message resets the timer (and arms an armable watchdog).
-  if (armable) return { attributes: { _watchdog_ticks: 0, _watchdog_armed: true } };
+  // Any non-tick message resets the timer (and arms an armable watchdog) — unless
+  // config.armOn names the only signal that counts, in which case everything else
+  // is stray traffic and must neither arm nor postpone it.
+  if (armable) {
+    if (config.armOn && message.type !== config.armOn) return {};
+    return { attributes: { _watchdog_ticks: 0, _watchdog_armed: true } };
+  }
   return { attributes: { _watchdog_ticks: 0 } };
 });
 

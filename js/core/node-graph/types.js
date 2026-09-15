@@ -52,6 +52,8 @@
  * @property {any[]} [onProgressEffects] - timed-action: effects at progress milestones
  * @property {string} [enabledAttr]     - if set, operator is skipped when this node attribute is false
  * @property {boolean} [armable]      - watchdog: stay dormant until the first non-tick message arms it
+ * @property {string} [armOn]         - watchdog (with armable): the ONE message type that arms and
+ *                                      resets it; everything else is stray traffic and ignored
  * @property {boolean} [_abortable]   - timed-action (synthesized only): whether ABORT/nav-cancel may
  *   cancel this action; set by timed-synthesis.js from ActionDef.timed.abortable, defaults to true
  *   when absent (#187 Phase 2 review fix)

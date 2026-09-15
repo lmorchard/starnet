@@ -257,6 +257,42 @@ Each `runBot()` call returns a `BotRunStats` object:
 | `disarmActionsUsed` | number | Disarm actions executed |
 | `strategyCounts` | Record | Per-strategy win counts |
 
+### Auto-burn economy
+| Field | Type | Description |
+|-------|------|-------------|
+| `roundsFired` | number | Coherence rounds fired across all barrages |
+| `heatGenerated` | number | Total heat added this run (Dampener halves per-shot) |
+| `burnStops` | Record | How each barrage ended — `cracked` / `hoard-dry` / `heat-ceiling` |
+
+**`burnStops` is the balance signal for the whole exploit economy.** Auto-burn has three stop
+conditions (`js/core/autoburn.js`), but only one of them means the player won:
+
+- `cracked` — coherence hit zero; the node faults and access rises
+- `hoard-dry` — no usable rounds left; denied
+- `heat-ceiling` — burst heat hit the abort wager; bailed out
+- `aborted` — the barrage ended *without* resolving: an ICE abort, navigating away, or the run
+  ending mid-burn. Recorded so the denominator covers every barrage; otherwise interrupted burns
+  vanish and the distribution silently becomes a tally over *normally resolved* barrages only.
+
+**When judging whether the economy's stop conditions bind, compare `cracked` against
+`hoard-dry` + `heat-ceiling` and exclude `aborted`** — an ICE interruption is external pressure,
+not the economy failing. Include `aborted` when you want the full accounting of where barrages go.
+
+If the distribution is ~100% `cracked`, **neither failure mode binds** — every barrage is a
+guaranteed win, so gear can only change how *fast* an inevitable win arrives, never a run's
+outcome. That was measured to be exactly the case before the node-grade baseline landed: 267
+barrages across 90 runs, 100% `cracked`. Watch this distribution when tuning anything in the
+coherence / hoard / heat triangle.
+
+Census surfaces it two ways:
+
+- `burnStopTotals` — raw counts, summed across seeds (union of keys, so a new stop reason can't
+  be silently dropped)
+- `burnStopDistribution` — the same as shares of the total
+
+`--compare-presets` adds `cracked` / `heatCeil` / `hoardDry` columns, so you can see whether a
+loadout changes how barrages *end* rather than just how many rounds they take.
+
 ---
 
 ## What the Bot Does NOT Do

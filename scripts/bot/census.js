@@ -84,6 +84,27 @@ function countBy(arr, field) {
   return counts;
 }
 
+/**
+ * Sum a per-run map field across runs (e.g. burnStops). Takes the union of keys, so a
+ * stop reason introduced later shows up instead of being silently dropped.
+ */
+function sumMaps(arr, field) {
+  const totals = {};
+  for (const r of arr) {
+    for (const [k, v] of Object.entries(r[field] ?? {})) totals[k] = (totals[k] ?? 0) + v;
+  }
+  return totals;
+}
+
+/** Turn a count map into shares of its own total (0 if empty). */
+function normalizeMap(totals) {
+  const sum = Object.values(totals).reduce((a, b) => a + b, 0);
+  if (!sum) return {};
+  return Object.fromEntries(
+    Object.entries(totals).map(([k, v]) => [k, Math.round((v / sum) * 1000) / 1000])
+  );
+}
+
 const successCount = runs.filter(r => r.success).length;
 const traceCount = runs.filter(r => r.traceFired).length;
 
@@ -115,6 +136,11 @@ const summary = {
   // Efficiency metrics (gear-sensitivity signal)
   avgRoundsFired: avg(runs, "roundsFired"),
   avgHeat: avg(runs, "heatGenerated"),
+  // Auto-burn stop reasons — does the economy's failure mode ever fire, or does every
+  // barrage just win? A 100%-"cracked" distribution means neither the heat ceiling nor
+  // hoard-dry binds, and gear can only change speed, never outcomes.
+  burnStopTotals: sumMaps(runs, "burnStops"),
+  burnStopDistribution: normalizeMap(sumMaps(runs, "burnStops")),
 };
 
 // ── Compare-presets mode ─────────────────────────────────────
@@ -126,6 +152,7 @@ if (comparePresets) {
   function summariseRuns(runSet) {
     const successCount = runSet.filter(r => r.success).length;
     const traceCount = runSet.filter(r => r.traceFired).length;
+    const stops = normalizeMap(sumMaps(runSet, "burnStops"));
     return {
       successRate: Math.round((successCount / runSet.length) * 1000) / 1000,
       traceFiredRate: Math.round((traceCount / runSet.length) * 1000) / 1000,
@@ -133,6 +160,10 @@ if (comparePresets) {
       avgCash: avg(runSet, "cashRemaining"),
       avgRoundsFired: avg(runSet, "roundsFired"),
       avgHeat: avg(runSet, "heatGenerated"),
+      // Stop-reason shares: does gear change how barrages END, not just how fast?
+      cracked: stops.cracked ?? 0,
+      heatCeil: stops["heat-ceiling"] ?? 0,
+      hoardDry: stops["hoard-dry"] ?? 0,
     };
   }
 
@@ -168,7 +199,7 @@ if (comparePresets) {
 
   // Print comparison table
   const presetNames = Object.keys(LOADOUT_PRESETS);
-  const cols = ["preset", "successRate", "traceFiredRate", "avgAutoBurns", "avgCash", "avgRoundsFired", "avgHeat"];
+  const cols = ["preset", "successRate", "traceFiredRate", "avgAutoBurns", "avgCash", "avgRoundsFired", "avgHeat", "cracked", "heatCeil", "hoardDry"];
   const widths = cols.map(c => c.length);
   for (const name of presetNames) {
     widths[0] = Math.max(widths[0], name.length);
