@@ -12,7 +12,13 @@
 
 ## Progress
 - [x] Initialized worktree and session artifacts (`spec.md`, `plan.md`, `notes.md`).
-- [ ] Author `.claude/skills/starnet-playtest/SKILL.md`.
-- [ ] Symlink `~/.claude/skills/starnet-playtest`.
-- [ ] Conduct live playtest run and generate report.
-- [ ] Run `make check` and wrap up session.
+- [x] Author `.claude/skills/starnet-playtest/SKILL.md`.
+- [x] Symlink `~/.claude/skills/starnet-playtest` and `~/.config/opencode/skills/starnet-playtest`.
+- [x] Conduct live playtest run (`seed: playtest-326`) and generate Playtest Report.
+- [x] Run `make check` (1745 tests pass, 0 fail).
+
+## Outcome & Key Takeaways
+- The `starnet-playtest` skill provides a clear, repeatable playtest loop for agent-driven evaluation.
+- Live run identified two concrete findings:
+  1. Timed action command collision (`probe` immediately followed by `xploit` without `tick`).
+  2. Hidden set-piece sensor attribution (`alarm/sensor` tripping `alarm/alarm-latch` and escalating global alert to TRACE without logging which node/sensor triggered it).
